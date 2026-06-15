@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-size: 14.5px;
+  }
+  body {
+    @apply bg-background text-on-background font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .shadow-ambient {
+    box-shadow: 0px 4px 20px rgba(15, 39, 68, 0.05);
+  }
+  
+  /* Hide scrollbar for sidebar */
+  .admin-sidebar-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .admin-sidebar-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Markdown prose styling rules */
+  .prose h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+    color: #0f2744;
+  }
+  .prose h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #0f2744;
+  }
+  .prose h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+    color: #0f2744;
+  }
+  .prose p {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+  }
+  .prose ul {
+    list-style-type: disc !important;
+    padding-left: 1.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  .prose ol {
+    list-style-type: decimal !important;
+    padding-left: 1.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  .prose li {
+    margin-bottom: 0.25rem;
+    display: list-item !important;
+  }
+  .prose blockquote {
+    border-left: 4px solid #b89047;
+    padding-left: 1rem;
+    font-style: italic;
+    color: #5c6370;
+    margin-bottom: 0.75rem;
+  }
+  .prose a {
+    color: #b89047;
+    text-decoration: underline;
+  }
+
+  /* Customer portal utility classes */
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .customer-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .customer-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .customer-scrollbar::-webkit-scrollbar-thumb {
+    background: #c4c6d0;
+    border-radius: 9999px;
+  }
+  .customer-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a4a6b0;
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
