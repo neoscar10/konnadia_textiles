@@ -1,0 +1,74 @@
+name: Deploy Laravel to Hostinger via SSH
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy Laravel App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy through SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USER }}
+          port: ${{ secrets.HOSTINGER_PORT }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "Starting deployment..."
+
+            if [ -z "${{ secrets.HOSTINGER_PATH }}" ]; then
+              echo "HOSTINGER_PATH secret is missing."
+              exit 1
+            fi
+
+            cd ${{ secrets.HOSTINGER_PATH }}
+
+            if [ ! -d ".git" ]; then
+              echo "Deployment path is not a Git repository."
+              exit 1
+            fi
+
+            if [ ! -f "artisan" ]; then
+              echo "artisan file not found. This does not look like the Laravel root directory."
+              exit 1
+            fi
+
+            echo "Putting Laravel app into maintenance mode..."
+            php artisan down || true
+
+            echo "Pulling latest code from master branch..."
+            git fetch origin master
+            git reset --hard origin/master
+
+            echo "Installing Composer dependencies..."
+            composer install --no-dev --optimize-autoloader --no-interaction
+
+            echo "Running database migrations..."
+            php artisan migrate --force
+
+            echo "Clearing old Laravel caches..."
+            php artisan optimize:clear
+
+            echo "Caching Laravel configuration..."
+            php artisan config:cache
+
+            echo "Caching Laravel routes..."
+            php artisan route:cache
+
+            echo "Caching Laravel views..."
+            php artisan view:cache
+
+            echo "Creating storage symlink if needed..."
+            php artisan storage:link || true
+
+            echo "Bringing Laravel app back online..."
+            php artisan up
+
+            echo "Deployment completed successfully."
