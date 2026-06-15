@@ -3,7 +3,7 @@
         
         <!-- Left: Logo / Branding -->
         <div class="flex items-center gap-8">
-            <a href="{{ route('customer.dashboard') }}" class="flex items-center gap-2">
+            <a href="{{ route('customer.dashboard') }}" wire:navigate class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-gold lg:text-gold text-3xl">storefront</span>
                 <span class="font-bold text-lg tracking-tight text-[#001229] lg:text-white">
                     Kannodia<span class="text-gold"> Textiles</span>
@@ -12,16 +12,16 @@
 
             <!-- Desktop Nav Links -->
             <nav class="hidden lg:flex items-center gap-6">
-                <a href="{{ route('customer.dashboard') }}" class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.dashboard') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
+                <a href="{{ route('customer.dashboard') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.dashboard') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
                     Dashboard
                 </a>
-                <a href="{{ route('customer.products.index') }}" class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.products.*') || request()->routeIs('customer.categories.*') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
+                <a href="{{ route('customer.products.index') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.products.*') || request()->routeIs('customer.categories.*') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
                     Products
                 </a>
-                <a href="{{ route('customer.orders.index') }}" class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.orders.*') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
+                <a href="{{ route('customer.orders.index') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.orders.*') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
                     Orders
                 </a>
-                <a href="{{ route('customer.cart.saved') }}" class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.cart.saved') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
+                <a href="{{ route('customer.cart.saved') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.cart.saved') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
                     Saved Carts
                 </a>
             </nav>
@@ -41,13 +41,13 @@
         <div class="flex items-center gap-4">
             
             <!-- Notifications Link -->
-            <a href="{{ route('customer.notifications.index') }}" class="relative p-2 text-slate-600 lg:text-slate-300 hover:text-slate-900 lg:hover:text-white rounded-full hover:bg-slate-100 lg:hover:bg-slate-800 transition-colors">
+            <a href="{{ route('customer.notifications.index') }}" wire:navigate class="relative p-2 text-slate-600 lg:text-slate-300 hover:text-slate-900 lg:hover:text-white rounded-full hover:bg-slate-100 lg:hover:bg-slate-800 transition-colors">
                 <span class="material-symbols-outlined text-2xl">notifications</span>
                 <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-white lg:ring-[#001229]"></span>
             </a>
 
             <!-- Cart Link -->
-            <a href="{{ route('customer.cart.index') }}" class="relative p-2 text-slate-600 lg:text-slate-300 hover:text-slate-900 lg:hover:text-white rounded-full hover:bg-slate-100 lg:hover:bg-slate-800 transition-colors">
+            <a href="{{ route('customer.cart.index') }}" wire:navigate class="relative p-2 text-slate-600 lg:text-slate-300 hover:text-slate-900 lg:hover:text-white rounded-full hover:bg-slate-100 lg:hover:bg-slate-800 transition-colors">
                 <span class="material-symbols-outlined text-2xl">shopping_cart</span>
                 <span class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-[#001229] ring-2 ring-white lg:ring-[#001229]">3</span>
             </a>
@@ -70,10 +70,10 @@
                         <p class="text-xs text-slate-500">Logged in as</p>
                         <p class="text-sm font-semibold text-slate-800 truncate">Raj Garments</p>
                     </div>
-                    <a href="{{ route('customer.profile.show') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                    <a href="{{ route('customer.profile.show') }}" wire:navigate class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                         <span class="material-symbols-outlined text-lg">person</span> My Profile
                     </a>
-                    <a href="{{ route('customer.profile.change-password') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                    <a href="{{ route('customer.profile.change-password') }}" wire:navigate class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                         <span class="material-symbols-outlined text-lg">lock</span> Change Password
                     </a>
                     <div class="border-t border-outline-variant/30 my-1"></div>

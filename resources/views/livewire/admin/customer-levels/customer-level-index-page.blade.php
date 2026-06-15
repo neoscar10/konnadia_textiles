@@ -80,30 +80,32 @@
     </x-admin.card>
 
     <!-- Add/Edit Modal -->
-    <x-admin.modal id="add-customer-level" title="{{ $editingId ? 'Edit Customer Level' : 'Add Customer Level' }}" maxWidth="md">
+    <x-admin.modal id="add-customer-level" title="{{ $editingId ? 'Edit Customer Level' : 'Add Customer Level' }}" maxWidth="2xl">
         <form wire:submit="save" class="space-y-md">
-            <div class="space-y-xs">
-                <label class="font-label-md text-on-surface-variant">Level Name *</label>
-                <input type="text" wire:model="form.name" placeholder="e.g. Diamond Partner" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
-                @error('form.name') <span class="text-error text-xs">{{ $message }}</span> @enderror
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                <div class="space-y-xs">
+                    <label class="font-label-md text-on-surface-variant">Level Name *</label>
+                    <input type="text" wire:model="form.name" placeholder="e.g. Diamond Partner" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
+                    @error('form.name') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
 
-            <div class="space-y-xs">
-                <label class="font-label-md text-on-surface-variant">Base Discount (%) *</label>
-                <input type="number" step="0.01" wire:model="form.discount_percentage" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
-                @error('form.discount_percentage') <span class="text-error text-xs">{{ $message }}</span> @enderror
-            </div>
+                <div class="space-y-xs">
+                    <label class="font-label-md text-on-surface-variant">Base Discount (%) *</label>
+                    <input type="number" step="0.01" wire:model="form.discount_percentage" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
+                    @error('form.discount_percentage') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
 
-            <div class="space-y-xs">
-                <label class="font-label-md text-on-surface-variant">Default Credit Limit (₹) *</label>
-                <input type="number" step="0.01" wire:model="form.default_credit_limit" placeholder="100000" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
-                @error('form.default_credit_limit') <span class="text-error text-xs">{{ $message }}</span> @enderror
-            </div>
+                <div class="space-y-xs">
+                    <label class="font-label-md text-on-surface-variant">Default Credit Limit (₹) *</label>
+                    <input type="number" step="0.01" wire:model="form.default_credit_limit" placeholder="100000" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
+                    @error('form.default_credit_limit') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
 
-            <div class="space-y-xs">
-                <label class="font-label-md text-on-surface-variant">Sort Order</label>
-                <input type="number" wire:model="form.sort_order" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
-                @error('form.sort_order') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                <div class="space-y-xs">
+                    <label class="font-label-md text-on-surface-variant">Sort Order</label>
+                    <input type="number" wire:model="form.sort_order" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
+                    @error('form.sort_order') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
             </div>
 
             <div class="space-y-xs">
