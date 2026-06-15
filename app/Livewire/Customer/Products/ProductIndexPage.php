@@ -19,6 +19,8 @@ class ProductIndexPage extends Component
     public $max_price = 5000;
     public $sort = 'newest';
 
+    public $expandedCategories = [];
+
     protected $queryString = [
         'search' => ['except' => ''],
         'category' => ['except' => ''],
@@ -27,6 +29,38 @@ class ProductIndexPage extends Component
         'max_price' => ['except' => 5000],
         'sort' => ['except' => 'newest'],
     ];
+
+    public function toggleCategory($categoryId)
+    {
+        if (in_array($categoryId, $this->expandedCategories)) {
+            $this->expandedCategories = array_diff($this->expandedCategories, [$categoryId]);
+        } else {
+            $this->expandedCategories[] = $categoryId;
+        }
+    }
+
+    public function selectCategory($categoryId)
+    {
+        $this->category = $categoryId;
+        $this->resetPage();
+        $this->expandParentIfNeeded($categoryId);
+    }
+
+    protected function expandParentIfNeeded($categoryId)
+    {
+        if ($categoryId) {
+            $cat = \App\Models\Category::find($categoryId);
+            if ($cat && $cat->parent_id && !in_array($cat->parent_id, $this->expandedCategories)) {
+                $this->expandedCategories[] = $cat->parent_id;
+            }
+        }
+    }
+
+    public function updatedCategory($value)
+    {
+        $this->expandParentIfNeeded($value);
+        $this->resetPage();
+    }
 
     public function updating($name)
     {
@@ -37,12 +71,14 @@ class ProductIndexPage extends Component
 
     public function clearFilters()
     {
-        $this->reset(['search', 'category', 'availability', 'min_price', 'max_price', 'sort']);
+        $this->reset(['search', 'category', 'availability', 'min_price', 'max_price', 'sort', 'expandedCategories']);
         $this->resetPage();
     }
 
     public function render(ProductCatalogService $catalogService)
     {
+        $this->expandParentIfNeeded($this->category);
+
         $filters = [
             'search' => $this->search,
             'category' => $this->category,

@@ -7,16 +7,44 @@
     />
 
     <!-- Mobile horizontal scrolling filter chips -->
-    <div class="lg:hidden flex items-center gap-2 overflow-x-auto hide-scrollbar mb-4 pb-2">
-        <button wire:click="clearFilters" class="px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap {{ empty($category) && $availability === 'all' ? 'bg-[#001229] text-white' : 'bg-white border border-outline-variant/30 text-slate-700' }}">All Items</button>
+    <div class="lg:hidden flex items-center gap-2 overflow-x-auto hide-scrollbar mb-2 pb-1">
+        <button wire:click="selectCategory('')" class="px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap {{ empty($category) ? 'bg-[#001229] text-white' : 'bg-white border border-outline-variant/30 text-slate-700' }}">All Items</button>
         @foreach($categoriesList as $cat)
             @if(!$cat['parent_id'])
-                <button wire:click="$set('category', '{{ $cat['id'] }}')" class="px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap {{ (string)$category === (string)$cat['id'] ? 'bg-[#001229] text-white' : 'bg-white border border-outline-variant/30 text-slate-700' }}">
+                @php
+                    $isTopActive = (string)$category === (string)$cat['id'] || (collect($categoriesList)->firstWhere('id', $category)['parent_id'] ?? null) == $cat['id'];
+                @endphp
+                <button wire:click="selectCategory('{{ $cat['id'] }}')" class="px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap {{ $isTopActive ? 'bg-[#001229] text-white' : 'bg-white border border-outline-variant/30 text-slate-700' }}">
                     {{ $cat['name'] }}
                 </button>
             @endif
         @endforeach
     </div>
+
+    <!-- Mobile subcategory scrolling chips -->
+    @if($category)
+        @php
+            $currentCat = collect($categoriesList)->firstWhere('id', $category);
+            $parentId = $currentCat['parent_id'] ?? $currentCat['id'];
+            $subCategories = collect($categoriesList)->where('parent_id', $parentId);
+        @endphp
+        @if($subCategories->isNotEmpty())
+            <div class="lg:hidden flex items-center gap-2 overflow-x-auto hide-scrollbar mb-4 pb-2">
+                <span class="text-[10px] uppercase font-bold text-slate-400 pl-1 mr-1">Sub:</span>
+                @php
+                    $parentCat = collect($categoriesList)->firstWhere('id', $parentId);
+                @endphp
+                <button wire:click="selectCategory('{{ $parentId }}')" class="px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap {{ (string)$category === (string)$parentId ? 'bg-[#001229] text-white' : 'bg-slate-100 text-slate-600' }}">
+                    All {{ $parentCat['name'] }}
+                </button>
+                @foreach($subCategories as $sub)
+                    <button wire:click="selectCategory('{{ $sub['id'] }}')" class="px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap {{ (string)$category === (string)$sub['id'] ? 'bg-[#001229] text-white' : 'bg-slate-100 text-slate-600' }}">
+                        {{ $sub['name'] }}
+                    </button>
+                @endforeach
+            </div>
+        @endif
+    @endif
 
     <!-- Main catalog layout: Sidebar filters + Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -33,16 +61,68 @@
                 <!-- Categories -->
                 <div>
                     <h5 class="text-xs font-bold text-[#001229] uppercase tracking-wider mb-3">Categories</h5>
-                    <div class="space-y-2.5">
-                        <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer">
-                            <input type="radio" wire:model.live="category" value="" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">
-                            <span>All Categories</span>
-                        </label>
+                    <div class="space-y-1">
+                        <!-- All Categories -->
+                        <div class="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-colors {{ $category === '' ? 'bg-slate-50 font-bold' : '' }}">
+                            <button wire:click="selectCategory('')" class="flex-1 text-left text-sm text-slate-700 hover:text-slate-900 cursor-pointer">
+                                All Categories
+                            </button>
+                            @if($category === '')
+                                <span class="material-symbols-outlined text-xs text-gold">check</span>
+                            @endif
+                        </div>
+
                         @foreach($categoriesList as $cat)
-                            <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer" style="margin-left: {{ $cat['parent_id'] ? '1.25rem' : '0' }}">
-                                <input type="radio" wire:model.live="category" value="{{ $cat['id'] }}" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">
-                                <span>{{ $cat['name'] }}</span>
-                            </label>
+                            @if(!$cat['parent_id'])
+                                @php
+                                    $hasChildren = collect($categoriesList)->where('parent_id', $cat['id'])->isNotEmpty();
+                                    $isExpanded = in_array($cat['id'], $expandedCategories);
+                                    $isActive = (string)$category === (string)$cat['id'];
+                                    $hasActiveChild = (collect($categoriesList)->firstWhere('id', $category)['parent_id'] ?? null) == $cat['id'];
+                                @endphp
+                                <div class="space-y-1">
+                                    <div class="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-colors {{ $isActive || $hasActiveChild ? 'bg-[#001229]/5 font-bold text-[#001229]' : 'text-slate-700' }}">
+                                        <button wire:click="selectCategory('{{ $cat['id'] }}')" class="flex-1 text-left text-sm hover:text-[#001229] cursor-pointer">
+                                            {{ $cat['name'] }}
+                                        </button>
+                                        
+                                        <div class="flex items-center gap-1.5">
+                                            @if($isActive)
+                                                <span class="material-symbols-outlined text-xs text-gold">check</span>
+                                            @endif
+                                            
+                                            @if($hasChildren)
+                                                <button wire:click.stop="toggleCategory('{{ $cat['id'] }}')" class="p-0.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
+                                                    <span class="material-symbols-outlined text-sm transform transition-transform {{ $isExpanded ? 'rotate-180' : '' }}">
+                                                        keyboard_arrow_down
+                                                    </span>
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <!-- Subcategories (Drill down) -->
+                                    @if($hasChildren && $isExpanded)
+                                        <div class="pl-4 space-y-1 border-l border-slate-100 ml-3">
+                                            @foreach($categoriesList as $subCat)
+                                                @if($subCat['parent_id'] === $cat['id'])
+                                                    @php
+                                                        $isSubActive = (string)$category === (string)$subCat['id'];
+                                                    @endphp
+                                                    <div class="flex items-center justify-between py-1 px-2 rounded hover:bg-slate-50 transition-colors {{ $isSubActive ? 'bg-[#001229]/5 font-semibold text-[#001229]' : 'text-slate-600' }}">
+                                                        <button wire:click="selectCategory('{{ $subCat['id'] }}')" class="flex-1 text-left text-xs hover:text-slate-800 cursor-pointer">
+                                                            {{ $subCat['name'] }}
+                                                        </button>
+                                                        @if($isSubActive)
+                                                            <span class="material-symbols-outlined text-xs text-gold">check</span>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
                         @endforeach
                     </div>
                 </div>
