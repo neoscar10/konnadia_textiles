@@ -13,7 +13,7 @@
         <div class="grid grid-cols-2 gap-4 text-xs p-2">
             <div>
                 <span class="text-slate-400 font-semibold block uppercase">Order Reference</span>
-                <span class="font-extrabold text-[#001229] text-sm mt-0.5">KT-ORD-100245</span>
+                <span class="font-extrabold text-[#001229] text-sm mt-0.5">{{ $orderData['order_number'] }}</span>
             </div>
             <div>
                 <span class="text-slate-400 font-semibold block uppercase">Order Date</span>
@@ -21,11 +21,21 @@
             </div>
             <div>
                 <span class="text-slate-400 font-semibold block uppercase">Grand Total (Incl. GST)</span>
-                <span class="font-extrabold text-[#001229] text-sm mt-0.5">₹46,480</span>
+                <span class="font-extrabold text-[#001229] text-sm mt-0.5">₹{{ number_format($orderData['total_amount'], 2) }}</span>
             </div>
             <div>
                 <span class="text-slate-400 font-semibold block uppercase">Billing Terms</span>
-                <span class="font-extrabold text-[#001229] text-sm mt-0.5">30-Day B2B Credit Profile</span>
+                <span class="font-extrabold text-[#001229] text-sm mt-0.5">
+                    @if ($orderData['checkout_method'] === 'credit')
+                        @if ($orderData['used_credit_override'])
+                            Credit Purchase (Pending Credit Review)
+                        @else
+                            Credit Purchase (Approved)
+                        @endif
+                    @else
+                        Manual Payment (Awaiting Receipt Verification)
+                    @endif
+                </span>
             </div>
         </div>
     </x-customer.card>
@@ -33,7 +43,15 @@
     <!-- Stepper (Submitted state highlighted) -->
     <div class="bg-white border border-outline-variant/30 rounded-xl p-5 shadow-ambient mb-8">
         <h3 class="text-xs font-bold text-[#001229] uppercase tracking-wider text-left mb-4">Current Progress</h3>
-        <x-customer.order-progress status="submitted" />
+        @php
+            $status = 'submitted';
+            if ($orderData['checkout_method'] === 'credit' && $orderData['used_credit_override']) {
+                $status = 'pending_credit_review';
+            } elseif ($orderData['checkout_method'] === 'manual_payment') {
+                $status = 'pending_payment_verification';
+            }
+        @endphp
+        <x-customer.order-progress :status="$status" />
     </div>
 
     <!-- WhatsApp Support Banner -->
@@ -52,7 +70,7 @@
 
     <!-- Actions -->
     <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-        <a href="{{ route('customer.orders.show', 'KT-ORD-100245') }}" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 rounded-lg text-xs font-bold bg-[#001229] text-white hover:bg-slate-800 transition-colors shadow-sm">
+        <a href="{{ route('customer.orders.show', $orderData['order_number']) }}" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 rounded-lg text-xs font-bold bg-[#001229] text-white hover:bg-slate-800 transition-colors shadow-sm">
             View Order Details
         </a>
         <a href="{{ route('customer.dashboard') }}" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 rounded-lg text-xs font-bold text-slate-600 border border-outline-variant/30 hover:bg-slate-50 transition-colors bg-white">

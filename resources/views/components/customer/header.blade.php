@@ -47,9 +47,18 @@
             </a>
 
             <!-- Cart Link -->
-            <a href="{{ route('customer.cart.index') }}" wire:navigate class="relative p-2 text-slate-600 lg:text-slate-300 hover:text-slate-900 lg:hover:text-white rounded-full hover:bg-slate-100 lg:hover:bg-slate-800 transition-colors">
+            @php
+                $cartCount = 0;
+                if (auth()->check()) {
+                    $cartCount = resolve(\App\Services\Cart\CartService::class)->getCartItemCount(auth()->user());
+                }
+            @endphp
+            <a href="{{ route('customer.cart.index') }}" wire:navigate 
+               x-data="{ count: {{ $cartCount }} }" 
+               @cart-updated.window="count = $event.detail.count"
+               class="relative p-2 text-slate-600 lg:text-slate-300 hover:text-slate-900 lg:hover:text-white rounded-full hover:bg-slate-100 lg:hover:bg-slate-800 transition-colors">
                 <span class="material-symbols-outlined text-2xl">shopping_cart</span>
-                <span class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-[#001229] ring-2 ring-white lg:ring-[#001229]">3</span>
+                <span x-show="count > 0" class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-[#001229] ring-2 ring-white lg:ring-[#001229]" x-text="count"></span>
             </a>
 
             <!-- Profile Avatar (Desktop Dropdown UI, mobile simple link) -->

@@ -45,4 +45,14 @@ class Customer extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function carts()
+    {
+        return $this->hasMany(Cart::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }

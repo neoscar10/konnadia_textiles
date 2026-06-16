@@ -11,6 +11,8 @@ use App\Services\Portal\ProductCatalogService;
 use App\Services\Portal\CustomerPricingService;
 use App\Services\Portal\ProductAvailabilityService;
 use App\Services\Portal\ProductUnitPricingService;
+use App\Services\Cart\CartService;
+use Illuminate\Validation\ValidationException;
 
 #[Layout('components.customer.layout')]
 class ProductShowPage extends Component
@@ -120,6 +122,18 @@ class ProductShowPage extends Component
         $this->recalculate($catalogService);
     }
 
+    public function decrementQty(ProductCatalogService $catalogService)
+    {
+        $this->qty = max(10, (int)$this->qty - 1);
+        $this->recalculate($catalogService);
+    }
+
+    public function incrementQty(ProductCatalogService $catalogService)
+    {
+        $this->qty = (int)$this->qty + 1;
+        $this->recalculate($catalogService);
+    }
+
     public function recalculate(ProductCatalogService $catalogService)
     {
         $user = auth()->user();
@@ -163,14 +177,46 @@ class ProductShowPage extends Component
         $this->isPurchasable = $availability['is_purchasable'];
     }
 
-    public function addToCart()
+    public function addToCart(CartService $cartService, ProductCatalogService $catalogService)
     {
         if (!$this->isPurchasable) {
-            $this->dispatch('show-toast', type: 'error', message: 'This configuration is currently out of stock.');
+            $this->dispatch('toast', type: 'error', message: 'This product is currently out of stock.');
             return;
         }
 
-        $this->dispatch('show-toast', type: 'info', message: 'Cart functionality will be available soon.');
+        $user = auth()->user();
+        $product = Product::with(['variationGroups', 'combinations'])->find($this->productId);
+
+        // Resolve combination from selected variation values
+        $combination = $catalogService->resolveSelectedCombination($product, $this->selectedValues);
+
+        try {
+            $existingItem = null;
+            $cart = $cartService->getOrCreateActiveCart($user);
+            $existingItem = $cart->items()
+                ->where('product_id', $product->id)
+                ->where('product_combination_id', $combination?->id)
+                ->where('product_unit_id', $this->selectedUnitId)
+                ->first();
+
+            $cartService->addItem($user, [
+                'product_id' => $this->productId,
+                'combination_id' => $combination?->id,
+                'unit_id' => $this->selectedUnitId,
+                'quantity' => $this->qty,
+                'selected_options' => $this->selectedValues ?: null,
+            ]);
+
+            $message = $existingItem
+                ? 'Cart quantity updated successfully.'
+                : 'Product added to cart successfully.';
+
+            $this->dispatch('toast', type: 'success', message: $message);
+            $this->dispatch('cart-updated', count: $cartService->getCartItemCount($user));
+        } catch (ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->dispatch('toast', type: 'error', message: $firstError);
+        }
     }
 
     public function render()

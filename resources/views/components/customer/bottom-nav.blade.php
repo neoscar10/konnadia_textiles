@@ -12,10 +12,19 @@
     </a>
 
     <!-- Cart Tab -->
-    <a href="{{ route('customer.cart.index') }}" wire:navigate class="relative flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all {{ request()->routeIs('customer.cart.index') ? 'text-gold' : 'text-slate-500' }}">
+    @php
+        $cartCount = 0;
+        if (auth()->check()) {
+            $cartCount = resolve(\App\Services\Cart\CartService::class)->getCartItemCount(auth()->user());
+        }
+    @endphp
+    <a href="{{ route('customer.cart.index') }}" wire:navigate 
+       x-data="{ count: {{ $cartCount }} }" 
+       @cart-updated.window="count = $event.detail.count"
+       class="relative flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all {{ request()->routeIs('customer.cart.index') ? 'text-gold' : 'text-slate-500' }}">
         <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' {{ request()->routeIs('customer.cart.index') ? 1 : 0 }}">shopping_cart</span>
         <span class="text-[10px] font-medium">Cart</span>
-        <span class="absolute top-1.5 right-3.5 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[9px] font-bold text-[#001229] ring-2 ring-white">3</span>
+        <span x-show="count > 0" class="absolute top-1.5 right-3.5 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[9px] font-bold text-[#001229] ring-2 ring-white" x-text="count"></span>
     </a>
 
     <!-- Orders Tab -->
