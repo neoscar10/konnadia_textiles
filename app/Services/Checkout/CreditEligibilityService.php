@@ -16,6 +16,20 @@ class CreditEligibilityService
         $outstandingAmount = (float) $customer->outstanding_amount;
         $allowBeyondLimit = (bool) $customer->allow_credit_beyond_limit;
 
+        if ($customer->credit_hold) {
+            return [
+                'can_use_credit' => false,
+                'is_within_limit' => false,
+                'is_privileged_override' => false,
+                'credit_limit' => $creditLimit,
+                'available_credit' => $availableCredit,
+                'outstanding_amount' => $outstandingAmount,
+                'order_total' => $orderTotal,
+                'excess_amount' => $orderTotal,
+                'message' => 'Your credit facility is currently on hold. Please contact administration or use manual payment.',
+            ];
+        }
+
         // If credit limit is zero, customer has no credit facility
         if ($creditLimit <= 0) {
             return [

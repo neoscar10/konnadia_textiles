@@ -14,7 +14,7 @@ return new class extends Migration
         // Add HSN code and GST percentage to products table
         Schema::table('products', function (Blueprint $table) {
             if (!Schema::hasColumn('products', 'hsn_code')) {
-                $table->string('hsn_code', 20)->nullable()->after('brand');
+                $table->string('hsn_code', 20)->nullable()->after('title');
             }
             if (!Schema::hasColumn('products', 'gst_percentage')) {
                 $table->decimal('gst_percentage', 5, 2)->nullable()->after('hsn_code');

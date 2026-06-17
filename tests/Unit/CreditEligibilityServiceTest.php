@@ -89,4 +89,23 @@ class CreditEligibilityServiceTest extends TestCase
         $this->assertEquals(200.0, $result['excess_amount']);
         $this->assertEquals('This order exceeds your available credit limit, but your account is allowed to purchase beyond the limit.', $result['message']);
     }
+
+    public function test_credit_hold_blocks_checkout(): void
+    {
+        $customer = new Customer([
+            'credit_limit' => 1000.0,
+            'available_credit' => 800.0,
+            'outstanding_amount' => 200.0,
+            'allow_credit_beyond_limit' => true,
+            'credit_hold' => true,
+            'credit_hold_reason' => 'Late payment',
+        ]);
+
+        $result = $this->service->evaluate($customer, 100.0);
+
+        $this->assertFalse($result['can_use_credit']);
+        $this->assertFalse($result['is_within_limit']);
+        $this->assertFalse($result['is_privileged_override']);
+        $this->assertEquals('Your credit facility is currently on hold. Please contact administration or use manual payment.', $result['message']);
+    }
 }
