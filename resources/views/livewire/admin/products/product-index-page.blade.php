@@ -173,6 +173,17 @@
             <!-- STEP 1: Basic Info -->
             @if($currentStep === 1)
                 <div class="space-y-lg">
+                    {{-- Warning for existing products with missing GST --}}
+                    @if($selectedProductId && $basicInfo['gst_percentage'] === '')
+                        <div class="flex items-start gap-sm p-md rounded-lg bg-warning/10 border border-warning/30">
+                            <span class="material-symbols-outlined text-warning text-[20px] shrink-0 mt-0.5">warning</span>
+                            <div>
+                                <p class="font-label-md text-on-surface font-bold">GST Not Configured</p>
+                                <p class="font-body-sm text-on-surface-variant">This product is missing a GST percentage. Customers will not be able to purchase it until GST is set. Please enter the applicable rate below.</p>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
                         <div class="space-y-xs">
                             <label class="font-label-md text-on-surface-variant">Product Title *</label>
@@ -187,6 +198,23 @@
                                 <input type="number" step="0.01" wire:model="basicInfo.base_price" placeholder="0.00" class="w-full pl-xl pr-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
                             </div>
                             @error('basicInfo.base_price') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="space-y-xs">
+                            <label class="font-label-md text-on-surface-variant">HSN Code</label>
+                            <input type="text" wire:model="basicInfo.hsn_code" placeholder="e.g. 6205" maxlength="20" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface font-mono">
+                            <p class="text-xs text-on-surface-variant/70">Enter the applicable HSN code for this product if available.</p>
+                            @error('basicInfo.hsn_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="space-y-xs">
+                            <label class="font-label-md text-on-surface-variant">GST Percentage *</label>
+                            <div class="relative">
+                                <input type="number" step="0.01" min="0" max="100" wire:model="basicInfo.gst_percentage" placeholder="e.g. 12" class="w-full pr-xl px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                <span class="absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">%</span>
+                            </div>
+                            <p class="text-xs text-on-surface-variant/70">Enter the GST % for this product. Used for cart, checkout, and order tax calculation. Enter <strong>0</strong> for zero-rated products.</p>
+                            @error('basicInfo.gst_percentage') <span class="text-error text-xs">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
@@ -208,7 +236,7 @@
 
                                 <!-- Group 2: Lists & Quote -->
                                 <div class="flex items-center gap-xs">
-                                    <button type="button" onclick="const ta = document.getElementById('desc-editor'); const start = ta.selectionStart; const text = ta.value; ta.value = text.substring(0, start) + '> ' + text.substring(start); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary text-base font-bold" title="Quote">“</button>
+                                    <button type="button" onclick="const ta = document.getElementById('desc-editor'); const start = ta.selectionStart; const text = ta.value; ta.value = text.substring(0, start) + '> ' + text.substring(start); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary text-base font-bold" title="Quote">"</button>
                                     <button type="button" onclick="const ta = document.getElementById('desc-editor'); const start = ta.selectionStart; const text = ta.value; ta.value = text.substring(0, start) + '- ' + text.substring(start); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary flex items-center justify-center" title="Bullet List">
                                         <span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
                                     </button>
@@ -666,6 +694,21 @@
                         <div>
                             <span class="text-xs text-on-surface-variant block select-none">Base Price</span>
                             <span class="font-bold text-primary">₹{{ number_format((float)($basicInfo['base_price'] ?: 0), 2) }}</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-on-surface-variant block select-none">HSN Code</span>
+                            <span class="font-mono text-sm text-on-surface font-bold">{{ $basicInfo['hsn_code'] ?: '—' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-on-surface-variant block select-none">GST Percentage</span>
+                            @if($basicInfo['gst_percentage'] !== '')
+                                <span class="font-bold text-success">{{ $basicInfo['gst_percentage'] }}%</span>
+                            @else
+                                <span class="font-bold text-error flex items-center gap-xxs">
+                                    <span class="material-symbols-outlined text-[14px]">warning</span>
+                                    Missing — product cannot be sold until set
+                                </span>
+                            @endif
                         </div>
                         @if($selectedProductId)
                             @php

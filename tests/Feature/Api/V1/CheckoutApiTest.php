@@ -41,6 +41,8 @@ class CheckoutApiTest extends TestCase
             'discount_percentage' => 20.00,
             'default_credit_limit' => 10000,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $this->customerUser = User::factory()->create();
@@ -59,6 +61,8 @@ class CheckoutApiTest extends TestCase
             'outstanding_amount' => 0.0,
             'available_credit' => 10000,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $this->product = Product::create([
@@ -66,6 +70,8 @@ class CheckoutApiTest extends TestCase
             'sku' => 'COT-001',
             'base_price' => 100.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 100,
         ]);
 

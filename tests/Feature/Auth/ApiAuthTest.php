@@ -28,6 +28,8 @@ class ApiAuthTest extends TestCase
             'name' => 'Standard Level',
             'discount_percentage' => 5.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
     }
 
@@ -61,6 +63,8 @@ class ApiAuthTest extends TestCase
             'mobile_number' => '9876543210',
             'email' => $user->email,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $response = $this->postJson('/api/v1/auth/login', [
@@ -98,6 +102,8 @@ class ApiAuthTest extends TestCase
             'mobile_number' => '9876543211',
             'email' => $user->email,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $loginResponse = $this->postJson('/api/v1/auth/login', [
@@ -130,6 +136,8 @@ class ApiAuthTest extends TestCase
             'mobile_number' => '9876543212',
             'email' => $user->email,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $loginResponse = $this->postJson('/api/v1/auth/login', [

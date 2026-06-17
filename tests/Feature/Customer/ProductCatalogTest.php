@@ -33,6 +33,8 @@ class ProductCatalogTest extends TestCase
             'name' => 'Gold Distributor',
             'discount_percentage' => 10.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         Customer::create([
@@ -45,6 +47,8 @@ class ProductCatalogTest extends TestCase
             'mobile_number' => '9876543210',
             'email' => $this->user->email,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
     }
 
@@ -61,6 +65,8 @@ class ProductCatalogTest extends TestCase
             'sku' => 'ACT-001',
             'base_price' => 100,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 10,
         ]);
 
@@ -84,6 +90,8 @@ class ProductCatalogTest extends TestCase
             'sku' => 'DIS-001',
             'base_price' => 1000,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 15,
         ]);
 
@@ -99,6 +107,8 @@ class ProductCatalogTest extends TestCase
             'sku' => 'SHI-001',
             'base_price' => 100,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 10,
         ]);
 
@@ -107,6 +117,8 @@ class ProductCatalogTest extends TestCase
             'sku' => 'PAN-002',
             'base_price' => 100,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 10,
         ]);
 

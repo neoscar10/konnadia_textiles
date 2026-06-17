@@ -196,7 +196,10 @@ class ProductDetailResource extends JsonResource
                 'selected_unit_id' => !empty($formattedUnits) ? $formattedUnits[0]['id'] : null,
                 'quantity' => 10,
                 'minimum_order_quantity' => 10,
-                'gst_percentage' => 12,
+            ],
+            'tax' => [
+                'hsn_code' => $this->hsn_code,
+                'gst_percentage' => $this->gst_percentage !== null ? (float)$this->gst_percentage : null,
             ]
         ];
     }

@@ -46,6 +46,8 @@ class OrderSubmissionTest extends TestCase
             'name' => 'Bronze Level',
             'discount_percentage' => 0.00, // No discount to make math simple
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $this->customer = Customer::create([
@@ -62,6 +64,8 @@ class OrderSubmissionTest extends TestCase
             'outstanding_amount' => 0.0,
             'allow_credit_beyond_limit' => false,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'billing_address' => 'Surat, Gujarat',
         ]);
 
@@ -70,6 +74,8 @@ class OrderSubmissionTest extends TestCase
             'sku' => 'WDJ-101',
             'base_price' => 1000.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 100,
         ]);
 

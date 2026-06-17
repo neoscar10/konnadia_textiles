@@ -17,10 +17,13 @@ class Product extends Model
         'description',
         'is_active',
         'stock_quantity',
+        'hsn_code',
+        'gst_percentage',
     ];
 
     protected $casts = [
         'base_price' => 'decimal:2',
+        'gst_percentage' => 'decimal:2',
         'is_active' => 'boolean',
         'stock_quantity' => 'integer',
     ];

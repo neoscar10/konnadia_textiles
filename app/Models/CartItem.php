@@ -20,6 +20,7 @@ class CartItem extends Model
         'gst_amount',
         'line_total',
         'selected_options',
+        'hsn_code',
     ];
 
     protected $casts = [

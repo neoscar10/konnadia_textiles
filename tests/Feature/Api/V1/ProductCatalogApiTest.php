@@ -38,6 +38,8 @@ class ProductCatalogApiTest extends TestCase
             'name' => 'Silver Tier',
             'discount_percentage' => 15.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         // Customer User
@@ -54,6 +56,8 @@ class ProductCatalogApiTest extends TestCase
             'mobile_number' => '9000000001',
             'email' => $this->customerUser->email,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         // Admin User
@@ -108,6 +112,8 @@ class ProductCatalogApiTest extends TestCase
             'sku' => 'SLK-001',
             'base_price' => 5000.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 10,
         ]);
 
@@ -138,6 +144,8 @@ class ProductCatalogApiTest extends TestCase
             'name' => 'Premium Ethnic',
             'slug' => 'premium-ethnic',
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $p1 = Product::create([
@@ -145,6 +153,8 @@ class ProductCatalogApiTest extends TestCase
             'sku' => 'BAN-001',
             'base_price' => 8000.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 5,
         ]);
         $p1->categories()->attach($category->id);
@@ -154,6 +164,8 @@ class ProductCatalogApiTest extends TestCase
             'sku' => 'JNS-002',
             'base_price' => 1500.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 15,
         ]);
 
@@ -182,6 +194,8 @@ class ProductCatalogApiTest extends TestCase
             'sku' => 'KUR-L1',
             'base_price' => 3000.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 10,
         ]);
 
@@ -190,6 +204,8 @@ class ProductCatalogApiTest extends TestCase
             'sku' => 'KUR-B1',
             'base_price' => 800.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 0, // Out of stock
         ]);
 
@@ -223,6 +239,8 @@ class ProductCatalogApiTest extends TestCase
             'base_price' => 12000.00,
             'description' => 'A **premium lehenga** with custom printing.',
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 4,
         ]);
 
@@ -265,6 +283,8 @@ class ProductCatalogApiTest extends TestCase
             'name' => 'Kurtis',
             'slug' => 'kurtis',
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $p1 = Product::create([
@@ -272,6 +292,8 @@ class ProductCatalogApiTest extends TestCase
             'sku' => 'KUR-AN',
             'base_price' => 2500.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 8,
         ]);
         $p1->categories()->attach($category->id);
@@ -281,6 +303,8 @@ class ProductCatalogApiTest extends TestCase
             'sku' => 'KUR-GE',
             'base_price' => 1800.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 12,
         ]);
         $p2->categories()->attach($category->id);
@@ -290,6 +314,8 @@ class ProductCatalogApiTest extends TestCase
             'sku' => 'KUR-SK',
             'base_price' => 3500.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 5,
         ]);
         $p3->categories()->attach($category->id);
@@ -311,6 +337,8 @@ class ProductCatalogApiTest extends TestCase
             'name' => 'Fabrics',
             'slug' => 'fabrics',
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $response = $this->actingAs($this->customerUser, 'api')->getJson('/api/v1/products/filters');

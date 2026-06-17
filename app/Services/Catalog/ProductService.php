@@ -67,13 +67,15 @@ class ProductService
             $sku = $this->generateSku();
 
             $product = Product::create([
-                'title' => trim($payload['title']),
-                'slug' => Str::slug($payload['title']),
-                'sku' => $sku,
-                'base_price' => (float)$payload['base_price'],
-                'description' => trim($payload['description']),
-                'is_active' => isset($payload['is_active']) ? (bool)$payload['is_active'] : true,
-                'stock_quantity' => isset($payload['stock_quantity']) ? (int)$payload['stock_quantity'] : 0,
+                'title'          => trim($payload['title']),
+                'slug'           => Str::slug($payload['title']),
+                'sku'            => $sku,
+                'base_price'     => (float) $payload['base_price'],
+                'hsn_code'       => isset($payload['hsn_code']) && $payload['hsn_code'] !== '' ? trim($payload['hsn_code']) : null,
+                'gst_percentage' => isset($payload['gst_percentage']) && $payload['gst_percentage'] !== '' ? (float) $payload['gst_percentage'] : null,
+                'description'    => trim($payload['description']),
+                'is_active'      => isset($payload['is_active']) ? (bool) $payload['is_active'] : true,
+                'stock_quantity' => isset($payload['stock_quantity']) ? (int) $payload['stock_quantity'] : 0,
             ]);
 
             if (!empty($payload['category_ids'])) {
@@ -99,12 +101,14 @@ class ProductService
     {
         return DB::transaction(function () use ($product, $payload) {
             $product->update([
-                'title' => trim($payload['title']),
-                'slug' => Str::slug($payload['title']),
-                'base_price' => (float)$payload['base_price'],
-                'description' => trim($payload['description']),
-                'is_active' => isset($payload['is_active']) ? (bool)$payload['is_active'] : true,
-                'stock_quantity' => isset($payload['stock_quantity']) ? (int)$payload['stock_quantity'] : 0,
+                'title'          => trim($payload['title']),
+                'slug'           => Str::slug($payload['title']),
+                'base_price'     => (float) $payload['base_price'],
+                'hsn_code'       => isset($payload['hsn_code']) && $payload['hsn_code'] !== '' ? trim($payload['hsn_code']) : null,
+                'gst_percentage' => isset($payload['gst_percentage']) && $payload['gst_percentage'] !== '' ? (float) $payload['gst_percentage'] : null,
+                'description'    => trim($payload['description']),
+                'is_active'      => isset($payload['is_active']) ? (bool) $payload['is_active'] : true,
+                'stock_quantity' => isset($payload['stock_quantity']) ? (int) $payload['stock_quantity'] : 0,
             ]);
 
             if (isset($payload['category_ids'])) {

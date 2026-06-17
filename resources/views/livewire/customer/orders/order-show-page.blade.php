@@ -44,6 +44,8 @@
                             <th class="px-5 py-3.5">SKU / Specs</th>
                             <th class="px-5 py-3.5 text-center">Qty</th>
                             <th class="px-5 py-3.5 text-right">Unit Price</th>
+                            <th class="px-5 py-3.5 text-center">HSN</th>
+                            <th class="px-5 py-3.5 text-right">GST</th>
                             <th class="px-5 py-3.5 text-right">Subtotal</th>
                         </tr>
                     </thead>
@@ -69,6 +71,11 @@
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 text-right">₹{{ number_format($item['customer_unit_price'], 2) }}</td>
+                                <td class="px-5 py-4 text-center font-mono text-[10px] text-slate-500">{{ $item['hsn_code'] ?? '—' }}</td>
+                                <td class="px-5 py-4 text-right">
+                                    <span class="block">₹{{ number_format($item['gst_amount'], 2) }}</span>
+                                    <span class="text-[9px] text-slate-400">({{ (float) $item['gst_percentage'] }}%)</span>
+                                </td>
                                 <td class="px-5 py-4 text-right font-bold">₹{{ number_format($item['line_total'], 2) }}</td>
                             </tr>
                         @endforeach
@@ -172,7 +179,7 @@
                         <span class="font-bold text-slate-800">₹{{ number_format($order['subtotal'], 2) }}</span>
                     </div>
                     <div class="flex justify-between text-slate-500 font-medium">
-                        <span>GST (12%)</span>
+                        <span>GST</span>
                         <span class="font-bold text-slate-800">₹{{ number_format($order['gst_amount'], 2) }}</span>
                     </div>
                     <div class="flex justify-between text-slate-500 font-medium">

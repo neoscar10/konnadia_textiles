@@ -47,21 +47,24 @@ class ProductUnitPricingService
 
     /**
      * Calculate line estimates including subtotal, GST, and totals.
+     * GST percentage must come from the product record — never default to 12.
+     * Pass null only for display purposes when product GST is not yet configured.
      */
-    public function calculateLineEstimate(float $customerUnitPrice, ProductUnit $unit, int $quantity, float $gstPercentage = 12.0): array
+    public function calculateLineEstimate(float $customerUnitPrice, ProductUnit $unit, int $quantity, ?float $gstPercentage = null): array
     {
         $unitPrice = $this->calculatePriceForUnit($customerUnitPrice, $unit);
         $subtotal = $unitPrice * $quantity;
-        $gstAmount = $subtotal * ($gstPercentage / 100);
+        $effectiveGst = $gstPercentage ?? 0.0;
+        $gstAmount = $subtotal * ($effectiveGst / 100);
         $total = $subtotal + $gstAmount;
 
         return [
-            'unit_price' => round($unitPrice, 2),
-            'quantity' => $quantity,
-            'subtotal' => round($subtotal, 2),
-            'gst_percentage' => $gstPercentage,
-            'gst_amount' => round($gstAmount, 2),
-            'total' => round($total, 2),
+            'unit_price'     => round($unitPrice, 2),
+            'quantity'       => $quantity,
+            'subtotal'       => round($subtotal, 2),
+            'gst_percentage' => $gstPercentage,   // null means not configured
+            'gst_amount'     => round($gstAmount, 2),
+            'total'          => round($total, 2),
         ];
     }
 }

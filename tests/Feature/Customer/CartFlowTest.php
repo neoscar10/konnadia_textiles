@@ -41,6 +41,8 @@ class CartFlowTest extends TestCase
             'name' => 'Bronze Level',
             'discount_percentage' => 5.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         Customer::create([
@@ -53,6 +55,8 @@ class CartFlowTest extends TestCase
             'mobile_number' => '9876543211',
             'email' => $this->user->email,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         // Create standard product
@@ -62,6 +66,8 @@ class CartFlowTest extends TestCase
             'base_price' => 1000.00,
             'description' => 'Fine denim jeans.',
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 100,
         ]);
 
@@ -180,6 +186,8 @@ class CartFlowTest extends TestCase
             'sku' => 'OOS-999',
             'base_price' => 500,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 0,
         ]);
         

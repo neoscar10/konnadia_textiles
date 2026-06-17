@@ -216,7 +216,7 @@
                         <span class="font-bold text-slate-800">₹{{ number_format($totals['subtotal'], 2) }}</span>
                     </div>
                     <div class="flex justify-between text-slate-500 font-medium">
-                        <span>Integrated GST (12%)</span>
+                        <span>GST</span>
                         <span class="font-bold text-slate-800">₹{{ number_format($totals['gst_amount'], 2) }}</span>
                     </div>
                     <div class="flex justify-between text-slate-500 font-medium">

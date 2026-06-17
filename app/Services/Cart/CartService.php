@@ -142,30 +142,32 @@ class CartService
             $pricing = $this->pricingService->calculateCartItem($user, $product, $combination, $unit, $newQuantity);
 
             $existingItem->update([
-                'quantity' => $newQuantity,
-                'base_unit_price' => $pricing['base_unit_price'],
-                'customer_unit_price' => $pricing['customer_unit_price'],
+                'quantity'                 => $newQuantity,
+                'base_unit_price'          => $pricing['base_unit_price'],
+                'customer_unit_price'      => $pricing['customer_unit_price'],
                 'unit_conversion_quantity' => $pricing['unit_conversion_quantity'],
-                'line_subtotal' => $pricing['line_subtotal'],
-                'gst_percentage' => $pricing['gst_percentage'],
-                'gst_amount' => $pricing['gst_amount'],
-                'line_total' => $pricing['line_total'],
-                'selected_options' => $selectedOptions ?? $existingItem->selected_options,
+                'line_subtotal'            => $pricing['line_subtotal'],
+                'hsn_code'                 => $pricing['hsn_code'],
+                'gst_percentage'           => $pricing['gst_percentage'],
+                'gst_amount'               => $pricing['gst_amount'],
+                'line_total'               => $pricing['line_total'],
+                'selected_options'         => $selectedOptions ?? $existingItem->selected_options,
             ]);
         } else {
             $cart->items()->create([
-                'product_id' => $product->id,
-                'product_combination_id' => $combination?->id,
-                'product_unit_id' => $unit?->id,
-                'quantity' => $quantity,
+                'product_id'               => $product->id,
+                'product_combination_id'   => $combination?->id,
+                'product_unit_id'          => $unit?->id,
+                'quantity'                 => $quantity,
                 'unit_conversion_quantity' => $pricing['unit_conversion_quantity'],
-                'base_unit_price' => $pricing['base_unit_price'],
-                'customer_unit_price' => $pricing['customer_unit_price'],
-                'line_subtotal' => $pricing['line_subtotal'],
-                'gst_percentage' => $pricing['gst_percentage'],
-                'gst_amount' => $pricing['gst_amount'],
-                'line_total' => $pricing['line_total'],
-                'selected_options' => $selectedOptions,
+                'base_unit_price'          => $pricing['base_unit_price'],
+                'customer_unit_price'      => $pricing['customer_unit_price'],
+                'line_subtotal'            => $pricing['line_subtotal'],
+                'hsn_code'                 => $pricing['hsn_code'],
+                'gst_percentage'           => $pricing['gst_percentage'],
+                'gst_amount'               => $pricing['gst_amount'],
+                'line_total'               => $pricing['line_total'],
+                'selected_options'         => $selectedOptions,
             ]);
         }
 
@@ -195,14 +197,15 @@ class CartService
         $pricing = $this->pricingService->calculateCartItem($user, $product, $combination, $unit, $quantity);
 
         $item->update([
-            'quantity' => $quantity,
-            'base_unit_price' => $pricing['base_unit_price'],
-            'customer_unit_price' => $pricing['customer_unit_price'],
+            'quantity'                 => $quantity,
+            'base_unit_price'          => $pricing['base_unit_price'],
+            'customer_unit_price'      => $pricing['customer_unit_price'],
             'unit_conversion_quantity' => $pricing['unit_conversion_quantity'],
-            'line_subtotal' => $pricing['line_subtotal'],
-            'gst_percentage' => $pricing['gst_percentage'],
-            'gst_amount' => $pricing['gst_amount'],
-            'line_total' => $pricing['line_total'],
+            'line_subtotal'            => $pricing['line_subtotal'],
+            'hsn_code'                 => $pricing['hsn_code'],
+            'gst_percentage'           => $pricing['gst_percentage'],
+            'gst_amount'               => $pricing['gst_amount'],
+            'line_total'               => $pricing['line_total'],
         ]);
 
         return $cart->fresh();
@@ -250,6 +253,11 @@ class CartService
 
         if ($quantity < 1) {
             $errors['quantity'] = 'Quantity must be at least 1.';
+        }
+
+        // GST must be explicitly configured. null = not configured, 0 = zero-rated (allowed).
+        if ($product->gst_percentage === null) {
+            $errors['product_id'] = 'This product is missing GST configuration and cannot be added to cart. Please contact support.';
         }
 
         // If product has variation groups, a valid combination is required

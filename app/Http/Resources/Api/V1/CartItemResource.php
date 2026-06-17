@@ -53,6 +53,7 @@ class CartItemResource extends JsonResource
             ] : null,
             'quantity' => (int) $this->quantity,
             'base_quantity' => $baseQty,
+            'hsn_code' => $this->hsn_code,
             'pricing' => [
                 'currency' => 'INR',
                 'base_unit_price' => (float) $this->base_unit_price,

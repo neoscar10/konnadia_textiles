@@ -15,11 +15,13 @@ class OrderPaymentReceipt extends Model
         'status',
         'admin_note',
         'verified_at',
+        'rejected_at',
     ];
 
     protected $casts = [
         'size' => 'integer',
         'verified_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     public function order()

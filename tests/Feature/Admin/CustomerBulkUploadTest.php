@@ -30,6 +30,8 @@ class CustomerBulkUploadTest extends TestCase
             'discount_percentage' => 10,
             'default_credit_limit' => 500000,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $this->uploadService = app(CustomerBulkUploadService::class);

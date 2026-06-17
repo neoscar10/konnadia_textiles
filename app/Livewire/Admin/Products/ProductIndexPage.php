@@ -43,10 +43,13 @@ class ProductIndexPage extends Component
 
     // Step 1: Basic Info
     public array $basicInfo = [
-        'title' => '',
-        'base_price' => '',
-        'description' => '',
-        'is_active' => true,
+        'title'          => '',
+        'sku'            => '',
+        'base_price'     => '',
+        'hsn_code'       => '',
+        'gst_percentage' => '',
+        'description'    => '',
+        'is_active'      => true,
     ];
 
     // Step 2: Media
@@ -149,9 +152,11 @@ class ProductIndexPage extends Component
     {
         if ($step === 1) {
             $rules = [
-                'basicInfo.title' => ['required', 'string', 'max:200'],
-                'basicInfo.base_price' => ['required', 'numeric', 'min:0'],
-                'basicInfo.description' => ['required', 'string'],
+                'basicInfo.title'          => ['required', 'string', 'max:200'],
+                'basicInfo.base_price'     => ['required', 'numeric', 'min:0'],
+                'basicInfo.hsn_code'       => ['nullable', 'string', 'max:20'],
+                'basicInfo.gst_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
+                'basicInfo.description'    => ['required', 'string'],
             ];
 
             $this->validate($rules);
@@ -226,10 +231,12 @@ class ProductIndexPage extends Component
         
         $this->selectedProductId = $product->id;
         $this->basicInfo = [
-            'title' => $product->title,
-            'base_price' => $product->base_price,
-            'description' => $product->description ?? '',
-            'is_active' => (bool)$product->is_active,
+            'title'          => $product->title,
+            'base_price'     => $product->base_price,
+            'hsn_code'       => $product->hsn_code ?? '',
+            'gst_percentage' => $product->gst_percentage !== null ? (string) $product->gst_percentage : '',
+            'description'    => $product->description ?? '',
+            'is_active'      => (bool) $product->is_active,
         ];
 
         foreach ($product->media as $m) {
@@ -590,10 +597,12 @@ class ProductIndexPage extends Component
         $this->currentStep = 1;
         $this->selectedProductId = null;
         $this->basicInfo = [
-            'title' => '',
-            'base_price' => '',
-            'description' => '',
-            'is_active' => true,
+            'title'          => '',
+            'base_price'     => '',
+            'hsn_code'       => '',
+            'gst_percentage' => '',
+            'description'    => '',
+            'is_active'      => true,
         ];
         $this->mediaUploads = [];
         $this->existingMedia = [];

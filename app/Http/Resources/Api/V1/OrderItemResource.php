@@ -48,6 +48,7 @@ class OrderItemResource extends JsonResource
             ],
             'quantity' => (int) $this->quantity,
             'base_quantity' => $baseQty,
+            'hsn_code' => $this->hsn_code,
             'pricing' => [
                 'base_unit_price' => (float) $this->base_unit_price,
                 'customer_unit_price' => (float) $this->customer_unit_price,

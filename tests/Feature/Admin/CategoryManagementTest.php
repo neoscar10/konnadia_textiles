@@ -141,6 +141,8 @@ class CategoryManagementTest extends TestCase
             'name' => 'Men\'s Wear',
             'parent_id' => null,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         Livewire::actingAs($this->superAdmin)

@@ -42,6 +42,8 @@ class ProductManagementTest extends TestCase
             'name' => "Men's Wear",
             'slug' => 'mens-wear',
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $this->customerLevel = CustomerLevel::create([
@@ -49,6 +51,8 @@ class ProductManagementTest extends TestCase
             'discount_percentage' => 10.00,
             'default_credit_limit' => 500000.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
     }
 
@@ -92,6 +96,7 @@ class ProductManagementTest extends TestCase
             ->set('basicInfo.title', 'Linen Shirt')
             ->set('basicInfo.base_price', 1000)
             ->set('basicInfo.description', 'Nice linen shirt description')
+            ->set('basicInfo.gst_percentage', 12.0)
             ->set('selectedCategoryIds', [])
             ->call('save')
             ->assertHasErrors(['selectedCategoryIds']);
@@ -104,6 +109,8 @@ class ProductManagementTest extends TestCase
             ->set('basicInfo.title', 'Classic Chinos')
             ->set('basicInfo.base_price', 999.00)
             ->set('basicInfo.description', 'Soft cotton fabric')
+            ->set('basicInfo.gst_percentage', 12.0)
+            ->set('basicInfo.hsn_code', '6205')
             ->set('selectedCategoryIds', [$this->category->id])
             ->set('nonVariantStock', 50)
             ->set('units.level1_name', 'Piece')
@@ -155,6 +162,8 @@ class ProductManagementTest extends TestCase
                 'price' => 1100.00,
                 'stock_quantity' => 20,
                 'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             ],
             [
                 'combination_values' => ['Size' => 'L', 'Color' => 'Red'],
@@ -162,6 +171,8 @@ class ProductManagementTest extends TestCase
                 'price' => 1200.00,
                 'stock_quantity' => 15,
                 'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             ]
         ];
 
@@ -170,6 +181,8 @@ class ProductManagementTest extends TestCase
             ->set('basicInfo.title', 'Variant Polo')
             ->set('basicInfo.base_price', 1000.00)
             ->set('basicInfo.description', 'Variant polo t-shirts')
+            ->set('basicInfo.gst_percentage', 12.0)
+            ->set('basicInfo.hsn_code', '6205')
             ->set('selectedCategoryIds', [$this->category->id])
             ->set('variationGroups', $groupsPayload)
             ->set('combinations', $combinationsPayload)
@@ -202,6 +215,8 @@ class ProductManagementTest extends TestCase
             ->set('basicInfo.title', 'Special Linen')
             ->set('basicInfo.base_price', 2000.00)
             ->set('basicInfo.description', 'Description')
+            ->set('basicInfo.gst_percentage', 12.0)
+            ->set('basicInfo.hsn_code', '6205')
             ->set('selectedCategoryIds', [$this->category->id])
             ->set('pricingOverrides.' . $this->customerLevel->id, 15.00) // Custom 15% discount
             ->call('save')
@@ -222,6 +237,8 @@ class ProductManagementTest extends TestCase
             'sku' => 'KT-P-0005',
             'base_price' => 500,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         Livewire::actingAs($this->superAdmin)
@@ -238,6 +255,8 @@ class ProductManagementTest extends TestCase
             'sku' => 'KT-P-0006',
             'base_price' => 500,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         Livewire::actingAs($this->superAdmin)
@@ -257,6 +276,8 @@ class ProductManagementTest extends TestCase
             'sku' => 'KT-P-0007',
             'base_price' => 800,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         Livewire::test(ProductShowPage::class, ['productId' => $product->id])

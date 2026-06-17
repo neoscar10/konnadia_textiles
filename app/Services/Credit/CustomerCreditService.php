@@ -14,12 +14,43 @@ class CustomerCreditService
      */
     public function applyCreditOrder(Customer $customer, Order $order): void
     {
+        if ($order->credit_applied_at !== null) {
+            return; // Already applied
+        }
+
         DB::transaction(function () use ($customer, $order) {
             $orderTotal = (float) $order->total_amount;
 
             $customer->outstanding_amount = (float) $customer->outstanding_amount + $orderTotal;
             $customer->available_credit = (float) $customer->credit_limit - (float) $customer->outstanding_amount;
             $customer->save();
+
+            $order->update(['credit_applied_at' => now()]);
+        });
+    }
+
+    /**
+     * Reverse a credit order from the customer's balance (e.g. on rejection/cancellation).
+     * Decreases outstanding_amount and recalculates available_credit.
+     */
+    public function reverseCreditOrder(Customer $customer, Order $order): void
+    {
+        if ($order->credit_applied_at === null) {
+            return; // Credit was never applied, nothing to reverse
+        }
+
+        if ($order->credit_reversed_at !== null) {
+            return; // Already reversed
+        }
+
+        DB::transaction(function () use ($customer, $order) {
+            $orderTotal = (float) $order->total_amount;
+
+            $customer->outstanding_amount = (float) $customer->outstanding_amount - $orderTotal;
+            $customer->available_credit = (float) $customer->credit_limit - (float) $customer->outstanding_amount;
+            $customer->save();
+
+            $order->update(['credit_reversed_at' => now()]);
         });
     }
 

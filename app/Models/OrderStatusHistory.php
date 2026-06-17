@@ -12,6 +12,11 @@ class OrderStatusHistory extends Model
         'from_status',
         'to_status',
         'note',
+        'metadata',
+    ];
+
+    protected $casts = [
+        'metadata' => 'array',
     ];
 
     public function order()

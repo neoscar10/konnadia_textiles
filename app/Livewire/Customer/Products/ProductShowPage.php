@@ -51,6 +51,10 @@ class ProductShowPage extends Component
     public $isPurchasable = true;
     public $currentSku;
 
+    // Tax info from product record
+    public ?float $gstPercentage = null;
+    public ?string $hsnCode = null;
+
     public function mount($slug, ProductCatalogService $catalogService)
     {
         $this->slug = $slug;
@@ -89,6 +93,11 @@ class ProductShowPage extends Component
 
         $this->selectedUnitId = $detail['purchase_defaults']['default_unit_id'];
         $this->qty = $detail['purchase_defaults']['minimum_order_quantity'];
+
+        // Expose tax info for blade display
+        $productModel = Product::find($this->productId);
+        $this->gstPercentage = $productModel?->gst_percentage !== null ? (float) $productModel->gst_percentage : null;
+        $this->hsnCode = $productModel?->hsn_code;
 
         $this->recalculate($catalogService);
     }
@@ -154,16 +163,21 @@ class ProductShowPage extends Component
         
         $this->currentSku = $combination ? $combination->sku : $this->sku;
 
-        // Calculate unit pricing
+        // Calculate unit pricing using product's saved GST percentage
         $unit = ProductUnit::find($this->selectedUnitId);
         if ($unit) {
             $unitPricingService = app(ProductUnitPricingService::class);
-            $estimate = $unitPricingService->calculateLineEstimate($this->pricePerPiece, $unit, $this->qty, 12.0);
-            
-            $this->unitPrice = $estimate['unit_price'];
-            $this->subtotal = $estimate['subtotal'];
-            $this->gstAmount = $estimate['gst_amount'];
-            $this->total = $estimate['total'];
+            $estimate = $unitPricingService->calculateLineEstimate(
+                $this->pricePerPiece,
+                $unit,
+                $this->qty,
+                $product->gst_percentage !== null ? (float) $product->gst_percentage : null
+            );
+
+            $this->unitPrice  = $estimate['unit_price'];
+            $this->subtotal   = $estimate['subtotal'];
+            $this->gstAmount  = $estimate['gst_amount'];
+            $this->total      = $estimate['total'];
         }
 
         // Calculate availability

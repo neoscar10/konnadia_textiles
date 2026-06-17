@@ -13,6 +13,7 @@ class OrderItem extends Model
         'product_unit_id',
         'product_title',
         'product_sku',
+        'hsn_code',
         'selected_options',
         'unit_name',
         'unit_short_code',

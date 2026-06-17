@@ -30,8 +30,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/checkout/summary', [\App\Http\Controllers\Api\V1\CheckoutController::class, 'summary']);
             Route::post('/checkout/submit', [\App\Http\Controllers\Api\V1\CheckoutController::class, 'submit']);
 
-            Route::get('/orders', [\App\Http\Controllers\Api\V1\OrderController::class, 'index']);
-            Route::get('/orders/{order}', [\App\Http\Controllers\Api\V1\OrderController::class, 'show']);
+            Route::get('/orders', [\App\Http\Controllers\Api\V1\CustomerOrderController::class, 'index']);
+            Route::get('/orders/summary', [\App\Http\Controllers\Api\V1\CustomerOrderController::class, 'summary']);
+            Route::get('/orders/filters', [\App\Http\Controllers\Api\V1\CustomerOrderController::class, 'filters']);
+            Route::get('/orders/{order}', [\App\Http\Controllers\Api\V1\CustomerOrderController::class, 'show']);
+            Route::get('/orders/{order}/timeline', [\App\Http\Controllers\Api\V1\CustomerOrderController::class, 'timeline']);
+            Route::get('/orders/{order}/receipt', [\App\Http\Controllers\Api\V1\CustomerOrderController::class, 'receipt']);
         });
     });
 });

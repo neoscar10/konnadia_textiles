@@ -51,6 +51,8 @@ class ProductSeeder extends Seeder
 * Available in multiple colors and sizes
 * Suitable for office and semi-formal wear',
                     'is_active' => true,
+                    'hsn_code' => '6205',
+                    'gst_percentage' => 12.0,
                     'category_ids' => array_filter([$mensWear?->id, $shirts?->id]),
                     'units' => [
                         'level1_name' => 'Piece',
@@ -121,6 +123,8 @@ class ProductSeeder extends Seeder
 * Comes with unstitched blouse piece (80cm)
 * Dry clean only',
                     'is_active' => true,
+                    'hsn_code' => '5007',
+                    'gst_percentage' => 5.0,
                     'category_ids' => array_filter([$womensWear?->id, $sarees?->id]),
                     'stock_quantity' => 45,
                     'units' => [
@@ -140,6 +144,8 @@ class ProductSeeder extends Seeder
 * Fun animal character prints
 * Machine washable, colorfast dyes',
                     'is_active' => true,
+                    'hsn_code' => '6111',
+                    'gst_percentage' => 12.0,
                     'category_ids' => array_filter([$kidsWear?->id]),
                     'stock_quantity' => 120,
                     'units' => [

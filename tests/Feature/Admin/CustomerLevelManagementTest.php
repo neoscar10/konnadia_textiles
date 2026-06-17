@@ -125,6 +125,8 @@ class CustomerLevelManagementTest extends TestCase
             'discount_percentage' => 5,
             'default_credit_limit' => 10000,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         Livewire::actingAs($admin)

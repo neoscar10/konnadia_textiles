@@ -54,7 +54,13 @@
                     @endif
                 </div>
                 
-                <p class="text-[10px] text-slate-500 font-medium mt-1">GST 12% extra &bull; Standard MOQ: 10 Pieces</p>
+                <p class="text-[10px] text-slate-500 font-medium mt-1">
+                    @if($gstPercentage !== null)
+                        GST {{ $gstPercentage }}% extra &bull; Standard MOQ: 10 Pieces
+                    @else
+                        GST not configured &bull; Standard MOQ: 10 Pieces
+                    @endif
+                </p>
             </div>
 
             <!-- Fabric Info / Description -->
@@ -134,7 +140,13 @@
                         <span class="font-bold text-slate-800">₹{{ number_format($subtotal, 2) }}</span>
                     </div>
                     <div class="flex justify-between text-xs text-slate-500 font-medium">
-                        <span>GST (12%)</span>
+                        <span>
+                            @if($gstPercentage !== null)
+                                GST ({{ $gstPercentage }}%)
+                            @else
+                                GST (not configured)
+                            @endif
+                        </span>
                         <span class="font-bold text-slate-800">₹{{ number_format($gstAmount, 2) }}</span>
                     </div>
                     <div class="flex justify-between text-sm text-[#001229] font-extrabold pt-2 border-t border-dashed border-slate-200">

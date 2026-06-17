@@ -39,6 +39,8 @@ class CartApiTest extends TestCase
             'discount_percentage' => 10.00,
             'default_credit_limit' => 50000,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $this->customerUser = User::factory()->create();
@@ -57,6 +59,8 @@ class CartApiTest extends TestCase
             'outstanding_amount' => 0.0,
             'available_credit' => 50000,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         $this->adminUser = User::factory()->create();
@@ -67,6 +71,8 @@ class CartApiTest extends TestCase
             'sku' => 'FAB-001',
             'base_price' => 1000.00,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
             'stock_quantity' => 100,
         ]);
 

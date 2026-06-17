@@ -37,6 +37,8 @@ class CustomerManagementTest extends TestCase
             'discount_percentage' => 10,
             'default_credit_limit' => 500000,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
     }
 
@@ -154,6 +156,8 @@ class CustomerManagementTest extends TestCase
             'mobile_number' => '9876543211',
             'password' => bcrypt('password'),
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
         $linkedUser->assignRole('customer');
 
@@ -172,6 +176,8 @@ class CustomerManagementTest extends TestCase
             'overdue_amount' => 0,
             'allow_credit_beyond_limit' => true,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         Livewire::actingAs($this->superAdmin)
@@ -204,6 +210,8 @@ class CustomerManagementTest extends TestCase
             'mobile_number' => '9876543213',
             'password' => bcrypt('password'),
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
         $linkedUser->assignRole('customer');
 
@@ -222,6 +230,8 @@ class CustomerManagementTest extends TestCase
             'overdue_amount' => 0,
             'allow_credit_beyond_limit' => false,
             'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
         ]);
 
         Livewire::actingAs($this->superAdmin)
