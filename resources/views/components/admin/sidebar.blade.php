@@ -54,18 +54,6 @@
                 <span class="font-label-md text-label-md" x-show="sidebarOpen">Categories</span>
             </a>
 
-            <a href="{{ route('admin.variant-parameters.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.variant-parameters.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="style">style</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Variant Parameters</span>
-            </a>
-            <a href="{{ route('admin.variant-values.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.variant-values.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="palette">palette</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Variant Values</span>
-            </a>
-            <a href="{{ route('admin.units.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.units.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="straighten">straighten</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Units</span>
-            </a>
             <a href="{{ route('admin.inventory.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.inventory.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                 <span class="material-symbols-outlined shrink-0" data-icon="warehouse">warehouse</span>
                 <span class="font-label-md text-label-md" x-show="sidebarOpen">Inventory</span>
@@ -81,10 +69,6 @@
                 <span class="material-symbols-outlined shrink-0" data-icon="shopping_cart">shopping_cart</span>
                 <span class="font-label-md text-label-md" x-show="sidebarOpen">Orders</span>
             </a>
-            <a href="{{ route('admin.pricing.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.pricing.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="payments">payments</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Pricing</span>
-            </a>
             <a href="{{ route('admin.credit-management.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.credit-management.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                 <span class="material-symbols-outlined shrink-0" data-icon="credit_card">credit_card</span>
                 <span class="font-label-md text-label-md" x-show="sidebarOpen">Credit Management</span>
@@ -96,14 +80,6 @@
             <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">System</p>
         </div>
         <nav class="flex flex-col gap-xs px-sm pb-xl">
-            <a href="{{ route('admin.reports.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.reports.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="assessment">assessment</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Reports</span>
-            </a>
-            <a href="{{ route('admin.notifications.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.notifications.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="notifications">notifications</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Notifications</span>
-            </a>
             <a href="{{ route('admin.settings.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.settings.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                 <span class="material-symbols-outlined shrink-0" data-icon="settings">settings</span>
                 <span class="font-label-md text-label-md" x-show="sidebarOpen">Settings</span>
@@ -112,15 +88,7 @@
 
         <!-- Footer Section -->
         <div class="mt-auto pt-lg pb-md border-t border-on-primary/10 px-md transition-all duration-300" :class="sidebarOpen ? 'px-md' : 'px-xs'">
-            <button class="w-full bg-secondary hover:bg-secondary-fixed-dim text-primary py-md rounded-lg font-button flex items-center justify-center transition-all duration-200 shadow-md mb-lg" :class="sidebarOpen ? 'px-lg gap-sm' : 'px-0 h-10 w-10 mx-auto'">
-                <span class="material-symbols-outlined text-sm" data-icon="add">add</span>
-                <span x-show="sidebarOpen" class="whitespace-nowrap transition-opacity duration-200">Create New Order</span>
-            </button>
             <div class="space-y-xs">
-                <a href="{{ route('admin.support.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.support.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                    <span class="material-symbols-outlined shrink-0" data-icon="help">help</span>
-                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Support</span>
-                </a>
                 <form method="POST" action="#">
                     @csrf
                     <button type="submit" class="w-full flex items-center text-on-primary/70 hover:text-on-primary hover:bg-error/20 rounded-lg transition-colors" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">

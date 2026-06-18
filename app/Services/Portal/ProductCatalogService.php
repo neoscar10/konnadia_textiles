@@ -233,7 +233,7 @@ class ProductCatalogService
                 'status' => $availability['status'],
                 'label' => $availability['label'],
             ],
-            'minimum_order_quantity' => 10,
+            'minimum_order_quantity' => $product->minimum_order_quantity ?? 1,
         ];
     }
 
@@ -328,7 +328,7 @@ class ProductCatalogService
             'pricing' => $pricing,
             'availability' => $availability,
             'purchase_defaults' => [
-                'minimum_order_quantity' => 10,
+                'minimum_order_quantity' => $product->minimum_order_quantity ?? 1,
                 'default_unit_id' => !empty($units) ? $units[0]['id'] : null,
             ],
             'raw_model' => $product // pass model down to retrieve it easily in Livewire

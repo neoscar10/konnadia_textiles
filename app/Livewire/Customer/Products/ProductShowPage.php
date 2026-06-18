@@ -33,7 +33,8 @@ class ProductShowPage extends Component
     // Selection state
     public $selectedValues = []; // e.g., ['Size' => 'M', 'Color' => 'White']
     public $selectedUnitId;
-    public $qty = 10;
+    public $qty = 1;
+    public $minimumOrderQuantity = 1;
     
     // Live calculation display
     public $activeImage;
@@ -92,7 +93,8 @@ class ProductShowPage extends Component
         }
 
         $this->selectedUnitId = $detail['purchase_defaults']['default_unit_id'];
-        $this->qty = $detail['purchase_defaults']['minimum_order_quantity'];
+        $this->minimumOrderQuantity = $detail['purchase_defaults']['minimum_order_quantity'];
+        $this->qty = $this->minimumOrderQuantity;
 
         // Expose tax info for blade display
         $productModel = Product::find($this->productId);
@@ -127,13 +129,13 @@ class ProductShowPage extends Component
 
     public function updatedQty(ProductCatalogService $catalogService)
     {
-        $this->qty = max(10, (int)$this->qty);
+        $this->qty = max($this->minimumOrderQuantity, (int)$this->qty);
         $this->recalculate($catalogService);
     }
 
     public function decrementQty(ProductCatalogService $catalogService)
     {
-        $this->qty = max(10, (int)$this->qty - 1);
+        $this->qty = max($this->minimumOrderQuantity, (int)$this->qty - 1);
         $this->recalculate($catalogService);
     }
 

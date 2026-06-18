@@ -22,9 +22,9 @@
     <div class="bg-white border border-outline-variant/30 rounded-xl p-5 shadow-ambient mb-8">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-50">
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Order Progress</span>
-            <x-customer.badge :status="$order['status']" />
+            <x-customer.badge :status="$order['status']['value'] ?? 'pending'" />
         </div>
-        <x-customer.order-progress :status="$order['status']" />
+        <x-customer.order-progress :status="$order['status']['value'] ?? 'pending'" />
     </div>
 
     <!-- Layout: Left (Items Table), Right (Billing, remarks, addresses) -->
@@ -107,12 +107,12 @@
                         <span class="font-bold text-[#001229] text-sm">Logistics Status Logs</span>
                     </x-slot>
                     <div class="space-y-4">
-                        @forelse($order['status_history'] as $history)
+                        @forelse($order['timeline'] as $history)
                             <div class="flex gap-2">
                                 <span class="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5"></span>
                                 <div>
                                     <p class="text-xs font-bold text-slate-700">
-                                        Status changed to {{ ucfirst(str_replace('_', ' ', $history['to_status'])) }}
+                                        Status changed to {{ ucfirst(str_replace('_', ' ', $history['status'])) }}
                                     </p>
                                     @if($history['note'])
                                         <p class="text-[11px] text-slate-500 mt-0.5">{{ $history['note'] }}</p>
@@ -128,38 +128,41 @@
             </div>
 
             <!-- Receipts / Payment Proof (Only for manual payment) -->
-            @if ($order['checkout_method'] === 'manual_payment')
+            @if ($order['checkout_method']['value'] === 'manual_payment')
                 <x-customer.card>
                     <x-slot name="header">
                         <span class="font-bold text-slate-800 text-sm">Payment Proof Receipts</span>
                     </x-slot>
                     <div class="space-y-3">
-                        @forelse($order['receipts'] as $receipt)
+                        @if($order['receipt'])
+                            @php $receipt = $order['receipt']; @endphp
                             <div class="p-3 bg-slate-50 border border-outline-variant/30 rounded-xl flex items-center justify-between gap-4">
                                 <div class="flex items-center gap-2.5 overflow-hidden">
                                     <span class="material-symbols-outlined text-slate-500">description</span>
                                     <div class="overflow-hidden">
-                                        <p class="text-xs font-bold text-slate-700 truncate">{{ $receipt['original_name'] }}</p>
-                                        <p class="text-[10px] text-slate-400">Uploaded on {{ $receipt['uploaded_at'] }}</p>
+                                        <p class="text-xs font-bold text-slate-700 truncate">{{ $receipt['original_name'] ?? 'Receipt' }}</p>
+                                        <p class="text-[10px] text-slate-400">Uploaded on {{ $receipt['uploaded_at'] ?? 'N/A' }}</p>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded border {{ $receipt['status'] === 'verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' }}">
-                                        {{ $receipt['status'] }}
+                                    <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded border {{ ($receipt['status']['value'] ?? '') === 'verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' }}">
+                                        {{ $receipt['status']['label'] ?? 'Pending' }}
                                     </span>
+                                    @if(isset($receipt['file_url']))
                                     <a href="{{ $receipt['file_url'] }}" target="_blank" class="inline-flex items-center justify-center p-1.5 text-[#001229] hover:bg-white rounded-lg border border-outline-variant/30 transition-colors">
                                         <span class="material-symbols-outlined text-lg">download</span>
                                     </a>
+                                    @endif
                                 </div>
                             </div>
-                            @if ($receipt['admin_note'])
+                            @if (!empty($receipt['admin_note']))
                                 <div class="text-[10px] text-slate-500 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100/50 mt-1">
                                     <strong>Admin Note:</strong> {{ $receipt['admin_note'] }}
                                 </div>
                             @endif
-                        @empty
+                        @else
                             <p class="text-xs text-slate-400 italic">No receipt file uploaded yet.</p>
-                        @endforelse
+                        @endif
                     </div>
                 </x-customer.card>
             @endif
@@ -176,11 +179,11 @@
                 <div class="space-y-3 text-xs">
                     <div class="flex justify-between text-slate-500 font-medium">
                         <span>Subtotal ({{ $order['items_count'] }} {{ $order['items_count'] === 1 ? 'style' : 'styles' }} &bull; {{ $order['total_base_quantity'] }} units)</span>
-                        <span class="font-bold text-slate-800">₹{{ number_format($order['subtotal'], 2) }}</span>
+                        <span class="font-bold text-slate-800">{{ $order['summary']['formatted_subtotal'] }}</span>
                     </div>
                     <div class="flex justify-between text-slate-500 font-medium">
                         <span>GST</span>
-                        <span class="font-bold text-slate-800">₹{{ number_format($order['gst_amount'], 2) }}</span>
+                        <span class="font-bold text-slate-800">{{ $order['summary']['formatted_gst_amount'] }}</span>
                     </div>
                     <div class="flex justify-between text-slate-500 font-medium">
                         <span>Freight charges</span>
@@ -188,17 +191,17 @@
                     </div>
                     <div class="border-t border-dashed border-slate-200 pt-3 flex justify-between text-sm font-extrabold text-[#001229]">
                         <span>Grand Total</span>
-                        <span class="text-[#001229]">₹{{ number_format($order['total_amount'], 2) }}</span>
+                        <span class="text-[#001229]">{{ $order['summary']['formatted_total'] }}</span>
                     </div>
                 </div>
 
                 <!-- Billing Parameters snapshot -->
                 <div class="pt-3 border-t border-slate-100 text-[10px] text-slate-400 space-y-1">
-                    <p><strong>Checkout Method:</strong> {{ $order['checkout_method_label'] }}</p>
-                    @if ($order['checkout_method'] === 'credit')
-                        <p><strong>Credit Limit at Order:</strong> ₹{{ number_format($order['credit_limit_at_order'], 2) }}</p>
-                        <p><strong>Available Credit at Order:</strong> ₹{{ number_format($order['available_credit_at_order'], 2) }}</p>
-                        @if ($order['used_credit_override_privilege'])
+                    <p><strong>Checkout Method:</strong> {{ $order['checkout_method']['label'] ?? 'N/A' }}</p>
+                    @if (($order['checkout_method']['value'] ?? '') === 'credit')
+                        <p><strong>Credit Limit at Order:</strong> ₹{{ number_format($order['credit_snapshot']['credit_limit_at_order'] ?? 0, 2) }}</p>
+                        <p><strong>Available Credit at Order:</strong> ₹{{ number_format($order['credit_snapshot']['available_credit_at_order'] ?? 0, 2) }}</p>
+                        @if ($order['used_credit_override_privilege'] ?? false)
                             <p class="text-rose-600"><strong>Note:</strong> Order was approved beyond available credit limit.</p>
                         @endif
                     @endif

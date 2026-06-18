@@ -73,7 +73,7 @@
                         </td>
                         <td class="px-lg py-lg text-right whitespace-nowrap">
                             <x-admin.action-menu>
-                                <x-admin.action-menu-item href="{{ route('admin.customers.show', $customer) }}" icon="visibility" label="View Details" />
+                                <x-admin.action-menu-item wire:click="showDetails({{ $customer->id }})" icon="visibility" label="View Details" />
                                 <x-admin.action-menu-item wire:click="edit({{ $customer->id }})" icon="edit" label="Edit" />
                                 <x-admin.action-menu-item wire:click="toggleStatus({{ $customer->id }})" icon="{{ $customer->is_active ? 'block' : 'check_circle' }}" label="{{ $customer->is_active ? 'Deactivate' : 'Activate' }}" />
                                 <x-admin.action-menu-item wire:click="confirmDelete({{ $customer->id }})" icon="delete" label="Delete" class="text-error hover:text-error hover:bg-error/10" />
@@ -130,6 +130,7 @@
     </div>
 
     <!-- Modals -->
+    @include('admin.modals.customer-details')
     @include('admin.modals.customer-form')
     @include('admin.modals.add-choice')
     @include('admin.modals.bulk-upload')

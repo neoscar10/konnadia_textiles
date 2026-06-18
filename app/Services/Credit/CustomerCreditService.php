@@ -5,11 +5,19 @@ namespace App\Services\Credit;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Customer\CustomerActivityLogService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class CustomerCreditService
 {
+    protected CustomerActivityLogService $activityLogService;
+
+    public function __construct(CustomerActivityLogService $activityLogService)
+    {
+        $this->activityLogService = $activityLogService;
+    }
+
     /**
      * Apply a credit order to the customer's balance.
      * Increases outstanding_amount and recalculates available_credit.
@@ -141,6 +149,13 @@ class CustomerCreditService
                 'available_after' => $customer->available_credit,
                 'note' => $note ?? "Payment received",
             ]);
+
+            $this->activityLogService->record($customer, 'payment_recorded', [
+                'actor_user_id' => $admin->id,
+                'title' => 'Payment Recorded',
+                'description' => "Payment of ₹" . number_format($amount, 2) . " recorded by {$admin->name}." . ($note ? " Note: {$note}" : ''),
+                'metadata' => ['amount' => $amount, 'note' => $note],
+            ]);
         });
 
         return $customer->fresh();
@@ -227,6 +242,13 @@ class CustomerCreditService
                 'available_after' => $customer->available_credit,
                 'note' => $note ?? "Credit limit updated",
             ]);
+
+            $this->activityLogService->record($customer, 'credit_limit_updated', [
+                'actor_user_id' => $admin->id,
+                'title' => 'Credit Limit Updated',
+                'description' => "Credit limit changed from ₹" . number_format($limitBefore, 2) . " to ₹" . number_format($newLimit, 2) . " by {$admin->name}.",
+                'metadata' => ['limit_before' => $limitBefore, 'limit_after' => $newLimit, 'note' => $note],
+            ]);
         });
 
         return $customer->fresh();
@@ -260,6 +282,13 @@ class CustomerCreditService
                 'available_before' => $availableBefore,
                 'available_after' => $availableBefore,
                 'note' => "Credit hold applied: {$reason}",
+            ]);
+
+            $this->activityLogService->record($customer, 'credit_hold_applied', [
+                'actor_user_id' => $admin->id,
+                'title' => 'Credit Hold Applied',
+                'description' => "Credit account placed on hold by {$admin->name}. Reason: {$reason}.",
+                'metadata' => ['reason' => $reason],
             ]);
         });
 
@@ -295,6 +324,13 @@ class CustomerCreditService
                 'available_after' => $availableBefore,
                 'note' => $note ?? "Credit hold released",
             ]);
+
+            $this->activityLogService->record($customer, 'credit_hold_released', [
+                'actor_user_id' => $admin->id,
+                'title' => 'Credit Hold Released',
+                'description' => "Credit hold released by {$admin->name}." . ($note ? " Note: {$note}" : ''),
+                'metadata' => ['note' => $note],
+            ]);
         });
 
         return $customer->fresh();
@@ -328,6 +364,14 @@ class CustomerCreditService
                 'available_after' => $availableBefore,
                 'note' => $note ?? "Purchasing beyond limit set to: {$statusText}",
                 'metadata' => ['allow_credit_beyond_limit' => $allowed],
+            ]);
+
+            $event = $allowed ? 'credit_privilege_enabled' : 'credit_privilege_disabled';
+            $this->activityLogService->record($customer, $event, [
+                'actor_user_id' => $admin->id,
+                'title' => 'Credit Beyond Limit ' . ($allowed ? 'Enabled' : 'Disabled'),
+                'description' => "Purchasing beyond credit limit set to '{$statusText}' by {$admin->name}.",
+                'metadata' => ['allow_credit_beyond_limit' => $allowed, 'note' => $note],
             ]);
         });
 

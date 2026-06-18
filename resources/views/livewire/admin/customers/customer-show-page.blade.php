@@ -105,11 +105,11 @@
                 <div class="space-y-md">
                     <div class="flex justify-between">
                         <span class="font-label-md text-on-surface-variant">Created On:</span>
-                        <span class="font-body-md text-primary">{{ $customer->created_at->format('d M Y, h:i A') }}</span>
+                        <span class="font-body-md text-primary">{{ $customer->created_at ? $customer->created_at->format('d M Y, h:i A') : 'N/A' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="font-label-md text-on-surface-variant">Last Updated:</span>
-                        <span class="font-body-md text-primary">{{ $customer->updated_at->format('d M Y, h:i A') }}</span>
+                        <span class="font-body-md text-primary">{{ $customer->updated_at ? $customer->updated_at->format('d M Y, h:i A') : 'N/A' }}</span>
                     </div>
                 </div>
             </div>

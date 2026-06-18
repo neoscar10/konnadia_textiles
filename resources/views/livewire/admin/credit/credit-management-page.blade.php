@@ -14,7 +14,7 @@
     </div>
 
     <!-- Metrics Bento -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-lg mb-xl">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-xl">
         <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant/30 flex flex-col gap-sm">
             <span class="text-label-md text-on-surface-variant uppercase font-bold tracking-wider">Total Credit Limit</span>
             <div class="flex items-baseline justify-between">
@@ -48,14 +48,6 @@
             </div>
             <span class="text-xs text-on-surface-variant">Net credit remaining for customers</span>
         </div>
-
-        <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant/30 flex flex-col gap-sm">
-            <span class="text-label-md text-on-surface-variant uppercase font-bold tracking-wider">Total Overdue</span>
-            <div class="flex items-baseline justify-between">
-                <span class="text-headline-md font-extrabold text-error">₹{{ number_format($stats['total_overdue'], 2) }}</span>
-            </div>
-            <span class="text-xs text-error font-medium">Outstanding beyond payment terms</span>
-        </div>
     </div>
 
     <!-- Alert Counters Row -->
@@ -80,40 +72,41 @@
 
     <!-- Filters & Search -->
     <x-admin.card class="mb-xl">
-        <x-slot:bodyClass>p-md flex flex-wrap gap-md items-center justify-between</x-slot:bodyClass>
+        <x-slot:bodyClass>p-md flex gap-md items-center</x-slot:bodyClass>
         
-        <div class="flex flex-wrap gap-md items-center w-full lg:w-auto">
-            <div class="relative w-full sm:w-64">
-                <span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant/50">search</span>
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search Customer..." class="w-full pl-xl pr-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md focus:ring-2 focus:ring-secondary outline-none transition-all">
-            </div>
-            
-            <select wire:model.live="level_id" class="px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none">
-                <option value="">All Customer Levels</option>
-                @foreach ($customerLevels as $level)
-                    <option value="{{ $level->id }}">{{ $level->name }}</option>
-                @endforeach
-            </select>
-
-            <select wire:model.live="credit_status" class="px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none">
-                <option value="">All Credit Statuses</option>
-                <option value="healthy">Healthy</option>
-                <option value="near_limit">Near Limit</option>
-                <option value="over_limit">Over Limit</option>
-                <option value="on_hold">On Hold</option>
-                <option value="no_credit">No Credit Limit</option>
-            </select>
-
-            <select wire:model.live="allow_beyond_limit" class="px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none">
-                <option value="">All Enforcement Modes</option>
-                <option value="0">Blocking Mode (Within Limit)</option>
-                <option value="1">Approval Mode (Over Limit Allowed)</option>
-            </select>
+        <!-- Search (4/12 width) -->
+        <div class="w-1/3 flex items-center gap-sm bg-surface-container-low border border-outline-variant/50 rounded-lg px-sm focus-within:ring-2 focus-within:border-secondary transition-all">
+            <span class="material-symbols-outlined text-on-surface-variant/60 text-[18px] select-none shrink-0">search</span>
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search Customer..." class="w-full bg-transparent border-none py-sm pr-xs font-body-md focus:ring-0 focus:outline-none outline-none text-on-surface">
         </div>
 
-        <div>
-            <x-admin.button variant="ghost" icon="filter_alt_off" wire:click="resetFilters">Reset Filters</x-admin.button>
-        </div>
+        <!-- Customer Levels (2/12 width) -->
+        <select wire:model.live="level_id" class="w-1/6 px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none">
+            <option value="">All Levels</option>
+            @foreach ($customerLevels as $level)
+                <option value="{{ $level->id }}">{{ $level->name }}</option>
+            @endforeach
+        </select>
+
+        <!-- Credit Status (2/12 width) -->
+        <select wire:model.live="credit_status" class="w-1/6 px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none">
+            <option value="">All Statuses</option>
+            <option value="healthy">Healthy</option>
+            <option value="near_limit">Near Limit</option>
+            <option value="over_limit">Over Limit</option>
+            <option value="on_hold">On Hold</option>
+            <option value="no_credit">No Limit</option>
+        </select>
+
+        <!-- Enforcement Mode (2/12 width) -->
+        <select wire:model.live="allow_beyond_limit" class="w-1/6 px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none">
+            <option value="">All Modes</option>
+            <option value="0">Blocking Mode</option>
+            <option value="1">Approval Mode</option>
+        </select>
+
+        <!-- Reset Filters (2/12 width) -->
+        <x-admin.button variant="ghost" icon="filter_alt_off" wire:click="resetFilters" class="w-1/6 justify-center">Reset</x-admin.button>
     </x-admin.card>
 
     <!-- Data Table -->
@@ -124,40 +117,34 @@
             <table class="w-full text-left font-body-md">
                 <thead class="bg-surface-container text-on-surface-variant font-label-md uppercase tracking-wider border-b border-outline-variant/20">
                     <tr>
-                        <th class="px-lg py-md cursor-pointer select-none" wire:click="sort('company_name')">
+                        <th class="px-lg py-md cursor-pointer select-none whitespace-nowrap" wire:click="sort('company_name')">
                             Customer
                             @if ($sort_field === 'company_name')
                                 <span class="material-symbols-outlined text-[14px] align-middle">{{ $sort_order === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span>
                             @endif
                         </th>
-                        <th class="px-lg py-md">Level</th>
-                        <th class="px-lg py-md text-right cursor-pointer select-none" wire:click="sort('credit_limit')">
+                        <th class="px-lg py-md whitespace-nowrap">Level</th>
+                        <th class="px-lg py-md text-right cursor-pointer select-none whitespace-nowrap" wire:click="sort('credit_limit')">
                             Credit Limit
                             @if ($sort_field === 'credit_limit')
                                 <span class="material-symbols-outlined text-[14px] align-middle">{{ $sort_order === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span>
                             @endif
                         </th>
-                        <th class="px-lg py-md text-right cursor-pointer select-none" wire:click="sort('outstanding_amount')">
+                        <th class="px-lg py-md text-right cursor-pointer select-none whitespace-nowrap" wire:click="sort('outstanding_amount')">
                             Utilized
                             @if ($sort_field === 'outstanding_amount')
                                 <span class="material-symbols-outlined text-[14px] align-middle">{{ $sort_order === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span>
                             @endif
                         </th>
-                        <th class="px-lg py-md text-right cursor-pointer select-none" wire:click="sort('available_credit')">
+                        <th class="px-lg py-md text-right cursor-pointer select-none whitespace-nowrap" wire:click="sort('available_credit')">
                             Available
                             @if ($sort_field === 'available_credit')
                                 <span class="material-symbols-outlined text-[14px] align-middle">{{ $sort_order === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span>
                             @endif
                         </th>
-                        <th class="px-lg py-md text-right cursor-pointer select-none" wire:click="sort('overdue_amount')">
-                            Overdue
-                            @if ($sort_field === 'overdue_amount')
-                                <span class="material-symbols-outlined text-[14px] align-middle">{{ $sort_order === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span>
-                            @endif
-                        </th>
-                        <th class="px-lg py-md text-center">Privilege Mode</th>
-                        <th class="px-lg py-md text-center">Status</th>
-                        <th class="px-lg py-md text-right">Actions</th>
+
+                        <th class="px-lg py-md text-center whitespace-nowrap">Status</th>
+                        <th class="px-lg py-md text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/10">
@@ -166,7 +153,6 @@
                             $avail = (float) $customer->available_credit;
                             $limit = (float) $customer->credit_limit;
                             $outstanding = (float) $customer->outstanding_amount;
-                            $overdue = (float) $customer->overdue_amount;
 
                             // Calculate status helper locally for badge mapping
                             if ($customer->credit_hold) {
@@ -187,30 +173,23 @@
                             }
                         @endphp
                         <tr class="hover:bg-primary/[0.02] transition-colors group">
-                            <td class="px-lg py-md">
+                            <td class="px-lg py-md whitespace-nowrap">
                                 <p class="font-bold text-primary">{{ $customer->company_name }}</p>
                                 <p class="font-label-md text-on-surface-variant">{{ $customer->customer_number }}</p>
                             </td>
-                            <td class="px-lg py-md text-on-surface-variant">{{ $customer->level?->name ?: 'N/A' }}</td>
-                            <td class="px-lg py-md text-right font-bold text-primary">₹{{ number_format($limit, 2) }}</td>
-                            <td class="px-lg py-md text-right text-on-surface-variant font-medium">₹{{ number_format($outstanding, 2) }}</td>
-                            <td class="px-lg py-md text-right font-semibold {{ $avail < 0 ? 'text-error' : 'text-[#0F8A46]' }}">
+                            <td class="px-lg py-md text-on-surface-variant whitespace-nowrap">{{ $customer->level?->name ?: 'N/A' }}</td>
+                            <td class="px-lg py-md text-right font-bold text-primary whitespace-nowrap">₹{{ number_format($limit, 2) }}</td>
+                            <td class="px-lg py-md text-right text-on-surface-variant font-medium whitespace-nowrap">₹{{ number_format($outstanding, 2) }}</td>
+                            <td class="px-lg py-md text-right font-semibold whitespace-nowrap {{ $avail < 0 ? 'text-error' : 'text-[#0F8A46]' }}">
                                 ₹{{ number_format($avail, 2) }}
                             </td>
-                            <td class="px-lg py-md text-right font-semibold {{ $overdue > 0 ? 'text-error' : 'text-on-surface-variant' }}">
-                                ₹{{ number_format($overdue, 2) }}
-                            </td>
+
                             <td class="px-lg py-md text-center">
-                                <button type="button" wire:click="toggleBeyondLimit({{ $customer->id }})" class="inline-flex items-center px-sm py-[2px] rounded-full text-[11px] font-bold border transition-all hover:bg-opacity-30 {{ $customer->allow_credit_beyond_limit ? 'bg-secondary-container/20 text-secondary border-secondary/30' : 'bg-surface-container text-on-surface-variant border-outline-variant/30' }}">
-                                    {{ $customer->allow_credit_beyond_limit ? 'Approval Override' : 'Blocking Mode' }}
-                                </button>
-                            </td>
-                            <td class="px-lg py-md text-center">
-                                <span class="inline-flex items-center px-sm py-[2px] rounded-full text-[11px] font-bold border {{ $badgeColor }}">
+                                <span class="inline-flex items-center px-sm py-[2px] rounded-full text-[11px] font-bold border whitespace-nowrap {{ $badgeColor }}">
                                     {{ $statusText }}
                                 </span>
                             </td>
-                            <td class="px-lg py-md text-right">
+                            <td class="px-lg py-md text-right whitespace-nowrap">
                                 <x-admin.action-menu>
                                     <x-admin.action-menu-item icon="visibility" label="Credit Profile" wire:click="openLedgerModal({{ $customer->id }})" />
                                     <x-admin.action-menu-item icon="edit" label="Update Credit Limit" wire:click="openLimitModal({{ $customer->id }})" />
@@ -226,7 +205,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-lg py-xl text-center text-on-surface-variant">
+                            <td colspan="7" class="px-lg py-xl text-center text-on-surface-variant">
                                 No customer credit records match the selected filters.
                             </td>
                         </tr>
@@ -439,7 +418,7 @@
                         </span>
                         <p class="text-[11px] text-on-surface-variant mt-[4px]">Risk Rating: 
                             <span class="font-bold">
-                                @if ($selectedCustomer->credit_hold || $selectedCustomer->overdue_amount > 0)
+                                @if ($selectedCustomer->credit_hold)
                                     High
                                 @elseif ($limit > 0 && ($outstanding / $limit) >= 0.7)
                                     Medium

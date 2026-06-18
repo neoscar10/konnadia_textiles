@@ -30,7 +30,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('dashboard', \App\Livewire\Admin\DashboardPage::class)->name('dashboard');
         
         Route::get('customers', \App\Livewire\Admin\Customers\CustomerIndexPage::class)->name('customers.index');
-        Route::get('customers/details', \App\Livewire\Admin\Customers\CustomerShowPage::class)->name('customers.show');
         Route::get('customer-levels', \App\Livewire\Admin\CustomerLevels\CustomerLevelIndexPage::class)->name('customer-levels.index');
         
         Route::get('categories', \App\Livewire\Admin\Categories\CategoryIndexPage::class)->name('categories.index');

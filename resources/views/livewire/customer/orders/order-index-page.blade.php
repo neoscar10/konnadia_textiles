@@ -65,11 +65,11 @@
             @foreach($orders as $order)
                 <x-customer.order-card 
                     :orderId="$order['order_number']" 
-                    :status="$order['status']" 
-                    :date="$order['submitted_at']" 
-                    :total="$order['total_amount']" 
+                    :status="$order['status']['value'] ?? 'pending'" 
+                    :date="\Carbon\Carbon::parse($order['submitted_at'] ?? $order['created_at'])->format('d M Y')" 
+                    :total="$order['summary']['total'] ?? 0" 
                     :itemsCount="$order['items_count']"
-                    :images="$order['images']"
+                    :images="$order['first_item'] ? [$order['first_item']['image_url']] : []"
                 />
             @endforeach
         </div>
@@ -92,15 +92,14 @@
                     @foreach($orders as $order)
                         <tr class="hover:bg-slate-50/50">
                             <td class="px-6 py-4 font-bold text-[#001229]">#{{ $order['order_number'] }}</td>
-                            <td class="px-6 py-4">{{ $order['submitted_at'] }}</td>
+                            <td class="px-6 py-4">{{ \Carbon\Carbon::parse($order['submitted_at'] ?? $order['created_at'])->format('d M Y') }}</td>
                             <td class="px-6 py-4">
-                                {{ $order['items_count'] }} {{ $order['items_count'] === 1 ? 'Style' : 'Styles' }} &bull; 
-                                {{ $order['total_base_quantity'] }} units
+                                {{ $order['items_count'] }} {{ $order['items_count'] === 1 ? 'Style' : 'Styles' }}
                             </td>
-                            <td class="px-6 py-4 font-bold">₹{{ number_format($order['total_amount'], 2) }}</td>
-                            <td class="px-6 py-4 capitalize">{{ str_replace('_', ' ', $order['checkout_method']) }}</td>
+                            <td class="px-6 py-4 font-bold">{{ $order['summary']['formatted_total'] }}</td>
+                            <td class="px-6 py-4 capitalize">{{ $order['checkout_method']['label'] ?? 'N/A' }}</td>
                             <td class="px-6 py-4">
-                                <x-customer.badge :status="$order['status']" />
+                                <x-customer.badge :status="$order['status']['value'] ?? 'pending'" />
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <a href="{{ route('customer.orders.show', $order['order_number']) }}" class="inline-flex items-center justify-center px-3 py-1.5 text-[11px] font-bold text-[#001229] border border-outline-variant/40 hover:bg-white rounded-lg transition-colors bg-slate-50 shadow-sm">

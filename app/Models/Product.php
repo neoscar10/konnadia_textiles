@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -19,6 +20,7 @@ class Product extends Model
         'stock_quantity',
         'hsn_code',
         'gst_percentage',
+        'minimum_order_quantity',
     ];
 
     protected $casts = [
@@ -26,6 +28,7 @@ class Product extends Model
         'gst_percentage' => 'decimal:2',
         'is_active' => 'boolean',
         'stock_quantity' => 'integer',
+        'minimum_order_quantity' => 'integer',
     ];
 
     /**

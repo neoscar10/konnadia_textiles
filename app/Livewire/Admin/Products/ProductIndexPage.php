@@ -48,6 +48,7 @@ class ProductIndexPage extends Component
         'base_price'     => '',
         'hsn_code'       => '',
         'gst_percentage' => '',
+        'minimum_order_quantity' => 1,
         'description'    => '',
         'is_active'      => true,
     ];
@@ -156,6 +157,7 @@ class ProductIndexPage extends Component
                 'basicInfo.base_price'     => ['required', 'numeric', 'min:0'],
                 'basicInfo.hsn_code'       => ['nullable', 'string', 'max:20'],
                 'basicInfo.gst_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
+                'basicInfo.minimum_order_quantity' => ['required', 'integer', 'min:1'],
                 'basicInfo.description'    => ['required', 'string'],
             ];
 
@@ -235,6 +237,7 @@ class ProductIndexPage extends Component
             'base_price'     => $product->base_price,
             'hsn_code'       => $product->hsn_code ?? '',
             'gst_percentage' => $product->gst_percentage !== null ? (string) $product->gst_percentage : '',
+            'minimum_order_quantity' => $product->minimum_order_quantity ?? 1,
             'description'    => $product->description ?? '',
             'is_active'      => (bool) $product->is_active,
         ];
@@ -300,6 +303,27 @@ class ProductIndexPage extends Component
 
         $this->showWizardModal = true;
         $this->dispatch('open-modal', 'add-product');
+    }
+
+    public function saveCurrentStep(
+        ProductService $productService,
+        ProductVariationService $varService,
+        ProductMediaService $mediaService
+    ) {
+        // Validate current step only
+        if (!$this->validateStep($this->currentStep)) {
+            return;
+        }
+
+        // Validate all previous steps before current
+        for ($s = 1; $s < $this->currentStep; $s++) {
+            if (!$this->validateStep($s)) {
+                $this->currentStep = $s;
+                return;
+            }
+        }
+
+        $this->save($productService, $varService, $mediaService);
     }
 
     public function save(
@@ -601,6 +625,7 @@ class ProductIndexPage extends Component
             'base_price'     => '',
             'hsn_code'       => '',
             'gst_percentage' => '',
+            'minimum_order_quantity' => 1,
             'description'    => '',
             'is_active'      => true,
         ];

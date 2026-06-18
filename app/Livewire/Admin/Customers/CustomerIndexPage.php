@@ -31,6 +31,7 @@ class CustomerIndexPage extends Component
 
     public $editingId = null;
     public $deleteId = null;
+    public ?Customer $selectedCustomer = null;
 
     // Password Setup for Single Creation
     public $form = [
@@ -315,8 +316,15 @@ class CustomerIndexPage extends Component
         $this->showAddChoice();
     }
 
+    public function showDetails($id)
+    {
+        $this->selectedCustomer = Customer::with(['level', 'user', 'creditHoldBy'])->findOrFail($id);
+        $this->dispatch('open-modal', 'customer-details');
+    }
+
     public function edit(Customer $customer)
     {
+        $this->dispatch('close-modal', 'customer-details');
         $this->resetValidation();
         $this->editingId = $customer->id;
         $this->form = [

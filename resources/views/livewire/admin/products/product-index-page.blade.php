@@ -216,6 +216,13 @@
                             <p class="text-xs text-on-surface-variant/70">Enter the GST % for this product. Used for cart, checkout, and order tax calculation. Enter <strong>0</strong> for zero-rated products.</p>
                             @error('basicInfo.gst_percentage') <span class="text-error text-xs">{{ $message }}</span> @enderror
                         </div>
+
+                        <div class="space-y-xs">
+                            <label class="font-label-md text-on-surface-variant">Min Order Qty *</label>
+                            <input type="number" min="1" step="1" wire:model="basicInfo.minimum_order_quantity" placeholder="e.g. 1" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                            <p class="text-xs text-on-surface-variant/70">Minimum quantity a customer must add to their cart.</p>
+                            @error('basicInfo.minimum_order_quantity') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
                     <!-- Markdown Description Editor -->
@@ -808,6 +815,9 @@
             <div class="flex gap-sm">
                 @if($currentStep > 1)
                     <x-admin.button variant="outline" type="button" wire:click="prevStep">Back</x-admin.button>
+                @endif
+                @if($selectedProductId && $currentStep < 7)
+                    <x-admin.button variant="primary" type="button" wire:click="saveCurrentStep" icon="save">Save Changes</x-admin.button>
                 @endif
                 @if($currentStep < 7)
                     <x-admin.button variant="primary" type="button" wire:click="nextStep">Next Step</x-admin.button>

@@ -11,6 +11,13 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class CustomerService
 {
+    protected CustomerActivityLogService $activityLogService;
+
+    public function __construct(CustomerActivityLogService $activityLogService)
+    {
+        $this->activityLogService = $activityLogService;
+    }
+
     /**
      * List customers with optional filtering and pagination.
      */
@@ -73,6 +80,12 @@ class CustomerService
 
             $customer = Customer::create($data);
             
+            // Record activity log
+            $this->activityLogService->record($customer, 'customer_created', [
+                'title' => 'Customer Profile Created',
+                'description' => "Customer {$customer->customer_number} ({$customer->company_name}) was created.",
+            ]);
+
             // Pass generated password back in memory
             if ($passwordMode === 'auto' || empty($data['password'])) {
                 $customer->generated_password = $password;
@@ -134,6 +147,12 @@ class CustomerService
                 $customer->user->update($userData);
             }
 
+            // Record activity log
+            $this->activityLogService->record($customer, 'customer_updated', [
+                'title' => 'Customer Profile Updated',
+                'description' => "Customer {$customer->customer_number} ({$customer->company_name}) profile was updated.",
+            ]);
+
             return $customer;
         });
     }
@@ -144,6 +163,12 @@ class CustomerService
     public function delete(Customer $customer): void
     {
         DB::transaction(function () use ($customer) {
+            // Record before deleting so we can still associate with customer ID
+            $this->activityLogService->record($customer, 'customer_deleted', [
+                'title' => 'Customer Profile Deleted',
+                'description' => "Customer {$customer->customer_number} ({$customer->company_name}) was deleted.",
+            ]);
+
             $customer->delete();
             // Deactivate linked user
             if ($customer->user) {
@@ -165,6 +190,13 @@ class CustomerService
                 $customer->user->is_active = $customer->is_active;
                 $customer->user->save();
             }
+
+            $event = $customer->is_active ? 'customer_activated' : 'customer_deactivated';
+            $label = $customer->is_active ? 'Activated' : 'Deactivated';
+            $this->activityLogService->record($customer, $event, [
+                'title' => "Customer {$label}",
+                'description' => "Customer {$customer->customer_number} ({$customer->company_name}) was {$label}.",
+            ]);
 
             return $customer;
         });
