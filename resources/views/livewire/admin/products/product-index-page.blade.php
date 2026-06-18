@@ -55,7 +55,7 @@
     <x-admin.card>
         <x-slot:bodyClass>p-0</x-slot:bodyClass>
 
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto pb-32">
             <table class="w-full text-left font-body-md">
                 <thead class="bg-surface-container text-on-surface-variant font-label-md uppercase tracking-wider border-b border-outline-variant/20 select-none">
                     <tr class="whitespace-nowrap">

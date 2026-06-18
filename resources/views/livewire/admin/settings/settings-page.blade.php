@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <x-slot:title>Settings</x-slot:title>
 
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-xl">
@@ -16,7 +16,7 @@
         </div>
 
         <form wire:submit="changePassword" class="p-xl">
-            <div class="space-y-lg">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-lg">
                 <!-- Current Password -->
                 <div class="space-y-xs">
                     <label class="font-label-md text-on-surface-variant">Current Password *</label>
@@ -37,7 +37,7 @@
                     <input 
                         type="password" 
                         wire:model="newPassword" 
-                        placeholder="Enter a new password (min 8 characters)"
+                        placeholder="Enter a new password"
                         class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface"
                     >
                     @error('newPassword') 
