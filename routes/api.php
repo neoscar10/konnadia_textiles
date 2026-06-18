@@ -19,8 +19,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/products/{product}', [\App\Http\Controllers\Api\V1\ProductCatalogController::class, 'show']);
         Route::get('/products/{product}/related', [\App\Http\Controllers\Api\V1\ProductCatalogController::class, 'related']);
 
-        // Customer Cart, Checkout & Orders API
         Route::middleware('api.customer')->group(function () {
+            Route::get('/dashboard', [\App\Http\Controllers\Api\V1\CustomerDashboardController::class, 'show']);
+
             Route::get('/cart', [\App\Http\Controllers\Api\V1\CartController::class, 'show']);
             Route::post('/cart/items', [\App\Http\Controllers\Api\V1\CartController::class, 'addItem']);
             Route::patch('/cart/items/{cartItem}', [\App\Http\Controllers\Api\V1\CartController::class, 'updateItem']);

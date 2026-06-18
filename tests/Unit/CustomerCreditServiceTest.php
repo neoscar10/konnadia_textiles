@@ -24,8 +24,16 @@ class CustomerCreditServiceTest extends TestCase
         $this->service = new CustomerCreditService();
         $this->admin = User::factory()->create();
 
+        $level = \App\Models\CustomerLevel::create([
+            'name' => 'Test Wholesale',
+            'discount_percentage' => 10,
+            'default_credit_limit' => 500000,
+            'is_active' => true,
+        ]);
+
         $this->customer = Customer::create([
             'customer_number' => 'KT-C-TEST',
+            'customer_level_id' => $level->id,
             'company_name' => 'Test Corp',
             'gst_number' => '12ABCDE9999F1Z1',
             'contact_person' => 'Test Contact',

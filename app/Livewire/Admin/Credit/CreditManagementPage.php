@@ -13,6 +13,7 @@ use Livewire\Attributes\Url;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 use Exception;
+use InvalidArgumentException;
 
 #[Layout('components.admin.layout')]
 class CreditManagementPage extends Component
@@ -192,6 +193,8 @@ class CreditManagementPage extends Component
 
             $this->dispatch('close-modal', 'record-payment');
             $this->dispatch('toast', message: 'Payment recorded successfully.', type: 'success');
+        } catch (InvalidArgumentException $e) {
+            $this->addError('paymentForm.amount', $e->getMessage());
         } catch (Exception $e) {
             $this->dispatch('toast', message: $e->getMessage(), type: 'error');
         }
