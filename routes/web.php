@@ -79,3 +79,19 @@ Route::redirect('/customer/products', '/portal/products');
 Route::redirect('/customer/cart', '/portal/cart');
 Route::redirect('/customer/profile', '/portal/profile');
 
+
+// Temporary route to create symlink when exec() is disabled on server
+Route::get('/create-storage-link', function () {
+    $target = storage_path('app/public');
+    $link = public_path('storage');
+    
+    if (file_exists($link)) {
+        return 'Storage link already exists.';
+    }
+    
+    if (symlink($target, $link)) {
+        return 'Storage link created successfully!';
+    }
+    
+    return 'Failed to create storage link.';
+});
