@@ -80,18 +80,13 @@ Route::redirect('/customer/cart', '/portal/cart');
 Route::redirect('/customer/profile', '/portal/profile');
 
 
-// Temporary route to create symlink when exec() is disabled on server
-Route::get('/create-storage-link', function () {
-    $target = storage_path('app/public');
-    $link = public_path('storage');
+// Fallback route to serve files from storage when symlinks are disabled on the server
+Route::get('/storage/{path}', function ($path) {
+    $disk = \Illuminate\Support\Facades\Storage::disk('public');
     
-    if (file_exists($link)) {
-        return 'Storage link already exists.';
+    if (!$disk->exists($path)) {
+        abort(404);
     }
     
-    if (symlink($target, $link)) {
-        return 'Storage link created successfully!';
-    }
-    
-    return 'Failed to create storage link.';
-});
+    return response()->file($disk->path($path));
+})->where('path', '.*');
