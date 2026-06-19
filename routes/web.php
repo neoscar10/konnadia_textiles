@@ -81,7 +81,7 @@ Route::redirect('/customer/profile', '/portal/profile');
 
 
 // Fallback route to serve files from storage when symlinks are disabled on the server
-Route::get('/storage/{path}', function ($path) {
+Route::get('/storage-files/{path}', function ($path) {
     $disk = \Illuminate\Support\Facades\Storage::disk('public');
     
     if (!$disk->exists($path)) {
