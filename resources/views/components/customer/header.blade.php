@@ -65,10 +65,10 @@
             <div class="relative flex items-center" x-data="{ open: false }">
                 <button @click="open = !open" class="flex items-center gap-2 focus:outline-none">
                     <div class="w-9 h-9 rounded-full bg-gold text-[#001229] font-bold flex items-center justify-center text-sm border-2 border-white lg:border-[#0f2744]">
-                        RG
+                        {{ auth()->user()->initials }}
                     </div>
                     <span class="hidden lg:inline text-sm font-medium text-slate-200 hover:text-white select-none">
-                        Raj Garments
+                        {{ auth()->user()->customer?->company_name ?? auth()->user()->name }}
                     </span>
                     <span class="hidden lg:inline material-symbols-outlined text-slate-400 text-sm">keyboard_arrow_down</span>
                 </button>
@@ -77,7 +77,7 @@
                 <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 top-11 w-48 bg-white border border-outline-variant/30 rounded-xl shadow-lg py-1 z-50">
                     <div class="px-4 py-2 border-b border-outline-variant/30">
                         <p class="text-xs text-slate-500">Logged in as</p>
-                        <p class="text-sm font-semibold text-slate-800 truncate">Raj Garments</p>
+                        <p class="text-sm font-semibold text-slate-800 truncate">{{ auth()->user()->customer?->company_name ?? auth()->user()->name }}</p>
                     </div>
                     <a href="{{ route('customer.profile.show') }}" wire:navigate class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                         <span class="material-symbols-outlined text-lg">person</span> My Profile

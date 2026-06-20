@@ -170,6 +170,103 @@ This document describes the endpoints for the JWT-based mobile authentication sy
 
 ---
 
+### 2.7 Request OTP
+*   **Route**: `POST /auth/otp/send`
+*   **Access**: Guest
+*   **Request Body**:
+    ```json
+    {
+      "login": "customer@example.com"
+    }
+    ```
+    *(Note: `login` can be the customer's email address or mobile number.)*
+
+*   **Success Response (200 OK)**:
+    ```json
+    {
+      "success": true,
+      "message": "OTP sent successfully. Any 6-digit code will pass.",
+      "data": {
+        "login": "customer@example.com"
+      }
+    }
+    ```
+
+*   **Error Responses**:
+    *   **404 Not Found**: Account not found.
+    *   **403 Forbidden**: Account inactive or restricted.
+    *   **400 Bad Request**: Failed to send OTP.
+
+---
+
+### 2.8 Verify OTP and Login
+*   **Route**: `POST /auth/otp/login`
+*   **Access**: Guest
+*   **Request Body**:
+    ```json
+    {
+      "login": "customer@example.com",
+      "otp": "123456"
+    }
+    ```
+    *(Note: `otp` must be a 6-digit numeric string. In the current dummy implementation, any 6-digit code will pass.)*
+
+*   **Success Response (200 OK)**:
+    ```json
+    {
+      "success": true,
+      "message": "Login successful.",
+      "data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "token_type": "bearer",
+        "expires_in": 3600,
+        "user": {
+          "id": 12,
+          "name": "Rajesh Kumar",
+          "email": "customer@example.com",
+          "mobile_number": "9876543210",
+          "roles": ["customer"],
+          "is_active": true
+        },
+        "customer": {
+          "id": 5,
+          "customer_number": "KT-001",
+          "company_name": "Raj Garments",
+          "gst_number": "27ABCDE1234F1Z5",
+          "contact_person": "Rajesh Kumar",
+          "mobile_number": "9876543210",
+          "email": "customer@example.com",
+          "customer_level": {
+            "id": 2,
+            "name": "Wholesale Distributor",
+            "discount_percentage": 10
+          },
+          "credit": {
+            "credit_limit": 500000.0,
+            "outstanding_amount": 0.0,
+            "available_credit": 500000.0,
+            "overdue_amount": 0.0,
+            "allow_credit_beyond_limit": false
+          },
+          "is_active": true
+        },
+        "navigation": {
+          "default_screen": "dashboard",
+          "can_access_products": true,
+          "can_place_orders": true
+        }
+      }
+    }
+    ```
+    *(Note: The structure of `data` is identical to the standard Password Login response.)*
+
+*   **Error Responses**:
+    *   **404 Not Found**: Account not found.
+    *   **403 Forbidden**: Account inactive or restricted.
+    *   **401 Unauthorized**: Invalid OTP code. Please enter any 6 digits.
+
+---
+
 ## 3. Error Responses & Status Codes
 
 All errors return a consistent JSON response.

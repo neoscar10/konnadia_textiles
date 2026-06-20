@@ -91,4 +91,20 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(Order::class);
     }
+
+    /**
+     * Get the user's initials based on customer company name or user name.
+     */
+    public function getInitialsAttribute(): string
+    {
+        $name = $this->customer?->company_name ?? $this->name;
+        $words = preg_split('/[\s,\-\.]+/', trim($name));
+        $initials = '';
+        foreach ($words as $word) {
+            if (!empty($word)) {
+                $initials .= mb_substr($word, 0, 1);
+            }
+        }
+        return mb_strtoupper(mb_substr($initials, 0, 2));
+    }
 }

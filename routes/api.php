@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\Auth\MobileAuthController;
 Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [MobileAuthController::class, 'login']);
     Route::post('/auth/forgot-password', [MobileAuthController::class, 'forgotPassword']);
+    Route::post('/auth/otp/send', [\App\Http\Controllers\Api\V1\Auth\OtpAuthController::class, 'send']);
+    Route::post('/auth/otp/login', [\App\Http\Controllers\Api\V1\Auth\OtpAuthController::class, 'login']);
 
     Route::middleware('auth:api')->group(function () {
         Route::get('/auth/me', [MobileAuthController::class, 'me']);

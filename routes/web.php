@@ -79,14 +79,3 @@ Route::redirect('/customer/products', '/portal/products');
 Route::redirect('/customer/cart', '/portal/cart');
 Route::redirect('/customer/profile', '/portal/profile');
 
-
-// Fallback route to serve files from storage when symlinks are disabled on the server
-Route::get('/storage-files/{path}', function ($path) {
-    $disk = \Illuminate\Support\Facades\Storage::disk('public');
-    
-    if (!$disk->exists($path)) {
-        abort(404);
-    }
-    
-    return response()->file($disk->path($path));
-})->where('path', '.*');
