@@ -56,9 +56,6 @@
                             Access Dealer Portal
                             <span class="material-symbols-outlined text-sm">arrow_forward</span>
                         </a>
-                        <a href="#onboarding" class="px-6 py-3.5 bg-slate-800/80 border border-slate-700 text-slate-200 font-bold text-sm rounded-lg hover:bg-slate-800 hover:text-white transition-all">
-                            Become a Partner
-                        </a>
                     </div>
                 </div>
 
