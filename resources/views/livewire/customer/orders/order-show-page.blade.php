@@ -70,13 +70,13 @@
                                         ({{ round($item['quantity'] * $item['unit_conversion_quantity']) }} Pcs)
                                     @endif
                                 </td>
-                                <td class="px-5 py-4 text-right">₹{{ number_format($item['customer_unit_price'], 2) }}</td>
-                                <td class="px-5 py-4 text-center font-mono text-[10px] text-slate-500">{{ $item['hsn_code'] ?? '—' }}</td>
+                                <td class="px-5 py-4 text-right">₹{{ number_format($item['pricing']['customer_unit_price'], 2) }}</td>
+                                <td class="px-5 py-4 text-center font-mono text-[10px] text-slate-500">{{ $item['tax']['hsn_code'] ?? '—' }}</td>
                                 <td class="px-5 py-4 text-right">
-                                    <span class="block">₹{{ number_format($item['gst_amount'], 2) }}</span>
-                                    <span class="text-[9px] text-slate-400">({{ (float) $item['gst_percentage'] }}%)</span>
+                                    <span class="block">₹{{ number_format($item['tax']['gst_amount'], 2) }}</span>
+                                    <span class="text-[9px] text-slate-400">({{ (float) $item['tax']['gst_percentage'] }}%)</span>
                                 </td>
-                                <td class="px-5 py-4 text-right font-bold">₹{{ number_format($item['line_total'], 2) }}</td>
+                                <td class="px-5 py-4 text-right font-bold">₹{{ number_format($item['pricing']['line_total'], 2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

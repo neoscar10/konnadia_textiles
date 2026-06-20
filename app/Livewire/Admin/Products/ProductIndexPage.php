@@ -616,6 +616,13 @@ class ProductIndexPage extends Component
         }
     }
 
+    public function reorderUploadedMedia(int $from, int $to)
+    {
+        $item = $this->mediaUploads[$from];
+        array_splice($this->mediaUploads, $from, 1);
+        array_splice($this->mediaUploads, $to, 0, [$item]);
+    }
+
     protected function resetWizard()
     {
         $this->currentStep = 1;

@@ -393,31 +393,64 @@
                                 </div>
                             @endif
 
-                            <!-- New Upload Previews (not sortable) -->
+                            <!-- New Upload Previews (Sortable) -->
                             @if(!empty($mediaUploads))
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-lg select-none">
-                                    @foreach($mediaUploads as $index => $file)
-                                        <div class="border rounded-lg overflow-hidden bg-checkered relative group aspect-square flex items-center justify-center border-outline-variant/30 shadow-sm transition-all duration-300" wire:key="new-upload-{{ $index }}">
-                                            @php
-                                                $tempUrl = null;
-                                                try { $tempUrl = $file->temporaryUrl(); } catch (\Exception $e) {}
-                                            @endphp
-                                            @if($tempUrl)
-                                                <img src="{{ $tempUrl }}" class="w-full h-full object-cover select-none pointer-events-none" draggable="false" />
-                                            @else
-                                                <div class="flex flex-col items-center justify-center text-on-surface-variant/50">
-                                                    <span class="material-symbols-outlined text-3xl">image</span>
-                                                    <span class="text-[10px] mt-1">Preview unavailable</span>
-                                                </div>
-                                            @endif
-                                            
-                                            <!-- Delete Button -->
-                                            <button type="button" x-on:click="$wire.call('deleteUploadedFile', {{ $index }})" class="bg-[#ef4444] hover:bg-[#dc2626] text-white rounded-md w-7 h-7 flex items-center justify-center absolute top-2 right-2 shadow z-10 transition-colors cursor-pointer" title="Remove">
-                                                <span class="material-symbols-outlined text-[16px] font-bold">close</span>
-                                            </button>
-                                            <span class="absolute bottom-2 left-2 px-sm py-xxs bg-secondary text-on-secondary text-[10px] font-bold rounded shadow-sm select-none">NEW</span>
-                                        </div>
-                                    @endforeach
+                                <div 
+                                    wire:ignore.self
+                                    x-data
+                                    x-init="
+                                        $nextTick(() => {
+                                            const grid = $el.querySelector('.sortable-uploads-grid');
+                                            if (grid && typeof Sortable !== 'undefined') {
+                                                new Sortable(grid, {
+                                                    animation: 250,
+                                                    ghostClass: 'sortable-ghost',
+                                                    chosenClass: 'sortable-chosen',
+                                                    dragClass: 'sortable-drag',
+                                                    filter: '.no-drag',
+                                                    preventOnFilter: false,
+                                                    onEnd: function(evt) {
+                                                        if (evt.oldIndex !== evt.newIndex) {
+                                                            $wire.call('reorderUploadedMedia', evt.oldIndex, evt.newIndex);
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    "
+                                >
+                                    <div class="sortable-uploads-grid grid grid-cols-2 sm:grid-cols-4 gap-lg select-none">
+                                        @foreach($mediaUploads as $index => $file)
+                                            <div class="border rounded-lg overflow-hidden bg-checkered relative group aspect-square flex items-center justify-center border-outline-variant/30 shadow-sm cursor-grab active:cursor-grabbing transition-all duration-200 hover:shadow-md hover:scale-[1.02]" wire:key="new-upload-{{ $index }}">
+                                                @php
+                                                    $tempUrl = null;
+                                                    try { $tempUrl = $file->temporaryUrl(); } catch (\Exception $e) {}
+                                                @endphp
+                                                @if($tempUrl)
+                                                    <img src="{{ $tempUrl }}" class="w-full h-full object-cover select-none pointer-events-none" draggable="false" />
+                                                @else
+                                                    <div class="flex flex-col items-center justify-center text-on-surface-variant/50">
+                                                        <span class="material-symbols-outlined text-3xl">image</span>
+                                                        <span class="text-[10px] mt-1">Preview unavailable</span>
+                                                    </div>
+                                                @endif
+                                                
+                                                <!-- Drag Handle Indicator (top-left) -->
+                                                <span class="absolute top-2 left-2 text-white/90 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg pointer-events-none">
+                                                    <span class="material-symbols-outlined text-[20px]">drag_indicator</span>
+                                                </span>
+
+                                                <!-- Order Number Badge -->
+                                                <span class="absolute top-2 left-8 bg-black/50 text-white text-[10px] font-bold rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">{{ $index + 1 }}</span>
+
+                                                <!-- Delete Button -->
+                                                <button type="button" x-on:click.stop.prevent="$wire.call('deleteUploadedFile', {{ $index }})" class="bg-[#ef4444] hover:bg-[#dc2626] text-white rounded-md w-7 h-7 flex items-center justify-center absolute top-2 right-2 shadow z-10 transition-colors cursor-pointer" title="Remove">
+                                                    <span class="material-symbols-outlined text-[16px] font-bold">close</span>
+                                                </button>
+                                                <span class="absolute bottom-2 left-2 px-sm py-xxs bg-secondary text-on-secondary text-[10px] font-bold rounded shadow-sm select-none">NEW</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @endif
                         </div>

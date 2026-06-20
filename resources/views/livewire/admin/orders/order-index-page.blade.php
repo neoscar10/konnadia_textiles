@@ -82,7 +82,7 @@
     <x-admin.card class="mb-xl shadow-sm border border-outline-variant/20">
         <x-slot:bodyClass>p-lg</x-slot:bodyClass>
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-md items-end">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md items-end">
             <!-- Search field -->
             <div class="flex flex-col gap-xs">
                 <label class="text-label-sm text-on-surface-variant font-bold uppercase tracking-wider">Search</label>
@@ -152,8 +152,8 @@
             </div>
 
             <!-- Reset button -->
-            <div class="flex justify-end">
-                <button wire:click="resetFilters" class="px-xl py-sm w-full sm:w-auto text-sm font-bold text-primary border border-outline-variant/60 hover:bg-surface-container-low hover:text-primary-dark transition-colors rounded-lg bg-surface-container-lowest shadow-sm">Reset Filters</button>
+            <div class="w-full">
+                <button wire:click="resetFilters" class="px-xl py-sm w-full text-sm font-bold text-primary border border-outline-variant/60 hover:bg-surface-container-low hover:text-primary-dark transition-colors rounded-lg bg-surface-container-lowest shadow-sm">Reset Filters</button>
             </div>
         </div>
     </x-admin.card>
