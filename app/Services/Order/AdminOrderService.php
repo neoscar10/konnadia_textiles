@@ -295,8 +295,13 @@ class AdminOrderService
 
             $order->update(['payment_status' => 'verified']);
 
-            // Auto-transition to under_review for processing
-            return $this->statusService->transition($order, 'under_review', $admin, 'Payment receipt verified by admin. Order is now under review.');
+            // Determine the correct next status based on where the order currently is.
+            // If the order is already under_review (admin moved it there manually before
+            // verifying the receipt), advance it to pending_approval so it can be approved.
+            // Otherwise (e.g. status is pending_payment_verification), move it to under_review.
+            $nextStatus = $order->status === 'under_review' ? 'pending_approval' : 'under_review';
+
+            return $this->statusService->transition($order, $nextStatus, $admin, 'Payment receipt verified by admin.');
         });
     }
 
