@@ -11,9 +11,8 @@
         
         <!-- Left: Image Gallery (5 cols) -->
         <div class="lg:col-span-5 space-y-4">
-            <!-- Hero Image -->
-            <div class="bg-white border border-outline-variant/30 rounded-xl overflow-hidden aspect-[4/3] relative shadow-ambient flex items-center justify-center">
-                <img src="{{ $activeImage }}" alt="Product image" class="w-full h-full object-cover">
+            <div class="bg-slate-50 border border-outline-variant/30 rounded-xl aspect-[4/3] relative shadow-ambient flex items-center justify-center p-4">
+                <img src="{{ $activeImage }}" alt="Product image" class="max-w-full max-h-full object-contain">
                 <button class="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-md backdrop-blur-xs text-slate-700 transition-all">
                     <span class="material-symbols-outlined text-lg">zoom_in</span>
                 </button>

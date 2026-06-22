@@ -16,35 +16,20 @@
                     Dashboard
                 </a>
                 <a href="{{ route('customer.products.index') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.products.*') || request()->routeIs('customer.categories.*') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
-                    Products
+                    Shop
                 </a>
                 <a href="{{ route('customer.orders.index') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.orders.*') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
                     Orders
                 </a>
-                <a href="{{ route('customer.cart.saved') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.cart.saved') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
-                    Saved Carts
-                </a>
+
             </nav>
         </div>
 
-        <!-- Middle (Desktop Search Bar) -->
-        <div class="hidden md:flex flex-1 max-w-md mx-8">
-            <form action="{{ route('customer.products.index') }}" method="GET" class="relative w-full">
-                <span class="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                    <span class="material-symbols-outlined text-xl">search</span>
-                </span>
-                <input type="text" name="search" placeholder="Search products, SKUs, styles..." class="w-full bg-slate-50 lg:bg-[#0f2744] text-[#001229] lg:text-white placeholder-slate-400 lg:placeholder-slate-300 pl-10 pr-4 py-2 rounded-lg text-sm border border-outline-variant/30 lg:border-none focus:outline-none focus:ring-2 focus:ring-gold" value="{{ request('search') }}">
-            </form>
-        </div>
+
 
         <!-- Right: Actions & Profile -->
         <div class="flex items-center gap-4">
             
-            <!-- Notifications Link -->
-            <a href="{{ route('customer.notifications.index') }}" wire:navigate class="relative p-2 text-slate-600 lg:text-slate-300 hover:text-slate-900 lg:hover:text-white rounded-full hover:bg-slate-100 lg:hover:bg-slate-800 transition-colors">
-                <span class="material-symbols-outlined text-2xl">notifications</span>
-                <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-white lg:ring-[#001229]"></span>
-            </a>
 
             <!-- Cart Link -->
             @php
