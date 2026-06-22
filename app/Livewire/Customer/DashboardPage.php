@@ -50,38 +50,20 @@ class DashboardPage extends Component
     {
         $user = auth()->user();
         $product = \App\Models\Product::with(['units', 'variationGroups.values.media', 'combinations'])->findOrFail($productId);
-        
-        $hasVariations = $product->variationGroups()->exists();
-        
-        if (!$hasVariations) {
-            // Add directly to cart
-            try {
-                $lvl1Unit = $product->units()->where('level', 1)->first();
-                $cartService = app(\App\Services\Cart\CartService::class);
-                $cartService->addItem($user, [
-                    'product_id' => $productId,
-                    'unit_id' => $lvl1Unit?->id,
-                    'quantity' => $product->minimum_order_quantity ?: 1,
-                ]);
-                $this->dispatch('toast', type: 'success', message: 'Product added to cart.');
-                $this->dispatch('cart-updated', count: $cartService->getCartItemCount($user));
-            } catch (\Exception $e) {
-                $this->dispatch('toast', type: 'error', message: $e->getMessage());
-            }
-            return;
-        }
 
-        // Open variant modal
+        // Always open the modal so the user can confirm quantity,
+        // even if the product has no variant groups.
         $this->quickAddProductId = $productId;
         $this->quickAddProduct = $product;
-        
+        $this->quickAddSelectedValues = [];
+
         $detail = $catalogService->getProductForCustomer($user, $product->slug);
         $this->quickAddVariations = $detail['variations'];
         $this->quickAddUnits = $detail['units'];
-        
-        // Pre-select defaults
+
+        // Pre-select defaults for any variation groups
         foreach ($this->quickAddVariations as $group) {
-            $defaultVal = collect($group['values'])->firstWhere('is_default', true) 
+            $defaultVal = collect($group['values'])->firstWhere('is_default', true)
                 ?? collect($group['values'])->first();
             if ($defaultVal) {
                 $this->quickAddSelectedValues[$group['name']] = $defaultVal['value'];
@@ -91,7 +73,7 @@ class DashboardPage extends Component
         $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
         $this->quickAddSelectedUnitId = $lvl1 ? $lvl1['id'] : $detail['purchase_defaults']['default_unit_id'];
         $this->quickAddMoq = $detail['purchase_defaults']['minimum_order_quantity'];
-        
+
         $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
         if ($lvl2) {
             $this->quickAddHasLvl2Unit = true;

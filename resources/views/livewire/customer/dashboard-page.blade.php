@@ -184,27 +184,126 @@
 
     <!-- Recommended Products Section -->
     <div>
-        <h3 class="text-base font-extrabold text-[#001229] mb-4">Recommended Products</h3>
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-extrabold text-[#001229]">Recommended Products</h3>
+            @if(!empty($recommendedProducts))
+                <span class="text-xs text-slate-400 font-medium select-none">{{ count($recommendedProducts) }} Products</span>
+            @endif
+        </div>
+
         @if(empty($recommendedProducts))
             <div class="bg-white border border-outline-variant/20 rounded-xl p-8 text-center text-slate-500 text-sm">
                 No recommended products at the moment.
             </div>
         @else
-            <div class="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory scrollbar-thin scroll-smooth">
-                @foreach($recommendedProducts as $product)
-                    <div class="w-72 flex-shrink-0 snap-start">
-                        <x-customer.product-card 
-                            :title="$product['title']" 
-                            :sku="$product['sku']" 
-                            :price="$product['price']['customer_price']" 
-                            :moq="$product['minimum_order_quantity']" 
-                            :image="$product['primary_image_url']" 
-                            :inStock="$product['stock']['status'] === 'in_stock'" 
-                            :url="route('customer.products.show', $product['slug'])" 
-                            :productId="$product['id']"
-                        />
+            @php $productCount = count($recommendedProducts); @endphp
+            <div
+                x-data="{
+                    idx: 0,
+                    count: {{ $productCount }},
+                    visible: 4,
+                    cardWidth: 288,
+                    cardGap: 24,
+                    timer: null,
+                    get stride() { return this.cardWidth + this.cardGap; },
+                    get maxIdx() { return Math.max(0, this.count - this.visible); },
+                    next() {
+                        this.idx = this.idx >= this.maxIdx ? 0 : this.idx + 1;
+                        this.resetTimer();
+                    },
+                    prev() {
+                        this.idx = this.idx <= 0 ? this.maxIdx : this.idx - 1;
+                        this.resetTimer();
+                    },
+                    goTo(i) {
+                        this.idx = i;
+                        this.resetTimer();
+                    },
+                    startTimer() {
+                        this.timer = setInterval(() => {
+                            this.idx = this.idx >= this.maxIdx ? 0 : this.idx + 1;
+                        }, 4000);
+                    },
+                    resetTimer() {
+                        clearInterval(this.timer);
+                        this.startTimer();
+                    },
+                    stopTimer() {
+                        clearInterval(this.timer);
+                    },
+                    updateVisible() {
+                        const w = window.innerWidth;
+                        if (w < 640) this.visible = 1;
+                        else if (w < 768) this.visible = 2;
+                        else if (w < 1280) this.visible = 3;
+                        else this.visible = 4;
+                        if (this.idx > this.maxIdx) this.idx = this.maxIdx;
+                    },
+                    init() {
+                        this.updateVisible();
+                        window.addEventListener('resize', () => this.updateVisible());
+                        this.startTimer();
+                    }
+                }"
+                @mouseenter="stopTimer()"
+                @mouseleave="startTimer()"
+                class="relative px-5"
+            >
+                {{-- Prev Button --}}
+                <button
+                    @click="prev()"
+                    class="absolute left-0 top-1/2 z-10 w-10 h-10 -translate-y-10 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center text-[#001229] hover:bg-[#001229] hover:text-white hover:border-[#001229] transition-all duration-200"
+                    :class="count <= visible ? 'opacity-0 pointer-events-none' : 'opacity-100'"
+                >
+                    <span class="material-symbols-outlined text-xl leading-none">chevron_left</span>
+                </button>
+
+                {{-- Carousel Track --}}
+                <div class="overflow-hidden rounded-xl">
+                    <div
+                        class="flex transition-transform duration-500 ease-in-out will-change-transform"
+                        :style="'gap: ' + cardGap + 'px; transform: translateX(-' + (idx * stride) + 'px)'"
+                    >
+                        @foreach($recommendedProducts as $product)
+                            <div class="flex-shrink-0" style="width: 288px;">
+                                <x-customer.product-card
+                                    :title="$product['title']"
+                                    :sku="$product['sku']"
+                                    :price="$product['price']['customer_price']"
+                                    :moq="$product['minimum_order_quantity']"
+                                    :image="$product['primary_image_url']"
+                                    :inStock="$product['stock']['status'] === 'in_stock'"
+                                    :url="route('customer.products.show', $product['slug'])"
+                                    :productId="$product['id']"
+                                />
+                            </div>
+                        @endforeach
                     </div>
-                @endforeach
+                </div>
+
+                {{-- Next Button --}}
+                <button
+                    @click="next()"
+                    class="absolute right-0 top-1/2 z-10 w-10 h-10 -translate-y-10 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center text-[#001229] hover:bg-[#001229] hover:text-white hover:border-[#001229] transition-all duration-200"
+                    :class="count <= visible ? 'opacity-0 pointer-events-none' : 'opacity-100'"
+                >
+                    <span class="material-symbols-outlined text-xl leading-none">chevron_right</span>
+                </button>
+
+                {{-- Dot Indicators --}}
+                @if($productCount > 1)
+                    <div class="flex items-center justify-center gap-2 mt-5">
+                        @for($di = 0; $di < $productCount; $di++)
+                            <button
+                                @click="goTo({{ $di }})"
+                                class="rounded-full transition-all duration-300 focus:outline-none"
+                                :class="idx === {{ $di }}
+                                    ? 'w-6 h-2 bg-[#001229]'
+                                    : 'w-2 h-2 bg-slate-300 hover:bg-slate-400'"
+                            ></button>
+                        @endfor
+                    </div>
+                @endif
             </div>
         @endif
     </div>
