@@ -214,6 +214,11 @@
                 </div>
             </x-admin.card>
 
+
+        </div>
+
+        <!-- Summary & Remarks -->
+        <div class="col-span-12 lg:col-span-4 space-y-xl">
             <!-- Receipts Panel (If manual payment) -->
             @if($orderData['checkout_method'] === 'manual_payment')
                 <x-admin.card>
@@ -222,24 +227,24 @@
                         <h3 class="font-title-md text-primary">Payment Proof Receipts</h3>
                     </x-slot:header>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                    <div class="space-y-sm">
                         @forelse($orderData['receipts'] as $receipt)
-                            <div class="bg-surface-container-low p-md border border-outline-variant/30 rounded-xl flex flex-col justify-between gap-md">
-                                <div class="flex items-start gap-md">
-                                    <span class="material-symbols-outlined text-primary text-3xl">description</span>
+                            <div class="bg-surface-container-low p-sm border border-outline-variant/30 rounded-xl flex items-center justify-between gap-sm">
+                                <div class="flex items-center gap-sm overflow-hidden">
+                                    <span class="material-symbols-outlined text-primary text-xl flex-shrink-0">description</span>
                                     <div class="overflow-hidden">
-                                        <p class="font-title-md text-primary truncate">{{ $receipt['original_name'] }}</p>
-                                        <p class="text-[10px] text-on-surface-variant mt-xs">MIME: {{ $receipt['mime_type'] }} • Size: {{ round($receipt['size'] / 1024) }} KB</p>
-                                        <span class="inline-block px-2 py-0.5 mt-sm text-[10px] font-bold uppercase border rounded {{ $receipt['status'] === 'verified' ? 'bg-[#0F8A46]/10 text-[#0F8A46] border-[#0F8A46]/20' : 'bg-warning-container/20 text-warning border-warning-container' }}">
-                                            {{ $receipt['status'] }}
-                                        </span>
+                                        <p class="font-title-sm text-primary truncate text-xs">{{ $receipt['original_name'] }}</p>
+                                        <div class="flex items-center gap-xs mt-0.5">
+                                            <span class="text-[9px] text-on-surface-variant font-mono">{{ round($receipt['size'] / 1024) }} KB</span>
+                                            <span class="px-1.5 py-[1px] text-[8px] font-extrabold uppercase border rounded {{ $receipt['status'] === 'verified' ? 'bg-[#0F8A46]/10 text-[#0F8A46] border-[#0F8A46]/20' : 'bg-warning-container/20 text-warning border-warning-container' }}">
+                                                {{ $receipt['status'] }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="flex gap-sm w-full">
-                                    <a href="{{ $receipt['file_url'] }}" target="_blank" class="w-1/2 text-center py-sm border border-outline-variant/30 hover:bg-surface-container text-[#001229] font-bold text-xs bg-surface-container-low rounded-lg transition-colors flex items-center justify-center gap-xs">
-                                        <span class="material-symbols-outlined text-sm">visibility</span> View Receipt
-                                    </a>
-                                </div>
+                                <a href="{{ $receipt['file_url'] }}" target="_blank" class="px-sm py-xs border border-outline-variant/30 hover:bg-surface-container text-[#001229] font-bold text-[10px] bg-white rounded-lg transition-colors flex items-center gap-xs flex-shrink-0 shadow-xs">
+                                    <span class="material-symbols-outlined text-xs">visibility</span> View
+                                </a>
                             </div>
                         @empty
                             <p class="text-on-surface-variant italic text-xs">No receipts uploaded yet.</p>
@@ -247,10 +252,7 @@
                     </div>
                 </x-admin.card>
             @endif
-        </div>
 
-        <!-- Summary & Remarks -->
-        <div class="col-span-12 lg:col-span-4 space-y-xl">
             <!-- Order Summary -->
             <x-admin.card>
                 <x-slot:header class="bg-surface-container-low/30">

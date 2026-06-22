@@ -17,8 +17,7 @@ class ProductMediaService
     public function storeProductMedia(Product $product, array $uploadedFiles): void
     {
         DB::transaction(function () use ($product, $uploadedFiles) {
-            $currentMaxOrder = $product->media()->max('sort_order') ?? 0;
-            $hasPrimary = $product->media()->where('is_primary', true)->exists();
+            $existingCount = $product->media()->count();
 
             foreach ($uploadedFiles as $index => $file) {
                 // If it is a TemporaryUploadedFile or normal UploadedFile
@@ -30,9 +29,18 @@ class ProductMediaService
                     'file_type' => $this->getFileType($file->getClientMimeType()),
                     'mime_type' => $file->getClientMimeType(),
                     'size' => $file->getSize(),
-                    'sort_order' => $currentMaxOrder + $index + 1,
-                    'is_primary' => !$hasPrimary && $index === 0,
+                    'sort_order' => $existingCount + $index,
+                    'is_primary' => ($existingCount + $index === 0),
                 ]);
+            }
+
+            // Ensure at least one image is primary (lowest sort order)
+            $hasPrimary = $product->media()->where('is_primary', true)->exists();
+            if (!$hasPrimary) {
+                $first = $product->media()->orderBy('sort_order')->first();
+                if ($first) {
+                    $first->update(['is_primary' => true]);
+                }
             }
         });
     }
@@ -46,7 +54,10 @@ class ProductMediaService
             foreach ($orderedMediaIds as $sortOrder => $id) {
                 ProductMedia::where('product_id', $product->id)
                     ->where('id', $id)
-                    ->update(['sort_order' => $sortOrder]);
+                    ->update([
+                        'sort_order' => $sortOrder,
+                        'is_primary' => ($sortOrder === 0),
+                    ]);
             }
         });
     }
@@ -62,15 +73,16 @@ class ProductMediaService
             }
             
             $product = $media->product;
-            $wasPrimary = $media->is_primary;
-
             $media->delete();
 
-            // If we deleted primary, set another one as primary
-            if ($wasPrimary && $product) {
-                $next = $product->media()->first();
-                if ($next) {
-                    $next->update(['is_primary' => true]);
+            if ($product) {
+                // Re-index remaining media to ensure they are contiguous starting at 0, and the first is primary
+                $remaining = $product->media()->orderBy('sort_order')->get();
+                foreach ($remaining as $sortOrder => $m) {
+                    $m->update([
+                        'sort_order' => $sortOrder,
+                        'is_primary' => ($sortOrder === 0),
+                    ]);
                 }
             }
         });

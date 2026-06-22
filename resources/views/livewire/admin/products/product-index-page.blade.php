@@ -94,7 +94,9 @@
                             </td>
                             <td class="px-lg py-md font-bold text-primary">₹{{ number_format($prod->base_price, 2) }}</td>
                             <td class="px-lg py-md text-center">
-                                @if($prod->stock_quantity > 0)
+                                @if($prod->product_type === 'manufactured')
+                                    <span class="font-semibold text-on-surface-variant">NA</span>
+                                @elseif($prod->stock_quantity > 0)
                                     <span class="font-semibold text-success">{{ $prod->stock_quantity }}</span>
                                 @else
                                     <span class="font-semibold text-error">Out of stock</span>

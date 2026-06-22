@@ -105,15 +105,7 @@
                     <span class="font-bold text-slate-800 text-sm">Purchase Configuration</span>
                 </x-slot>
 
-                <!-- Purchase Unit selection -->
-                <div>
-                    <h5 class="text-xs font-bold text-slate-700 mb-2">Purchase Unit</h5>
-                    <select wire:model.live="selectedUnitId" class="w-full text-xs bg-white text-slate-700 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                        @foreach($units as $unit)
-                            <option value="{{ $unit['id'] }}">{{ $unit['label'] }} (₹{{ number_format($unit['price'], 2) }}/unit)</option>
-                        @endforeach
-                    </select>
-                </div>
+
 
                 <!-- Quantity Stepper / Dual Unit Selector -->
                 <div>

@@ -635,8 +635,20 @@ class ProductIndexPage extends Component
         $media = ProductMedia::findOrFail($mediaId);
         $service->deleteMedia($media);
 
-        $this->existingMedia = array_filter($this->existingMedia, fn($m) => $m['id'] !== $mediaId);
-        $this->existingMedia = array_values($this->existingMedia);
+        // Reload existingMedia to ensure matches database re-indexing and new cover
+        $this->existingMedia = [];
+        if ($this->selectedProductId) {
+            $product = Product::with('media')->find($this->selectedProductId);
+            if ($product) {
+                foreach ($product->media as $m) {
+                    $this->existingMedia[] = [
+                        'id' => $m->id,
+                        'file_path' => $m->file_path,
+                        'is_primary' => (bool)$m->is_primary,
+                    ];
+                }
+            }
+        }
 
         $this->dispatch('toast', message: 'Media removed successfully.', type: 'success');
     }
@@ -644,13 +656,47 @@ class ProductIndexPage extends Component
     public function setPrimaryMedia(int $mediaId, ProductMediaService $service)
     {
         $media = ProductMedia::findOrFail($mediaId);
-        $service->setPrimary($media);
 
-        foreach ($this->existingMedia as &$m) {
-            $m['is_primary'] = ($m['id'] === $mediaId);
+        // Find it in existingMedia and move it to index 0
+        $foundIndex = null;
+        foreach ($this->existingMedia as $index => $m) {
+            if ($m['id'] === $mediaId) {
+                $foundIndex = $index;
+                break;
+            }
         }
 
-        $this->dispatch('toast', message: 'Cover image updated successfully.', type: 'success');
+        if ($foundIndex !== null) {
+            $item = $this->existingMedia[$foundIndex];
+            array_splice($this->existingMedia, $foundIndex, 1);
+            array_splice($this->existingMedia, 0, 0, [$item]);
+        }
+
+        // Save order and let ProductMediaService handle setPrimary during reorderMedia
+        if ($this->selectedProductId) {
+            $orderedIds = collect($this->existingMedia)->pluck('id')->all();
+            $product = Product::find($this->selectedProductId);
+            if ($product) {
+                $service->reorderMedia($product, $orderedIds);
+            }
+        }
+
+        // Reload existingMedia to ensure local array matches DB order and primary flags
+        $this->existingMedia = [];
+        if ($this->selectedProductId) {
+            $product = Product::with('media')->find($this->selectedProductId);
+            if ($product) {
+                foreach ($product->media as $m) {
+                    $this->existingMedia[] = [
+                        'id' => $m->id,
+                        'file_path' => $m->file_path,
+                        'is_primary' => (bool)$m->is_primary,
+                    ];
+                }
+            }
+        }
+
+        $this->dispatch('toast', message: 'Cover image updated and moved to first position.', type: 'success');
     }
 
     public function deleteUploadedFile(int $index)
@@ -673,6 +719,17 @@ class ProductIndexPage extends Component
             $product = Product::find($this->selectedProductId);
             if ($product) {
                 $service->reorderMedia($product, $orderedIds);
+
+                // Reload local array to capture correct primary flags
+                $this->existingMedia = [];
+                $product->load('media');
+                foreach ($product->media as $m) {
+                    $this->existingMedia[] = [
+                        'id' => $m->id,
+                        'file_path' => $m->file_path,
+                        'is_primary' => (bool)$m->is_primary,
+                    ];
+                }
             }
         }
     }

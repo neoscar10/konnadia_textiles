@@ -16,6 +16,7 @@ class CartPage extends Component
     public $totals = [];
     public $creditSummary = [];
     public $isEmpty = true;
+    public bool $showClearCartConfirmModal = false;
 
     public function mount(CartService $cartService)
     {
@@ -150,6 +151,7 @@ class CartPage extends Component
     public function clearCart(CartService $cartService)
     {
         $cartService->clearCart(auth()->user());
+        $this->showClearCartConfirmModal = false;
         $this->loadCart($cartService);
         $this->dispatch('toast', type: 'success', message: 'Cart cleared successfully.');
         $this->dispatch('cart-updated', count: $cartService->getCartItemCount(auth()->user()));

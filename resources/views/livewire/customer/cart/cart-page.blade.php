@@ -26,7 +26,7 @@
                 <!-- Items header / controls -->
                 <div class="flex items-center justify-between pb-2 border-b border-outline-variant/10">
                     <span class="text-sm font-bold text-slate-700">{{ count($items) }} {{ count($items) === 1 ? 'Item' : 'Items' }} in Cart</span>
-                    <button wire:click="clearCart" wire:confirm="Are you sure you want to clear your entire cart?" class="text-xs text-error font-bold hover:underline flex items-center gap-0.5">
+                    <button wire:click="$set('showClearCartConfirmModal', true)" class="text-xs text-error font-bold hover:underline flex items-center gap-0.5">
                         <span class="material-symbols-outlined text-sm">delete_sweep</span> Clear Cart
                     </button>
                 </div>
@@ -157,6 +157,37 @@
                 </div>
             </div>
 
+        </div>
+    @endif
+
+    <!-- Clear Cart Confirmation Modal -->
+    @if($showClearCartConfirmModal)
+        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
+            <div class="bg-white border border-outline-variant/30 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="text-base font-extrabold text-[#001229] flex items-center gap-2">
+                        <span class="material-symbols-outlined text-error">warning</span>
+                        Clear Cart
+                    </h3>
+                    <button type="button" wire:click="$set('showClearCartConfirmModal', false)" class="text-slate-400 hover:text-slate-600">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6 text-sm text-slate-600">
+                    Are you sure you want to clear your entire cart? This action cannot be undone.
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50">
+                    <button type="button" wire:click="$set('showClearCartConfirmModal', false)" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-700 border border-outline-variant/30 hover:bg-slate-50 transition-colors bg-white shadow-xs">Cancel</button>
+                    <button type="button" wire:click="clearCart" class="px-4 py-2 rounded-lg text-xs font-bold text-white bg-error hover:bg-rose-700 transition-colors shadow-sm">
+                        Clear Cart
+                    </button>
+                </div>
+            </div>
         </div>
     @endif
 </div>
