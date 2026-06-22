@@ -84,9 +84,27 @@
             </div>
             
             <div class="space-y-xs md:col-span-2">
-                <label class="font-label-md text-on-surface-variant">Billing Address</label>
-                <textarea wire:model="form.billing_address" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all" rows="3"></textarea>
-                @error('form.billing_address') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                <label class="font-label-md text-on-surface-variant">Street Address *</label>
+                <textarea wire:model="form.address" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all" rows="2" placeholder="Street, building, area..."></textarea>
+                @error('form.address') <span class="text-error text-xs">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="space-y-xs">
+                <label class="font-label-md text-on-surface-variant">City *</label>
+                <input type="text" wire:model="form.city" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all" placeholder="City">
+                @error('form.city') <span class="text-error text-xs">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="space-y-xs">
+                <label class="font-label-md text-on-surface-variant">State *</label>
+                <input type="text" wire:model="form.state" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all" placeholder="State">
+                @error('form.state') <span class="text-error text-xs">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="space-y-xs md:col-span-2">
+                <label class="font-label-md text-on-surface-variant">PIN Code *</label>
+                <input type="text" wire:model="form.pincode" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all" placeholder="6-digit PIN code">
+                @error('form.pincode') <span class="text-error text-xs">{{ $message }}</span> @enderror
             </div>
             
             <div class="space-y-xs md:col-span-2 mt-xs">

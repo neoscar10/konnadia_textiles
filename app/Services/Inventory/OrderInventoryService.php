@@ -19,6 +19,10 @@ class OrderInventoryService
         $hasEnough = true;
 
         foreach ($order->items as $item) {
+            if ($item->product && $item->product->product_type === 'manufactured') {
+                continue; // Manufactured products have infinite stock and no inventory tracking
+            }
+
             $baseQty = (int) ($item->quantity * $item->unit_conversion_quantity);
             $available = 0;
 
@@ -64,6 +68,10 @@ class OrderInventoryService
             }
 
             foreach ($order->items as $item) {
+                if ($item->product && $item->product->product_type === 'manufactured') {
+                    continue;
+                }
+
                 $baseQty = (int) ($item->quantity * $item->unit_conversion_quantity);
 
                 if ($item->product_combination_id && $item->combination) {
@@ -90,6 +98,10 @@ class OrderInventoryService
 
         DB::transaction(function () use ($order) {
             foreach ($order->items as $item) {
+                if ($item->product && $item->product->product_type === 'manufactured') {
+                    continue;
+                }
+
                 $baseQty = (int) ($item->quantity * $item->unit_conversion_quantity);
 
                 if ($item->product_combination_id && $item->combination) {

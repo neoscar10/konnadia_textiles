@@ -56,7 +56,54 @@ class CartPage extends Component
         }
 
         try {
-            $cartService->updateItem(auth()->user(), $item, ['quantity' => $qty]);
+            $payload = ['quantity' => $qty];
+            $product = $item->product;
+            $lvl2Unit = $product ? $product->units()->where('level', 2)->first() : null;
+            if ($lvl2Unit) {
+                $conversion = (int) $lvl2Unit->conversion_to_base;
+                $payload['quantity_lvl1'] = $qty % $conversion;
+                $payload['quantity_lvl2'] = floor($qty / $conversion);
+            }
+
+            $cartService->updateItem(auth()->user(), $item, $payload);
+            $this->loadCart($cartService);
+            $this->dispatch('toast', type: 'success', message: 'Cart updated successfully.');
+            $this->dispatch('cart-updated', count: $cartService->getCartItemCount(auth()->user()));
+        } catch (ValidationException $e) {
+            $this->dispatch('toast', type: 'error', message: collect($e->errors())->flatten()->first());
+        }
+    }
+
+    public function updateQuantityLvl1($itemId, $val, CartService $cartService)
+    {
+        $val = max(0, (int)$val);
+        $item = CartItem::find($itemId);
+        if (!$item) return;
+
+        try {
+            $cartService->updateItem(auth()->user(), $item, [
+                'quantity_lvl1' => $val,
+                'quantity_lvl2' => $item->quantity_lvl2,
+            ]);
+            $this->loadCart($cartService);
+            $this->dispatch('toast', type: 'success', message: 'Cart updated successfully.');
+            $this->dispatch('cart-updated', count: $cartService->getCartItemCount(auth()->user()));
+        } catch (ValidationException $e) {
+            $this->dispatch('toast', type: 'error', message: collect($e->errors())->flatten()->first());
+        }
+    }
+
+    public function updateQuantityLvl2($itemId, $val, CartService $cartService)
+    {
+        $val = max(0, (int)$val);
+        $item = CartItem::find($itemId);
+        if (!$item) return;
+
+        try {
+            $cartService->updateItem(auth()->user(), $item, [
+                'quantity_lvl1' => $item->quantity_lvl1,
+                'quantity_lvl2' => $val,
+            ]);
             $this->loadCart($cartService);
             $this->dispatch('toast', type: 'success', message: 'Cart updated successfully.');
             $this->dispatch('cart-updated', count: $cartService->getCartItemCount(auth()->user()));

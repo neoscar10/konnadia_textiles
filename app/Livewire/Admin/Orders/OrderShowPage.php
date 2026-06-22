@@ -20,6 +20,7 @@ class OrderShowPage extends Component
     public bool $showVerifyReceiptModal = false;
     public bool $showRejectReceiptModal = false;
     public bool $showDispatchModal = false;
+    public bool $showCancelModal = false;
 
     public string $adminComment = '';
     public string $rejectionReason = '';
@@ -110,6 +111,16 @@ class OrderShowPage extends Component
 
         session()->flash('success', 'Order marked as dispatched successfully.');
         $this->reset(['showDispatchModal', 'adminComment']);
+        $this->loadOrder($adminOrderService);
+    }
+
+    public function cancelOrder(AdminOrderService $adminOrderService)
+    {
+        $order = \App\Models\Order::findOrFail($this->orderData['id']);
+        $adminOrderService->cancel($order, auth()->user(), $this->adminComment);
+
+        session()->flash('success', 'Order cancelled successfully.');
+        $this->reset(['showCancelModal', 'adminComment']);
         $this->loadOrder($adminOrderService);
     }
 

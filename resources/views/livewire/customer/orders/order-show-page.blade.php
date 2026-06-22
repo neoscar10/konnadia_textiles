@@ -65,9 +65,17 @@
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 text-center font-bold">
-                                    {{ $item['quantity'] }} {{ $item['unit_short_code'] }}
-                                    @if ($item['unit_short_code'] !== 'Pcs')
-                                        ({{ round($item['quantity'] * $item['unit_conversion_quantity']) }} Pcs)
+                                    @if(!empty($item['has_lvl2_unit']))
+                                        <span class="block">
+                                            {{ $item['quantity_lvl2'] }} {{ $item['lvl2_unit_name'] }}{{ $item['quantity_lvl2'] != 1 ? 's' : '' }}, 
+                                            {{ $item['quantity_lvl1'] }} {{ $item['lvl1_unit_name'] }}{{ $item['quantity_lvl1'] != 1 ? 's' : '' }}
+                                        </span>
+                                        <span class="text-[10px] text-slate-400 block mt-0.5 font-medium">(Total: {{ $item['quantity'] }} Pcs)</span>
+                                    @else
+                                        {{ $item['quantity'] }} {{ $item['unit_short_code'] }}
+                                        @if ($item['unit_short_code'] !== 'Pcs')
+                                            <span class="text-[10px] text-slate-400 block mt-0.5 font-medium">({{ round($item['quantity'] * $item['unit_conversion_quantity']) }} Pcs)</span>
+                                        @endif
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 text-right">₹{{ number_format($item['pricing']['customer_unit_price'], 2) }}</td>

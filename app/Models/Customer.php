@@ -30,6 +30,10 @@ class Customer extends Model
         'credit_hold_by',
         'last_credit_review_at',
         'billing_address',
+        'address',
+        'city',
+        'state',
+        'pincode',
         'is_active',
     ];
 

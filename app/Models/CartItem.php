@@ -12,6 +12,8 @@ class CartItem extends Model
         'product_combination_id',
         'product_unit_id',
         'quantity',
+        'quantity_lvl1',
+        'quantity_lvl2',
         'unit_conversion_quantity',
         'base_unit_price',
         'customer_unit_price',
@@ -26,6 +28,8 @@ class CartItem extends Model
     protected $casts = [
         'selected_options' => 'array',
         'quantity' => 'integer',
+        'quantity_lvl1' => 'integer',
+        'quantity_lvl2' => 'integer',
         'unit_conversion_quantity' => 'decimal:4',
         'base_unit_price' => 'decimal:2',
         'customer_unit_price' => 'decimal:2',

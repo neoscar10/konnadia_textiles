@@ -77,6 +77,7 @@ class ProductService
                 'description'    => trim($payload['description']),
                 'is_active'      => isset($payload['is_active']) ? (bool) $payload['is_active'] : true,
                 'stock_quantity' => isset($payload['stock_quantity']) ? (int) $payload['stock_quantity'] : 0,
+                'product_type'   => isset($payload['product_type']) ? $payload['product_type'] : 'retail',
             ]);
 
             if (!empty($payload['category_ids'])) {
@@ -111,6 +112,7 @@ class ProductService
                 'description'    => trim($payload['description']),
                 'is_active'      => isset($payload['is_active']) ? (bool) $payload['is_active'] : true,
                 'stock_quantity' => isset($payload['stock_quantity']) ? (int) $payload['stock_quantity'] : 0,
+                'product_type'   => isset($payload['product_type']) ? $payload['product_type'] : 'retail',
             ]);
 
             if (isset($payload['category_ids'])) {

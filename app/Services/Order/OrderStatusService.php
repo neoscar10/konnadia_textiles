@@ -41,6 +41,11 @@ class OrderStatusService
             return false;
         }
 
+        // Allow cancellation from any status except cancelled or rejected
+        if ($toStatus === 'cancelled') {
+            return !in_array($current, ['cancelled', 'rejected'], true);
+        }
+
         $allowed = $this->transitions[$current] ?? [];
         
         // Let's also support going to approved directly if payment is verified from pending_payment_verification
@@ -120,6 +125,9 @@ class OrderStatusService
             if ($this->canTransition($order, 'dispatched')) {
                 $actions[] = 'dispatch';
             }
+            if ($this->canTransition($order, 'cancelled')) {
+                $actions[] = 'cancel';
+            }
         } else {
             // Customer portal actions
             if ($order->status === 'approved' && $this->canTransition($order, 'cancelled')) {
@@ -144,7 +152,7 @@ class OrderStatusService
      */
     public function getStatusBadge(string $status): array
     {
-        return match ($status) {
+        $badge = match ($status) {
             'draft' => [
                 'bg' => 'bg-slate-50 border border-slate-200',
                 'text' => 'text-slate-700',
@@ -206,5 +214,9 @@ class OrderStatusService
                 'type' => 'neutral'
             ],
         };
+
+        $badge['value'] = $status;
+
+        return $badge;
     }
 }

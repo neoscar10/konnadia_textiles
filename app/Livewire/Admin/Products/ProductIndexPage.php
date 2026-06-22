@@ -51,6 +51,7 @@ class ProductIndexPage extends Component
         'minimum_order_quantity' => 1,
         'description'    => '',
         'is_active'      => true,
+        'product_type'   => 'retail',
     ];
 
     // Step 2: Media
@@ -110,6 +111,56 @@ class ProductIndexPage extends Component
             ->all();
     }
 
+    public function updatedMediaUploads()
+    {
+        $this->validate([
+            'mediaUploads.*' => 'image|max:4096',
+        ]);
+
+        $productService = app(ProductService::class);
+        $mediaService = app(ProductMediaService::class);
+
+        try {
+            DB::transaction(function () use ($productService, $mediaService) {
+                if (!$this->selectedProductId) {
+                    // Automatically run step 1 validation
+                    $this->validateStep(1);
+
+                    $payload = $this->basicInfo;
+                    $payload['category_ids'] = $this->selectedCategoryIds;
+                    $payload['customer_level_prices'] = [];
+                    $payload['units'] = $this->units;
+                    $payload['stock_quantity'] = 0;
+
+                    $product = $productService->create($payload);
+                    $this->selectedProductId = $product->id;
+                } else {
+                    $product = Product::findOrFail($this->selectedProductId);
+                }
+
+                if (!empty($this->mediaUploads)) {
+                    $mediaService->storeProductMedia($product, $this->mediaUploads);
+                    $this->mediaUploads = [];
+                }
+
+                // Refresh existing media list
+                $this->existingMedia = [];
+                $product->load('media');
+                foreach ($product->media as $m) {
+                    $this->existingMedia[] = [
+                        'id' => $m->id,
+                        'file_path' => $m->file_path,
+                        'is_primary' => (bool)$m->is_primary,
+                    ];
+                }
+            });
+
+            $this->dispatch('toast', message: 'Images uploaded and saved automatically.', type: 'success');
+        } catch (\Exception $e) {
+            $this->addError('mediaUploads', $e->getMessage());
+        }
+    }
+
     public function selectStep(int $step)
     {
         if ($step < $this->currentStep) {
@@ -151,7 +202,7 @@ class ProductIndexPage extends Component
 
     protected function validateStep(int $step): bool
     {
-        if ($step === 1) {
+         if ($step === 1) {
             $rules = [
                 'basicInfo.title'          => ['required', 'string', 'max:200'],
                 'basicInfo.base_price'     => ['required', 'numeric', 'min:0'],
@@ -159,6 +210,7 @@ class ProductIndexPage extends Component
                 'basicInfo.gst_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
                 'basicInfo.minimum_order_quantity' => ['required', 'integer', 'min:1'],
                 'basicInfo.description'    => ['required', 'string'],
+                'basicInfo.product_type'   => ['required', 'string', 'in:retail,manufactured'],
             ];
 
             $this->validate($rules);
@@ -185,15 +237,23 @@ class ProductIndexPage extends Component
                 }
             }
         } elseif ($step === 5) {
-            if (empty($this->variationGroups)) {
-                $this->validate([
-                    'nonVariantStock' => ['nullable', 'integer', 'min:0'],
-                ]);
+            if ($this->basicInfo['product_type'] === 'manufactured') {
+                if (!empty($this->variationGroups)) {
+                    $this->validate([
+                        'combinations.*.price' => ['nullable', 'numeric', 'min:0'],
+                    ]);
+                }
             } else {
-                $this->validate([
-                    'combinations.*.stock_quantity' => ['nullable', 'integer', 'min:0'],
-                    'combinations.*.price' => ['nullable', 'numeric', 'min:0'],
-                ]);
+                if (empty($this->variationGroups)) {
+                    $this->validate([
+                        'nonVariantStock' => ['nullable', 'integer', 'min:0'],
+                    ]);
+                } else {
+                    $this->validate([
+                        'combinations.*.stock_quantity' => ['nullable', 'integer', 'min:0'],
+                        'combinations.*.price' => ['nullable', 'numeric', 'min:0'],
+                    ]);
+                }
             }
         } elseif ($step === 6) {
             $rules = [
@@ -240,6 +300,7 @@ class ProductIndexPage extends Component
             'minimum_order_quantity' => $product->minimum_order_quantity ?? 1,
             'description'    => $product->description ?? '',
             'is_active'      => (bool) $product->is_active,
+            'product_type'   => $product->product_type ?? 'retail',
         ];
 
         foreach ($product->media as $m) {
@@ -635,6 +696,7 @@ class ProductIndexPage extends Component
             'minimum_order_quantity' => 1,
             'description'    => '',
             'is_active'      => true,
+            'product_type'   => 'retail',
         ];
         $this->mediaUploads = [];
         $this->existingMedia = [];

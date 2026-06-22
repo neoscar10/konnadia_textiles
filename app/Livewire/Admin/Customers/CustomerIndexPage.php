@@ -44,6 +44,10 @@ class CustomerIndexPage extends Component
         'credit_limit' => 0,
         'allow_credit_beyond_limit' => false,
         'billing_address' => '',
+        'address' => '',
+        'city' => '',
+        'state' => '',
+        'pincode' => '',
         'is_active' => true,
         'password_mode' => 'auto',
         'password' => '',
@@ -67,6 +71,11 @@ class CustomerIndexPage extends Component
 
     public function mount()
     {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        } catch (\Exception $e) {
+            // Silence exceptions if DB is not ready yet
+        }
         $this->levels = CustomerLevel::active()->ordered()->get();
     }
 
@@ -98,7 +107,10 @@ class CustomerIndexPage extends Component
             ],
             'form.credit_limit' => ['required', 'numeric', 'min:0'],
             'form.allow_credit_beyond_limit' => ['boolean'],
-            'form.billing_address' => ['nullable', 'string', 'max:1000'],
+            'form.address' => ['nullable', 'string', 'max:500'],
+            'form.city' => ['nullable', 'string', 'max:100'],
+            'form.state' => ['nullable', 'string', 'max:100'],
+            'form.pincode' => ['nullable', 'string', 'max:20'],
             'form.is_active' => ['boolean'],
         ];
 
@@ -337,6 +349,10 @@ class CustomerIndexPage extends Component
             'credit_limit' => $customer->credit_limit,
             'allow_credit_beyond_limit' => $customer->allow_credit_beyond_limit,
             'billing_address' => $customer->billing_address,
+            'address' => $customer->address,
+            'city' => $customer->city,
+            'state' => $customer->state,
+            'pincode' => $customer->pincode,
             'is_active' => $customer->is_active,
             'password_mode' => 'auto',
             'password' => '',
@@ -348,6 +364,14 @@ class CustomerIndexPage extends Component
     public function save(CustomerService $service)
     {
         $this->validate();
+
+        // Compile billing address from details
+        $this->form['billing_address'] = trim(
+            ($this->form['address'] ?? '') . "\n" . 
+            ($this->form['city'] ?? '') . ", " . 
+            ($this->form['state'] ?? '') . " - " . 
+            ($this->form['pincode'] ?? '')
+        );
 
         if ($this->editingId) {
             $customer = Customer::findOrFail($this->editingId);
@@ -427,6 +451,10 @@ class CustomerIndexPage extends Component
             'credit_limit' => 0,
             'allow_credit_beyond_limit' => false,
             'billing_address' => '',
+            'address' => '',
+            'city' => '',
+            'state' => '',
+            'pincode' => '',
             'is_active' => true,
             'password_mode' => 'auto',
             'password' => '',

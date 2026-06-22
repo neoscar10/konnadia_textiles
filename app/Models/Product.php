@@ -17,6 +17,7 @@ class Product extends Model
         'base_price',
         'description',
         'is_active',
+        'product_type',
         'stock_quantity',
         'hsn_code',
         'gst_percentage',

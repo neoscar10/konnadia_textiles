@@ -55,14 +55,34 @@
                         <!-- Stepper & Subtotal -->
                         <div class="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t border-slate-50 sm:border-none">
                             <!-- Quantity control -->
-                            <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                <button type="button" wire:click="decrementQuantity({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
-                                    <span class="material-symbols-outlined text-lg">remove</span>
-                                </button>
-                                <input type="number" value="{{ $item['quantity'] }}" wire:change="updateQuantity({{ $item['id'] }}, $event.target.value)" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="1">
-                                <button type="button" wire:click="incrementQuantity({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
-                                    <span class="material-symbols-outlined text-lg">add</span>
-                                </button>
+                            <div class="flex flex-col items-center">
+                                @if($item['has_lvl2_unit'])
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex flex-col items-center">
+                                            <span class="text-[9px] text-slate-400 font-bold uppercase">{{ $item['lvl2_unit_name'] }}s</span>
+                                            <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-0.5 w-14">
+                                                <input type="number" value="{{ $item['quantity_lvl2'] }}" wire:change="updateQuantityLvl2({{ $item['id'] }}, $event.target.value)" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229] p-0.5" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col items-center">
+                                            <span class="text-[9px] text-slate-400 font-bold uppercase">{{ $item['lvl1_unit_name'] }}s</span>
+                                            <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-0.5 w-14">
+                                                <input type="number" value="{{ $item['quantity_lvl1'] }}" wire:change="updateQuantityLvl1({{ $item['id'] }}, $event.target.value)" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229] p-0.5" min="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="text-[9px] text-slate-400 font-semibold mt-1">Total: {{ $item['quantity'] }} {{ $item['unit_short_code'] }}</span>
+                                @else
+                                    <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                        <button type="button" wire:click="decrementQuantity({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                            <span class="material-symbols-outlined text-lg">remove</span>
+                                        </button>
+                                        <input type="number" value="{{ $item['quantity'] }}" wire:change="updateQuantity({{ $item['id'] }}, $event.target.value)" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="1">
+                                        <button type="button" wire:click="incrementQuantity({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                            <span class="material-symbols-outlined text-lg">add</span>
+                                        </button>
+                                    </div>
+                                @endif
                             </div>
 
                             <!-- Price Details -->

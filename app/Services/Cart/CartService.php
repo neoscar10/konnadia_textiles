@@ -57,11 +57,11 @@ class CartService
     public function getCartForCustomer(User $user): array
     {
         $cart = $this->getOrCreateActiveCart($user);
-        $cart->load(['items.product.media', 'items.product.primaryMedia', 'items.combination', 'items.unit']);
+        $cart->load(['items.product.media', 'items.product.primaryMedia', 'items.product.units', 'items.combination', 'items.unit']);
 
         // Recalculate to ensure prices are current
         $totals = $this->pricingService->recalculateCart($cart);
-        $cart->load(['items.product.media', 'items.product.primaryMedia', 'items.combination', 'items.unit']);
+        $cart->load(['items.product.media', 'items.product.primaryMedia', 'items.product.units', 'items.combination', 'items.unit']);
 
         $items = $cart->items->map(function (CartItem $item) {
             $product = $item->product;
@@ -77,6 +77,9 @@ class CartService
                 ? (str_starts_with($primaryImage, 'http') ? $primaryImage : Storage::url($primaryImage))
                 : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=160';
 
+            $lvl1Unit = $product->units->where('level', 1)->first();
+            $lvl2Unit = $product->units->where('level', 2)->first();
+
             return [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
@@ -90,6 +93,12 @@ class CartService
                 'unit_short_code' => $item->unit ? $item->unit->short_code : 'Pcs',
                 'unit_conversion_quantity' => (float) $item->unit_conversion_quantity,
                 'quantity' => $item->quantity,
+                'quantity_lvl1' => $item->quantity_lvl1,
+                'quantity_lvl2' => $item->quantity_lvl2,
+                'has_lvl2_unit' => !empty($lvl2Unit),
+                'lvl1_unit_name' => $lvl1Unit ? $lvl1Unit->name : 'Piece',
+                'lvl2_unit_name' => $lvl2Unit ? $lvl2Unit->name : 'Box',
+                'conversion_to_base' => $lvl2Unit ? (float)$lvl2Unit->conversion_to_base : 1.0,
                 'base_unit_price' => (float) $item->base_unit_price,
                 'customer_unit_price' => (float) $item->customer_unit_price,
                 'line_subtotal' => (float) $item->line_subtotal,
@@ -116,14 +125,37 @@ class CartService
         $combination = isset($payload['combination_id'])
             ? ProductCombination::find($payload['combination_id'])
             : null;
-        $unit = isset($payload['unit_id'])
-            ? ProductUnit::find($payload['unit_id'])
-            : $product->units()->where('level', 1)->first();
-        $quantity = (int) ($payload['quantity'] ?? 1);
+
+        $lvl1Unit = $product->units()->where('level', 1)->first();
+        $lvl2Unit = $product->units()->where('level', 2)->first();
+
+        $qty_lvl1 = isset($payload['quantity_lvl1']) ? (int)$payload['quantity_lvl1'] : 0;
+        $qty_lvl2 = isset($payload['quantity_lvl2']) ? (int)$payload['quantity_lvl2'] : 0;
+
+        if ($lvl2Unit && ($qty_lvl1 > 0 || $qty_lvl2 > 0)) {
+            $quantity = (int)(($qty_lvl2 * (float)$lvl2Unit->conversion_to_base) + $qty_lvl1);
+            $unit = $lvl1Unit;
+        } else {
+            $quantity = (int) ($payload['quantity'] ?? 1);
+            $unit = isset($payload['unit_id'])
+                ? ProductUnit::find($payload['unit_id'])
+                : $lvl1Unit;
+            
+            if ($unit && $unit->level === 2) {
+                $qty_lvl2 = $quantity;
+                $qty_lvl1 = 0;
+                $quantity = (int)($quantity * (float)$unit->conversion_to_base);
+                $unit = $lvl1Unit;
+            } else {
+                $qty_lvl1 = $quantity;
+                $qty_lvl2 = 0;
+            }
+        }
+
         $selectedOptions = $payload['selected_options'] ?? null;
 
         // Validate
-        $this->validateItemSelection($product, $combination, $unit, $quantity);
+        $this->validateItemSelection($product, $combination, $unit, $quantity, $user);
 
         $cart = $this->getOrCreateActiveCart($user);
 
@@ -139,10 +171,14 @@ class CartService
 
         if ($existingItem) {
             $newQuantity = $existingItem->quantity + $quantity;
+            $newQtyLvl1 = $existingItem->quantity_lvl1 + $qty_lvl1;
+            $newQtyLvl2 = $existingItem->quantity_lvl2 + $qty_lvl2;
             $pricing = $this->pricingService->calculateCartItem($user, $product, $combination, $unit, $newQuantity);
 
             $existingItem->update([
                 'quantity'                 => $newQuantity,
+                'quantity_lvl1'            => $newQtyLvl1,
+                'quantity_lvl2'            => $newQtyLvl2,
                 'base_unit_price'          => $pricing['base_unit_price'],
                 'customer_unit_price'      => $pricing['customer_unit_price'],
                 'unit_conversion_quantity' => $pricing['unit_conversion_quantity'],
@@ -159,6 +195,8 @@ class CartService
                 'product_combination_id'   => $combination?->id,
                 'product_unit_id'          => $unit?->id,
                 'quantity'                 => $quantity,
+                'quantity_lvl1'            => $qty_lvl1,
+                'quantity_lvl2'            => $qty_lvl2,
                 'unit_conversion_quantity' => $pricing['unit_conversion_quantity'],
                 'base_unit_price'          => $pricing['base_unit_price'],
                 'customer_unit_price'      => $pricing['customer_unit_price'],
@@ -185,19 +223,47 @@ class CartService
             throw ValidationException::withMessages(['item' => 'This item does not belong to your cart.']);
         }
 
-        $quantity = (int) ($payload['quantity'] ?? $item->quantity);
+        $product = $item->product;
+        $lvl1Unit = $product->units()->where('level', 1)->first();
+        $lvl2Unit = $product->units()->where('level', 2)->first();
+
+        $qty_lvl1 = isset($payload['quantity_lvl1']) ? (int)$payload['quantity_lvl1'] : 0;
+        $qty_lvl2 = isset($payload['quantity_lvl2']) ? (int)$payload['quantity_lvl2'] : 0;
+
+        if ($lvl2Unit && ($qty_lvl1 > 0 || $qty_lvl2 > 0)) {
+            $quantity = (int)(($qty_lvl2 * (float)$lvl2Unit->conversion_to_base) + $qty_lvl1);
+            $unit = $lvl1Unit;
+        } else {
+            $quantity = (int) ($payload['quantity'] ?? $item->quantity);
+            $unit = $item->unit ?? $lvl1Unit;
+
+            if ($unit && $unit->level === 2) {
+                $qty_lvl2 = $quantity;
+                $qty_lvl1 = 0;
+                $quantity = (int)($quantity * (float)$unit->conversion_to_base);
+                $unit = $lvl1Unit;
+            } else {
+                $qty_lvl1 = $quantity;
+                $qty_lvl2 = 0;
+            }
+        }
+
         if ($quantity < 1) {
             throw ValidationException::withMessages(['quantity' => 'Quantity must be at least 1.']);
         }
 
-        $product = $item->product;
         $combination = $item->combination;
-        $unit = $item->unit ?? $product->units()->where('level', 1)->first();
+
+        // Validate
+        $this->validateItemSelection($product, $combination, $unit, $quantity, $user, $item->id);
 
         $pricing = $this->pricingService->calculateCartItem($user, $product, $combination, $unit, $quantity);
 
         $item->update([
             'quantity'                 => $quantity,
+            'quantity_lvl1'            => $qty_lvl1,
+            'quantity_lvl2'            => $qty_lvl2,
+            'product_unit_id'          => $unit?->id,
             'base_unit_price'          => $pricing['base_unit_price'],
             'customer_unit_price'      => $pricing['customer_unit_price'],
             'unit_conversion_quantity' => $pricing['unit_conversion_quantity'],
@@ -243,7 +309,9 @@ class CartService
         Product $product,
         ?ProductCombination $combination,
         ?ProductUnit $unit,
-        int $quantity
+        int $quantity,
+        ?User $user = null,
+        ?int $ignoreCartItemId = null
     ): void {
         $errors = [];
 
@@ -281,6 +349,46 @@ class CartService
         // Check stock
         if (!$this->availabilityService->isPurchasable($product, $combination)) {
             $errors['stock'] = 'This product is currently out of stock.';
+        }
+
+        // Check total quantity against available stock for retail products
+        if ($product->product_type !== 'manufactured') {
+            $avail = $combination
+                ? $this->availabilityService->getCombinationAvailability($combination)
+                : $this->availabilityService->getProductAvailability($product);
+
+            $availableQty = $avail['available_quantity'] ?? 0;
+            
+            // Calculate base quantity of the new item to be added
+            $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
+            $newBaseQty = $quantity * $conversion;
+
+            // Find existing quantity in cart
+            $existingBaseQty = 0;
+            if ($user) {
+                $cart = Cart::where('user_id', $user->id)
+                    ->where('status', 'active')
+                    ->first();
+                if ($cart) {
+                    $query = $cart->items()
+                        ->where('product_id', $product->id)
+                        ->where('product_combination_id', $combination?->id);
+                    
+                    if ($ignoreCartItemId) {
+                        $query->where('id', '!=', $ignoreCartItemId);
+                    }
+                    
+                    $existingItem = $query->first();
+                    if ($existingItem) {
+                        $existingConversion = $existingItem->unit_conversion_quantity ?? 1.0;
+                        $existingBaseQty = $existingItem->quantity * $existingConversion;
+                    }
+                }
+            }
+
+            if (($newBaseQty + $existingBaseQty) > $availableQty) {
+                $errors['quantity'] = "Requested quantity exceeds available stock ({$availableQty} remaining).";
+            }
         }
 
         if (!empty($errors)) {

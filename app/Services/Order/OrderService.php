@@ -100,6 +100,8 @@ class OrderService
                 'unit_short_code'          => $item->unit ? $item->unit->short_code : 'Pcs',
                 'unit_conversion_quantity' => $item->unit_conversion_quantity,
                 'quantity'                 => $item->quantity,
+                'quantity_lvl1'            => $item->quantity_lvl1,
+                'quantity_lvl2'            => $item->quantity_lvl2,
                 'base_unit_price'          => $item->base_unit_price,
                 'customer_unit_price'      => $item->customer_unit_price,
                 'line_subtotal'            => $item->line_subtotal,
@@ -134,7 +136,7 @@ class OrderService
     public function getOrderForCustomer(User $user, string|int $identifier): ?array
     {
         $order = Order::where('user_id', $user->id)
-            ->with(['items.product.media', 'items.product.primaryMedia', 'receipts', 'statusHistories.changedBy', 'customer'])
+            ->with(['items.product.media', 'items.product.primaryMedia', 'items.product.units', 'receipts', 'statusHistories.changedBy', 'customer'])
             ->where(function ($q) use ($identifier) {
                 $q->where('order_number', $identifier)
                   ->orWhere('id', $identifier);
@@ -278,6 +280,9 @@ class OrderService
                 $optionsDisplay = implode(' • ', $parts);
             }
 
+            $product = $item->product;
+            $lvl2Unit = $product ? $product->units->where('level', 2)->first() : null;
+
             return [
                 'id' => $item->id,
                 'product_title' => $item->product_title,
@@ -289,6 +294,11 @@ class OrderService
                 'unit_short_code' => $item->unit_short_code,
                 'unit_conversion_quantity' => (float) $item->unit_conversion_quantity,
                 'quantity' => $item->quantity,
+                'quantity_lvl1' => $item->quantity_lvl1,
+                'quantity_lvl2' => $item->quantity_lvl2,
+                'has_lvl2_unit' => !empty($lvl2Unit),
+                'lvl1_unit_name' => $item->unit_name,
+                'lvl2_unit_name' => $lvl2Unit ? $lvl2Unit->name : 'Box',
                 'base_quantity' => (int)($item->quantity * (float)($item->unit_conversion_quantity ?: 1)),
                 'tax' => [
                     'hsn_code' => $item->hsn_code,

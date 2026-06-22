@@ -19,6 +19,8 @@ class OrderItem extends Model
         'unit_short_code',
         'unit_conversion_quantity',
         'quantity',
+        'quantity_lvl1',
+        'quantity_lvl2',
         'base_unit_price',
         'customer_unit_price',
         'line_subtotal',
@@ -30,6 +32,8 @@ class OrderItem extends Model
     protected $casts = [
         'selected_options' => 'array',
         'quantity' => 'integer',
+        'quantity_lvl1' => 'integer',
+        'quantity_lvl2' => 'integer',
         'unit_conversion_quantity' => 'decimal:4',
         'base_unit_price' => 'decimal:2',
         'customer_unit_price' => 'decimal:2',

@@ -99,6 +99,8 @@ class AdminOrderService
     public function formatAdminOrderDetail(Order $order): array
     {
         $items = $order->items->map(function ($item) {
+            $product = $item->product;
+            $lvl2Unit = $product ? $product->units->where('level', 2)->first() : null;
             return [
                 'id' => $item->id,
                 'product_title' => $item->product_title,
@@ -108,6 +110,11 @@ class AdminOrderService
                 'unit_short_code' => $item->unit_short_code,
                 'unit_conversion_quantity' => (float) $item->unit_conversion_quantity,
                 'quantity' => (int) $item->quantity,
+                'quantity_lvl1' => (int) $item->quantity_lvl1,
+                'quantity_lvl2' => (int) $item->quantity_lvl2,
+                'has_lvl2_unit' => !empty($lvl2Unit),
+                'lvl1_unit_name' => $item->unit_name,
+                'lvl2_unit_name' => $lvl2Unit ? $lvl2Unit->name : 'Box',
                 'base_quantity' => (int) ($item->quantity * $item->unit_conversion_quantity),
                 'customer_unit_price' => (float) $item->customer_unit_price,
                 'gst_percentage' => (float) $item->gst_percentage,
@@ -325,6 +332,30 @@ class AdminOrderService
             ]);
 
             return $this->statusService->transition($order, 'rejected', $admin, "Payment receipt rejected. Reason: {$reason}");
+        });
+    }
+
+    /**
+     * Cancel an order. Restores stock and reverses outstanding credit.
+     */
+    public function cancel(Order $order, User $admin, ?string $note = null): Order
+    {
+        return DB::transaction(function () use ($order, $admin, $note) {
+            // 1. Restore stock if it was previously deducted
+            $this->inventoryService->restoreStockForOrder($order);
+
+            // 2. Reverse credit if it was applied
+            if ($order->checkout_method === 'credit' && $order->customer) {
+                $this->creditService->reverseCreditOrder($order->customer, $order);
+            }
+
+            // 3. Update notes
+            if ($note) {
+                $order->update(['admin_note' => $note]);
+            }
+
+            // 4. Cancel order status
+            return $this->statusService->transition($order, 'cancelled', $admin, $note ?: 'Order cancelled by admin.');
         });
     }
 

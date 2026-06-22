@@ -12,6 +12,15 @@ class ProductAvailabilityService
      */
     public function getProductAvailability(Product $product): array
     {
+        if ($product->product_type === 'manufactured') {
+            return [
+                'available_quantity' => 999999,
+                'status' => 'in_stock',
+                'label' => 'In Stock',
+                'is_purchasable' => true,
+            ];
+        }
+
         $hasCombinations = $product->combinations()->where('is_active', true)->exists();
 
         if ($hasCombinations) {
@@ -47,6 +56,15 @@ class ProductAvailabilityService
      */
     public function getCombinationAvailability(ProductCombination $combination): array
     {
+        if ($combination->product && $combination->product->product_type === 'manufactured') {
+            return [
+                'available_quantity' => 999999,
+                'status' => 'in_stock',
+                'label' => 'In Stock',
+                'is_purchasable' => true,
+            ];
+        }
+
         $qty = (int) $combination->stock_quantity;
         $isActive = (bool) $combination->is_active;
 
@@ -79,6 +97,10 @@ class ProductAvailabilityService
      */
     public function isPurchasable(Product $product, ?ProductCombination $combination = null): bool
     {
+        if ($product->product_type === 'manufactured') {
+            return true;
+        }
+
         if ($combination) {
             $avail = $this->getCombinationAvailability($combination);
             return $avail['is_purchasable'];

@@ -5,13 +5,14 @@
     'moq' => 10,
     'image',
     'inStock' => true,
-    'url' => '#'
+    'url' => '#',
+    'productId' => null
 ])
 
 <div class="bg-white rounded-xl border border-outline-variant/30 shadow-ambient overflow-hidden flex flex-col hover:shadow-md transition-shadow group">
     <!-- Image Area -->
-    <a href="{{ $url }}" class="relative block overflow-hidden aspect-[4/3] bg-slate-50">
-        <img src="{{ $image }}" alt="{{ $title }}" class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300">
+    <a href="{{ $url }}" class="relative flex items-center justify-center overflow-hidden aspect-[4/3] bg-slate-50 p-2">
+        <img src="{{ $image }}" alt="{{ $title }}" class="max-w-full max-h-full object-contain group-hover:scale-102 transition-transform duration-300">
         
         <!-- Stock Badge -->
         <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $inStock ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/50' }}">
@@ -45,7 +46,7 @@
             <a href="{{ $url }}" class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-[#001229] border border-outline-variant/50 hover:bg-slate-50 transition-colors rounded-lg">
                 <span class="material-symbols-outlined text-sm">visibility</span> View
             </a>
-            <button type="button" class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold bg-[#001229] text-white hover:bg-slate-800 transition-colors rounded-lg">
+            <button type="button" @if($productId) wire:click.prevent="handleAddClick({{ $productId }})" @endif class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold bg-[#001229] text-white hover:bg-slate-800 transition-colors rounded-lg">
                 <span class="material-symbols-outlined text-sm">shopping_cart</span> Add
             </button>
         </div>

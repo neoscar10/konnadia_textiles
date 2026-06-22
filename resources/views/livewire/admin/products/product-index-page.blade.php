@@ -223,6 +223,15 @@
                             <p class="text-xs text-on-surface-variant/70">Minimum quantity a customer must add to their cart.</p>
                             @error('basicInfo.minimum_order_quantity') <span class="text-error text-xs">{{ $message }}</span> @enderror
                         </div>
+
+                        <div class="space-y-xs">
+                            <label class="font-label-md text-on-surface-variant">Product Type *</label>
+                            <select wire:model.live="basicInfo.product_type" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                <option value="retail">Retail Product (Stock defined, bought from another business)</option>
+                                <option value="manufactured">Manufactured Product (Stock not defined/unlimited, made to order)</option>
+                            </select>
+                            @error('basicInfo.product_type') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
                     <!-- Markdown Description Editor -->
@@ -606,54 +615,97 @@
             <!-- STEP 5: Combinations Matrix / Stock -->
             @if($currentStep === 5)
                 <div class="space-y-lg">
-                    @if(empty($variationGroups))
-                        <div class="max-w-md space-y-md">
-                            <h4 class="font-title-md text-primary">Non-Variant Inventory</h4>
-                            <div class="space-y-xs">
-                                <label class="font-label-md text-on-surface-variant">Total Stock Quantity *</label>
-                                <input type="number" wire:model="nonVariantStock" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
-                                @error('nonVariantStock') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                    @if($basicInfo['product_type'] === 'manufactured')
+                        @if(empty($variationGroups))
+                            <div class="max-w-md p-md rounded-lg bg-secondary/5 border border-secondary/20 select-none">
+                                <h4 class="font-title-md text-primary mb-xs">Manufactured Product</h4>
+                                <p class="text-sm text-on-surface-variant">This product is set as a <strong>Manufactured Product</strong>. Stock tracking is not required, and it will be available for purchase on demand.</p>
                             </div>
-                        </div>
-                    @else
-                        <!-- Combinations Table -->
-                        <div class="overflow-x-auto border border-outline-variant/20 rounded-lg">
-                            <table class="w-full text-left font-body-md">
-                                <thead class="bg-surface-container text-on-surface-variant font-label-md uppercase tracking-wider text-xs border-b border-outline-variant/20 select-none">
-                                    <tr>
-                                        <th class="px-lg py-sm">Combination</th>
-                                        <th class="px-lg py-sm text-center">Stock *</th>
-                                        <th class="px-lg py-sm text-center">Price Override</th>
-                                        <th class="px-lg py-sm text-center">Active</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-outline-variant/10 bg-white">
-                                    @foreach($combinations as $cIndex => $comb)
+                        @else
+                            <!-- Combinations Table for Manufactured Product (No Stock columns) -->
+                            <div class="overflow-x-auto border border-outline-variant/20 rounded-lg">
+                                <table class="w-full text-left font-body-md">
+                                    <thead class="bg-surface-container text-on-surface-variant font-label-md uppercase tracking-wider text-xs border-b border-outline-variant/20 select-none">
                                         <tr>
-                                            <td class="px-lg py-md whitespace-nowrap font-bold text-primary text-sm">
-                                                {{ collect($comb['combination_values'])->map(fn($v, $k) => "$k: $v")->implode(', ') }}
-                                            </td>
-                                            <td class="px-lg py-md text-center">
-                                                <input type="number" wire:model="combinations.{{ $cIndex }}.stock_quantity" placeholder="0" class="w-20 px-sm py-xs border border-outline-variant/50 rounded text-center focus:ring-1 focus:ring-secondary outline-none text-on-surface">
-                                                @error("combinations.{$cIndex}.stock_quantity") <span class="text-error text-xs block">{{ $message }}</span> @enderror
-                                            </td>
-                                            <td class="px-lg py-md text-center">
-                                                <div class="flex items-center justify-center">
-                                                    <div class="relative w-32 flex items-center bg-surface-container-low border border-outline-variant/50 rounded px-sm focus-within:ring-1 focus-within:ring-secondary focus-within:border-secondary">
-                                                        <span class="text-on-surface-variant font-bold text-xs select-none pr-xs">₹</span>
-                                                        <input type="number" step="0.01" wire:model="combinations.{{ $cIndex }}.price" placeholder="{{ (float)($basicInfo['base_price'] ?: 0) }}" class="w-full bg-transparent border-none p-xs text-right focus:ring-0 outline-none text-on-surface font-semibold text-sm">
-                                                    </div>
-                                                </div>
-                                                @error("combinations.{$cIndex}.price") <span class="text-error text-xs block">{{ $message }}</span> @enderror
-                                            </td>
-                                            <td class="px-lg py-md text-center">
-                                                <input type="checkbox" wire:model="combinations.{{ $cIndex }}.is_active" class="w-4 h-4 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer">
-                                            </td>
+                                            <th class="px-lg py-sm">Combination</th>
+                                            <th class="px-lg py-sm text-center">Price Override</th>
+                                            <th class="px-lg py-sm text-center">Active</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody class="divide-y divide-outline-variant/10 bg-white">
+                                        @foreach($combinations as $cIndex => $comb)
+                                            <tr>
+                                                <td class="px-lg py-md whitespace-nowrap font-bold text-primary text-sm">
+                                                    {{ collect($comb['combination_values'])->map(fn($v, $k) => "$k: $v")->implode(', ') }}
+                                                </td>
+                                                <td class="px-lg py-md text-center">
+                                                    <div class="flex items-center justify-center">
+                                                        <div class="relative w-32 flex items-center bg-surface-container-low border border-outline-variant/50 rounded px-sm focus-within:ring-1 focus-within:ring-secondary focus-within:border-secondary">
+                                                            <span class="text-on-surface-variant font-bold text-xs select-none pr-xs">₹</span>
+                                                            <input type="number" step="0.01" wire:model="combinations.{{ $cIndex }}.price" placeholder="{{ (float)($basicInfo['base_price'] ?: 0) }}" class="w-full bg-transparent border-none p-xs text-right focus:ring-0 outline-none text-on-surface font-semibold text-sm">
+                                                        </div>
+                                                    </div>
+                                                    @error("combinations.{$cIndex}.price") <span class="text-error text-xs block">{{ $message }}</span> @enderror
+                                                </td>
+                                                <td class="px-lg py-md text-center">
+                                                    <input type="checkbox" wire:model="combinations.{{ $cIndex }}.is_active" class="w-4 h-4 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer">
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    @else
+                        @if(empty($variationGroups))
+                            <div class="max-w-md space-y-md">
+                                <h4 class="font-title-md text-primary">Non-Variant Inventory</h4>
+                                <div class="space-y-xs">
+                                    <label class="font-label-md text-on-surface-variant">Total Stock Quantity *</label>
+                                    <input type="number" wire:model="nonVariantStock" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                    @error('nonVariantStock') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        @else
+                            <!-- Combinations Table -->
+                            <div class="overflow-x-auto border border-outline-variant/20 rounded-lg">
+                                <table class="w-full text-left font-body-md">
+                                    <thead class="bg-surface-container text-on-surface-variant font-label-md uppercase tracking-wider text-xs border-b border-outline-variant/20 select-none">
+                                        <tr>
+                                            <th class="px-lg py-sm">Combination</th>
+                                            <th class="px-lg py-sm text-center">Stock *</th>
+                                            <th class="px-lg py-sm text-center">Price Override</th>
+                                            <th class="px-lg py-sm text-center">Active</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-outline-variant/10 bg-white">
+                                        @foreach($combinations as $cIndex => $comb)
+                                            <tr>
+                                                <td class="px-lg py-md whitespace-nowrap font-bold text-primary text-sm">
+                                                    {{ collect($comb['combination_values'])->map(fn($v, $k) => "$k: $v")->implode(', ') }}
+                                                </td>
+                                                <td class="px-lg py-md text-center">
+                                                    <input type="number" wire:model="combinations.{{ $cIndex }}.stock_quantity" placeholder="0" class="w-20 px-sm py-xs border border-outline-variant/50 rounded text-center focus:ring-1 focus:ring-secondary outline-none text-on-surface">
+                                                    @error("combinations.{$cIndex}.stock_quantity") <span class="text-error text-xs block">{{ $message }}</span> @enderror
+                                                </td>
+                                                <td class="px-lg py-md text-center">
+                                                    <div class="flex items-center justify-center">
+                                                        <div class="relative w-32 flex items-center bg-surface-container-low border border-outline-variant/50 rounded px-sm focus-within:ring-1 focus-within:ring-secondary focus-within:border-secondary">
+                                                            <span class="text-on-surface-variant font-bold text-xs select-none pr-xs">₹</span>
+                                                            <input type="number" step="0.01" wire:model="combinations.{{ $cIndex }}.price" placeholder="{{ (float)($basicInfo['base_price'] ?: 0) }}" class="w-full bg-transparent border-none p-xs text-right focus:ring-0 outline-none text-on-surface font-semibold text-sm">
+                                                        </div>
+                                                    </div>
+                                                    @error("combinations.{$cIndex}.price") <span class="text-error text-xs block">{{ $message }}</span> @enderror
+                                                </td>
+                                                <td class="px-lg py-md text-center">
+                                                    <input type="checkbox" wire:model="combinations.{{ $cIndex }}.is_active" class="w-4 h-4 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer">
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     @endif
                 </div>
             @endif

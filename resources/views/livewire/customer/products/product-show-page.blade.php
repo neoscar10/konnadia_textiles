@@ -116,21 +116,47 @@
                     </select>
                 </div>
 
-                <!-- Quantity Stepper -->
+                <!-- Quantity Stepper / Dual Unit Selector -->
                 <div>
-                    <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
-                    <div class="flex items-center justify-between">
-                        <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                            <button type="button" wire:click="decrementQty" @if($qty <= 10) disabled @endif class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:shadow-none transition-all focus:outline-none">
-                                <span class="material-symbols-outlined text-lg">remove</span>
-                            </button>
-                            <input type="number" wire:model.live.debounce.300ms="qty" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
-                            <button type="button" wire:click="incrementQty" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
-                                <span class="material-symbols-outlined text-lg">add</span>
-                            </button>
+                    @if($hasLvl2Unit)
+                        @php
+                            $lvl1 = collect($units)->firstWhere('level', 1);
+                            $lvl2 = collect($units)->firstWhere('level', 2);
+                        @endphp
+                        <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl2['name'] }}s</label>
+                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                    <input type="number" wire:model.live="qty_lvl2" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl1['name'] }}s</label>
+                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                    <input type="number" wire:model.live="qty_lvl1" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
+                                </div>
+                            </div>
                         </div>
-                        <span class="text-xs text-slate-400 font-medium">MOQ: 10 units</span>
-                    </div>
+                        <div class="flex justify-between items-center mt-2 select-none">
+                            <span class="text-[10px] text-slate-400 font-semibold">Total: {{ $qty }} Pieces</span>
+                            <span class="text-[10px] text-slate-400 font-semibold">MOQ: {{ $minimumOrderQuantity }} Pieces</span>
+                        </div>
+                    @else
+                        <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
+                        <div class="flex items-center justify-between">
+                            <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                <button type="button" wire:click="decrementQty" @if($qty <= $minimumOrderQuantity) disabled @endif class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:shadow-none transition-all focus:outline-none">
+                                    <span class="material-symbols-outlined text-lg">remove</span>
+                                </button>
+                                <input type="number" wire:model.live.debounce.300ms="qty" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229]">
+                                <button type="button" wire:click="incrementQty" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                    <span class="material-symbols-outlined text-lg">add</span>
+                                </button>
+                            </div>
+                            <span class="text-xs text-slate-400 font-medium">MOQ: {{ $minimumOrderQuantity }} units</span>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Pricing Summary Block -->

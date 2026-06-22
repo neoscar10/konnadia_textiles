@@ -55,6 +55,10 @@
             @if(in_array('dispatch', $allowedActions))
                 <x-admin.button variant="primary" icon="local_shipping" wire:click="$set('showDispatchModal', true)">Dispatch Order</x-admin.button>
             @endif
+
+            @if(in_array('cancel', $allowedActions))
+                <x-admin.button variant="danger" icon="cancel" wire:click="$set('showCancelModal', true)">Cancel Order</x-admin.button>
+            @endif
         </div>
     </div>
 
@@ -160,8 +164,18 @@
                                         </div>
                                     </td>
                                     <td class="px-lg py-md">
-                                        <p class="font-body-md text-primary">{{ $item['quantity'] }} {{ $item['unit_name'] }}</p>
-                                        <p class="font-label-md text-on-surface-variant text-xs mt-1">({{ $item['base_quantity'] }} Pcs)</p>
+                                        @if(!empty($item['has_lvl2_unit']))
+                                            <p class="font-body-md text-primary">
+                                                {{ $item['quantity_lvl2'] }} {{ $item['lvl2_unit_name'] }}{{ $item['quantity_lvl2'] != 1 ? 's' : '' }}, 
+                                                {{ $item['quantity_lvl1'] }} {{ $item['lvl1_unit_name'] }}{{ $item['quantity_lvl1'] != 1 ? 's' : '' }}
+                                            </p>
+                                            <p class="font-label-md text-on-surface-variant text-xs mt-1">(Total: {{ $item['quantity'] }} Pcs)</p>
+                                        @else
+                                            <p class="font-body-md text-primary">{{ $item['quantity'] }} {{ $item['unit_name'] }}</p>
+                                            @if(($item['unit_short_code'] ?? 'Pcs') !== 'Pcs')
+                                                <p class="font-label-md text-on-surface-variant text-xs mt-1">({{ $item['base_quantity'] }} Pcs)</p>
+                                            @endif
+                                        @endif
                                     </td>
                                     <td class="px-lg py-md text-right font-medium">₹{{ number_format($item['customer_unit_price'], 2) }}</td>
                                     <td class="px-lg py-md text-center font-mono text-[10px] text-on-surface-variant">{{ $item['hsn_code'] ?? '—' }}</td>
@@ -375,6 +389,21 @@
                 <div class="flex justify-end gap-sm">
                     <x-admin.button variant="outline" wire:click="$set('showDispatchModal', false)">Cancel</x-admin.button>
                     <x-admin.button variant="primary" wire:click="dispatchOrder">Confirm Dispatch</x-admin.button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Cancel Order Modal -->
+    @if($showCancelModal)
+        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+            <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
+                <h3 class="font-headline-md text-error mb-md">Cancel Order</h3>
+                <p class="font-body-md text-on-surface-variant mb-md">Cancel this order? If inventory stock was deducted, it will be automatically restored. If credit was applied, it will be reversed.</p>
+                <textarea wire:model="adminComment" class="w-full border border-outline-variant/50 rounded-lg p-md font-body-md focus:ring-2 focus:ring-secondary outline-none transition-all resize-none bg-surface-container-low mb-md" placeholder="Enter cancellation reason/note (optional)..." rows="3"></textarea>
+                <div class="flex justify-end gap-sm">
+                    <x-admin.button variant="outline" wire:click="$set('showCancelModal', false)">Go Back</x-admin.button>
+                    <x-admin.button variant="danger" wire:click="cancelOrder">Confirm Cancellation</x-admin.button>
                 </div>
             </div>
         </div>

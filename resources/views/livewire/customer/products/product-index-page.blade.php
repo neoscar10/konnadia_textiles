@@ -50,7 +50,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
         
         <!-- Desktop Left Sidebar Filters -->
-        <aside class="hidden lg:block lg:col-span-1 space-y-6">
+        <aside class="hidden lg:block lg:col-span-1 sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto pr-2 space-y-6">
             <x-customer.card bodyClass="p-5 space-y-6">
                 <!-- Header -->
                 <div class="flex items-center justify-between pb-3 border-b border-outline-variant/20">
@@ -211,6 +211,7 @@
                             :image="$prod['primary_image_url']" 
                             :inStock="$prod['stock']['status'] !== 'out_of_stock'"
                             :url="route('customer.products.show', $prod['slug'])"
+                            :productId="$prod['id']"
                         />
                     @endforeach
                 </div>
@@ -223,4 +224,158 @@
         </div>
 
     </div>
+
+    <!-- Variant Selection Modal Overlay -->
+    @if($showQuickAddModal && $quickAddProduct)
+        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
+            <div class="bg-white border border-outline-variant/30 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">{{ $quickAddProduct->brand }}</span>
+                        <h3 class="text-base font-extrabold text-[#001229]">{{ $quickAddProduct->title }}</h3>
+                    </div>
+                    <button type="button" wire:click="$set('showQuickAddModal', false)" class="text-slate-400 hover:text-slate-600">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+                    <!-- Price and stock status -->
+                    <div class="bg-slate-50 rounded-xl p-4 border border-outline-variant/10 flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-semibold uppercase block select-none">Price per piece</span>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-xl font-black text-[#001229]">₹{{ number_format($quickAddPricePerPiece, 2) }}</span>
+                                @if($quickAddDiscountPercentage > 0)
+                                    <span class="text-xs text-slate-400 line-through">₹{{ number_format($quickAddEffectiveBasePrice, 2) }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $quickAddStockStatus === 'out_of_stock' ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/50' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50' }}">
+                                {{ $quickAddStockLabel }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Variation Selectors -->
+                    @foreach($quickAddVariations as $group)
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-bold text-[#001229] uppercase tracking-wider">Select {{ $group['name'] }}</h4>
+                            <div class="flex flex-wrap items-center gap-2">
+                                @foreach($group['values'] as $val)
+                                    @if($group['display_type'] === 'color')
+                                        <button type="button" 
+                                                wire:click="selectQuickAddVariationValue('{{ $group['name'] }}', '{{ $val['value'] }}')" 
+                                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all" 
+                                                :class="'{{ $quickAddSelectedValues[$group['name']] ?? '' }}' === '{{ $val['value'] }}' ? 'border-[#001229] ring-2 ring-gold/20' : 'border-outline-variant/30 bg-slate-50/55 hover:border-slate-400'">
+                                            <span class="w-4 h-4 rounded-full border border-slate-200" style="background-color: {{ $val['color_hex'] ?? '#ccc' }}"></span>
+                                            <span>{{ $val['value'] }}</span>
+                                        </button>
+                                    @else
+                                        <button type="button" 
+                                                wire:click="selectQuickAddVariationValue('{{ $group['name'] }}', '{{ $val['value'] }}')" 
+                                                class="px-3 py-2 rounded-lg text-xs font-bold border transition-all shadow-sm" 
+                                                :class="'{{ $quickAddSelectedValues[$group['name']] ?? '' }}' === '{{ $val['value'] }}' ? 'bg-[#001229] text-white border-[#001229]' : 'bg-white border-outline-variant/40 text-[#001229] hover:border-slate-400'">
+                                            {{ $val['value'] }}
+                                        </button>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+
+                    <!-- Unit Pricing & Conversion Info -->
+                    @php
+                        $lvl1 = collect($quickAddUnits)->firstWhere('level', 1);
+                        $lvl2 = collect($quickAddUnits)->firstWhere('level', 2);
+                    @endphp
+                    @if($lvl1)
+                        <div class="bg-slate-50 border border-outline-variant/10 rounded-xl p-4.5 space-y-2.5">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block select-none">Unit Pricing Details</span>
+                            <div class="flex flex-col gap-2 text-xs text-slate-600 font-medium">
+                                <div class="flex justify-between items-center">
+                                    <span>Base Unit Price ({{ $lvl1['name'] }}):</span>
+                                    <span class="font-bold text-slate-900">₹{{ number_format($lvl1['price'], 2) }}</span>
+                                </div>
+                                @if($quickAddHasLvl2Unit && $lvl2)
+                                    <div class="flex justify-between items-center">
+                                        <span>Bulk Unit Price ({{ $lvl2['name'] }}):</span>
+                                        <span class="font-bold text-slate-900">₹{{ number_format($lvl2['price'], 2) }}</span>
+                                    </div>
+                                    <div class="text-[11px] text-[#001229] bg-white border border-outline-variant/20 rounded-lg px-3 py-2 font-semibold select-none flex items-center gap-1.5 shadow-sm mt-1">
+                                        <span class="material-symbols-outlined text-sm text-gold select-none">info</span>
+                                        <span>Relationship: 1 {{ $lvl2['name'] }} = {{ (int)$lvl2['conversion_to_base'] }} {{ $lvl1['name'] }}s</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Quantity Input (Dual-unit if lvl2 unit exists) -->
+                    <div>
+                        @if($quickAddHasLvl2Unit)
+                            @php
+                                $lvl1 = collect($quickAddUnits)->firstWhere('level', 1);
+                                $lvl2 = collect($quickAddUnits)->firstWhere('level', 2);
+                            @endphp
+                            <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-1">
+                                    <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl2['name'] }}s</label>
+                                    <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                        <input type="number" wire:model.live="quickAddQtyLvl2" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl1['name'] }}s</label>
+                                    <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                        <input type="number" wire:model.live="quickAddQtyLvl1" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mt-2 select-none">
+                                <span class="text-[10px] text-slate-400 font-semibold">Total: {{ $quickAddQty }} Pieces</span>
+                                <span class="text-[10px] text-slate-400 font-semibold">MOQ: {{ $quickAddMoq }} Pieces</span>
+                            </div>
+                        @else
+                            <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
+                            <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1 w-32">
+                                <input type="number" wire:model.live="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229]">
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Pricing Summary -->
+                    <div class="border-t border-slate-100 pt-4 space-y-2">
+                        <div class="flex justify-between text-xs text-slate-500 font-medium">
+                            <span>Subtotal</span>
+                            <span class="font-bold text-slate-800">₹{{ number_format($quickAddSubtotal, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-500 font-medium">
+                            <span>GST</span>
+                            <span class="font-bold text-slate-800">₹{{ number_format($quickAddGstAmount, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-[#001229] font-extrabold pt-2 border-t border-dashed border-slate-200">
+                            <span>Estimated Total</span>
+                            <span class="text-[#001229]">₹{{ number_format($quickAddTotal, 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50">
+                    <button type="button" wire:click="$set('showQuickAddModal', false)" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-700 border border-outline-variant/30 hover:bg-slate-50 transition-colors bg-white shadow-xs">Cancel</button>
+                    <button type="button" 
+                            wire:click="addVariantToCart"
+                            @if(!$quickAddIsPurchasable) disabled @endif
+                            class="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white transition-colors shadow-sm {{ $quickAddIsPurchasable ? 'bg-[#001229] hover:bg-slate-800' : 'bg-slate-300 cursor-not-allowed' }}">
+                        <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

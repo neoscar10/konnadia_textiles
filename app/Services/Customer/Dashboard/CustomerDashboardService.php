@@ -186,7 +186,7 @@ class CustomerDashboardService
     {
         $orders = Order::where('user_id', $user->id)
             ->latest()
-            ->limit(5)
+            ->limit(6)
             ->withCount('items')
             ->get();
 
@@ -342,7 +342,7 @@ class CustomerDashboardService
         // Fetch latest active products
         $products = Product::where('is_active', true)
             ->latest()
-            ->limit(6)
+            ->limit(10)
             ->with(['categories', 'media', 'primaryMedia', 'customerLevelPrices', 'units'])
             ->get();
 

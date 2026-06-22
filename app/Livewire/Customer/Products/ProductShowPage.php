@@ -34,6 +34,9 @@ class ProductShowPage extends Component
     public $selectedValues = []; // e.g., ['Size' => 'M', 'Color' => 'White']
     public $selectedUnitId;
     public $qty = 1;
+    public $qty_lvl1 = 0;
+    public $qty_lvl2 = 0;
+    public $hasLvl2Unit = false;
     public $minimumOrderQuantity = 1;
     
     // Live calculation display
@@ -94,7 +97,20 @@ class ProductShowPage extends Component
 
         $this->selectedUnitId = $detail['purchase_defaults']['default_unit_id'];
         $this->minimumOrderQuantity = $detail['purchase_defaults']['minimum_order_quantity'];
-        $this->qty = $this->minimumOrderQuantity;
+        
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        if ($lvl2) {
+            $this->hasLvl2Unit = true;
+            $conversion = (int) $lvl2['conversion_to_base'];
+            $this->qty_lvl2 = floor($this->minimumOrderQuantity / $conversion);
+            $this->qty_lvl1 = $this->minimumOrderQuantity % $conversion;
+            $this->qty = $this->minimumOrderQuantity;
+        } else {
+            $this->hasLvl2Unit = false;
+            $this->qty_lvl1 = $this->minimumOrderQuantity;
+            $this->qty_lvl2 = 0;
+            $this->qty = $this->minimumOrderQuantity;
+        }
 
         // Expose tax info for blade display
         $productModel = Product::find($this->productId);
@@ -130,18 +146,75 @@ class ProductShowPage extends Component
     public function updatedQty(ProductCatalogService $catalogService)
     {
         $this->qty = max($this->minimumOrderQuantity, (int)$this->qty);
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        if ($lvl2) {
+            $conversion = (int) $lvl2['conversion_to_base'];
+            $this->qty_lvl2 = floor($this->qty / $conversion);
+            $this->qty_lvl1 = $this->qty % $conversion;
+        } else {
+            $this->qty_lvl1 = $this->qty;
+            $this->qty_lvl2 = 0;
+        }
         $this->recalculate($catalogService);
+    }
+
+    public function updatedQtyLvl1(ProductCatalogService $catalogService)
+    {
+        $this->qty_lvl1 = max(0, (int)$this->qty_lvl1);
+        $this->syncDualUnitsToQty();
+        $this->recalculate($catalogService);
+    }
+
+    public function updatedQtyLvl2(ProductCatalogService $catalogService)
+    {
+        $this->qty_lvl2 = max(0, (int)$this->qty_lvl2);
+        $this->syncDualUnitsToQty();
+        $this->recalculate($catalogService);
+    }
+
+    protected function syncDualUnitsToQty()
+    {
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        if ($lvl2) {
+            $conversion = (float)$lvl2['conversion_to_base'];
+            $totalPieces = ($this->qty_lvl2 * $conversion) + $this->qty_lvl1;
+            $this->qty = max($this->minimumOrderQuantity, $totalPieces);
+        } else {
+            $this->qty = max($this->minimumOrderQuantity, $this->qty_lvl1);
+        }
     }
 
     public function decrementQty(ProductCatalogService $catalogService)
     {
-        $this->qty = max($this->minimumOrderQuantity, (int)$this->qty - 1);
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        if ($lvl2) {
+            $conversion = (int)$lvl2['conversion_to_base'];
+            $total = ($this->qty_lvl2 * $conversion) + $this->qty_lvl1;
+            $total = max($this->minimumOrderQuantity, $total - 1);
+            $this->qty_lvl2 = floor($total / $conversion);
+            $this->qty_lvl1 = $total % $conversion;
+            $this->qty = $total;
+        } else {
+            $this->qty = max($this->minimumOrderQuantity, (int)$this->qty - 1);
+            $this->qty_lvl1 = $this->qty;
+        }
         $this->recalculate($catalogService);
     }
 
     public function incrementQty(ProductCatalogService $catalogService)
     {
-        $this->qty = (int)$this->qty + 1;
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        if ($lvl2) {
+            $conversion = (int)$lvl2['conversion_to_base'];
+            $total = ($this->qty_lvl2 * $conversion) + $this->qty_lvl1;
+            $total = $total + 1;
+            $this->qty_lvl2 = floor($total / $conversion);
+            $this->qty_lvl1 = $total % $conversion;
+            $this->qty = $total;
+        } else {
+            $this->qty = (int)$this->qty + 1;
+            $this->qty_lvl1 = $this->qty;
+        }
         $this->recalculate($catalogService);
     }
 
@@ -220,6 +293,8 @@ class ProductShowPage extends Component
                 'combination_id' => $combination?->id,
                 'unit_id' => $this->selectedUnitId,
                 'quantity' => $this->qty,
+                'quantity_lvl1' => $this->qty_lvl1,
+                'quantity_lvl2' => $this->qty_lvl2,
                 'selected_options' => $this->selectedValues ?: null,
             ]);
 
