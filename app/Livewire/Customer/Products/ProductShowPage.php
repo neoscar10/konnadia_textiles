@@ -273,6 +273,24 @@ class ProductShowPage extends Component
             return;
         }
 
+        // MOQ gate — $this->qty is always the resolved total pieces
+        if ($this->qty < $this->minimumOrderQuantity) {
+            $lvl2 = collect($this->units)->firstWhere('level', 2);
+            if ($lvl2) {
+                $conversion = (int) $lvl2['conversion_to_base'];
+                $moqBoxes   = (int) ceil($this->minimumOrderQuantity / $conversion);
+                $this->dispatch('toast', type: 'error', message:
+                    "Minimum order is {$this->minimumOrderQuantity} pieces. "
+                    . "Order at least {$moqBoxes} {$lvl2['name']}(s) or {$this->minimumOrderQuantity} individual pieces."
+                );
+            } else {
+                $this->dispatch('toast', type: 'error', message:
+                    "Minimum order quantity is {$this->minimumOrderQuantity} pieces."
+                );
+            }
+            return;
+        }
+
         $user = auth()->user();
         $product = Product::with(['variationGroups', 'combinations'])->find($this->productId);
 

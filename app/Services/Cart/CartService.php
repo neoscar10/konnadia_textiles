@@ -323,6 +323,22 @@ class CartService
             $errors['quantity'] = 'Quantity must be at least 1.';
         }
 
+        // MOQ enforcement — use total resolved pieces so that 1 Box (12 pcs)
+        // correctly satisfies a 10-piece MOQ.
+        $moq = (int) ($product->minimum_order_quantity ?? 1);
+        if ($moq > 1 && $quantity < $moq) {
+            $lvl2ForMoq = $product->units()->where('level', 2)->first();
+            if ($lvl2ForMoq) {
+                $conversion = (int) $lvl2ForMoq->conversion_to_base;
+                $moqBoxes   = (int) ceil($moq / $conversion);
+                $errors['quantity'] = "Minimum order quantity is {$moq} pieces. "
+                    . "You can order {$moqBoxes} {$lvl2ForMoq->name}(s) or more, "
+                    . "or at least {$moq} individual pieces.";
+            } else {
+                $errors['quantity'] = "Minimum order quantity is {$moq} pieces. Please increase your quantity.";
+            }
+        }
+
         // GST must be explicitly configured. null = not configured, 0 = zero-rated (allowed).
         if ($product->gst_percentage === null) {
             $errors['product_id'] = 'This product is missing GST configuration and cannot be added to cart. Please contact support.';

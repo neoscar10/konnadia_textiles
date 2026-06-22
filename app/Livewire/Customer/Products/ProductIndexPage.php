@@ -201,6 +201,24 @@ class ProductIndexPage extends Component
             return;
         }
 
+        // MOQ gate — quickAddQty is always the resolved total pieces
+        if ($this->quickAddQty < $this->quickAddMoq) {
+            $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
+            if ($lvl2) {
+                $conversion = (int) $lvl2['conversion_to_base'];
+                $moqBoxes   = (int) ceil($this->quickAddMoq / $conversion);
+                $this->dispatch('toast', type: 'error', message:
+                    "Minimum order is {$this->quickAddMoq} pieces. "
+                    . "Order at least {$moqBoxes} {$lvl2['name']}(s) or {$this->quickAddMoq} individual pieces."
+                );
+            } else {
+                $this->dispatch('toast', type: 'error', message:
+                    "Minimum order quantity is {$this->quickAddMoq} pieces."
+                );
+            }
+            return;
+        }
+
         $user = auth()->user();
         $combination = $catalogService->resolveSelectedCombination($this->quickAddProduct, $this->quickAddSelectedValues);
 

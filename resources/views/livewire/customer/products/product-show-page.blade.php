@@ -55,11 +55,19 @@
                 
                 <p class="text-[10px] text-slate-500 font-medium mt-1">
                     @if($gstPercentage !== null)
-                        GST {{ $gstPercentage }}% extra &bull; Standard MOQ: 10 Pieces
+                        GST {{ $gstPercentage }}% extra
                     @else
-                        GST not configured &bull; Standard MOQ: 10 Pieces
+                        GST not configured
                     @endif
                 </p>
+
+                {{-- Prominent MOQ badge --}}
+                <div class="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                    <span class="material-symbols-outlined text-base text-amber-600 select-none">info</span>
+                    <span class="text-xs font-bold text-amber-800">
+                        Min. Order Qty: <span class="text-amber-900">{{ $minimumOrderQuantity }} {{ $minimumOrderQuantity === 1 ? 'Piece' : 'Pieces' }}</span>
+                    </span>
+                </div>
             </div>
 
             <!-- Fabric Info / Description -->
@@ -149,6 +157,16 @@
                         </div>
                     @endif
                 </div>
+
+                {{-- Live MOQ warning if below minimum --}}
+                @if($qty < $minimumOrderQuantity)
+                    <div class="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 mt-2">
+                        <span class="material-symbols-outlined text-sm text-rose-500 select-none mt-0.5">warning</span>
+                        <span class="text-xs font-semibold text-rose-700">
+                            Minimum order is <strong>{{ $minimumOrderQuantity }} pieces</strong>. Please increase quantity.
+                        </span>
+                    </div>
+                @endif
 
                 <!-- Pricing Summary Block -->
                 <div class="border-t border-slate-100 pt-4 space-y-2">
