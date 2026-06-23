@@ -16,7 +16,7 @@ class ProductIndexPage extends Component
     public $category = '';
     public $availability = 'all';
     public $min_price = 0;
-    public $max_price = 5000;
+    public $max_price = 10000;
     public $sort = 'newest';
 
     public $expandedCategories = [];
@@ -52,7 +52,7 @@ class ProductIndexPage extends Component
         'category' => ['except' => ''],
         'availability' => ['except' => 'all'],
         'min_price' => ['except' => 0],
-        'max_price' => ['except' => 5000],
+        'max_price' => ['except' => 10000],
         'sort' => ['except' => 'newest'],
     ];
 

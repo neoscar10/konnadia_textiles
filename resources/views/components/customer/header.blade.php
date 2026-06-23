@@ -26,6 +26,16 @@
 
         <!-- Centre: Search Bar -->
         @php $searchRoute = route('customer.products.index'); @endphp
+        <style>
+            #header-product-search:focus {
+                background-color: #ffffff !important;
+                color: #001229 !important;
+            }
+            #mobile-product-search:focus {
+                background-color: #f1f5f9 !important;
+                color: #001229 !important;
+            }
+        </style>
         <div
             class="flex-1 max-w-md hidden md:block relative"
             x-data="{ 
