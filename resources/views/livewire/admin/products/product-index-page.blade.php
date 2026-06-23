@@ -229,8 +229,8 @@
                         <div class="space-y-xs">
                             <label class="font-label-md text-on-surface-variant">Product Type *</label>
                             <select wire:model.live="basicInfo.product_type" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
-                                <option value="retail">Retail Product (Stock defined, bought from another business)</option>
-                                <option value="manufactured">Manufactured Product (Stock not defined/unlimited, made to order)</option>
+                                <option value="retail">Manufactured (Stock required)</option>
+                                <option value="manufactured">Retail / Bought (No Stock)</option>
                             </select>
                             @error('basicInfo.product_type') <span class="text-error text-xs">{{ $message }}</span> @enderror
                         </div>
@@ -325,6 +325,16 @@
                                 Recommended: 1080 &times; 1080
                             </span>
                         </label>
+                        <!-- Animated Loader for Image Upload -->
+                        <div wire:loading wire:target="mediaUploads" class="absolute inset-0 bg-white/90 dark:bg-black/80 flex flex-col items-center justify-center rounded-xl z-20 transition-all duration-300">
+                            <div class="flex flex-col items-center gap-sm">
+                                <svg class="animate-spin h-10 w-10 text-[#5c44c4]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="text-sm font-bold text-primary animate-pulse">Uploading and processing images...</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Gallery Grid -->
@@ -620,8 +630,8 @@
                     @if($basicInfo['product_type'] === 'manufactured')
                         @if(empty($variationGroups))
                             <div class="max-w-md p-md rounded-lg bg-secondary/5 border border-secondary/20 select-none">
-                                <h4 class="font-title-md text-primary mb-xs">Manufactured Product</h4>
-                                <p class="text-sm text-on-surface-variant">This product is set as a <strong>Manufactured Product</strong>. Stock tracking is not required, and it will be available for purchase on demand.</p>
+                                <h4 class="font-title-md text-primary mb-xs">Retail / Bought Product</h4>
+                                <p class="text-sm text-on-surface-variant">This product is set as a <strong>Retail / Bought Product</strong>. Stock tracking is not required, and it will be available for purchase on demand.</p>
                             </div>
                         @else
                             <!-- Combinations Table for Manufactured Product (No Stock columns) -->
@@ -786,6 +796,18 @@
                             <span class="font-bold text-primary">{{ $basicInfo['title'] ?: 'Not Specified' }}</span>
                         </div>
                         <div>
+                            <span class="text-xs text-on-surface-variant block select-none">Product Type</span>
+                            <span class="font-bold text-primary">
+                                @if(($basicInfo['product_type'] ?? '') === 'retail')
+                                    Manufactured (Stock required)
+                                @elseif(($basicInfo['product_type'] ?? '') === 'manufactured')
+                                    Retail / Bought (No Stock)
+                                @else
+                                    —
+                                @endif
+                            </span>
+                        </div>
+                        <div>
                             <span class="text-xs text-on-surface-variant block select-none">Base Price</span>
                             <span class="font-bold text-primary">₹{{ number_format((float)($basicInfo['base_price'] ?: 0), 2) }}</span>
                         </div>
@@ -903,7 +925,7 @@
                 @if($currentStep > 1)
                     <x-admin.button variant="outline" type="button" wire:click="prevStep">Back</x-admin.button>
                 @endif
-                @if($selectedProductId && $currentStep < 7)
+                @if($isEditMode && $currentStep < 7)
                     <x-admin.button variant="primary" type="button" wire:click="saveCurrentStep" icon="save">Save Changes</x-admin.button>
                 @endif
                 @if($currentStep < 7)
@@ -911,7 +933,7 @@
                 @endif
                 @if($currentStep === 7)
                     <x-admin.button variant="primary" type="button" wire:click="save" icon="save">
-                        {{ $selectedProductId ? 'Save Changes' : 'Create Product' }}
+                        {{ $isEditMode ? 'Save Changes' : 'Create Product' }}
                     </x-admin.button>
                 @endif
             </div>

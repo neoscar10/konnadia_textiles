@@ -40,6 +40,7 @@ class ProductIndexPage extends Component
     public ?int $selectedProductId = null;
     public ?int $deleteProductId = null;
     public int $currentStep = 1;
+    public bool $isEditMode = false;
 
     // Step 1: Basic Info
     public array $basicInfo = [
@@ -282,6 +283,7 @@ class ProductIndexPage extends Component
     public function create()
     {
         $this->resetWizard();
+        $this->isEditMode = false;
         $this->showWizardModal = true;
         $this->dispatch('open-modal', 'add-product');
     }
@@ -289,6 +291,7 @@ class ProductIndexPage extends Component
     public function edit(int $id)
     {
         $this->resetWizard();
+        $this->isEditMode = true;
         $product = Product::with(['categories', 'media', 'variationGroups.values.media', 'combinations', 'customerLevelPrices', 'units'])->findOrFail($id);
         
         $this->selectedProductId = $product->id;
@@ -745,6 +748,7 @@ class ProductIndexPage extends Component
     {
         $this->currentStep = 1;
         $this->selectedProductId = null;
+        $this->isEditMode = false;
         $this->basicInfo = [
             'title'          => '',
             'base_price'     => '',

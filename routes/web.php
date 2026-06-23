@@ -57,6 +57,33 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 // Customer Portal Routes
 Route::middleware(['auth', 'customer'])->prefix('portal')->group(function () {
+    Route::get('products/search-suggestions', function (\Illuminate\Http\Request $request) {
+        $q = $request->query('q', '');
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+        $products = \App\Models\Product::where('is_active', true)
+            ->where(function($query) use ($q) {
+                $query->where('title', 'like', "%{$q}%")
+                      ->orWhere('sku', 'like', "%{$q}%");
+            })
+            ->with(['primaryMedia'])
+            ->limit(6)
+            ->get();
+        $results = $products->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'title' => $product->title,
+                'sku' => $product->sku,
+                'slug' => $product->slug,
+                'base_price' => (float)$product->base_price,
+                'image' => $product->primaryMedia ? asset('storage/' . $product->primaryMedia->file_path) : null,
+                'url' => route('customer.products.show', ['slug' => $product->slug]),
+            ];
+        });
+        return response()->json($results);
+    })->name('customer.products.suggestions');
+
     Route::get('dashboard', \App\Livewire\Customer\DashboardPage::class)->name('customer.dashboard');
     Route::get('categories', \App\Livewire\Customer\Categories\CategoryIndexPage::class)->name('customer.categories.index');
     Route::get('categories/{slug}', \App\Livewire\Customer\Categories\CategoryShowPage::class)->name('customer.categories.show');
