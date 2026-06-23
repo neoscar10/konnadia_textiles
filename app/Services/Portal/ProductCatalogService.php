@@ -88,7 +88,7 @@ class ProductCatalogService
         if (!empty($filters['min_price'])) {
             $query->where('base_price', '>=', (float)$filters['min_price']);
         }
-        if (!empty($filters['max_price'])) {
+        if (!empty($filters['max_price']) && (float)$filters['max_price'] < 10000) {
             $query->where('base_price', '<=', (float)$filters['max_price']);
         }
 

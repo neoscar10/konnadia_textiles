@@ -369,23 +369,36 @@ class ProductIndexPage extends Component
         $this->dispatch('open-modal', 'add-product');
     }
 
+    protected function validateUntilStep(int $maxStep): bool
+    {
+        for ($s = 1; $s <= $maxStep; $s++) {
+            try {
+                if (!$this->validateStep($s)) {
+                    $this->currentStep = $s;
+                    return false;
+                }
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->currentStep = $s;
+                throw $e;
+            }
+        }
+        return true;
+    }
+
     public function saveCurrentStep(
         ProductService $productService,
         ProductVariationService $varService,
         ProductMediaService $mediaService
     ) {
-        // Validate current step only
-        if (!$this->validateStep($this->currentStep)) {
-            return;
+        try {
+            // Validate current step
+            $this->validateStep($this->currentStep);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         }
 
-        // Validate all previous steps before current
-        for ($s = 1; $s < $this->currentStep; $s++) {
-            if (!$this->validateStep($s)) {
-                $this->currentStep = $s;
-                return;
-            }
-        }
+        // Validate previous steps
+        $this->validateUntilStep($this->currentStep - 1);
 
         $this->save($productService, $varService, $mediaService);
     }
@@ -396,12 +409,7 @@ class ProductIndexPage extends Component
         ProductMediaService $mediaService
     ) {
         // Final validation
-        for ($s = 1; $s <= 6; $s++) {
-            if (!$this->validateStep($s)) {
-                $this->currentStep = $s;
-                return;
-            }
-        }
+        $this->validateUntilStep(6);
 
         try {
             DB::transaction(function () use ($productService, $varService, $mediaService) {
@@ -451,14 +459,17 @@ class ProductIndexPage extends Component
                 }
             });
 
-            $this->dispatch('toast', message: $this->selectedProductId ? 'Product updated successfully.' : 'Product created successfully.', type: 'success');
+            $this->dispatch('toast', message: $this->isEditMode ? 'Product updated successfully.' : 'Product created successfully.', type: 'success');
             $this->dispatch('close-modal', 'add-product');
             $this->resetWizard();
             $this->resetPage();
         } catch (\Exception $e) {
+            $this->currentStep = 1;
             $this->addError('basicInfo.title', $e->getMessage());
         }
     }
+
+
 
     public function confirmDelete(int $id)
     {
