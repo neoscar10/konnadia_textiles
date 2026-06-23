@@ -34,7 +34,7 @@
     @endif
 
     <!-- Stats grid (Now First) -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <x-customer.stat-card 
             title="Total Orders" 
             value="{{ $orders['total_orders'] ?? 0 }}" 
@@ -55,6 +55,13 @@
             icon="payments" 
             trend="Excludes Rejected/Cancelled" 
             trendType="neutral" 
+        />
+        <x-customer.stat-card 
+            title="Outstanding Balance" 
+            value="{{ $credit['formatted_outstanding_amount'] ?? '₹0.00' }}" 
+            icon="account_balance_wallet" 
+            trend="{{ ($credit['overdue_amount'] ?? 0) > 0 ? $credit['formatted_overdue_amount'] . ' Overdue' : 'Within Credit Limit' }}" 
+            trendType="{{ ($credit['overdue_amount'] ?? 0) > 0 ? 'down' : 'up' }}" 
         />
     </div>
 
@@ -168,6 +175,22 @@
                             <p>Your wholesale cart is empty.</p>
                         </div>
                     @else
+                        <!-- Cart Items List (Constrained Height) -->
+                        <div class="max-h-48 overflow-y-auto divide-y divide-slate-100 pr-1.5 mb-4 -mx-1">
+                            @foreach($cart['items'] as $item)
+                                <div class="py-2 flex items-center justify-between gap-3 text-xs" wire:key="dashboard-cart-item-{{ $item['id'] }}">
+                                    <div class="flex items-center gap-2 overflow-hidden">
+                                        <img src="{{ $item['image_url'] }}" alt="{{ $item['title'] }}" class="w-8 h-8 object-cover rounded border bg-slate-50 flex-shrink-0">
+                                        <div class="truncate">
+                                            <p class="font-semibold text-slate-800 truncate">{{ $item['title'] }}</p>
+                                            <p class="text-[10px] text-slate-400 font-medium">Qty: {{ $item['quantity'] }} {{ $item['unit_name'] }}</p>
+                                        </div>
+                                    </div>
+                                    <span class="font-bold text-slate-700 whitespace-nowrap">{{ $item['formatted_line_total'] }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+
                         <div class="border-t border-slate-100 pt-4 mb-4 flex justify-between items-baseline">
                             <span class="text-xs text-slate-500 font-semibold">Total Amount</span>
                             <span class="text-base font-extrabold text-[#001229]">{{ $cart['formatted_total_amount'] }}</span>
@@ -297,12 +320,12 @@
 
                     <!-- Quantity Input (Dropdown Select and single quantity input) -->
                     <div class="space-y-4">
-                        <h5 class="text-xs font-bold text-slate-700">Order Quantity</h5>
+                        <h5 class="text-sm font-bold text-slate-700">Order Quantity</h5>
                         <div class="flex items-center gap-3">
                             <!-- Unit Dropdown Select -->
                             <div class="w-1/2">
-                                <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
-                                <select wire:model.live="quickAddSelectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2 text-xs font-bold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
+                                <label class="text-xs text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
+                                <select wire:model.live="quickAddSelectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 text-sm font-extrabold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
                                     @foreach($quickAddUnits as $u)
                                         <option value="{{ $u['id'] }}">{{ strtoupper($u['name']) }}</option>
                                     @endforeach
@@ -310,15 +333,15 @@
                             </div>
                             <!-- Quantity Input -->
                             <div class="w-1/2">
-                                <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                                <label class="text-xs text-slate-400 font-bold uppercase block mb-1">
                                     @php
                                         $selectedU = collect($quickAddUnits)->firstWhere('id', $quickAddSelectedUnitId);
                                         $selectedUName = $selectedU ? $selectedU['name'] : 'Pieces';
                                     @endphp
                                     {{ strtoupper($selectedUName) }}
                                 </label>
-                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                    <input type="number" wire:model.live.debounce.300ms="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
+                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-2">
+                                    <input type="number" wire:model.live.debounce.300ms="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-extrabold text-[#001229] p-0.5">
                                 </div>
                             </div>
                         </div>

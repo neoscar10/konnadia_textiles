@@ -108,7 +108,6 @@ class CustomerDashboardService
     {
         $cart = Cart::where('user_id', $user->id)
             ->where('status', 'active')
-            ->withCount('items')
             ->first();
 
         if (!$cart) {
@@ -117,20 +116,51 @@ class CustomerDashboardService
                 'items_count' => 0,
                 'total_amount' => 0.0,
                 'formatted_total_amount' => $this->formatIndianCurrency(0.0),
+                'items' => [],
             ];
         }
 
-        // Sum line_total from items directly
-        $totalAmount = (float) DB::table('cart_items')
-            ->where('cart_id', $cart->id)
-            ->sum('line_total');
+        $cartItems = $cart->items()
+            ->with(['product.primaryMedia', 'product.media', 'combination', 'unit'])
+            ->get();
+
+        $totalAmount = 0.0;
+        $itemsData = [];
+
+        foreach ($cartItems as $item) {
+            $totalAmount += (float) $item->line_total;
+
+            $product = $item->product;
+            if (!$product) {
+                continue;
+            }
+
+            $primaryImage = $product->primaryMedia ? $product->primaryMedia->file_path : null;
+            if (!$primaryImage && $product->media->first()) {
+                $primaryImage = $product->media->first()->file_path;
+            }
+            $imageUrl = $primaryImage
+                ? (str_starts_with($primaryImage, 'http') ? $primaryImage : \Illuminate\Support\Facades\Storage::url($primaryImage))
+                : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100';
+
+            $itemsData[] = [
+                'id' => $item->id,
+                'title' => $product->title,
+                'image_url' => $imageUrl,
+                'quantity' => $item->quantity,
+                'unit_name' => $item->unit ? $item->unit->short_code : 'Pcs',
+                'line_total' => (float)$item->line_total,
+                'formatted_line_total' => $this->formatIndianCurrency((float)$item->line_total),
+            ];
+        }
 
         return [
             'exists' => true,
             'cart_id' => $cart->id,
-            'items_count' => $cart->items_count,
+            'items_count' => $cartItems->count(),
             'total_amount' => $totalAmount,
             'formatted_total_amount' => $this->formatIndianCurrency($totalAmount),
+            'items' => $itemsData,
         ];
     }
 

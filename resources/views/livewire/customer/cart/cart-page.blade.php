@@ -65,7 +65,7 @@
                                          <span class="material-symbols-outlined text-lg">add</span>
                                      </button>
                                  </div>
-                             </div></div>
+                             </div>
 
                             <!-- Price Details -->
                             <div class="text-right min-w-[100px]">

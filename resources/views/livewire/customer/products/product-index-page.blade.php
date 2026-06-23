@@ -316,12 +316,12 @@
 
                     <!-- Quantity Input (Dropdown Select and single quantity input) -->
                     <div class="space-y-4">
-                        <h5 class="text-xs font-bold text-slate-700">Order Quantity</h5>
+                        <h5 class="text-sm font-bold text-slate-700">Order Quantity</h5>
                         <div class="flex items-center gap-3">
                             <!-- Unit Dropdown Select -->
                             <div class="w-1/2">
-                                <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
-                                <select wire:model.live="quickAddSelectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2 text-xs font-bold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
+                                <label class="text-xs text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
+                                <select wire:model.live="quickAddSelectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 text-sm font-extrabold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
                                     @foreach($quickAddUnits as $u)
                                         <option value="{{ $u['id'] }}">{{ strtoupper($u['name']) }}</option>
                                     @endforeach
@@ -329,15 +329,15 @@
                             </div>
                             <!-- Quantity Input -->
                             <div class="w-1/2">
-                                <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                                <label class="text-xs text-slate-400 font-bold uppercase block mb-1">
                                     @php
                                         $selectedU = collect($quickAddUnits)->firstWhere('id', $quickAddSelectedUnitId);
                                         $selectedUName = $selectedU ? $selectedU['name'] : 'Pieces';
                                     @endphp
                                     {{ strtoupper($selectedUName) }}
                                 </label>
-                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                    <input type="number" wire:model.live.debounce.300ms="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
+                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-2">
+                                    <input type="number" wire:model.live.debounce.300ms="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-extrabold text-[#001229] p-0.5">
                                 </div>
                             </div>
                         </div>

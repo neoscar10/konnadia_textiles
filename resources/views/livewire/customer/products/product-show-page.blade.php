@@ -117,12 +117,12 @@
 
                 <!-- Quantity Stepper / Unit Selector -->
                 <div class="space-y-4">
-                    <h5 class="text-xs font-bold text-slate-700">Order Quantity</h5>
+                    <h5 class="text-sm font-bold text-slate-700">Order Quantity</h5>
                     <div class="flex items-center gap-3">
                         <!-- Unit Dropdown Select -->
                         <div class="w-1/2">
-                            <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
-                            <select wire:model.live="selectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2 text-xs font-bold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
+                            <label class="text-xs text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
+                            <select wire:model.live="selectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 text-sm font-extrabold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
                                 @foreach($units as $unit)
                                     <option value="{{ $unit['id'] }}">{{ strtoupper($unit['name']) }}</option>
                                 @endforeach
@@ -130,7 +130,7 @@
                         </div>
                         <!-- Quantity Input -->
                         <div class="w-1/2">
-                            <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase block mb-1">
                                 @php
                                     $selectedUnit = collect($units)->firstWhere('id', $selectedUnitId);
                                     $selectedUnitName = $selectedUnit ? $selectedUnit['name'] : 'Pieces';
@@ -138,11 +138,11 @@
                                 {{ strtoupper($selectedUnitName) }}
                             </label>
                             <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                <button type="button" wire:click="decrementQty" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                <button type="button" wire:click="decrementQty" class="w-9 h-9 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
                                     <span class="material-symbols-outlined text-lg">remove</span>
                                 </button>
-                                <input type="number" wire:model.live.debounce.300ms="qty" min="1" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229]">
-                                <button type="button" wire:click="incrementQty" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                <input type="number" wire:model.live.debounce.300ms="qty" min="1" class="w-14 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1.5">
+                                <button type="button" wire:click="incrementQty" class="w-9 h-9 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
                                     <span class="material-symbols-outlined text-lg">add</span>
                                 </button>
                             </div>

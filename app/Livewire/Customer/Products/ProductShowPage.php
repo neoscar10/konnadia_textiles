@@ -134,11 +134,6 @@ class ProductShowPage extends Component
 
     public function updatedSelectedUnitId(ProductCatalogService $catalogService)
     {
-        $this->recalculate($catalogService);
-    }
-
-    public function updatedSelectedUnitId(ProductCatalogService $catalogService)
-    {
         $selectedUnit = collect($this->units)->firstWhere('id', $this->selectedUnitId);
         $conversion = ($selectedUnit && $selectedUnit['level'] === 2) ? (float)$selectedUnit['conversion_to_base'] : 1.0;
         $minQty = (int) ceil($this->minimumOrderQuantity / $conversion);

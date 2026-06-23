@@ -61,7 +61,7 @@
                                 <td class="px-5 py-4">
                                     <span class="font-mono text-slate-500 block">{{ $item['product_sku'] }}</span>
                                     @if($item['options_display'])
-                                        <span class="text-[10px] text-slate-400">{{ $item['options_display'] }}</span>
+                                        <span class="text-xs font-semibold text-slate-600 block mt-0.5">{{ $item['options_display'] }}</span>
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 text-center font-bold">
