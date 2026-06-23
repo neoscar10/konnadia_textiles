@@ -314,38 +314,46 @@
                         </div>
                     @endif
 
-                    <!-- Quantity Input (Dual-unit if lvl2 unit exists) -->
-                    <div>
-                        @if($quickAddHasLvl2Unit)
+                    <!-- Quantity Input (Dropdown Select and single quantity input) -->
+                    <div class="space-y-4">
+                        <h5 class="text-xs font-bold text-slate-700">Order Quantity</h5>
+                        <div class="flex items-center gap-3">
+                            <!-- Unit Dropdown Select -->
+                            <div class="w-1/2">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
+                                <select wire:model.live="quickAddSelectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2 text-xs font-bold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
+                                    @foreach($quickAddUnits as $u)
+                                        <option value="{{ $u['id'] }}">{{ strtoupper($u['name']) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <!-- Quantity Input -->
+                            <div class="w-1/2">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                                    @php
+                                        $selectedU = collect($quickAddUnits)->firstWhere('id', $quickAddSelectedUnitId);
+                                        $selectedUName = $selectedU ? $selectedU['name'] : 'Pieces';
+                                    @endphp
+                                    {{ strtoupper($selectedUName) }}
+                                </label>
+                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                    <input type="number" wire:model.live.debounce.300ms="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] text-slate-400 font-semibold select-none">
                             @php
-                                $lvl1 = collect($quickAddUnits)->firstWhere('level', 1);
                                 $lvl2 = collect($quickAddUnits)->firstWhere('level', 2);
+                                $totalPieces = $quickAddQty;
+                                if ($lvl2 && $selectedU && $selectedU['level'] === 2) {
+                                    $totalPieces = $quickAddQty * $lvl2['conversion_to_base'];
+                                }
                             @endphp
-                            <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="space-y-1">
-                                    <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl2['name'] }}s</label>
-                                    <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                        <input type="number" wire:model.live="quickAddQtyLvl2" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
-                                    </div>
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl1['name'] }}s</label>
-                                    <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                        <input type="number" wire:model.live="quickAddQtyLvl1" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex justify-between items-center mt-2 select-none">
-                                <span class="text-[10px] text-slate-400 font-semibold">Total: {{ $quickAddQty }} Pieces</span>
-                                <span class="text-[10px] text-slate-400 font-semibold">MOQ: {{ $quickAddMoq }} Pieces</span>
-                            </div>
-                        @else
-                            <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
-                            <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1 w-32">
-                                <input type="number" wire:model.live="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229]">
-                            </div>
-                        @endif
+                            @if($lvl2 && $selectedU && $selectedU['level'] === 2)
+                                <span>Total: {{ $totalPieces }} Pieces</span>
+                            @endif
+                            <span>MOQ: {{ $quickAddMoq }} Pieces</span>
+                        </div>
                     </div>
 
                     <!-- Pricing Summary -->

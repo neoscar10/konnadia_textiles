@@ -127,29 +127,22 @@ class CartService
             : null;
 
         $lvl1Unit = $product->units()->where('level', 1)->first();
-        $lvl2Unit = $product->units()->where('level', 2)->first();
 
-        $qty_lvl1 = isset($payload['quantity_lvl1']) ? (int)$payload['quantity_lvl1'] : 0;
-        $qty_lvl2 = isset($payload['quantity_lvl2']) ? (int)$payload['quantity_lvl2'] : 0;
+        $quantity = (int) ($payload['quantity'] ?? 1);
+        $unit = isset($payload['unit_id'])
+            ? ProductUnit::find($payload['unit_id'])
+            : $lvl1Unit;
 
-        if ($lvl2Unit && ($qty_lvl1 > 0 || $qty_lvl2 > 0)) {
-            $quantity = (int)(($qty_lvl2 * (float)$lvl2Unit->conversion_to_base) + $qty_lvl1);
+        if (!$unit) {
             $unit = $lvl1Unit;
+        }
+
+        if ($unit && $unit->level === 2) {
+            $qty_lvl2 = $quantity;
+            $qty_lvl1 = 0;
         } else {
-            $quantity = (int) ($payload['quantity'] ?? 1);
-            $unit = isset($payload['unit_id'])
-                ? ProductUnit::find($payload['unit_id'])
-                : $lvl1Unit;
-            
-            if ($unit && $unit->level === 2) {
-                $qty_lvl2 = $quantity;
-                $qty_lvl1 = 0;
-                $quantity = (int)($quantity * (float)$unit->conversion_to_base);
-                $unit = $lvl1Unit;
-            } else {
-                $qty_lvl1 = $quantity;
-                $qty_lvl2 = 0;
-            }
+            $qty_lvl1 = $quantity;
+            $qty_lvl2 = 0;
         }
 
         $selectedOptions = $payload['selected_options'] ?? null;
@@ -225,27 +218,16 @@ class CartService
 
         $product = $item->product;
         $lvl1Unit = $product->units()->where('level', 1)->first();
-        $lvl2Unit = $product->units()->where('level', 2)->first();
 
-        $qty_lvl1 = isset($payload['quantity_lvl1']) ? (int)$payload['quantity_lvl1'] : 0;
-        $qty_lvl2 = isset($payload['quantity_lvl2']) ? (int)$payload['quantity_lvl2'] : 0;
+        $quantity = (int) ($payload['quantity'] ?? $item->quantity);
+        $unit = $item->unit ?? $lvl1Unit;
 
-        if ($lvl2Unit && ($qty_lvl1 > 0 || $qty_lvl2 > 0)) {
-            $quantity = (int)(($qty_lvl2 * (float)$lvl2Unit->conversion_to_base) + $qty_lvl1);
-            $unit = $lvl1Unit;
+        if ($unit && $unit->level === 2) {
+            $qty_lvl2 = $quantity;
+            $qty_lvl1 = 0;
         } else {
-            $quantity = (int) ($payload['quantity'] ?? $item->quantity);
-            $unit = $item->unit ?? $lvl1Unit;
-
-            if ($unit && $unit->level === 2) {
-                $qty_lvl2 = $quantity;
-                $qty_lvl1 = 0;
-                $quantity = (int)($quantity * (float)$unit->conversion_to_base);
-                $unit = $lvl1Unit;
-            } else {
-                $qty_lvl1 = $quantity;
-                $qty_lvl2 = 0;
-            }
+            $qty_lvl1 = $quantity;
+            $qty_lvl2 = 0;
         }
 
         if ($quantity < 1) {
@@ -326,7 +308,9 @@ class CartService
         // MOQ enforcement — use total resolved pieces so that 1 Box (12 pcs)
         // correctly satisfies a 10-piece MOQ.
         $moq = (int) ($product->minimum_order_quantity ?? 1);
-        if ($moq > 1 && $quantity < $moq) {
+        $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
+        $totalPieces = (int) ($quantity * $conversion);
+        if ($moq > 1 && $totalPieces < $moq) {
             $lvl2ForMoq = $product->units()->where('level', 2)->first();
             if ($lvl2ForMoq) {
                 $conversion = (int) $lvl2ForMoq->conversion_to_base;

@@ -17,6 +17,11 @@ class DashboardPage extends Component
     public array $recentOrders = [];
     public array $alerts = [];
     public array $quickActions = [];
+    // Slider sections
+    public array $recentProducts = [];
+    public array $popularProducts = [];
+    public array $recentPurchases = [];
+    // Legacy alias (keep for any view references to $recommendedProducts)
     public array $recommendedProducts = [];
     public string $lastUpdatedAt = '';
 
@@ -75,18 +80,11 @@ class DashboardPage extends Component
         $this->quickAddMoq = $detail['purchase_defaults']['minimum_order_quantity'];
 
         $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
-        if ($lvl2) {
-            $this->quickAddHasLvl2Unit = true;
-            $conversion = (int) $lvl2['conversion_to_base'];
-            $this->quickAddQtyLvl2 = floor($this->quickAddMoq / $conversion);
-            $this->quickAddQtyLvl1 = $this->quickAddMoq % $conversion;
-            $this->quickAddQty = $this->quickAddMoq;
-        } else {
-            $this->quickAddHasLvl2Unit = false;
-            $this->quickAddQtyLvl1 = $this->quickAddMoq;
-            $this->quickAddQtyLvl2 = 0;
-            $this->quickAddQty = $this->quickAddMoq;
-        }
+        $this->quickAddHasLvl2Unit = !empty($lvl2);
+        
+        $selectedUnit = collect($this->quickAddUnits)->firstWhere('id', $this->quickAddSelectedUnitId);
+        $conversion = ($selectedUnit && $selectedUnit['level'] === 2) ? (float)$selectedUnit['conversion_to_base'] : 1.0;
+        $this->quickAddQty = (int) ceil($this->quickAddMoq / $conversion);
 
         $this->recalculateQuickAdd($catalogService);
         $this->showQuickAddModal = true;
@@ -98,45 +96,21 @@ class DashboardPage extends Component
         $this->recalculateQuickAdd($catalogService);
     }
 
+    public function updatedQuickAddSelectedUnitId(\App\Services\Portal\ProductCatalogService $catalogService)
+    {
+        $selectedUnit = collect($this->quickAddUnits)->firstWhere('id', $this->quickAddSelectedUnitId);
+        $conversion = ($selectedUnit && $selectedUnit['level'] === 2) ? (float)$selectedUnit['conversion_to_base'] : 1.0;
+        $minQty = (int) ceil($this->quickAddMoq / $conversion);
+        if ($this->quickAddQty < $minQty) {
+            $this->quickAddQty = $minQty;
+        }
+        $this->recalculateQuickAdd($catalogService);
+    }
+
     public function updatedQuickAddQty(\App\Services\Portal\ProductCatalogService $catalogService)
     {
-        $this->quickAddQty = max($this->quickAddMoq, (int)$this->quickAddQty);
-        $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
-        if ($lvl2) {
-            $conversion = (int) $lvl2['conversion_to_base'];
-            $this->quickAddQtyLvl2 = floor($this->quickAddQty / $conversion);
-            $this->quickAddQtyLvl1 = $this->quickAddQty % $conversion;
-        } else {
-            $this->quickAddQtyLvl1 = $this->quickAddQty;
-            $this->quickAddQtyLvl2 = 0;
-        }
+        $this->quickAddQty = max(1, (int)$this->quickAddQty);
         $this->recalculateQuickAdd($catalogService);
-    }
-
-    public function updatedQuickAddQtyLvl1(\App\Services\Portal\ProductCatalogService $catalogService)
-    {
-        $this->quickAddQtyLvl1 = max(0, (int)$this->quickAddQtyLvl1);
-        $this->syncQuickAddDualUnitsToQty();
-        $this->recalculateQuickAdd($catalogService);
-    }
-
-    public function updatedQuickAddQtyLvl2(\App\Services\Portal\ProductCatalogService $catalogService)
-    {
-        $this->quickAddQtyLvl2 = max(0, (int)$this->quickAddQtyLvl2);
-        $this->syncQuickAddDualUnitsToQty();
-        $this->recalculateQuickAdd($catalogService);
-    }
-
-    protected function syncQuickAddDualUnitsToQty()
-    {
-        $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
-        if ($lvl2) {
-            $conversion = (float)$lvl2['conversion_to_base'];
-            $totalPieces = ($this->quickAddQtyLvl2 * $conversion) + $this->quickAddQtyLvl1;
-            $this->quickAddQty = max($this->quickAddMoq, $totalPieces);
-        } else {
-            $this->quickAddQty = max($this->quickAddMoq, $this->quickAddQtyLvl1);
-        }
     }
 
     public function recalculateQuickAdd(\App\Services\Portal\ProductCatalogService $catalogService)
@@ -191,8 +165,12 @@ class DashboardPage extends Component
             return;
         }
 
-        // MOQ gate — quickAddQty is always the resolved total pieces
-        if ($this->quickAddQty < $this->quickAddMoq) {
+        $unit = \App\Models\ProductUnit::find($this->quickAddSelectedUnitId);
+        $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
+        $totalPieces = $this->quickAddQty * $conversion;
+
+        // MOQ gate
+        if ($totalPieces < $this->quickAddMoq) {
             $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
             if ($lvl2) {
                 $conversion = (int) $lvl2['conversion_to_base'];
@@ -220,8 +198,6 @@ class DashboardPage extends Component
                 'combination_id' => $combination?->id,
                 'unit_id' => $this->quickAddSelectedUnitId,
                 'quantity' => $this->quickAddQty,
-                'quantity_lvl1' => $this->quickAddQtyLvl1,
-                'quantity_lvl2' => $this->quickAddQtyLvl2,
                 'selected_options' => $this->quickAddSelectedValues ?: null,
             ]);
 
@@ -266,14 +242,19 @@ class DashboardPage extends Component
         $data = $dashboardService->getDashboard($user);
 
         if (!empty($data)) {
-            $this->customer = $data['customer'];
-            $this->credit = $data['credit'];
-            $this->cart = $data['cart'];
-            $this->orders = $data['orders'];
-            $this->recentOrders = $data['recent_orders'];
-            $this->alerts = $data['alerts'];
-            $this->quickActions = $data['quick_actions'];
-            $this->recommendedProducts = $data['recommended_products'];
+            $this->customer        = $data['customer'];
+            $this->credit          = $data['credit'];
+            $this->cart            = $data['cart'];
+            $this->orders          = $data['orders'];
+            $this->recentOrders    = $data['recent_orders'];
+            $this->alerts          = $data['alerts'];
+            $this->quickActions    = $data['quick_actions'];
+            // Slider sections
+            $this->recentProducts  = $data['recent_products']   ?? [];
+            $this->popularProducts = $data['popular_products']  ?? [];
+            $this->recentPurchases = $data['recent_purchases']  ?? [];
+            // Legacy
+            $this->recommendedProducts = $this->recentProducts;
         }
 
         $this->lastUpdatedAt = now()->format('h:i A');

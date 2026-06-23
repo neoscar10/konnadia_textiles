@@ -182,91 +182,29 @@
         </div>
     </div>
 
-    <!-- Recommended Products Section -->
-    <div>
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-extrabold text-[#001229]">Recommended Products</h3>
-            @if(!empty($recommendedProducts))
-                <span class="text-xs text-slate-400 font-medium select-none">{{ count($recommendedProducts) }} Products</span>
-            @endif
-        </div>
+    <!-- Recent Products Slider -->
+    @include('partials.customer.product-ticker', [
+        'sectionTitle' => 'Recent Products',
+        'products'     => $recentProducts,
+        'tickerId'     => 'recent',
+        'emptyMessage' => 'No recent products available.',
+    ])
 
-        @if(empty($recommendedProducts))
-            <div class="bg-white border border-outline-variant/20 rounded-xl p-8 text-center text-slate-500 text-sm">
-                No recommended products at the moment.
-            </div>
-        @else
-            @php
-                $productCount = count($recommendedProducts);
-                // Each card slot = 288px wide + 24px gap = 312px
-                // Speed ≈ 55px/s for comfortable reading
-                $oneSetPx  = $productCount * 312;
-                $durationS = max(14, round($oneSetPx / 55));
-            @endphp
+    <!-- Popular Products Slider -->
+    @include('partials.customer.product-ticker', [
+        'sectionTitle' => 'Popular Products',
+        'products'     => $popularProducts,
+        'tickerId'     => 'popular',
+        'emptyMessage' => 'No popular products yet.',
+    ])
 
-            <style>
-                @keyframes kt-rp-ticker {
-                    0%   { transform: translateX(0); }
-                    100% { transform: translateX(-{{ $oneSetPx }}px); }
-                }
-                .kt-rp-track {
-                    animation: kt-rp-ticker {{ $durationS }}s linear infinite;
-                    will-change: transform;
-                }
-                .kt-rp-track.paused { animation-play-state: paused; }
-            </style>
-
-            <div
-                class="relative overflow-hidden"
-                x-data="{ paused: false }"
-                @mouseenter="paused = true"
-                @mouseleave="paused = false"
-            >
-                {{-- Left fade edge --}}
-                <div class="absolute left-0 top-0 bottom-4 w-16 bg-gradient-to-r from-slate-50 to-transparent z-10 pointer-events-none"></div>
-                {{-- Right fade edge --}}
-                <div class="absolute right-0 top-0 bottom-4 w-16 bg-gradient-to-l from-slate-50 to-transparent z-10 pointer-events-none"></div>
-
-                {{-- Infinite-scroll track --}}
-                <div
-                    class="kt-rp-track flex pb-4"
-                    style="gap: 24px; width: max-content;"
-                    :class="paused ? 'paused' : ''"
-                >
-                    {{-- Original set --}}
-                    @foreach($recommendedProducts as $product)
-                        <div class="flex-shrink-0" style="width: 288px;">
-                            <x-customer.product-card
-                                :title="$product['title']"
-                                :sku="$product['sku']"
-                                :price="$product['price']['customer_price']"
-                                :moq="$product['minimum_order_quantity']"
-                                :image="$product['primary_image_url']"
-                                :inStock="$product['stock']['status'] === 'in_stock'"
-                                :url="route('customer.products.show', $product['slug'])"
-                                :productId="$product['id']"
-                            />
-                        </div>
-                    @endforeach
-                    {{-- Duplicate set for seamless loop --}}
-                    @foreach($recommendedProducts as $product)
-                        <div class="flex-shrink-0" style="width: 288px;">
-                            <x-customer.product-card
-                                :title="$product['title']"
-                                :sku="$product['sku']"
-                                :price="$product['price']['customer_price']"
-                                :moq="$product['minimum_order_quantity']"
-                                :image="$product['primary_image_url']"
-                                :inStock="$product['stock']['status'] === 'in_stock'"
-                                :url="route('customer.products.show', $product['slug'])"
-                                :productId="$product['id']"
-                            />
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        @endif
-    </div>
+    <!-- Recent Purchases Slider -->
+    @include('partials.customer.product-ticker', [
+        'sectionTitle' => 'Recent Purchases',
+        'products'     => $recentPurchases,
+        'tickerId'     => 'purchases',
+        'emptyMessage' => 'You haven\'t placed any orders yet. Start shopping!',
+    ])
 
     <!-- Variant Selection Modal Overlay -->
     @if($showQuickAddModal && $quickAddProduct)
@@ -357,38 +295,46 @@
                         </div>
                     @endif
 
-                    <!-- Quantity Input (Dual-unit if lvl2 unit exists) -->
-                    <div>
-                        @if($quickAddHasLvl2Unit)
+                    <!-- Quantity Input (Dropdown Select and single quantity input) -->
+                    <div class="space-y-4">
+                        <h5 class="text-xs font-bold text-slate-700">Order Quantity</h5>
+                        <div class="flex items-center gap-3">
+                            <!-- Unit Dropdown Select -->
+                            <div class="w-1/2">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
+                                <select wire:model.live="quickAddSelectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2 text-xs font-bold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
+                                    @foreach($quickAddUnits as $u)
+                                        <option value="{{ $u['id'] }}">{{ strtoupper($u['name']) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <!-- Quantity Input -->
+                            <div class="w-1/2">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                                    @php
+                                        $selectedU = collect($quickAddUnits)->firstWhere('id', $quickAddSelectedUnitId);
+                                        $selectedUName = $selectedU ? $selectedU['name'] : 'Pieces';
+                                    @endphp
+                                    {{ strtoupper($selectedUName) }}
+                                </label>
+                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                    <input type="number" wire:model.live.debounce.300ms="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] text-slate-400 font-semibold select-none">
                             @php
-                                $lvl1 = collect($quickAddUnits)->firstWhere('level', 1);
                                 $lvl2 = collect($quickAddUnits)->firstWhere('level', 2);
+                                $totalPieces = $quickAddQty;
+                                if ($lvl2 && $selectedU && $selectedU['level'] === 2) {
+                                    $totalPieces = $quickAddQty * $lvl2['conversion_to_base'];
+                                }
                             @endphp
-                            <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="space-y-1">
-                                    <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl2['name'] }}s</label>
-                                    <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                        <input type="number" wire:model.live="quickAddQtyLvl2" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
-                                    </div>
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl1['name'] }}s</label>
-                                    <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                        <input type="number" wire:model.live="quickAddQtyLvl1" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex justify-between items-center mt-2 select-none">
-                                <span class="text-[10px] text-slate-400 font-semibold">Total: {{ $quickAddQty }} Pieces</span>
-                                <span class="text-[10px] text-slate-400 font-semibold">MOQ: {{ $quickAddMoq }} Pieces</span>
-                            </div>
-                        @else
-                            <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
-                            <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1 w-32">
-                                <input type="number" wire:model.live="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229]">
-                            </div>
-                        @endif
+                            @if($lvl2 && $selectedU && $selectedU['level'] === 2)
+                                <span>Total: {{ $totalPieces }} Pieces</span>
+                            @endif
+                            <span>MOQ: {{ $quickAddMoq }} Pieces</span>
+                        </div>
                     </div>
 
                     <!-- Pricing Summary -->

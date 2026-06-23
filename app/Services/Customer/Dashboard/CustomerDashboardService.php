@@ -47,12 +47,17 @@ class CustomerDashboardService
                 'level' => $customer->level ? $customer->level->name : null,
                 'is_active' => (bool) $customer->is_active,
             ],
-            'credit' => $this->getCreditSummary($user),
-            'cart' => $this->getCartSummary($user),
-            'orders' => $this->getOrderSummary($user),
-            'recent_orders' => $this->getRecentOrders($user),
-            'alerts' => $this->getDashboardAlerts($user),
-            'quick_actions' => $this->getQuickActions($user),
+            'credit'             => $this->getCreditSummary($user),
+            'cart'               => $this->getCartSummary($user),
+            'orders'             => $this->getOrderSummary($user),
+            'recent_orders'      => $this->getRecentOrders($user),
+            'alerts'             => $this->getDashboardAlerts($user),
+            'quick_actions'      => $this->getQuickActions($user),
+            // Slider data
+            'recent_products'    => $this->getRecommendedProducts($user),
+            'popular_products'   => $this->getPopularProducts($user),
+            'recent_purchases'   => $this->getRecentPurchases($user),
+            // Legacy alias kept for older mobile clients
             'recommended_products' => $this->getRecommendedProducts($user),
         ];
     }
@@ -335,16 +340,94 @@ class CustomerDashboardService
     }
 
     /**
-     * Get recommended products format.
+     * Get recommended / recent products — newest 10 active products.
      */
     public function getRecommendedProducts(User $user): array
     {
-        // Fetch latest active products
         $products = Product::where('is_active', true)
             ->latest()
             ->limit(10)
             ->with(['categories', 'media', 'primaryMedia', 'customerLevelPrices', 'units'])
             ->get();
+
+        return $products->map(function (Product $product) use ($user) {
+            return $this->productCatalogService->formatProductCard($product, $user);
+        })->toArray();
+    }
+
+    /**
+     * Get top 10 most purchased products (by total units sold across all orders).
+     * Falls back to random active products if fewer than 10 eligible results.
+     */
+    public function getPopularProducts(User $user): array
+    {
+        $popularIds = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->whereNotIn('orders.status', ['rejected', 'cancelled'])
+            ->select('order_items.product_id', DB::raw('SUM(order_items.quantity) as total_qty'))
+            ->groupBy('order_items.product_id')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->pluck('order_items.product_id')
+            ->toArray();
+
+        $products = collect();
+
+        if (!empty($popularIds)) {
+            $found = Product::where('is_active', true)
+                ->whereIn('id', $popularIds)
+                ->with(['categories', 'media', 'primaryMedia', 'customerLevelPrices', 'units'])
+                ->get()
+                ->sortBy(fn($p) => array_search($p->id, $popularIds))
+                ->values();
+            $products = $products->concat($found);
+        }
+
+        // Pad with random products if we have fewer than 10
+        if ($products->count() < 10) {
+            $excludeIds = $products->pluck('id')->toArray();
+            $needed = 10 - $products->count();
+            $extras = Product::where('is_active', true)
+                ->whereNotIn('id', $excludeIds)
+                ->with(['categories', 'media', 'primaryMedia', 'customerLevelPrices', 'units'])
+                ->inRandomOrder()
+                ->limit($needed)
+                ->get();
+            $products = $products->concat($extras);
+        }
+
+        return $products->map(function (Product $product) use ($user) {
+            return $this->productCatalogService->formatProductCard($product, $user);
+        })->toArray();
+    }
+
+    /**
+     * Get up to 10 distinct products from this user's own order history,
+     * ordered by most recently ordered, excluding rejected/cancelled orders.
+     */
+    public function getRecentPurchases(User $user): array
+    {
+        $productIds = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.user_id', $user->id)
+            ->whereNotIn('orders.status', ['rejected', 'cancelled'])
+            ->select('order_items.product_id', DB::raw('MAX(orders.created_at) as last_ordered_at'))
+            ->groupBy('order_items.product_id')
+            ->orderByDesc('last_ordered_at')
+            ->limit(10)
+            ->pluck('order_items.product_id')
+            ->toArray();
+
+        if (empty($productIds)) {
+            return [];
+        }
+
+        $products = Product::where('is_active', true)
+            ->whereIn('id', $productIds)
+            ->with(['categories', 'media', 'primaryMedia', 'customerLevelPrices', 'units'])
+            ->get()
+            ->sortBy(fn($p) => array_search($p->id, $productIds))
+            ->values();
 
         return $products->map(function (Product $product) use ($user) {
             return $this->productCatalogService->formatProductCard($product, $user);

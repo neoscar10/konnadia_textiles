@@ -115,51 +115,61 @@
 
 
 
-                <!-- Quantity Stepper / Dual Unit Selector -->
-                <div>
-                    @if($hasLvl2Unit)
-                        @php
-                            $lvl1 = collect($units)->firstWhere('level', 1);
-                            $lvl2 = collect($units)->firstWhere('level', 2);
-                        @endphp
-                        <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="space-y-1">
-                                <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl2['name'] }}s</label>
-                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                    <input type="number" wire:model.live="qty_lvl2" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
-                                </div>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] text-slate-400 font-bold uppercase">{{ $lvl1['name'] }}s</label>
-                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                    <input type="number" wire:model.live="qty_lvl1" min="0" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-xs font-bold text-[#001229]">
-                                </div>
-                            </div>
+                <!-- Quantity Stepper / Unit Selector -->
+                <div class="space-y-4">
+                    <h5 class="text-xs font-bold text-slate-700">Order Quantity</h5>
+                    <div class="flex items-center gap-3">
+                        <!-- Unit Dropdown Select -->
+                        <div class="w-1/2">
+                            <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
+                            <select wire:model.live="selectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2 text-xs font-bold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
+                                @foreach($units as $unit)
+                                    <option value="{{ $unit['id'] }}">{{ strtoupper($unit['name']) }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                        <div class="flex justify-between items-center mt-2 select-none">
-                            <span class="text-[10px] text-slate-400 font-semibold">Total: {{ $qty }} Pieces</span>
-                            <span class="text-[10px] text-slate-400 font-semibold">MOQ: {{ $minimumOrderQuantity }} Pieces</span>
-                        </div>
-                    @else
-                        <h5 class="text-xs font-bold text-slate-700 mb-2">Order Quantity</h5>
-                        <div class="flex items-center justify-between">
-                            <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                <button type="button" wire:click="decrementQty" @if($qty <= $minimumOrderQuantity) disabled @endif class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:shadow-none transition-all focus:outline-none">
+                        <!-- Quantity Input -->
+                        <div class="w-1/2">
+                            <label class="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                                @php
+                                    $selectedUnit = collect($units)->firstWhere('id', $selectedUnitId);
+                                    $selectedUnitName = $selectedUnit ? $selectedUnit['name'] : 'Pieces';
+                                @endphp
+                                {{ strtoupper($selectedUnitName) }}
+                            </label>
+                            <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                <button type="button" wire:click="decrementQty" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
                                     <span class="material-symbols-outlined text-lg">remove</span>
                                 </button>
-                                <input type="number" wire:model.live.debounce.300ms="qty" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229]">
+                                <input type="number" wire:model.live.debounce.300ms="qty" min="1" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229]">
                                 <button type="button" wire:click="incrementQty" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
                                     <span class="material-symbols-outlined text-lg">add</span>
                                 </button>
                             </div>
-                            <span class="text-xs text-slate-400 font-medium">MOQ: {{ $minimumOrderQuantity }} units</span>
                         </div>
-                    @endif
+                    </div>
+                    <div class="flex justify-between items-center text-[10px] text-slate-400 font-semibold select-none">
+                        @php
+                            $lvl2 = collect($units)->firstWhere('level', 2);
+                            $totalPieces = $qty;
+                            if ($lvl2 && $selectedUnit && $selectedUnit['level'] === 2) {
+                                $totalPieces = $qty * $lvl2['conversion_to_base'];
+                            }
+                        @endphp
+                        @if($lvl2 && $selectedUnit && $selectedUnit['level'] === 2)
+                            <span>Total: {{ $totalPieces }} Pieces</span>
+                        @endif
+                        <span>MOQ: {{ $minimumOrderQuantity }} Pieces</span>
+                    </div>
                 </div>
 
                 {{-- Live MOQ warning if below minimum --}}
-                @if($qty < $minimumOrderQuantity)
+                @php
+                    $unit = collect($units)->firstWhere('id', $selectedUnitId);
+                    $conversion = $unit ? (float) $unit['conversion_to_base'] : 1.0;
+                    $totalPieces = $qty * $conversion;
+                @endphp
+                @if($totalPieces < $minimumOrderQuantity)
                     <div class="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 mt-2">
                         <span class="material-symbols-outlined text-sm text-rose-500 select-none mt-0.5">warning</span>
                         <span class="text-xs font-semibold text-rose-700">

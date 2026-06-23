@@ -5,10 +5,10 @@
         <span class="text-[10px] font-medium">Home</span>
     </a>
 
-    <!-- Products Tab -->
+    <!-- Shop Tab -->
     <a href="{{ route('customer.products.index') }}" wire:navigate class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all {{ request()->routeIs('customer.products.*') || request()->routeIs('customer.categories.*') ? 'text-gold' : 'text-slate-500' }}">
         <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' {{ request()->routeIs('customer.products.*') || request()->routeIs('customer.categories.*') ? 1 : 0 }}">dashboard_customize</span>
-        <span class="text-[10px] font-medium">Products</span>
+        <span class="text-[10px] font-medium">Shop</span>
     </a>
 
     <!-- Cart Tab -->
