@@ -86,25 +86,17 @@
                 <div class="space-y-3">
                     @foreach($recentOrders as $order)
                         <a href="{{ route('customer.orders.show', $order['order_number']) }}" class="block bg-white border border-outline-variant/20 rounded-xl shadow-ambient hover:shadow-md hover:border-[#001229]/25 transition-all p-4">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                                <div class="flex items-center gap-3">
-                                    <span class="text-sm font-extrabold text-[#001229]">{{ $order['order_number'] }}</span>
-                                    <x-customer.badge :status="$order['status']['label']" />
+                            <div class="flex items-center justify-between gap-3 text-xs">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-sm font-extrabold text-[#001229]">{{ $order['order_number'] }}</span>
+                                        <x-customer.badge :status="$order['status']['label']" />
+                                    </div>
+                                    <p class="text-slate-500 text-[11px] font-medium">Created : {{ \Carbon\Carbon::parse($order['created_at'])->format('jS M, Y') }}</p>
                                 </div>
-                                <div class="flex flex-wrap items-center gap-4 sm:gap-6">
-                                    <div class="text-slate-500 font-medium">
-                                        Placed: <span class="font-bold text-slate-700">{{ \Carbon\Carbon::parse($order['created_at'])->format('M d, Y') }}</span>
-                                    </div>
-                                    <div class="text-slate-500 font-medium">
-                                        Items: <span class="font-bold text-[#001229]">{{ $order['items_count'] }}</span>
-                                    </div>
-                                    <div class="text-slate-500 font-medium">
-                                        Payment: <span class="font-bold uppercase text-slate-700">{{ $order['payment_status']['label'] }}</span>
-                                    </div>
-                                    <div class="text-right sm:pl-4 sm:border-l border-slate-100">
-                                        <span class="text-[9px] text-slate-400 font-bold uppercase block select-none">Total</span>
-                                        <span class="text-sm font-extrabold text-[#001229]">{{ $order['formatted_total_amount'] }}</span>
-                                    </div>
+                                <div class="text-right">
+                                    <span class="text-[9px] text-slate-400 font-bold uppercase block select-none">Total</span>
+                                    <span class="text-sm font-extrabold text-[#001229]">{{ $order['formatted_total_amount'] }}</span>
                                 </div>
                             </div>
                         </a>
