@@ -27,9 +27,7 @@ class ProductIndexPage extends Component
     public $quickAddProduct = null;
     public $quickAddVariations = [];
     public $quickAddSelectedValues = [];
-    public $quickAddSelectedUnitId = null;
     public $quickAddUnits = [];
-    public $quickAddQty = 1;
     public $quickAddQtyLvl1 = 0;
     public $quickAddQtyLvl2 = 0;
     public $quickAddHasLvl2Unit = false;
@@ -80,16 +78,14 @@ class ProductIndexPage extends Component
             }
         }
 
-        $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
-        $this->quickAddSelectedUnitId = $lvl1 ? $lvl1['id'] : $detail['purchase_defaults']['default_unit_id'];
         $this->quickAddMoq = $detail['purchase_defaults']['minimum_order_quantity'];
 
         $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
         $this->quickAddHasLvl2Unit = !empty($lvl2);
-        
-        $selectedUnit = collect($this->quickAddUnits)->firstWhere('id', $this->quickAddSelectedUnitId);
-        $conversion = ($selectedUnit && $selectedUnit['level'] === 2) ? (float)$selectedUnit['conversion_to_base'] : 1.0;
-        $this->quickAddQty = (int) ceil($this->quickAddMoq / $conversion);
+
+        // Default: satisfy MOQ using pieces (lvl1), lvl2 starts at 0
+        $this->quickAddQtyLvl1 = $this->quickAddMoq;
+        $this->quickAddQtyLvl2 = 0;
 
         $this->recalculateQuickAdd($catalogService);
         $this->showQuickAddModal = true;
@@ -101,20 +97,15 @@ class ProductIndexPage extends Component
         $this->recalculateQuickAdd($catalogService);
     }
 
-    public function updatedQuickAddSelectedUnitId(ProductCatalogService $catalogService)
+    public function updatedQuickAddQtyLvl1(ProductCatalogService $catalogService)
     {
-        $selectedUnit = collect($this->quickAddUnits)->firstWhere('id', $this->quickAddSelectedUnitId);
-        $conversion = ($selectedUnit && $selectedUnit['level'] === 2) ? (float)$selectedUnit['conversion_to_base'] : 1.0;
-        $minQty = (int) ceil($this->quickAddMoq / $conversion);
-        if ($this->quickAddQty < $minQty) {
-            $this->quickAddQty = $minQty;
-        }
+        $this->quickAddQtyLvl1 = max(0, (int)$this->quickAddQtyLvl1);
         $this->recalculateQuickAdd($catalogService);
     }
 
-    public function updatedQuickAddQty(ProductCatalogService $catalogService)
+    public function updatedQuickAddQtyLvl2(ProductCatalogService $catalogService)
     {
-        $this->quickAddQty = max(1, (int)$this->quickAddQty);
+        $this->quickAddQtyLvl2 = max(0, (int)$this->quickAddQtyLvl2);
         $this->recalculateQuickAdd($catalogService);
     }
 
@@ -135,14 +126,20 @@ class ProductIndexPage extends Component
         $this->quickAddEffectiveBasePrice = $pricing['effective_base_price'];
         $this->quickAddDiscountPercentage = $pricing['discount_percentage'];
 
-        // Calculate unit pricing
-        $unit = \App\Models\ProductUnit::find($this->quickAddSelectedUnitId);
-        if ($unit) {
+        // Compute total pieces from both inputs
+        $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
+        $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
+        $conversion = $lvl2 ? (float)$lvl2['conversion_to_base'] : 1.0;
+        $totalPieces = ($this->quickAddQtyLvl2 * $conversion) + $this->quickAddQtyLvl1;
+
+        // Estimate based on lvl1 unit (piece-level) with total piece quantity
+        $lvl1Unit = $lvl1 ? \App\Models\ProductUnit::find($lvl1['id']) : null;
+        if ($lvl1Unit && $totalPieces > 0) {
             $unitPricingService = app(\App\Services\Portal\ProductUnitPricingService::class);
             $estimate = $unitPricingService->calculateLineEstimate(
                 $this->quickAddPricePerPiece,
-                $unit,
-                $this->quickAddQty,
+                $lvl1Unit,
+                (int) $totalPieces,
                 $this->quickAddProduct->gst_percentage !== null ? (float) $this->quickAddProduct->gst_percentage : null
             );
 
@@ -150,6 +147,11 @@ class ProductIndexPage extends Component
             $this->quickAddSubtotal   = $estimate['subtotal'];
             $this->quickAddGstAmount  = $estimate['gst_amount'];
             $this->quickAddTotal      = $estimate['total'];
+        } else {
+            $this->quickAddUnitPrice  = 0.0;
+            $this->quickAddSubtotal   = 0.0;
+            $this->quickAddGstAmount  = 0.0;
+            $this->quickAddTotal      = 0.0;
         }
 
         // Calculate availability
@@ -170,16 +172,15 @@ class ProductIndexPage extends Component
             return;
         }
 
-        $unit = \App\Models\ProductUnit::find($this->quickAddSelectedUnitId);
-        $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
-        $totalPieces = $this->quickAddQty * $conversion;
+        $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
+        $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
+        $conversion = $lvl2 ? (float)$lvl2['conversion_to_base'] : 1.0;
+        $totalPieces = (int)(($this->quickAddQtyLvl2 * $conversion) + $this->quickAddQtyLvl1);
 
         // MOQ gate
         if ($totalPieces < $this->quickAddMoq) {
-            $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
             if ($lvl2) {
-                $conversion = (int) $lvl2['conversion_to_base'];
-                $moqBoxes   = (int) ceil($this->quickAddMoq / $conversion);
+                $moqBoxes = (int) ceil($this->quickAddMoq / $conversion);
                 $this->dispatch('toast', type: 'error', message:
                     "Minimum order is {$this->quickAddMoq} pieces. "
                     . "Order at least {$moqBoxes} {$lvl2['name']}(s) or {$this->quickAddMoq} individual pieces."
@@ -192,20 +193,30 @@ class ProductIndexPage extends Component
             return;
         }
 
+        if ($totalPieces < 1) {
+            $this->dispatch('toast', type: 'error', message: 'Please enter at least a quantity of 1.');
+            return;
+        }
+
         $user = auth()->user();
         $combination = $catalogService->resolveSelectedCombination($this->quickAddProduct, $this->quickAddSelectedValues);
+
+        // Always add using the lvl1 unit with the total piece count
+        $lvl1UnitId = $lvl1 ? $lvl1['id'] : null;
 
         try {
             $cartService = app(\App\Services\Cart\CartService::class);
             $cartService->addItem($user, [
-                'product_id' => $this->quickAddProductId,
-                'combination_id' => $combination?->id,
-                'unit_id' => $this->quickAddSelectedUnitId,
-                'quantity' => $this->quickAddQty,
+                'product_id'      => $this->quickAddProductId,
+                'combination_id'  => $combination?->id,
+                'unit_id'         => $lvl1UnitId,
+                'quantity'        => $totalPieces,
+                'quantity_lvl1'   => (int) $this->quickAddQtyLvl1,
+                'quantity_lvl2'   => (int) $this->quickAddQtyLvl2,
                 'selected_options' => $this->quickAddSelectedValues ?: null,
             ]);
 
-            $this->dispatch('toast', type: 'success', message: 'Variant added to cart successfully.');
+            $this->dispatch('toast', type: 'success', message: 'Added to cart successfully.');
             $this->dispatch('cart-updated', count: $cartService->getCartItemCount($user));
             $this->showQuickAddModal = false;
         } catch (\Exception $e) {
@@ -233,8 +244,12 @@ class ProductIndexPage extends Component
     {
         if ($categoryId) {
             $cat = \App\Models\Category::find($categoryId);
-            if ($cat && $cat->parent_id && !in_array($cat->parent_id, $this->expandedCategories)) {
-                $this->expandedCategories[] = $cat->parent_id;
+            $curr = $cat;
+            while ($curr && $curr->parent_id) {
+                if (!in_array($curr->parent_id, $this->expandedCategories)) {
+                    $this->expandedCategories[] = $curr->parent_id;
+                }
+                $curr = $curr->parent;
             }
         }
     }

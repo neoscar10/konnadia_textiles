@@ -74,54 +74,7 @@
 
                         @foreach($categoriesList as $cat)
                             @if(!$cat['parent_id'])
-                                @php
-                                    $hasChildren = collect($categoriesList)->where('parent_id', $cat['id'])->isNotEmpty();
-                                    $isExpanded = in_array($cat['id'], $expandedCategories);
-                                    $isActive = (string)$category === (string)$cat['id'];
-                                    $hasActiveChild = (collect($categoriesList)->firstWhere('id', $category)['parent_id'] ?? null) == $cat['id'];
-                                @endphp
-                                <div class="space-y-1">
-                                    <div class="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-colors {{ $isActive || $hasActiveChild ? 'bg-[#001229]/5 font-bold text-[#001229]' : 'text-slate-700' }}">
-                                        <button wire:click="selectCategory('{{ $cat['id'] }}')" class="flex-1 text-left text-sm hover:text-[#001229] cursor-pointer">
-                                            {{ $cat['name'] }}
-                                        </button>
-                                        
-                                        <div class="flex items-center gap-1.5">
-                                            @if($isActive)
-                                                <span class="material-symbols-outlined text-xs text-gold">check</span>
-                                            @endif
-                                            
-                                            @if($hasChildren)
-                                                <button wire:click.stop="toggleCategory('{{ $cat['id'] }}')" class="p-0.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
-                                                    <span class="material-symbols-outlined text-sm transform transition-transform {{ $isExpanded ? 'rotate-180' : '' }}">
-                                                        keyboard_arrow_down
-                                                    </span>
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </div>
-
-                                    <!-- Subcategories (Drill down) -->
-                                    @if($hasChildren && $isExpanded)
-                                        <div class="pl-4 space-y-1 border-l border-slate-100 ml-3">
-                                            @foreach($categoriesList as $subCat)
-                                                @if($subCat['parent_id'] === $cat['id'])
-                                                    @php
-                                                        $isSubActive = (string)$category === (string)$subCat['id'];
-                                                    @endphp
-                                                    <div class="flex items-center justify-between py-1 px-2 rounded hover:bg-slate-50 transition-colors {{ $isSubActive ? 'bg-[#001229]/5 font-semibold text-[#001229]' : 'text-slate-600' }}">
-                                                        <button wire:click="selectCategory('{{ $subCat['id'] }}')" class="flex-1 text-left text-xs hover:text-slate-800 cursor-pointer">
-                                                            {{ $subCat['name'] }}
-                                                        </button>
-                                                        @if($isSubActive)
-                                                            <span class="material-symbols-outlined text-xs text-gold">check</span>
-                                                        @endif
-                                                    </div>
-                                                @endif
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
+                                @include('partials.customer.category-tree-item', ['cat' => $cat, 'level' => 0])
                             @endif
                         @endforeach
                     </div>
@@ -314,43 +267,58 @@
                         </div>
                     @endif
 
-                    <!-- Quantity Input (Dropdown Select and single quantity input) -->
+                    {{-- Quantity Inputs: Dual-unit (Boxes + Pieces simultaneously) --}}
                     <div class="space-y-4">
                         <h5 class="text-sm font-bold text-slate-700">Order Quantity</h5>
-                        <div class="flex items-center gap-3">
-                            <!-- Unit Dropdown Select -->
-                            <div class="w-1/2">
-                                <label class="text-xs text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
-                                <select wire:model.live="quickAddSelectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 text-sm font-extrabold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
-                                    @foreach($quickAddUnits as $u)
-                                        <option value="{{ $u['id'] }}">{{ strtoupper($u['name']) }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <!-- Quantity Input -->
-                            <div class="w-1/2">
-                                <label class="text-xs text-slate-400 font-bold uppercase block mb-1">
-                                    @php
-                                        $selectedU = collect($quickAddUnits)->firstWhere('id', $quickAddSelectedUnitId);
-                                        $selectedUName = $selectedU ? $selectedU['name'] : 'Pieces';
-                                    @endphp
-                                    {{ strtoupper($selectedUName) }}
-                                </label>
+
+                        @php
+                            $lvl1 = collect($quickAddUnits)->firstWhere('level', 1);
+                            $lvl2 = collect($quickAddUnits)->firstWhere('level', 2);
+                            $lvl1Name = $lvl1 ? strtoupper($lvl1['name']) : 'PIECES';
+                            $lvl2Name = $lvl2 ? strtoupper($lvl2['name']) : null;
+                            $conversionRate = $lvl2 ? (int)$lvl2['conversion_to_base'] : 1;
+                        @endphp
+
+                        <div class="flex items-start gap-3">
+                            @if($quickAddHasLvl2Unit && $lvl2)
+                                {{-- lvl2 (e.g. Boxes) --}}
+                                <div class="flex-1">
+                                    <label class="text-xs text-slate-400 font-bold uppercase block mb-1">{{ $lvl2Name }}</label>
+                                    <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-2">
+                                        <input type="number"
+                                               wire:model.live.debounce.300ms="quickAddQtyLvl2"
+                                               min="0"
+                                               class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-extrabold text-[#001229] p-0.5"
+                                               placeholder="0">
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 mt-0.5 block text-center">1 {{ ucfirst($lvl2['name']) }} = {{ $conversionRate }} {{ ucfirst($lvl1['name'] ?? 'Pcs') }}s</span>
+                                </div>
+
+                                <div class="flex items-end pb-6 pt-5 text-slate-300 font-bold text-sm select-none">+</div>
+                            @endif
+
+                            {{-- lvl1 (e.g. Pieces) --}}
+                            <div class="flex-1">
+                                <label class="text-xs text-slate-400 font-bold uppercase block mb-1">{{ $lvl1Name }}</label>
                                 <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-2">
-                                    <input type="number" wire:model.live.debounce.300ms="quickAddQty" min="1" class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-extrabold text-[#001229] p-0.5">
+                                    <input type="number"
+                                           wire:model.live.debounce.300ms="quickAddQtyLvl1"
+                                           min="0"
+                                           class="w-full text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-extrabold text-[#001229] p-0.5"
+                                           placeholder="0">
                                 </div>
                             </div>
                         </div>
+
+                        {{-- Summary row --}}
                         <div class="flex justify-between items-center text-[10px] text-slate-400 font-semibold select-none">
                             @php
-                                $lvl2 = collect($quickAddUnits)->firstWhere('level', 2);
-                                $totalPieces = $quickAddQty;
-                                if ($lvl2 && $selectedU && $selectedU['level'] === 2) {
-                                    $totalPieces = $quickAddQty * $lvl2['conversion_to_base'];
-                                }
+                                $totalPiecesDisplay = ($quickAddQtyLvl2 * $conversionRate) + $quickAddQtyLvl1;
                             @endphp
-                            @if($lvl2 && $selectedU && $selectedU['level'] === 2)
-                                <span>Total: {{ $totalPieces }} Pieces</span>
+                            @if($quickAddHasLvl2Unit)
+                                <span>Total: {{ $totalPiecesDisplay }} Pieces</span>
+                            @else
+                                <span></span>
                             @endif
                             <span>MOQ: {{ $quickAddMoq }} Pieces</span>
                         </div>

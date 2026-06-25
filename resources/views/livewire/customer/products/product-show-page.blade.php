@@ -115,49 +115,59 @@
 
 
 
-                <!-- Quantity Stepper / Unit Selector -->
+                <!-- Quantity Stepper / Dual-Unit Input -->
                 <div class="space-y-4">
                     <h5 class="text-sm font-bold text-slate-700">Order Quantity</h5>
-                    <div class="flex items-center gap-3">
-                        <!-- Unit Dropdown Select -->
-                        <div class="w-1/2">
-                            <label class="text-xs text-slate-400 font-bold uppercase block mb-1">Select Unit</label>
-                            <select wire:model.live="selectedUnitId" class="w-full bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 text-sm font-extrabold text-[#001229] focus:ring-1 focus:ring-gold outline-none">
-                                @foreach($units as $unit)
-                                    <option value="{{ $unit['id'] }}">{{ strtoupper($unit['name']) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <!-- Quantity Input -->
-                        <div class="w-1/2">
-                            <label class="text-xs text-slate-400 font-bold uppercase block mb-1">
-                                @php
-                                    $selectedUnit = collect($units)->firstWhere('id', $selectedUnitId);
-                                    $selectedUnitName = $selectedUnit ? $selectedUnit['name'] : 'Pieces';
-                                @endphp
-                                {{ strtoupper($selectedUnitName) }}
-                            </label>
+
+                    @php
+                        $lvl1u = collect($units)->firstWhere('level', 1);
+                        $lvl2u = collect($units)->firstWhere('level', 2);
+                        $lvl1UName = $lvl1u ? strtoupper($lvl1u['name']) : 'PIECES';
+                        $lvl2UName = $lvl2u ? strtoupper($lvl2u['name']) : null;
+                        $convRate = $lvl2u ? (int)$lvl2u['conversion_to_base'] : 1;
+                        $totalPiecesCalc = ($qty_lvl2 * $convRate) + $qty_lvl1;
+                    @endphp
+
+                    <div class="flex items-start gap-3">
+                        @if($hasLvl2Unit && $lvl2u)
+                            {{-- lvl2: Boxes --}}
+                            <div class="flex-1 space-y-1">
+                                <label class="text-xs text-slate-400 font-bold uppercase block">{{ $lvl2UName }}</label>
+                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                    <button type="button" wire:click="decrementQtyLvl2" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                        <span class="material-symbols-outlined text-lg">remove</span>
+                                    </button>
+                                    <input type="number" wire:model.live.debounce.300ms="qty_lvl2" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
+                                    <button type="button" wire:click="incrementQtyLvl2" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                        <span class="material-symbols-outlined text-lg">add</span>
+                                    </button>
+                                </div>
+                                <span class="text-[10px] text-slate-400 block text-center">1 {{ ucfirst($lvl2u['name']) }} = {{ $convRate }} {{ ucfirst($lvl1u['name'] ?? 'Pcs') }}s</span>
+                            </div>
+
+                            <div class="flex items-center pt-6 pb-2 text-slate-300 font-bold text-sm select-none">+</div>
+                        @endif
+
+                        {{-- lvl1: Pieces --}}
+                        <div class="flex-1 space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase block">{{ $lvl1UName }}</label>
                             <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                <button type="button" wire:click="decrementQty" class="w-9 h-9 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                <button type="button" wire:click="decrementQtyLvl1" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
                                     <span class="material-symbols-outlined text-lg">remove</span>
                                 </button>
-                                <input type="number" wire:model.live.debounce.300ms="qty" min="1" class="w-14 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1.5">
-                                <button type="button" wire:click="incrementQty" class="w-9 h-9 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                <input type="number" wire:model.live.debounce.300ms="qty_lvl1" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
+                                <button type="button" wire:click="incrementQtyLvl1" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
                                     <span class="material-symbols-outlined text-lg">add</span>
                                 </button>
                             </div>
                         </div>
                     </div>
+
                     <div class="flex justify-between items-center text-[10px] text-slate-400 font-semibold select-none">
-                        @php
-                            $lvl2 = collect($units)->firstWhere('level', 2);
-                            $totalPieces = $qty;
-                            if ($lvl2 && $selectedUnit && $selectedUnit['level'] === 2) {
-                                $totalPieces = $qty * $lvl2['conversion_to_base'];
-                            }
-                        @endphp
-                        @if($lvl2 && $selectedUnit && $selectedUnit['level'] === 2)
-                            <span>Total: {{ $totalPieces }} Pieces</span>
+                        @if($hasLvl2Unit)
+                            <span>Total: {{ $totalPiecesCalc }} Pieces</span>
+                        @else
+                            <span></span>
                         @endif
                         <span>MOQ: {{ $minimumOrderQuantity }} Pieces</span>
                     </div>
@@ -165,11 +175,11 @@
 
                 {{-- Live MOQ warning if below minimum --}}
                 @php
-                    $unit = collect($units)->firstWhere('id', $selectedUnitId);
-                    $conversion = $unit ? (float) $unit['conversion_to_base'] : 1.0;
-                    $totalPieces = $qty * $conversion;
+                    $lvl2u2 = collect($units)->firstWhere('level', 2);
+                    $convRate2 = $lvl2u2 ? (float)$lvl2u2['conversion_to_base'] : 1.0;
+                    $totalPiecesMoq = ($qty_lvl2 * $convRate2) + $qty_lvl1;
                 @endphp
-                @if($totalPieces < $minimumOrderQuantity)
+                @if($totalPiecesMoq > 0 && $totalPiecesMoq < $minimumOrderQuantity)
                     <div class="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 mt-2">
                         <span class="material-symbols-outlined text-sm text-rose-500 select-none mt-0.5">warning</span>
                         <span class="text-xs font-semibold text-rose-700">

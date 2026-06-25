@@ -144,7 +144,7 @@ class ProductVariationService
                 if (count($newVals) === count($extVals) && !array_diff_assoc($newVals, $extVals)) {
                     $newComb['sku'] = $ext->sku;
                     $newComb['price'] = $ext->price !== null ? (float)$ext->price : null;
-                    $newComb['stock_quantity'] = (int)$ext->stock_quantity === 0 ? '' : (int)$ext->stock_quantity;
+                    $newComb['stock_quantity'] = $ext->stock_quantity === null ? '' : (int)$ext->stock_quantity;
                     $newComb['is_active'] = (bool)$ext->is_active;
                     break;
                 }
@@ -177,7 +177,7 @@ class ProductVariationService
                     'sku' => $sku,
                     'combination_values' => $comb['combination_values'],
                     'price' => (isset($comb['price']) && trim($comb['price']) !== '') ? (float)$comb['price'] : null,
-                    'stock_quantity' => (isset($comb['stock_quantity']) && $comb['stock_quantity'] !== '') ? (int)$comb['stock_quantity'] : 0,
+                    'stock_quantity' => (isset($comb['stock_quantity']) && $comb['stock_quantity'] !== '') ? (int)$comb['stock_quantity'] : null,
                     'is_active' => isset($comb['is_active']) ? (bool)$comb['is_active'] : true,
                 ]);
             }

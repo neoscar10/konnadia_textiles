@@ -46,9 +46,8 @@ class CartPage extends Component
         ];
     }
 
-    public function updateQuantity($itemId, $qty, CartService $cartService)
+    public function updateItemQty($itemId, $qtyLvl1, $qtyLvl2, CartService $cartService)
     {
-        $qty = max(1, (int) $qty);
         $item = CartItem::find($itemId);
 
         if (!$item) {
@@ -56,8 +55,18 @@ class CartPage extends Component
             return;
         }
 
+        $qtyLvl1 = max(0, (int) $qtyLvl1);
+        $qtyLvl2 = max(0, (int) $qtyLvl2);
+
+        if ($qtyLvl1 === 0 && $qtyLvl2 === 0) {
+            $qtyLvl1 = 1;
+        }
+
         try {
-            $payload = ['quantity' => $qty];
+            $payload = [
+                'quantity_lvl1' => $qtyLvl1,
+                'quantity_lvl2' => $qtyLvl2,
+            ];
 
             $cartService->updateItem(auth()->user(), $item, $payload);
             $this->loadCart($cartService);
@@ -68,19 +77,51 @@ class CartPage extends Component
         }
     }
 
-    public function incrementQuantity($itemId, CartService $cartService)
+    public function updateQtyLvl1($itemId, $qty, CartService $cartService)
     {
         $item = CartItem::find($itemId);
         if ($item) {
-            $this->updateQuantity($itemId, $item->quantity + 1, $cartService);
+            $this->updateItemQty($itemId, $qty, $item->quantity_lvl2, $cartService);
         }
     }
 
-    public function decrementQuantity($itemId, CartService $cartService)
+    public function updateQtyLvl2($itemId, $qty, CartService $cartService)
     {
         $item = CartItem::find($itemId);
-        if ($item && $item->quantity > 1) {
-            $this->updateQuantity($itemId, $item->quantity - 1, $cartService);
+        if ($item) {
+            $this->updateItemQty($itemId, $item->quantity_lvl1, $qty, $cartService);
+        }
+    }
+
+    public function incrementQtyLvl1($itemId, CartService $cartService)
+    {
+        $item = CartItem::find($itemId);
+        if ($item) {
+            $this->updateItemQty($itemId, $item->quantity_lvl1 + 1, $item->quantity_lvl2, $cartService);
+        }
+    }
+
+    public function decrementQtyLvl1($itemId, CartService $cartService)
+    {
+        $item = CartItem::find($itemId);
+        if ($item) {
+            $this->updateItemQty($itemId, max(0, $item->quantity_lvl1 - 1), $item->quantity_lvl2, $cartService);
+        }
+    }
+
+    public function incrementQtyLvl2($itemId, CartService $cartService)
+    {
+        $item = CartItem::find($itemId);
+        if ($item) {
+            $this->updateItemQty($itemId, $item->quantity_lvl1, $item->quantity_lvl2 + 1, $cartService);
+        }
+    }
+
+    public function decrementQtyLvl2($itemId, CartService $cartService)
+    {
+        $item = CartItem::find($itemId);
+        if ($item) {
+            $this->updateItemQty($itemId, $item->quantity_lvl1, max(0, $item->quantity_lvl2 - 1), $cartService);
         }
     }
 

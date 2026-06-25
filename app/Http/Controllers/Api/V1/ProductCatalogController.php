@@ -193,19 +193,16 @@ class ProductCatalogController extends Controller implements HasMiddleware
         $metadata = $this->catalogService->getAvailableFilters($request->user());
         
         // Build nested categories tree for clean filter hierarchy
-        $categories = \App\Models\Category::with('children')->whereNull('parent_id')->get()->map(function($c) {
+        $formatCategory = function($c) use (&$formatCategory) {
             return [
                 'id' => $c->id,
                 'name' => $c->name,
                 'slug' => Str::slug($c->name),
-                'children' => $c->children->map(fn($child) => [
-                    'id' => $child->id,
-                    'name' => $child->name,
-                    'slug' => Str::slug($child->name),
-                    'children' => []
-                ])->toArray()
+                'children' => $c->children->map(fn($child) => $formatCategory($child))->toArray()
             ];
-        })->toArray();
+        };
+
+        $categories = \App\Models\Category::whereNull('parent_id')->orderBy('sort_order')->orderBy('name')->get()->map($formatCategory)->toArray();
 
         return $this->successResponse('Product filters retrieved successfully.', [
             'categories' => $categories,

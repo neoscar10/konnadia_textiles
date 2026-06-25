@@ -623,68 +623,108 @@
                 </div>
             @endif
 
-            <!-- STEP 5: Combinations Matrix / Stock -->
+            <!-- STEP 5: Inventory / Stock (Both product types - stock is optional) -->
             @if($currentStep === 5)
                 <div class="space-y-lg">
-                    @if($basicInfo['product_type'] === 'manufactured')
-                        @if(empty($variationGroups))
-                            <div class="max-w-md p-md rounded-lg bg-secondary/5 border border-secondary/20 select-none">
-                                <h4 class="font-title-md text-primary mb-xs">Retail / Bought Product</h4>
-                                <p class="text-sm text-on-surface-variant">This product is set as a <strong>Retail / Bought Product</strong>. Stock tracking is not required, and it will be available for purchase on demand.</p>
+
+                    {{-- Context Banner --}}
+                    @if($basicInfo['product_type'] === 'retail')
+                        <div class="flex items-start gap-sm p-sm rounded-lg bg-primary/5 border border-primary/20 select-none">
+                            <span class="material-symbols-outlined text-primary text-[20px] mt-0.5">inventory_2</span>
+                            <div>
+                                <p class="font-label-md text-primary">Manufactured Product — Stock tracking available</p>
+                                <p class="text-xs text-on-surface-variant">You can define stock quantity or leave it empty to mark as <strong>N/A (Unlimited)</strong> — no stock restrictions will apply.</p>
                             </div>
-                        @else
-                            <!-- Combinations Table for Manufactured Product (No Stock columns) -->
-                            <div class="overflow-x-auto border border-outline-variant/20 rounded-lg">
-                                <table class="w-full text-left font-body-md">
-                                    <thead class="bg-surface-container text-on-surface-variant font-label-md uppercase tracking-wider text-xs border-b border-outline-variant/20 select-none">
-                                        <tr>
-                                            <th class="px-lg py-sm">Combination</th>
-                                            <th class="px-lg py-sm text-center">Price Override</th>
-                                            <th class="px-lg py-sm text-center">Active</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-outline-variant/10 bg-white">
-                                        @foreach($combinations as $cIndex => $comb)
-                                            <tr>
-                                                <td class="px-lg py-md whitespace-nowrap font-bold text-primary text-sm">
-                                                    {{ collect($comb['combination_values'])->map(fn($v, $k) => "$k: $v")->implode(', ') }}
-                                                </td>
-                                                <td class="px-lg py-md text-center">
-                                                    <div class="flex items-center justify-center">
-                                                        <div class="relative w-32 flex items-center bg-surface-container-low border border-outline-variant/50 rounded px-sm focus-within:ring-1 focus-within:ring-secondary focus-within:border-secondary">
-                                                            <span class="text-on-surface-variant font-bold text-xs select-none pr-xs">₹</span>
-                                                            <input type="number" step="0.01" wire:model="combinations.{{ $cIndex }}.price" placeholder="{{ (float)($basicInfo['base_price'] ?: 0) }}" class="w-full bg-transparent border-none p-xs text-right focus:ring-0 outline-none text-on-surface font-semibold text-sm">
-                                                        </div>
-                                                    </div>
-                                                    @error("combinations.{$cIndex}.price") <span class="text-error text-xs block">{{ $message }}</span> @enderror
-                                                </td>
-                                                <td class="px-lg py-md text-center">
-                                                    <input type="checkbox" wire:model="combinations.{{ $cIndex }}.is_active" class="w-4 h-4 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer">
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
+                        </div>
                     @else
-                        @if(empty($variationGroups))
-                            <div class="max-w-md space-y-md">
-                                <h4 class="font-title-md text-primary">Non-Variant Inventory</h4>
-                                <div class="space-y-xs">
-                                    <label class="font-label-md text-on-surface-variant">Total Stock Quantity *</label>
-                                    <input type="number" wire:model="nonVariantStock" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
-                                    @error('nonVariantStock') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        <div class="flex items-start gap-sm p-sm rounded-lg bg-secondary/5 border border-secondary/20 select-none">
+                            <span class="material-symbols-outlined text-secondary text-[20px] mt-0.5">shopping_bag</span>
+                            <div>
+                                <p class="font-label-md text-secondary">Retail / Bought Product — Stock optional</p>
+                                <p class="text-xs text-on-surface-variant">Stock tracking is optional. Leave empty to mark as <strong>N/A (Unlimited)</strong> — customers can order any quantity with no stock restriction.</p>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if(empty($variationGroups))
+                        {{-- No variants: single stock field --}}
+                        <div class="max-w-md space-y-md">
+                            <h4 class="font-title-md text-primary">Stock Quantity</h4>
+                            <div class="space-y-xs">
+                                <label class="font-label-md text-on-surface-variant">Total Stock <span class="text-on-surface-variant/60 font-normal">(leave empty for N/A / Unlimited)</span></label>
+                                <div class="flex items-center gap-sm">
+                                    <input type="number" wire:model.live="nonVariantStock" placeholder="N/A" min="0" class="w-48 px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                    @if($nonVariantStock !== '')
+                                        <span class="font-label-md text-on-surface font-bold">{{ number_format((int)$nonVariantStock) }} units tracked</span>
+                                    @else
+                                        <span class="flex items-center gap-xs text-xs text-on-surface-variant/80 bg-surface-container px-sm py-xs rounded-md border border-outline-variant/30">
+                                            <span class="material-symbols-outlined text-[14px]">all_inclusive</span>
+                                            N/A — Unlimited (no restriction)
+                                        </span>
+                                    @endif
+                                </div>
+                                @error('nonVariantStock') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    @else
+                        {{-- Has variants: total stock + per-combination stocks --}}
+                        <div class="space-y-md">
+
+                            {{-- Total Stock Header --}}
+                            <div class="flex flex-col sm:flex-row sm:items-end gap-md p-md bg-surface-container-low/60 border border-outline-variant/20 rounded-lg">
+                                <div class="flex-1 space-y-xs">
+                                    <label class="font-label-md text-on-surface-variant">Total Declared Stock <span class="text-on-surface-variant/60 font-normal">(optional — leave empty for N/A)</span></label>
+                                    <div class="flex items-center gap-sm">
+                                        <input type="number" wire:model.live="totalStock" placeholder="N/A" min="0" class="w-44 px-md py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                        @if($totalStock !== '')
+                                            <span class="font-label-md text-primary font-bold">{{ number_format((int)$totalStock) }} total units</span>
+                                        @else
+                                            <span class="flex items-center gap-xs text-xs text-on-surface-variant/80 bg-white px-sm py-xs rounded-md border border-outline-variant/30">
+                                                <span class="material-symbols-outlined text-[14px]">all_inclusive</span>
+                                                N/A — No restriction
+                                            </span>
+                                        @endif
+                                    </div>
+                                    @error('totalStock') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                                </div>
+                                @if($totalStock !== '')
+                                    @php
+                                        $combinationSum = collect($combinations)->sum(fn($c) => isset($c['stock_quantity']) && $c['stock_quantity'] !== '' ? (int)$c['stock_quantity'] : 0);
+                                        $anySet = collect($combinations)->contains(fn($c) => isset($c['stock_quantity']) && $c['stock_quantity'] !== '');
+                                        $remaining = (int)$totalStock - $combinationSum;
+                                    @endphp
+                                    <div class="text-right text-xs space-y-0.5 select-none">
+                                        <div class="text-on-surface-variant">Allocated: <span class="font-bold text-primary">{{ $combinationSum }}</span></div>
+                                        <div class="{{ $remaining < 0 ? 'text-error' : ($remaining === 0 ? 'text-success' : 'text-secondary') }} font-bold">
+                                            {{ $remaining >= 0 ? 'Remaining: ' . $remaining : 'Over by: ' . abs($remaining) }}
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Bulk Actions --}}
+                            <div class="flex flex-wrap items-center gap-sm select-none">
+                                <span class="font-label-md text-on-surface-variant text-xs">Bulk apply:</span>
+                                <div class="flex items-center gap-xs">
+                                    <input type="number" wire:model="bulkStock" placeholder="Stock qty" min="0" class="w-28 px-sm py-xs border border-outline-variant/50 rounded-lg text-sm focus:ring-1 focus:ring-secondary outline-none bg-surface-container-low">
+                                    <button type="button" wire:click="applyBulkStock" class="px-md py-xs bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-xs font-bold transition-colors">Apply Stock</button>
+                                </div>
+                                <div class="flex items-center gap-xs">
+                                    <div class="flex items-center bg-surface-container-low border border-outline-variant/50 rounded-lg px-xs">
+                                        <span class="text-xs font-bold text-on-surface-variant">₹</span>
+                                        <input type="number" step="0.01" wire:model="bulkPrice" placeholder="Price" class="w-24 px-xs py-xs border-none bg-transparent text-sm focus:ring-0 outline-none">
+                                    </div>
+                                    <button type="button" wire:click="applyBulkPrice" class="px-md py-xs bg-secondary/10 text-secondary hover:bg-secondary/20 rounded-lg text-xs font-bold transition-colors">Apply Price</button>
                                 </div>
                             </div>
-                        @else
-                            <!-- Combinations Table -->
+
+                            {{-- Combinations Table --}}
                             <div class="overflow-x-auto border border-outline-variant/20 rounded-lg">
                                 <table class="w-full text-left font-body-md">
                                     <thead class="bg-surface-container text-on-surface-variant font-label-md uppercase tracking-wider text-xs border-b border-outline-variant/20 select-none">
                                         <tr>
                                             <th class="px-lg py-sm">Combination</th>
-                                            <th class="px-lg py-sm text-center">Stock *</th>
+                                            <th class="px-lg py-sm text-center">Stock <span class="normal-case font-normal opacity-70">(empty = N/A)</span></th>
                                             <th class="px-lg py-sm text-center">Price Override</th>
                                             <th class="px-lg py-sm text-center">Active</th>
                                         </tr>
@@ -696,7 +736,12 @@
                                                     {{ collect($comb['combination_values'])->map(fn($v, $k) => "$k: $v")->implode(', ') }}
                                                 </td>
                                                 <td class="px-lg py-md text-center">
-                                                    <input type="number" wire:model="combinations.{{ $cIndex }}.stock_quantity" placeholder="0" class="w-20 px-sm py-xs border border-outline-variant/50 rounded text-center focus:ring-1 focus:ring-secondary outline-none text-on-surface">
+                                                    <div class="flex items-center justify-center gap-xs">
+                                                        <input type="number" wire:model.live="combinations.{{ $cIndex }}.stock_quantity" placeholder="N/A" min="0" class="w-20 px-sm py-xs border border-outline-variant/50 rounded text-center focus:ring-1 focus:ring-secondary outline-none text-on-surface">
+                                                        @if(isset($comb['stock_quantity']) && $comb['stock_quantity'] === '')
+                                                            <span class="material-symbols-outlined text-on-surface-variant/50 text-[16px]" title="N/A - Unlimited">all_inclusive</span>
+                                                        @endif
+                                                    </div>
                                                     @error("combinations.{$cIndex}.stock_quantity") <span class="text-error text-xs block">{{ $message }}</span> @enderror
                                                 </td>
                                                 <td class="px-lg py-md text-center">
@@ -716,7 +761,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                        @endif
+                        </div>
                     @endif
                 </div>
             @endif
@@ -746,38 +791,129 @@
                     </div>
 
                     <!-- Unit setup -->
-                    <div class="space-y-md border-t border-outline-variant/20 pt-lg">
-                        <h4 class="font-title-md text-primary">Product Unit Configuration</h4>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-lg">
-                            <div class="space-y-xs">
-                                <label class="font-label-md text-on-surface-variant">Level 1 Unit Name *</label>
-                                <input type="text" wire:model="units.level1_name" placeholder="e.g. Piece" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
-                                @error('units.level1_name') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                    <div class="space-y-lg border-t border-outline-variant/20 pt-lg">
+                        <div>
+                            <h4 class="font-title-md text-primary">Product Unit Configuration</h4>
+                            <p class="text-xs text-on-surface-variant mt-xxs">Define how this product is measured and sold. Level 1 is the base unit (e.g. Piece). Level 2 is the larger grouping unit (e.g. Box). Leave Level 2 empty if the product is only sold in base units.</p>
+                        </div>
+
+                        {{-- Converter Widget --}}
+                        <div class="flex flex-col items-stretch gap-sm">
+
+                            {{-- Level 1 Box --}}
+                            <div class="flex flex-col sm:flex-row gap-sm items-stretch">
+                                {{-- Level 1 --}}
+                                <div class="flex-1 bg-surface-container-low/60 border-2 border-primary/20 rounded-xl p-md space-y-md relative">
+                                    <div class="flex items-center gap-xs mb-sm select-none">
+                                        <span class="w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-bold flex items-center justify-center">1</span>
+                                        <span class="font-label-md text-primary">Level 1 — Base Unit <span class="text-error">*</span></span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-sm">
+                                        <div class="space-y-xs">
+                                            <label class="text-xs text-on-surface-variant font-medium">Unit Name</label>
+                                            <input type="text" wire:model.live="units.level1_name" placeholder="e.g. Piece" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all font-body-md text-on-surface text-sm">
+                                            @error('units.level1_name') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="space-y-xs">
+                                            <label class="text-xs text-on-surface-variant font-medium">Short Code</label>
+                                            <input type="text" wire:model.live="units.level1_code" placeholder="e.g. pcs" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all font-body-md text-on-surface text-sm uppercase">
+                                            @error('units.level1_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                    </div>
+                                    {{-- Live preview badge --}}
+                                    <div class="bg-primary/8 border border-primary/15 rounded-lg px-sm py-xs flex items-center gap-xs select-none">
+                                        <span class="material-symbols-outlined text-primary text-[16px]">straighten</span>
+                                        <span class="text-xs text-primary font-medium">
+                                            Smallest unit — customers order in <strong>{{ $units['level1_name'] ?: '...' }}</strong> ({{ $units['level1_code'] ?: '...' }})
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {{-- Arrow connector --}}
+                                <div class="flex sm:flex-col items-center justify-center gap-xs px-sm text-on-surface-variant/50 select-none">
+                                    @if(!empty($units['level2_name']) && !empty($units['level2_conversion']))
+                                        <div class="hidden sm:flex flex-col items-center gap-xs">
+                                            <span class="material-symbols-outlined text-[28px] text-secondary">swap_vert</span>
+                                            <div class="text-center">
+                                                <div class="text-[10px] text-on-surface-variant leading-tight">1 {{ $units['level2_name'] ?: '...' }}</div>
+                                                <div class="text-[10px] font-bold text-secondary leading-tight">= {{ $units['level2_conversion'] }}×</div>
+                                            </div>
+                                        </div>
+                                        <div class="sm:hidden flex items-center gap-xs">
+                                            <span class="material-symbols-outlined text-[24px] text-secondary">swap_horiz</span>
+                                            <span class="text-xs font-bold text-secondary">1 {{ $units['level2_name'] }} = {{ $units['level2_conversion'] }} {{ $units['level1_name'] }}</span>
+                                        </div>
+                                    @else
+                                        <span class="material-symbols-outlined text-[24px] opacity-30">add_circle</span>
+                                    @endif
+                                </div>
+
+                                {{-- Level 2 --}}
+                                <div class="flex-1 bg-surface-container-low/40 border-2 {{ !empty($units['level2_name']) ? 'border-secondary/25' : 'border-dashed border-outline-variant/40' }} rounded-xl p-md space-y-md">
+                                    <div class="flex items-center gap-xs mb-sm select-none">
+                                        <span class="w-5 h-5 rounded-full {{ !empty($units['level2_name']) ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/40 text-on-surface-variant' }} text-[11px] font-bold flex items-center justify-center">2</span>
+                                        <span class="font-label-md {{ !empty($units['level2_name']) ? 'text-secondary' : 'text-on-surface-variant/60' }}">Level 2 — Group Unit <span class="text-on-surface-variant/50 font-normal text-xs">(optional)</span></span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-sm">
+                                        <div class="space-y-xs">
+                                            <label class="text-xs text-on-surface-variant font-medium">Unit Name</label>
+                                            <input type="text" wire:model.live="units.level2_name" placeholder="e.g. Box" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface text-sm">
+                                            @error('units.level2_name') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="space-y-xs">
+                                            <label class="text-xs text-on-surface-variant font-medium">Short Code</label>
+                                            <input type="text" wire:model.live="units.level2_code" placeholder="e.g. box" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface text-sm uppercase">
+                                            @error('units.level2_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                    </div>
+
+                                    {{-- Conversion qty input --}}
+                                    <div class="space-y-xs">
+                                        <label class="text-xs text-on-surface-variant font-medium">How many <strong>{{ $units['level1_name'] ?: 'base units' }}</strong> in 1 <strong>{{ $units['level2_name'] ?: 'group unit' }}</strong>?</label>
+                                        <div class="flex items-center gap-sm">
+                                            <div class="flex items-center gap-xs bg-white border border-outline-variant/50 rounded-lg px-sm py-xs focus-within:ring-2 focus-within:ring-secondary w-36">
+                                                <span class="text-xs text-on-surface-variant select-none font-medium whitespace-nowrap">1 {{ $units['level2_name'] ?: '...' }} =</span>
+                                                <input type="number" wire:model.live="units.level2_conversion" placeholder="qty" min="0.0001" step="any" class="w-16 bg-transparent border-none focus:ring-0 outline-none text-on-surface font-bold text-sm text-right">
+                                            </div>
+                                            <span class="text-sm font-bold text-on-surface-variant">{{ $units['level1_name'] ?: '...' }}</span>
+                                        </div>
+                                        @error('units.level2_conversion') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    {{-- Live preview --}}
+                                    @if(!empty($units['level2_name']) && !empty($units['level2_conversion']))
+                                        <div class="bg-secondary/8 border border-secondary/15 rounded-lg px-sm py-xs flex items-center gap-xs select-none">
+                                            <span class="material-symbols-outlined text-secondary text-[16px]">package_2</span>
+                                            <span class="text-xs text-secondary font-medium">
+                                                <strong>1 {{ $units['level2_name'] }} ({{ $units['level2_code'] ?: '...' }})</strong> = <strong>{{ $units['level2_conversion'] }} {{ $units['level1_name'] }}</strong>
+                                                @if(!empty($basicInfo['base_price']))
+                                                    &nbsp;·&nbsp; Level 2 price: <strong>₹{{ number_format((float)$basicInfo['base_price'] * (float)$units['level2_conversion'], 2) }}</strong>
+                                                @endif
+                                            </span>
+                                        </div>
+                                    @else
+                                        <div class="bg-surface-container-low border border-dashed border-outline-variant/30 rounded-lg px-sm py-xs flex items-center gap-xs select-none opacity-60">
+                                            <span class="material-symbols-outlined text-[16px]">info</span>
+                                            <span class="text-xs text-on-surface-variant">Fill in Level 2 fields to enable group unit ordering (e.g. buying by the box)</span>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
 
-                            <div class="space-y-xs">
-                                <label class="font-label-md text-on-surface-variant">Level 1 Code *</label>
-                                <input type="text" wire:model="units.level1_code" placeholder="e.g. pcs" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface uppercase">
-                                @error('units.level1_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div class="space-y-xs">
-                                <label class="font-label-md text-on-surface-variant">Level 2 Unit Name (Optional)</label>
-                                <input type="text" wire:model="units.level2_name" placeholder="e.g. Box" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
-                                @error('units.level2_name') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div class="space-y-xs">
-                                <label class="font-label-md text-on-surface-variant">Level 2 Code (Optional)</label>
-                                <input type="text" wire:model="units.level2_code" placeholder="e.g. box" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface uppercase">
-                                @error('units.level2_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div class="space-y-xs sm:col-span-2">
-                                <label class="font-label-md text-on-surface-variant">Level 2 Conversion Qty ({{ $units['level1_name'] ?: 'Pieces' }} inside {{ $units['level2_name'] ?: 'Box' }})</label>
-                                <input type="number" wire:model="units.level2_conversion" placeholder="e.g. 12 (means 1 {{ $units['level2_name'] ?: 'Box' }} = 12 {{ $units['level1_name'] ?: 'Pieces' }})" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
-                                @error('units.level2_conversion') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            </div>
+                            {{-- Relationship summary --}}
+                            @if(!empty($units['level2_name']) && !empty($units['level2_conversion']))
+                                <div class="bg-gradient-to-r from-primary/5 to-secondary/5 border border-outline-variant/20 rounded-xl px-lg py-md flex items-center gap-md select-none">
+                                    <span class="material-symbols-outlined text-primary text-[28px]">swap_horiz</span>
+                                    <div class="flex-1">
+                                        <p class="font-label-md text-on-surface">Unit Relationship</p>
+                                        <p class="text-sm font-bold text-primary">
+                                            1 <span class="text-secondary">{{ $units['level2_name'] }}</span> ({{ $units['level2_code'] ?: '...' }})
+                                            = {{ $units['level2_conversion'] }} <span class="text-primary">{{ $units['level1_name'] }}</span> ({{ $units['level1_code'] ?: '...' }})
+                                        </p>
+                                        <p class="text-xs text-on-surface-variant">Customers can order in individual <strong>{{ $units['level1_name'] }}</strong> or by the <strong>{{ $units['level2_name'] }}</strong>.</p>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>

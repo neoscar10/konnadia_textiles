@@ -69,7 +69,8 @@ class ProductIndexPage extends Component
     public $valueMediaUploads = [];
 
     // Step 5: Combinations / Stock
-    public $nonVariantStock = '';
+    public $nonVariantStock = ''; // '' = N/A (unlimited), integer = tracked stock
+    public string $totalStock = ''; // For variant products: declared total stock across all variants ('' = N/A)
     public array $combinations = [];
     public string $bulkStock = '';
     public string $bulkPrice = '';
@@ -131,7 +132,7 @@ class ProductIndexPage extends Component
                     $payload['category_ids'] = $this->selectedCategoryIds;
                     $payload['customer_level_prices'] = [];
                     $payload['units'] = $this->units;
-                    $payload['stock_quantity'] = 0;
+                    $payload['stock_quantity'] = null; // Stock is optional; configured in Step 5
 
                     $product = $productService->create($payload);
                     $this->selectedProductId = $product->id;
@@ -238,22 +239,33 @@ class ProductIndexPage extends Component
                 }
             }
         } elseif ($step === 5) {
-            if ($this->basicInfo['product_type'] === 'manufactured') {
-                if (!empty($this->variationGroups)) {
-                    $this->validate([
-                        'combinations.*.price' => ['nullable', 'numeric', 'min:0'],
-                    ]);
-                }
+            // Both product types support optional stock. Empty = N/A (unlimited).
+            if (empty($this->variationGroups)) {
+                // No variants: optional total stock field
+                $this->validate([
+                    'nonVariantStock' => ['nullable', 'integer', 'min:0'],
+                ]);
             } else {
-                if (empty($this->variationGroups)) {
-                    $this->validate([
-                        'nonVariantStock' => ['nullable', 'integer', 'min:0'],
-                    ]);
-                } else {
-                    $this->validate([
-                        'combinations.*.stock_quantity' => ['nullable', 'integer', 'min:0'],
-                        'combinations.*.price' => ['nullable', 'numeric', 'min:0'],
-                    ]);
+                // Has variants: optional totalStock + optional per-combination stocks
+                $this->validate([
+                    'totalStock'                      => ['nullable', 'integer', 'min:0'],
+                    'combinations.*.stock_quantity'   => ['nullable', 'integer', 'min:0'],
+                    'combinations.*.price'            => ['nullable', 'numeric', 'min:0'],
+                ]);
+
+                // If totalStock is defined, combination stocks (when set) must sum to it
+                if ($this->totalStock !== '') {
+                    $definedTotal = (int) $this->totalStock;
+                    $combinationSum = collect($this->combinations)->sum(fn($c) =>
+                        isset($c['stock_quantity']) && $c['stock_quantity'] !== '' ? (int)$c['stock_quantity'] : 0
+                    );
+                    $anySet = collect($this->combinations)->contains(fn($c) =>
+                        isset($c['stock_quantity']) && $c['stock_quantity'] !== ''
+                    );
+                    if ($anySet && $combinationSum !== $definedTotal) {
+                        $this->addError('totalStock', "Combination stocks sum to {$combinationSum} but total stock is {$definedTotal}. They must match.");
+                        return false;
+                    }
                 }
             }
         } elseif ($step === 6) {
@@ -337,14 +349,17 @@ class ProductIndexPage extends Component
         }
 
         if (empty($this->variationGroups)) {
-            $this->nonVariantStock = $product->stock_quantity === 0 ? '' : $product->stock_quantity;
+            // null = N/A/unlimited, 0 = explicitly zero stock, other = tracked quantity
+            $this->nonVariantStock = $product->stock_quantity === null ? '' : $product->stock_quantity;
         } else {
+            // Populate totalStock from the product's stored value (null = N/A)
+            $this->totalStock = $product->stock_quantity === null ? '' : (string)$product->stock_quantity;
             foreach ($product->combinations as $comb) {
                 $this->combinations[] = [
                     'combination_values' => $comb->combination_values,
                     'sku' => $comb->sku ?? '',
                     'price' => $comb->price !== null ? (float)$comb->price : '',
-                    'stock_quantity' => ($comb->stock_quantity === 0 || $comb->stock_quantity === null) ? '' : $comb->stock_quantity,
+                    'stock_quantity' => $comb->stock_quantity === null ? '' : $comb->stock_quantity,
                     'is_active' => (bool)$comb->is_active,
                 ];
             }
@@ -428,7 +443,10 @@ class ProductIndexPage extends Component
                 }
                 $payload['customer_level_prices'] = $levelPrices;
                 $payload['units'] = $this->units;
-                $payload['stock_quantity'] = empty($this->variationGroups) ? ($this->nonVariantStock !== '' ? (int)$this->nonVariantStock : 0) : 0;
+                // null = N/A/unlimited, integer = tracked stock
+                $payload['stock_quantity'] = empty($this->variationGroups)
+                    ? ($this->nonVariantStock !== '' ? (int)$this->nonVariantStock : null)
+                    : ($this->totalStock !== '' ? (int)$this->totalStock : null);
 
                 if ($this->selectedProductId) {
                     $product = Product::findOrFail($this->selectedProductId);
@@ -442,10 +460,7 @@ class ProductIndexPage extends Component
                 if (!empty($this->variationGroups)) {
                     $varService->syncVariationGroups($product, $this->variationGroups);
                     $varService->syncCombinations($product, $this->combinations);
-                    
-                    // Sum up variant stocks into product main stock_quantity
-                    $totalStock = collect($this->combinations)->sum(fn($c) => (isset($c['stock_quantity']) && $c['stock_quantity'] !== '') ? (int)$c['stock_quantity'] : 0);
-                    $product->update(['stock_quantity' => $totalStock]);
+                    // stock_quantity on the product is already set above from totalStock
                 } else {
                     // Clean up variations if all group parameters removed
                     $product->variationGroups()->delete();
@@ -775,7 +790,8 @@ class ProductIndexPage extends Component
         $this->selectedCategoryIds = [];
         $this->variationGroups = [];
         $this->combinations = [];
-        $this->nonVariantStock = 0;
+        $this->nonVariantStock = '';
+        $this->totalStock = '';
         $this->pricingOverrides = [];
         $this->units = [
             'level1_name' => 'Piece',

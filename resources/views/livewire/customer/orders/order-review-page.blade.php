@@ -168,9 +168,17 @@
                             </div>
                             <div class="text-right">
                                 <span class="text-xs font-bold text-slate-700">
-                                    {{ $item['quantity'] }} {{ $item['unit_short_code'] }} 
-                                    @if ($item['unit_short_code'] !== 'Pcs')
-                                        ({{ round($item['quantity'] * $item['unit_conversion_quantity']) }} Pcs)
+                                    @if(!empty($item['has_lvl2_unit']))
+                                        <span class="block">
+                                            {{ $item['quantity_lvl2'] }} {{ $item['lvl2_unit_name'] }}{{ $item['quantity_lvl2'] != 1 ? 's' : '' }}, 
+                                            {{ $item['quantity_lvl1'] }} {{ $item['lvl1_unit_name'] }}{{ $item['quantity_lvl1'] != 1 ? 's' : '' }}
+                                        </span>
+                                        <span class="text-[10px] text-slate-400 block mt-0.5 font-medium">(Total: {{ $item['quantity'] }} Pcs)</span>
+                                    @else
+                                        {{ $item['quantity'] }} {{ $item['unit_short_code'] }} 
+                                        @if ($item['unit_short_code'] !== 'Pcs')
+                                            <span class="text-[10px] text-slate-400 block mt-0.5 font-medium">({{ round($item['quantity'] * $item['unit_conversion_quantity']) }} Pcs)</span>
+                                        @endif
                                     @endif
                                 </span>
                                 <p class="text-[10px] text-slate-400">₹{{ number_format($item['line_total'], 2) }} (Incl. GST)</p>

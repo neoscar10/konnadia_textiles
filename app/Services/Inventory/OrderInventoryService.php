@@ -19,16 +19,19 @@ class OrderInventoryService
         $hasEnough = true;
 
         foreach ($order->items as $item) {
+            // Skip manufactured products (unlimited) and null-stock (N/A) products
             if ($item->product && $item->product->product_type === 'manufactured') {
-                continue; // Manufactured products have infinite stock and no inventory tracking
+                continue;
             }
 
             $baseQty = (int) ($item->quantity * $item->unit_conversion_quantity);
             $available = 0;
 
             if ($item->product_combination_id && $item->combination) {
+                if ($item->combination->stock_quantity === null) continue; // null = N/A unlimited
                 $available = (int) $item->combination->stock_quantity;
             } elseif ($item->product) {
+                if ($item->product->stock_quantity === null) continue; // null = N/A unlimited
                 $available = (int) $item->product->stock_quantity;
             }
 
@@ -68,6 +71,7 @@ class OrderInventoryService
             }
 
             foreach ($order->items as $item) {
+                // Skip manufactured products (unlimited) and null-stock (N/A) products
                 if ($item->product && $item->product->product_type === 'manufactured') {
                     continue;
                 }
@@ -75,8 +79,10 @@ class OrderInventoryService
                 $baseQty = (int) ($item->quantity * $item->unit_conversion_quantity);
 
                 if ($item->product_combination_id && $item->combination) {
+                    if ($item->combination->stock_quantity === null) continue;
                     $item->combination->decrement('stock_quantity', $baseQty);
                 } elseif ($item->product) {
+                    if ($item->product->stock_quantity === null) continue;
                     $item->product->decrement('stock_quantity', $baseQty);
                 }
             }
@@ -98,6 +104,7 @@ class OrderInventoryService
 
         DB::transaction(function () use ($order) {
             foreach ($order->items as $item) {
+                // Skip manufactured products (unlimited) and null-stock (N/A) products
                 if ($item->product && $item->product->product_type === 'manufactured') {
                     continue;
                 }
@@ -105,8 +112,10 @@ class OrderInventoryService
                 $baseQty = (int) ($item->quantity * $item->unit_conversion_quantity);
 
                 if ($item->product_combination_id && $item->combination) {
+                    if ($item->combination->stock_quantity === null) continue;
                     $item->combination->increment('stock_quantity', $baseQty);
                 } elseif ($item->product) {
+                    if ($item->product->stock_quantity === null) continue;
                     $item->product->increment('stock_quantity', $baseQty);
                 }
             }

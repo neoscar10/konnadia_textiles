@@ -32,8 +32,6 @@ class ProductShowPage extends Component
     
     // Selection state
     public $selectedValues = []; // e.g., ['Size' => 'M', 'Color' => 'White']
-    public $selectedUnitId;
-    public $qty = 1;
     public $qty_lvl1 = 0;
     public $qty_lvl2 = 0;
     public $hasLvl2Unit = false;
@@ -85,7 +83,7 @@ class ProductShowPage extends Component
         
         $this->activeImage = !empty($this->media) ? $this->media[0]['url'] : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800';
 
-        // Pre-select defaults for variation groups
+        $this->selectedValues = [];
         foreach ($this->variations as $group) {
             $defaultVal = collect($group['values'])->firstWhere('is_default', true) 
                 ?? collect($group['values'])->first();
@@ -95,16 +93,14 @@ class ProductShowPage extends Component
             }
         }
 
-        $this->selectedUnitId = $detail['purchase_defaults']['default_unit_id'];
         $this->minimumOrderQuantity = $detail['purchase_defaults']['minimum_order_quantity'];
-        
+
         $lvl2 = collect($this->units)->firstWhere('level', 2);
         $this->hasLvl2Unit = !empty($lvl2);
-        $lvl1 = collect($this->units)->firstWhere('level', 1);
-        $this->selectedUnitId = $lvl1 ? $lvl1['id'] : $detail['purchase_defaults']['default_unit_id'];
-        $selectedUnit = collect($this->units)->firstWhere('id', $this->selectedUnitId);
-        $conversion = ($selectedUnit && $selectedUnit['level'] === 2) ? (float)$selectedUnit['conversion_to_base'] : 1.0;
-        $this->qty = (int) ceil($this->minimumOrderQuantity / $conversion);
+
+        // Default: satisfy MOQ using pieces (lvl1), lvl2 starts at 0
+        $this->qty_lvl1 = $this->minimumOrderQuantity;
+        $this->qty_lvl2 = 0;
 
         // Expose tax info for blade display
         $productModel = Product::find($this->productId);
@@ -132,32 +128,39 @@ class ProductShowPage extends Component
         $this->recalculate($catalogService);
     }
 
-    public function updatedSelectedUnitId(ProductCatalogService $catalogService)
+    public function updatedQtyLvl1(ProductCatalogService $catalogService)
     {
-        $selectedUnit = collect($this->units)->firstWhere('id', $this->selectedUnitId);
-        $conversion = ($selectedUnit && $selectedUnit['level'] === 2) ? (float)$selectedUnit['conversion_to_base'] : 1.0;
-        $minQty = (int) ceil($this->minimumOrderQuantity / $conversion);
-        if ($this->qty < $minQty) {
-            $this->qty = $minQty;
-        }
+        $this->qty_lvl1 = max(0, (int)$this->qty_lvl1);
         $this->recalculate($catalogService);
     }
 
-    public function updatedQty(ProductCatalogService $catalogService)
+    public function updatedQtyLvl2(ProductCatalogService $catalogService)
     {
-        $this->qty = max(1, (int)$this->qty);
+        $this->qty_lvl2 = max(0, (int)$this->qty_lvl2);
         $this->recalculate($catalogService);
     }
 
-    public function decrementQty(ProductCatalogService $catalogService)
+    public function decrementQtyLvl1(ProductCatalogService $catalogService)
     {
-        $this->qty = max(1, (int)$this->qty - 1);
+        $this->qty_lvl1 = max(0, (int)$this->qty_lvl1 - 1);
         $this->recalculate($catalogService);
     }
 
-    public function incrementQty(ProductCatalogService $catalogService)
+    public function incrementQtyLvl1(ProductCatalogService $catalogService)
     {
-        $this->qty = (int)$this->qty + 1;
+        $this->qty_lvl1 = (int)$this->qty_lvl1 + 1;
+        $this->recalculate($catalogService);
+    }
+
+    public function decrementQtyLvl2(ProductCatalogService $catalogService)
+    {
+        $this->qty_lvl2 = max(0, (int)$this->qty_lvl2 - 1);
+        $this->recalculate($catalogService);
+    }
+
+    public function incrementQtyLvl2(ProductCatalogService $catalogService)
+    {
+        $this->qty_lvl2 = (int)$this->qty_lvl2 + 1;
         $this->recalculate($catalogService);
     }
 
@@ -181,14 +184,20 @@ class ProductShowPage extends Component
         
         $this->currentSku = $combination ? $combination->sku : $this->sku;
 
-        // Calculate unit pricing using product's saved GST percentage
-        $unit = ProductUnit::find($this->selectedUnitId);
-        if ($unit) {
+        // Compute total pieces from both qty inputs
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        $lvl1 = collect($this->units)->firstWhere('level', 1);
+        $conversion = $lvl2 ? (float)$lvl2['conversion_to_base'] : 1.0;
+        $totalPieces = (int)(($this->qty_lvl2 * $conversion) + $this->qty_lvl1);
+
+        // Calculate unit pricing using lvl1 unit with total pieces
+        $lvl1Unit = $lvl1 ? ProductUnit::find($lvl1['id']) : null;
+        if ($lvl1Unit && $totalPieces > 0) {
             $unitPricingService = app(ProductUnitPricingService::class);
             $estimate = $unitPricingService->calculateLineEstimate(
                 $this->pricePerPiece,
-                $unit,
-                $this->qty,
+                $lvl1Unit,
+                $totalPieces,
                 $product->gst_percentage !== null ? (float) $product->gst_percentage : null
             );
 
@@ -196,6 +205,11 @@ class ProductShowPage extends Component
             $this->subtotal   = $estimate['subtotal'];
             $this->gstAmount  = $estimate['gst_amount'];
             $this->total      = $estimate['total'];
+        } else {
+            $this->unitPrice  = 0.0;
+            $this->subtotal   = 0.0;
+            $this->gstAmount  = 0.0;
+            $this->total      = 0.0;
         }
 
         // Calculate availability
@@ -216,16 +230,20 @@ class ProductShowPage extends Component
             return;
         }
 
-        $unit = ProductUnit::find($this->selectedUnitId);
-        $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
-        $totalPieces = $this->qty * $conversion;
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        $lvl1 = collect($this->units)->firstWhere('level', 1);
+        $conversion = $lvl2 ? (float)$lvl2['conversion_to_base'] : 1.0;
+        $totalPieces = (int)(($this->qty_lvl2 * $conversion) + $this->qty_lvl1);
+
+        if ($totalPieces < 1) {
+            $this->dispatch('toast', type: 'error', message: 'Please enter at least a quantity of 1.');
+            return;
+        }
 
         // MOQ gate — total pieces
         if ($totalPieces < $this->minimumOrderQuantity) {
-            $lvl2 = collect($this->units)->firstWhere('level', 2);
             if ($lvl2) {
-                $conversion = (int) $lvl2['conversion_to_base'];
-                $moqBoxes   = (int) ceil($this->minimumOrderQuantity / $conversion);
+                $moqBoxes = (int) ceil($this->minimumOrderQuantity / $conversion);
                 $this->dispatch('toast', type: 'error', message:
                     "Minimum order is {$this->minimumOrderQuantity} pieces. "
                     . "Order at least {$moqBoxes} {$lvl2['name']}(s) or {$this->minimumOrderQuantity} individual pieces."
@@ -244,20 +262,25 @@ class ProductShowPage extends Component
         // Resolve combination from selected variation values
         $combination = $catalogService->resolveSelectedCombination($product, $this->selectedValues);
 
+        // Always use lvl1 unit with total piece count
+        $lvl1UnitId = $lvl1 ? $lvl1['id'] : null;
+
         try {
             $existingItem = null;
             $cart = $cartService->getOrCreateActiveCart($user);
             $existingItem = $cart->items()
                 ->where('product_id', $product->id)
                 ->where('product_combination_id', $combination?->id)
-                ->where('product_unit_id', $this->selectedUnitId)
+                ->where('product_unit_id', $lvl1UnitId)
                 ->first();
 
             $cartService->addItem($user, [
-                'product_id' => $this->productId,
-                'combination_id' => $combination?->id,
-                'unit_id' => $this->selectedUnitId,
-                'quantity' => $this->qty,
+                'product_id'       => $this->productId,
+                'combination_id'   => $combination?->id,
+                'unit_id'          => $lvl1UnitId,
+                'quantity'         => $totalPieces,
+                'quantity_lvl1'    => (int) $this->qty_lvl1,
+                'quantity_lvl2'    => (int) $this->qty_lvl2,
                 'selected_options' => $this->selectedValues ?: null,
             ]);
 

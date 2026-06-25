@@ -158,12 +158,12 @@ class ProductService
      */
     public function generateSku(): string
     {
-        $latest = Product::orderBy('id', 'desc')->first();
+        $latest = Product::withTrashed()->orderBy('id', 'desc')->first();
         $nextId = $latest ? ($latest->id + 1) : 1;
 
         while (true) {
             $sku = 'KT-P-' . str_pad((string)$nextId, 4, '0', STR_PAD_LEFT);
-            if (!Product::where('sku', $sku)->exists()) {
+            if (!Product::withTrashed()->where('sku', $sku)->exists()) {
                 return $sku;
             }
             $nextId++;

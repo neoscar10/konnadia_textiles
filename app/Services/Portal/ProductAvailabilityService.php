@@ -12,11 +12,12 @@ class ProductAvailabilityService
      */
     public function getProductAvailability(Product $product): array
     {
-        if ($product->product_type === 'manufactured') {
+        // 'manufactured' type OR null stock = unlimited/N/A — always purchasable
+        if ($product->product_type === 'manufactured' || $product->stock_quantity === null) {
             return [
-                'available_quantity' => 999999,
+                'available_quantity' => PHP_INT_MAX,
                 'status' => 'in_stock',
-                'label' => 'In Stock',
+                'label' => $product->stock_quantity === null ? 'N/A (Unlimited)' : 'In Stock',
                 'is_purchasable' => true,
             ];
         }
@@ -56,11 +57,14 @@ class ProductAvailabilityService
      */
     public function getCombinationAvailability(ProductCombination $combination): array
     {
-        if ($combination->product && $combination->product->product_type === 'manufactured') {
+        // 'manufactured' type OR null combination stock = unlimited/N/A — always purchasable
+        if (($combination->product && $combination->product->product_type === 'manufactured')
+            || $combination->stock_quantity === null
+        ) {
             return [
-                'available_quantity' => 999999,
+                'available_quantity' => PHP_INT_MAX,
                 'status' => 'in_stock',
-                'label' => 'In Stock',
+                'label' => $combination->stock_quantity === null ? 'N/A (Unlimited)' : 'In Stock',
                 'is_purchasable' => true,
             ];
         }
@@ -97,7 +101,8 @@ class ProductAvailabilityService
      */
     public function isPurchasable(Product $product, ?ProductCombination $combination = null): bool
     {
-        if ($product->product_type === 'manufactured') {
+        // 'manufactured' type or null stock = always purchasable (N/A / unlimited)
+        if ($product->product_type === 'manufactured' || $product->stock_quantity === null) {
             return true;
         }
 

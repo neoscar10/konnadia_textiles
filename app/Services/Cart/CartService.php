@@ -127,8 +127,9 @@ class CartService
             : null;
 
         $lvl1Unit = $product->units()->where('level', 1)->first();
+        $lvl2Unit = $product->units()->where('level', 2)->first();
+        $conversion = $lvl2Unit ? (float)$lvl2Unit->conversion_to_base : 1.0;
 
-        $quantity = (int) ($payload['quantity'] ?? 1);
         $unit = isset($payload['unit_id'])
             ? ProductUnit::find($payload['unit_id'])
             : $lvl1Unit;
@@ -137,12 +138,20 @@ class CartService
             $unit = $lvl1Unit;
         }
 
-        if ($unit && $unit->level === 2) {
-            $qty_lvl2 = $quantity;
-            $qty_lvl1 = 0;
+        if (isset($payload['quantity_lvl1']) || isset($payload['quantity_lvl2'])) {
+            $qty_lvl1 = (int) ($payload['quantity_lvl1'] ?? 0);
+            $qty_lvl2 = (int) ($payload['quantity_lvl2'] ?? 0);
+            $quantity = (int) (($qty_lvl2 * $conversion) + $qty_lvl1);
+            $unit = $lvl1Unit;
         } else {
-            $qty_lvl1 = $quantity;
-            $qty_lvl2 = 0;
+            $quantity = (int) ($payload['quantity'] ?? 1);
+            if ($unit && $unit->level === 2) {
+                $qty_lvl2 = $quantity;
+                $qty_lvl1 = 0;
+            } else {
+                $qty_lvl1 = $quantity;
+                $qty_lvl2 = 0;
+            }
         }
 
         $selectedOptions = $payload['selected_options'] ?? null;
@@ -218,16 +227,24 @@ class CartService
 
         $product = $item->product;
         $lvl1Unit = $product->units()->where('level', 1)->first();
+        $lvl2Unit = $product->units()->where('level', 2)->first();
+        $conversion = $lvl2Unit ? (float)$lvl2Unit->conversion_to_base : 1.0;
 
-        $quantity = (int) ($payload['quantity'] ?? $item->quantity);
-        $unit = $item->unit ?? $lvl1Unit;
-
-        if ($unit && $unit->level === 2) {
-            $qty_lvl2 = $quantity;
-            $qty_lvl1 = 0;
+        if (isset($payload['quantity_lvl1']) || isset($payload['quantity_lvl2'])) {
+            $qty_lvl1 = (int) ($payload['quantity_lvl1'] ?? 0);
+            $qty_lvl2 = (int) ($payload['quantity_lvl2'] ?? 0);
+            $quantity = (int) (($qty_lvl2 * $conversion) + $qty_lvl1);
+            $unit = $lvl1Unit;
         } else {
-            $qty_lvl1 = $quantity;
-            $qty_lvl2 = 0;
+            $quantity = (int) ($payload['quantity'] ?? $item->quantity);
+            $unit = $item->unit ?? $lvl1Unit;
+            if ($unit && $unit->level === 2) {
+                $qty_lvl2 = $quantity;
+                $qty_lvl1 = 0;
+            } else {
+                $qty_lvl1 = $quantity;
+                $qty_lvl2 = 0;
+            }
         }
 
         if ($quantity < 1) {
@@ -351,8 +368,12 @@ class CartService
             $errors['stock'] = 'This product is currently out of stock.';
         }
 
-        // Check total quantity against available stock for retail products
-        if ($product->product_type !== 'manufactured') {
+        // Check total quantity against available stock for non-unlimited products
+        // null stock_quantity = N/A / unlimited: skip stock check entirely
+        $isUnlimitedStock = ($product->stock_quantity === null)
+            || ($combination && $combination->stock_quantity === null);
+
+        if ($product->product_type !== 'manufactured' && !$isUnlimitedStock) {
             $avail = $combination
                 ? $this->availabilityService->getCombinationAvailability($combination)
                 : $this->availabilityService->getProductAvailability($product);

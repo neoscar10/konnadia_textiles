@@ -47,7 +47,15 @@
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">{{ $key }}: {{ $val }}</span>
                                         @endforeach
                                     @endif
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700">{{ $item['unit_name'] }}</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700">
+                                        @if($item['has_lvl2_unit'] && $item['quantity_lvl2'] > 0 && $item['quantity_lvl1'] > 0)
+                                            {{ $item['lvl2_unit_name'] }} & {{ $item['lvl1_unit_name'] }}
+                                        @elseif($item['has_lvl2_unit'] && $item['quantity_lvl2'] > 0)
+                                            {{ $item['lvl2_unit_name'] }}
+                                        @else
+                                            {{ $item['lvl1_unit_name'] }}
+                                        @endif
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -55,16 +63,53 @@
                         <!-- Stepper & Subtotal -->
                         <div class="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t border-slate-50 sm:border-none">
                              <!-- Quantity control -->
-                             <div class="flex flex-col items-center">
-                                 <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                     <button type="button" wire:click="decrementQuantity({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
-                                         <span class="material-symbols-outlined text-lg">remove</span>
-                                     </button>
-                                     <input type="number" value="{{ $item['quantity'] }}" wire:change="updateQuantity({{ $item['id'] }}, $event.target.value)" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="1">
-                                     <button type="button" wire:click="incrementQuantity({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
-                                         <span class="material-symbols-outlined text-lg">add</span>
-                                     </button>
-                                 </div>
+                             <div class="flex flex-col items-start gap-1">
+                                 @if($item['has_lvl2_unit'])
+                                     <div class="flex items-center gap-3">
+                                         <!-- Level 2 Unit (e.g. Boxes) -->
+                                         <div class="flex flex-col items-center">
+                                             <span class="text-[9px] text-slate-400 font-bold uppercase">{{ $item['lvl2_unit_name'] }}</span>
+                                             <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1 mt-0.5">
+                                                 <button type="button" wire:click="decrementQtyLvl2({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                                     <span class="material-symbols-outlined text-lg">remove</span>
+                                                 </button>
+                                                 <input type="number" value="{{ $item['quantity_lvl2'] }}" wire:change="updateQtyLvl2({{ $item['id'] }}, $event.target.value)" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="0">
+                                                 <button type="button" wire:click="incrementQtyLvl2({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                                     <span class="material-symbols-outlined text-lg">add</span>
+                                                 </button>
+                                             </div>
+                                         </div>
+
+                                         <div class="pt-4 text-slate-300 font-bold text-sm select-none">+</div>
+
+                                         <!-- Level 1 Unit (e.g. Pieces) -->
+                                         <div class="flex flex-col items-center">
+                                             <span class="text-[9px] text-slate-400 font-bold uppercase">{{ $item['lvl1_unit_name'] }}</span>
+                                             <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1 mt-0.5">
+                                                 <button type="button" wire:click="decrementQtyLvl1({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                                     <span class="material-symbols-outlined text-lg">remove</span>
+                                                 </button>
+                                                 <input type="number" value="{{ $item['quantity_lvl1'] }}" wire:change="updateQtyLvl1({{ $item['id'] }}, $event.target.value)" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="0">
+                                                 <button type="button" wire:click="incrementQtyLvl1({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                                     <span class="material-symbols-outlined text-lg">add</span>
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                     <div class="text-[9px] text-slate-400 font-semibold mt-1">
+                                         Total: {{ $item['quantity'] }} {{ $item['lvl1_unit_name'] }}s &bull; (1 {{ $item['lvl2_unit_name'] }} = {{ round($item['conversion_to_base']) }} {{ $item['lvl1_unit_name'] }}s)
+                                     </div>
+                                 @else
+                                     <div class="inline-flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
+                                         <button type="button" wire:click="decrementQtyLvl1({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                             <span class="material-symbols-outlined text-lg">remove</span>
+                                         </button>
+                                         <input type="number" value="{{ $item['quantity_lvl1'] }}" wire:change="updateQtyLvl1({{ $item['id'] }}, $event.target.value)" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-[#001229] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="1">
+                                         <button type="button" wire:click="incrementQtyLvl1({{ $item['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                             <span class="material-symbols-outlined text-lg">add</span>
+                                         </button>
+                                     </div>
+                                 @endif
                              </div>
 
                             <!-- Price Details -->
