@@ -29,121 +29,7 @@
         <!-- Left: Items & Details (8 cols) -->
         <div class="lg:col-span-8 space-y-6">
             
-            <!-- Checkout Method Selection -->
-            <x-customer.card>
-                <x-slot name="header">
-                    <span class="font-bold text-slate-800 text-sm">Select Checkout Method</span>
-                </x-slot>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <!-- Manual Payment Card -->
-                    <div wire:click="selectCheckoutMethod('manual_payment')" 
-                         class="cursor-pointer border-2 rounded-xl p-4 transition-all duration-200 flex flex-col justify-between gap-3 {{ $checkoutMethod === 'manual_payment' ? 'border-[#001229] bg-slate-50/50' : 'border-outline-variant/30 hover:border-slate-300' }}">
-                        <div class="flex items-start gap-3">
-                            <div class="p-2 rounded-lg {{ $checkoutMethod === 'manual_payment' ? 'bg-[#001229] text-white' : 'bg-slate-100 text-slate-600' }}">
-                                <span class="material-symbols-outlined text-xl">account_balance_wallet</span>
-                            </div>
-                            <div>
-                                <h4 class="text-xs font-bold text-slate-800">Manual Payment Receipt</h4>
-                                <p class="text-[10px] text-slate-400 mt-0.5">Transfer funds offline and upload the receipt (JPG, PNG, PDF, WEBP up to 5MB).</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-4 h-4 rounded-full border flex items-center justify-center {{ $checkoutMethod === 'manual_payment' ? 'border-[#001229]' : 'border-slate-300' }}">
-                                @if($checkoutMethod === 'manual_payment')
-                                    <span class="w-2.5 h-2.5 rounded-full bg-[#001229]"></span>
-                                @endif
-                            </span>
-                            <span class="text-[10px] font-bold {{ $checkoutMethod === 'manual_payment' ? 'text-slate-800' : 'text-slate-500' }}">Select</span>
-                        </div>
-                    </div>
-
-                    <!-- Credit Purchase Card -->
-                    <div wire:click="selectCheckoutMethod('credit')" 
-                         class="cursor-pointer border-2 rounded-xl p-4 transition-all duration-200 flex flex-col justify-between gap-3 {{ $checkoutMethod === 'credit' ? 'border-[#001229] bg-slate-50/50' : 'border-outline-variant/30 hover:border-slate-300' }} {{ !$creditEligibility['can_use_credit'] ? 'opacity-60 cursor-not-allowed' : '' }}">
-                        <div class="flex items-start gap-3">
-                            <div class="p-2 rounded-lg {{ $checkoutMethod === 'credit' ? 'bg-[#001229] text-gold' : 'bg-slate-100 text-slate-600' }}">
-                                <span class="material-symbols-outlined text-xl">credit_card</span>
-                            </div>
-                            <div>
-                                <h4 class="text-xs font-bold text-slate-800">Credit Purchase Facility</h4>
-                                <p class="text-[10px] text-slate-400 mt-0.5">Use your pre-approved B2B credit limit. Pending review if limit is exceeded.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-4 h-4 rounded-full border flex items-center justify-center {{ $checkoutMethod === 'credit' ? 'border-[#001229]' : 'border-slate-300' }}">
-                                @if($checkoutMethod === 'credit')
-                                    <span class="w-2.5 h-2.5 rounded-full bg-[#001229]"></span>
-                                @endif
-                            </span>
-                            <span class="text-[10px] font-bold {{ $checkoutMethod === 'credit' ? 'text-slate-800' : 'text-slate-500' }}">
-                                @if(!$creditEligibility['can_use_credit'])
-                                    Unavailable
-                                @else
-                                    Select
-                                @endif
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Manual Payment receipt upload panel -->
-                @if ($checkoutMethod === 'manual_payment')
-                    <div class="mt-6 border border-dashed border-outline-variant/50 rounded-xl p-6 bg-slate-50/30">
-                        <h4 class="text-xs font-bold text-slate-800 mb-3">Upload Offline Payment Receipt</h4>
-                        <div class="flex flex-col items-center justify-center border-2 border-dashed border-outline-variant/30 rounded-xl p-4 bg-white hover:bg-slate-50/50 transition-colors relative">
-                            <input type="file" wire:model="receiptFile" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*,application/pdf">
-                            
-                            <div class="text-center space-y-2">
-                                <span class="material-symbols-outlined text-3xl text-slate-400">upload_file</span>
-                                <div>
-                                    <p class="text-xs font-bold text-[#001229]">Drag & drop or click to upload</p>
-                                    <p class="text-[9px] text-slate-400 mt-0.5">Supported formats: JPG, JPEG, PNG, WEBP, PDF (Max 5MB)</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Uploaded File Display -->
-                        @if ($receiptFile)
-                            <div class="mt-4 p-3 bg-white border border-outline-variant/30 rounded-xl flex items-center justify-between gap-3 shadow-ambient">
-                                <div class="flex items-center gap-2.5 overflow-hidden">
-                                    <span class="material-symbols-outlined text-slate-500">description</span>
-                                    <div class="overflow-hidden">
-                                        <p class="text-xs font-bold text-slate-700 truncate">{{ $receiptFile->getClientOriginalName() }}</p>
-                                        <p class="text-[10px] text-slate-400">Ready for upload</p>
-                                    </div>
-                                </div>
-                                <button type="button" wire:click="$set('receiptFile', null)" class="text-slate-400 hover:text-error">
-                                    <span class="material-symbols-outlined text-lg">close</span>
-                                </button>
-                            </div>
-                        @endif
-
-                        <div wire:loading wire:target="receiptFile" class="text-[10px] text-slate-500 mt-2">
-                            Uploading receipt file to server...
-                        </div>
-
-                        @error('receiptFile')
-                            <p class="text-[10px] text-error font-semibold mt-2">{{ $message }}</p>
-                        @enderror
-                    </div>
-                @endif
-
-                <!-- Credit info warning/info banner -->
-                @if ($checkoutMethod === 'credit')
-                    <div class="mt-6 p-4 rounded-xl border {{ $creditEligibility['can_use_credit'] ? 'bg-emerald-50 border-emerald-200/50 text-emerald-800' : 'bg-rose-50 border-rose-200/50 text-rose-800' }} flex items-start gap-2.5">
-                        <span class="material-symbols-outlined text-lg mt-0.5">
-                            {{ $creditEligibility['can_use_credit'] ? 'verified_user' : 'warning' }}
-                        </span>
-                        <div>
-                            <p class="text-xs font-bold">{{ $creditEligibility['message'] }}</p>
-                            @if ($creditEligibility['is_privileged_override'])
-                                <p class="text-[10px] opacity-90 mt-0.5">Warning: This order exceeds your limit by <strong>₹{{ number_format($creditEligibility['excess_amount'], 2) }}</strong>. This order will require manual approval from the credit office before dispatch.</p>
-                            @endif
-                        </div>
-                    </div>
-                @endif
-            </x-customer.card>
+            <!-- Checkout Method Bypassed -->
 
             <!-- Order Items review -->
             <x-customer.card>
@@ -202,15 +88,7 @@
 
         <!-- Right Side: Billing & Credit check (4 cols) -->
         <div class="lg:col-span-4 space-y-6">
-            <!-- Credit status check -->
-            <div>
-                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Credit Limit Parameters</h4>
-                <x-customer.credit-summary 
-                    :available="$customerInfo['available_credit']" 
-                    :limit="$customerInfo['credit_limit']" 
-                    :outstanding="$customerInfo['outstanding_amount']" 
-                />
-            </div>
+            <!-- Credit parameters bypassed -->
 
             <!-- Bill Details -->
             <x-customer.card bodyClass="p-5 space-y-4">

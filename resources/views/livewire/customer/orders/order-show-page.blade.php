@@ -135,45 +135,7 @@
                 </x-customer.card>
             </div>
 
-            <!-- Receipts / Payment Proof (Only for manual payment) -->
-            @if ($order['checkout_method']['value'] === 'manual_payment')
-                <x-customer.card>
-                    <x-slot name="header">
-                        <span class="font-bold text-slate-800 text-sm">Payment Proof Receipts</span>
-                    </x-slot>
-                    <div class="space-y-3">
-                        @if($order['receipt'])
-                            @php $receipt = $order['receipt']; @endphp
-                            <div class="p-3 bg-slate-50 border border-outline-variant/30 rounded-xl flex items-center justify-between gap-4">
-                                <div class="flex items-center gap-2.5 overflow-hidden">
-                                    <span class="material-symbols-outlined text-slate-500">description</span>
-                                    <div class="overflow-hidden">
-                                        <p class="text-xs font-bold text-slate-700 truncate">{{ $receipt['original_name'] ?? 'Receipt' }}</p>
-                                        <p class="text-[10px] text-slate-400">Uploaded on {{ $receipt['uploaded_at'] ?? 'N/A' }}</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded border {{ ($receipt['status']['value'] ?? '') === 'verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' }}">
-                                        {{ $receipt['status']['label'] ?? 'Pending' }}
-                                    </span>
-                                    @if(isset($receipt['file_url']))
-                                    <a href="{{ $receipt['file_url'] }}" target="_blank" class="inline-flex items-center justify-center p-1.5 text-[#001229] hover:bg-white rounded-lg border border-outline-variant/30 transition-colors">
-                                        <span class="material-symbols-outlined text-lg">download</span>
-                                    </a>
-                                    @endif
-                                </div>
-                            </div>
-                            @if (!empty($receipt['admin_note']))
-                                <div class="text-[10px] text-slate-500 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100/50 mt-1">
-                                    <strong>Admin Note:</strong> {{ $receipt['admin_note'] }}
-                                </div>
-                            @endif
-                        @else
-                            <p class="text-xs text-slate-400 italic">No receipt file uploaded yet.</p>
-                        @endif
-                    </div>
-                </x-customer.card>
-            @endif
+            <!-- Receipts section bypassed -->
         </div>
 
         <!-- Right Side: Order summary & Shipping addresses (4 cols) -->
@@ -203,17 +165,7 @@
                     </div>
                 </div>
 
-                <!-- Billing Parameters snapshot -->
-                <div class="pt-3 border-t border-slate-100 text-[10px] text-slate-400 space-y-1">
-                    <p><strong>Checkout Method:</strong> {{ $order['checkout_method']['label'] ?? 'N/A' }}</p>
-                    @if (($order['checkout_method']['value'] ?? '') === 'credit')
-                        <p><strong>Credit Limit at Order:</strong> ₹{{ number_format($order['credit_snapshot']['credit_limit_at_order'] ?? 0, 2) }}</p>
-                        <p><strong>Available Credit at Order:</strong> ₹{{ number_format($order['credit_snapshot']['available_credit_at_order'] ?? 0, 2) }}</p>
-                        @if ($order['used_credit_override_privilege'] ?? false)
-                            <p class="text-rose-600"><strong>Note:</strong> Order was approved beyond available credit limit.</p>
-                        @endif
-                    @endif
-                </div>
+                <!-- Billing parameters bypassed -->
 
                 <div class="space-y-2.5 pt-3">
                     <a href="{{ route('customer.dashboard') }}" class="w-full py-2.5 border border-outline-variant/30 hover:bg-slate-50 text-[#001229] font-bold text-xs bg-white rounded-lg transition-colors flex items-center justify-center gap-1.5">

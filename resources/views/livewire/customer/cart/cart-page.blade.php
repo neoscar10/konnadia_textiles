@@ -173,15 +173,7 @@
                     </a>
                 </x-customer.card>
 
-                <!-- Credit Limit Status Widget -->
-                <div>
-                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Available Credit Limit</h4>
-                    <x-customer.credit-summary 
-                        :available="$creditSummary['available_credit'] ?? 0" 
-                        :limit="$creditSummary['credit_limit'] ?? 0" 
-                        :outstanding="$creditSummary['outstanding_amount'] ?? 0" 
-                    />
-                </div>
+                <!-- Credit limit widget removed -->
             </div>
 
         </div>

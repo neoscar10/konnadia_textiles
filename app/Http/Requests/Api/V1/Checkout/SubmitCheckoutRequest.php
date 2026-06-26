@@ -16,19 +16,14 @@ class SubmitCheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'checkout_method' => ['required', 'string', 'in:manual_payment,credit'],
-            'receipt_file' => ['required_if:checkout_method,manual_payment', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+            'checkout_method' => ['nullable', 'string'],
             'customer_notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
     public function messages(): array
     {
-        return [
-            'receipt_file.required_if' => 'The receipt file field is required when checkout method is manual payment.',
-            'receipt_file.mimes' => 'The receipt file must be a file of type: jpg, jpeg, png, webp, pdf.',
-            'receipt_file.max' => 'The receipt file must not be larger than 5MB.',
-        ];
+        return [];
     }
 
     protected function failedValidation(Validator $validator)

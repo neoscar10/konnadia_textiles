@@ -46,7 +46,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         
         Route::get('orders', \App\Livewire\Admin\Orders\OrderIndexPage::class)->name('orders.index');
         Route::get('orders/{orderNumber}', \App\Livewire\Admin\Orders\OrderShowPage::class)->name('orders.show');
-        Route::get('credit-management', \App\Livewire\Admin\Credit\CreditManagementPage::class)->name('credit-management.index');
         
         Route::get('reports', \App\Livewire\Admin\Reports\ReportIndexPage::class)->name('reports.index');
         Route::get('notifications', \App\Livewire\Admin\Notifications\NotificationIndexPage::class)->name('notifications.index');

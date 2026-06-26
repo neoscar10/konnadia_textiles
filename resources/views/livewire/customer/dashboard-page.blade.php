@@ -4,7 +4,7 @@
         <div>
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">B2B Wholesale Portal</span>
             <h1 class="text-2xl md:text-3xl font-extrabold text-[#001229] tracking-tight mt-0.5">Welcome back, {{ $customer['company_name'] ?? 'Valued Customer' }}</h1>
-            <p class="text-sm text-slate-500">Manage your wholesale orders, view outstanding credit limits, and check order statuses.</p>
+            <p class="text-sm text-slate-500">Manage your wholesale orders and check order statuses.</p>
         </div>
         <div class="flex items-center gap-3">
             <div class="flex items-center gap-2 text-xs font-bold text-slate-600 bg-white border border-outline-variant/30 px-3 py-1.5 rounded-lg shadow-ambient">
@@ -56,13 +56,7 @@
             trend="Excludes Rejected/Cancelled" 
             trendType="neutral" 
         />
-        <x-customer.stat-card 
-            title="Outstanding Balance" 
-            value="{{ $credit['formatted_outstanding_amount'] ?? '₹0.00' }}" 
-            icon="account_balance_wallet" 
-            trend="{{ ($credit['overdue_amount'] ?? 0) > 0 ? $credit['formatted_overdue_amount'] . ' Overdue' : 'Within Credit Limit' }}" 
-            trendType="{{ ($credit['overdue_amount'] ?? 0) > 0 ? 'down' : 'up' }}" 
-        />
+
     </div>
 
     <!-- Recent Orders & Sidebar grid -->
@@ -107,47 +101,7 @@
 
         <!-- Sidebar (Credit Limit summary + Cart Status) -->
         <div class="space-y-6">
-            <!-- Credit Limit summary (Now in Sidebar) -->
-            @if(!empty($credit))
-                <div class="bg-gradient-to-br from-[#001229] to-[#0f2744] text-white p-5 rounded-xl border border-slate-800 shadow-ambient flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-start justify-between mb-4">
-                            <div>
-                                <p class="text-[10px] text-slate-300 font-medium uppercase tracking-wider">Available Credit Limit</p>
-                                <h3 class="text-2xl font-extrabold text-gold mt-0.5">{{ $credit['formatted_available_credit'] }}</h3>
-                            </div>
-                            <span class="material-symbols-outlined text-gold/80 text-3xl">payments</span>
-                        </div>
-                        
-                        <!-- Details Row -->
-                        <div class="grid grid-cols-3 gap-2 mb-4">
-                            <div>
-                                <span class="text-[9px] text-slate-400 uppercase tracking-wider block">Total Limit</span>
-                                <span class="text-xs font-bold text-white mt-0.5">{{ $credit['formatted_credit_limit'] }}</span>
-                            </div>
-                            <div>
-                                <span class="text-[9px] text-slate-400 uppercase tracking-wider block">Outstanding</span>
-                                <span class="text-xs font-bold text-white mt-0.5">{{ $credit['formatted_outstanding_amount'] }}</span>
-                            </div>
-                            <div>
-                                <span class="text-[9px] text-slate-400 uppercase tracking-wider block">Overdue</span>
-                                <span class="text-xs font-bold @if($credit['overdue_amount'] > 0) text-rose-400 @else text-slate-300 @endif mt-0.5">{{ $credit['formatted_overdue_amount'] }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Progress bar -->
-                    <div class="space-y-1.5 mt-auto">
-                        <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                            <div class="h-full bg-gold rounded-full" style="width: {{ $credit['utilization_percentage'] }}%"></div>
-                        </div>
-                        <div class="flex justify-between text-[10px] text-slate-300 font-medium">
-                            <span>Outstanding: {{ $credit['formatted_outstanding_amount'] }}</span>
-                            <span>Used: {{ $credit['utilization_percentage'] }}%</span>
-                        </div>
-                    </div>
-                </div>
-            @endif
+            <!-- Credit summary card removed -->
 
             <!-- Current Cart Summary -->
             <div>

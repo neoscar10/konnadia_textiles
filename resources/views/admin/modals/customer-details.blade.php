@@ -30,19 +30,12 @@
                 <x-admin.badge type="{{ $selectedCustomer->is_active ? 'success' : 'default' }}" class="px-md py-xs rounded-full text-xs font-bold">
                     {{ $selectedCustomer->is_active ? 'Active' : 'Inactive' }}
                 </x-admin.badge>
-
-                <!-- Credit Hold Badge -->
-                @if($selectedCustomer->credit_hold)
-                    <x-admin.badge type="danger" class="px-md py-xs rounded-full text-xs font-bold">
-                        Credit Hold
-                    </x-admin.badge>
-                @endif
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-xl">
-            <!-- Left Column: Basic Info & Address -->
-            <div class="md:col-span-6 space-y-lg">
+        <div class="grid grid-cols-1 gap-xl">
+            <!-- Basic Info & Address -->
+            <div class="space-y-lg">
                 <!-- Contact & Billing Information Card -->
                 <div class="bg-surface-container-low rounded-xl border border-outline-variant/30 p-lg">
                     <div class="flex items-center gap-sm mb-lg pb-sm border-b border-outline-variant/20">
@@ -55,7 +48,7 @@
                             <span class="text-xs font-label-md text-on-surface-variant uppercase tracking-wider">Primary Contact</span>
                             <span class="font-body-md text-on-surface">{{ $selectedCustomer->contact_person }}</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-md">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
                             <div class="flex flex-col gap-xs">
                                 <span class="text-xs font-label-md text-on-surface-variant uppercase tracking-wider">Phone Number</span>
                                 <span class="font-body-md text-on-surface flex items-center gap-xs">
@@ -83,88 +76,6 @@
                                 {{ $selectedCustomer->billing_address ?: 'No billing address provided.' }}
                             </span>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Column: Financials & Status -->
-            <div class="md:col-span-6 space-y-lg">
-                <!-- Financial Summary Card -->
-                <div class="bg-surface-container-low rounded-xl border border-outline-variant/30 p-lg">
-                    <div class="flex items-center gap-sm mb-lg pb-sm border-b border-outline-variant/20">
-                        <span class="material-symbols-outlined text-primary">payments</span>
-                        <h4 class="font-title-md text-primary">Financial Summary</h4>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-lg">
-                        <div class="flex flex-col gap-xs p-md bg-surface-container-lowest rounded border border-outline-variant/20">
-                            <span class="text-xs font-label-md text-on-surface-variant uppercase tracking-wider">Credit Limit</span>
-                            <span class="font-title-lg text-on-surface font-semibold">₹{{ number_format($selectedCustomer->credit_limit, 2) }}</span>
-                        </div>
-                        <div class="flex flex-col gap-xs p-md bg-surface-container-lowest rounded border border-outline-variant/20">
-                            <span class="text-xs font-label-md text-on-surface-variant uppercase tracking-wider">Outstanding</span>
-                            <span class="font-title-lg text-error font-semibold">₹{{ number_format($selectedCustomer->outstanding_amount, 2) }}</span>
-                        </div>
-                        <div class="flex flex-col gap-xs p-md bg-surface-container-lowest rounded border border-outline-variant/20">
-                            <span class="text-xs font-label-md text-on-surface-variant uppercase tracking-wider">Available Credit</span>
-                            <span class="font-title-lg {{ $selectedCustomer->available_credit > 0 ? 'text-[#0F8A46]' : 'text-error' }} font-semibold">
-                                ₹{{ number_format($selectedCustomer->available_credit, 2) }}
-                            </span>
-                        </div>
-                        <div class="flex flex-col gap-xs p-md bg-surface-container-lowest rounded border border-outline-variant/20">
-                            <span class="text-xs font-label-md text-on-surface-variant uppercase tracking-wider">Overdue Amount</span>
-                            <span class="font-title-lg {{ $selectedCustomer->overdue_amount > 0 ? 'text-error font-bold' : 'text-on-surface-variant' }} font-semibold">
-                                ₹{{ number_format($selectedCustomer->overdue_amount, 2) }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Rules & Compliance Card -->
-                <div class="bg-surface-container-low rounded-xl border border-outline-variant/30 p-lg">
-                    <div class="flex items-center gap-sm mb-lg pb-sm border-b border-outline-variant/20">
-                        <span class="material-symbols-outlined text-primary">gavel</span>
-                        <h4 class="font-title-md text-primary">Rules & Controls</h4>
-                    </div>
-
-                    <div class="space-y-md">
-                        <div class="flex justify-between items-center py-xs border-b border-outline-variant/10">
-                            <span class="font-body-md text-on-surface-variant">Allow Credit Beyond Limit</span>
-                            <x-admin.badge type="{{ $selectedCustomer->allow_credit_beyond_limit ? 'success' : 'default' }}">
-                                {{ $selectedCustomer->allow_credit_beyond_limit ? 'Yes' : 'No' }}
-                            </x-admin.badge>
-                        </div>
-                        
-                        <div class="flex justify-between items-center py-xs border-b border-outline-variant/10">
-                            <span class="font-body-md text-on-surface-variant">Credit Hold Status</span>
-                            <x-admin.badge type="{{ $selectedCustomer->credit_hold ? 'danger' : 'success' }}">
-                                {{ $selectedCustomer->credit_hold ? 'On Hold' : 'Clear' }}
-                            </x-admin.badge>
-                        </div>
-
-                        @if($selectedCustomer->credit_hold)
-                            <div class="p-md bg-error-container/20 rounded border border-error/20 space-y-xs">
-                                <div class="flex flex-col">
-                                    <span class="text-xs font-label-sm text-error uppercase tracking-wider">Reason for Hold</span>
-                                    <p class="font-body-md text-on-surface-variant italic">"{{ $selectedCustomer->credit_hold_reason ?: 'No reason specified.' }}"</p>
-                                </div>
-                                <div class="grid grid-cols-2 gap-sm pt-xs text-xs text-on-surface-variant">
-                                    <div>
-                                        <span class="font-semibold">Held By:</span> {{ $selectedCustomer->creditHoldBy->name ?? 'System' }}
-                                    </div>
-                                    <div>
-                                        <span class="font-semibold">Held On:</span> {{ $selectedCustomer->credit_hold_at ? $selectedCustomer->credit_hold_at->format('d M Y') : 'N/A' }}
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if($selectedCustomer->last_credit_review_at)
-                            <div class="flex justify-between items-center py-xs text-xs text-on-surface-variant">
-                                <span>Last Credit Review:</span>
-                                <span class="font-mono">{{ $selectedCustomer->last_credit_review_at->format('d M Y, h:i A') }}</span>
-                            </div>
-                        @endif
                     </div>
                 </div>
 

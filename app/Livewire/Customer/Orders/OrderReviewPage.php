@@ -18,7 +18,7 @@ class OrderReviewPage extends Component
     public $creditEligibility = [];
     public $customerInfo = [];
 
-    public $checkoutMethod = '';
+    public $checkoutMethod = 'regular';
     public $customerNotes = '';
     public $receiptFile = null;
 
@@ -47,30 +47,20 @@ class OrderReviewPage extends Component
 
     public function selectCheckoutMethod($method)
     {
-        $this->checkoutMethod = $method;
-        $this->resetValidation();
+        // Bypassed
     }
 
     public function submitOrder(CheckoutService $checkoutService)
     {
         if ($this->isSubmitting) return;
 
-        if (empty($this->checkoutMethod)) {
-            $this->dispatch('toast', type: 'error', message: 'Please select a payment method.');
-            return;
-        }
-
         $this->isSubmitting = true;
 
         try {
             $payload = [
-                'checkout_method' => $this->checkoutMethod,
+                'checkout_method' => 'regular',
                 'customer_notes' => $this->customerNotes ?: null,
             ];
-
-            if ($this->checkoutMethod === 'manual_payment' && $this->receiptFile) {
-                $payload['receipt_file'] = $this->receiptFile;
-            }
 
             $order = $checkoutService->submitOrder(auth()->user(), $payload);
 
@@ -80,7 +70,7 @@ class OrderReviewPage extends Component
                 'total_amount' => (float) $order->total_amount,
                 'payment_status' => $order->payment_status,
                 'credit_status' => $order->credit_status,
-                'used_credit_override' => $order->used_credit_override_privilege,
+                'used_credit_override' => $order->used_credit_override_privilege_privilege ?? false,
             ]);
 
             return redirect()->route('customer.orders.success');

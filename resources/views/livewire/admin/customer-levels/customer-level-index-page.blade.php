@@ -4,7 +4,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-xl">
         <div>
             <h1 class="font-headline-lg text-primary tracking-tight">Customer Levels</h1>
-            <p class="font-body-md text-on-surface-variant">Define discount tiers, credit limits, and ordering rules.</p>
+            <p class="font-body-md text-on-surface-variant">Define discount tiers and ordering rules.</p>
         </div>
         <x-admin.button variant="primary" icon="add" wire:click="create">Add Level</x-admin.button>
     </div>
@@ -33,7 +33,6 @@
                     <tr class="whitespace-nowrap text-xs">
                         <th class="px-lg py-md">Level Name</th>
                         <th class="px-lg py-md">Discount %</th>
-                        <th class="px-lg py-md text-right">Default Credit Limit</th>
                         <th class="px-lg py-md text-center">Active Customers</th>
                         <th class="px-lg py-md text-center">Status</th>
                         <th class="px-lg py-md text-right">Actions</th>
@@ -44,7 +43,6 @@
                     <tr class="hover:bg-primary/[0.02] transition-colors group">
                         <td class="px-lg py-lg font-bold text-primary">{{ $level->name }}</td>
                         <td class="px-lg py-lg text-on-surface">{{ number_format($level->discount_percentage, 2) }}%</td>
-                        <td class="px-lg py-lg text-right font-medium">₹{{ number_format($level->default_credit_limit, 2) }}</td>
                         <td class="px-lg py-lg text-center">
                             <span class="font-bold text-on-surface">0</span>
                         </td>
@@ -63,7 +61,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-lg py-xl text-center text-on-surface-variant font-body-md">
+                        <td colspan="5" class="px-lg py-xl text-center text-on-surface-variant font-body-md">
                             No customer levels found.
                         </td>
                     </tr>
@@ -93,12 +91,6 @@
                     <label class="font-label-md text-on-surface-variant">Base Discount (%) *</label>
                     <input type="number" step="0.01" wire:model="form.discount_percentage" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
                     @error('form.discount_percentage') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                </div>
-
-                <div class="space-y-xs">
-                    <label class="font-label-md text-on-surface-variant">Default Credit Limit (₹) *</label>
-                    <input type="number" step="0.01" wire:model="form.default_credit_limit" placeholder="100000" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
-                    @error('form.default_credit_limit') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="space-y-xs">

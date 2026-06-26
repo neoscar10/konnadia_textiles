@@ -248,10 +248,7 @@ class AdminOrderService
             // 1. Restore stock if it was previously approved/deducted
             $this->inventoryService->restoreStockForOrder($order);
 
-            // 2. Reverse credit if it was applied
-            if ($order->checkout_method === 'credit' && $order->customer) {
-                $this->creditService->reverseCreditOrder($order->customer, $order);
-            }
+            // Credit reversal bypassed since credit limits are removed.
 
             // 3. Reject order
             $order->update([
@@ -349,10 +346,7 @@ class AdminOrderService
             // 1. Restore stock if it was previously deducted
             $this->inventoryService->restoreStockForOrder($order);
 
-            // 2. Reverse credit if it was applied
-            if ($order->checkout_method === 'credit' && $order->customer) {
-                $this->creditService->reverseCreditOrder($order->customer, $order);
-            }
+            // Credit reversal bypassed since credit limits are removed.
 
             // 3. Update notes
             if ($note) {

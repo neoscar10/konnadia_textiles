@@ -37,19 +37,9 @@ class OrderService
             $paymentStatus = 'not_required';
             $creditStatus = null;
 
-            if ($method === 'manual_payment') {
-                $status = 'pending_payment_verification';
-                $paymentStatus = 'pending_verification';
-            } elseif ($method === 'credit') {
-                $status = 'submitted';
-                $paymentStatus = 'not_required';
-
-                if ($checkoutEvaluation['is_within_limit']) {
-                    $creditStatus = 'within_limit';
-                } elseif ($checkoutEvaluation['is_privileged_override']) {
-                    $creditStatus = 'over_limit_allowed';
-                }
-            }
+            $status = 'submitted';
+            $paymentStatus = 'not_required';
+            $creditStatus = null;
 
             $order = Order::create([
                 'order_number' => $this->orderNumberService->generate(),
@@ -62,9 +52,9 @@ class OrderService
                 'subtotal' => $checkoutPayload['subtotal'],
                 'gst_amount' => $checkoutPayload['gst_amount'],
                 'total_amount' => $checkoutPayload['total'],
-                'credit_limit_at_order' => $method === 'credit' ? $customer->credit_limit : null,
-                'available_credit_at_order' => $method === 'credit' ? $customer->available_credit : null,
-                'used_credit_override_privilege' => $checkoutEvaluation['is_privileged_override'] ?? false,
+                'credit_limit_at_order' => null,
+                'available_credit_at_order' => null,
+                'used_credit_override_privilege' => false,
                 'customer_notes' => $checkoutPayload['customer_notes'] ?? null,
                 'submitted_at' => now(),
             ]);

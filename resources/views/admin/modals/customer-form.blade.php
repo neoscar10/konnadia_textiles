@@ -64,24 +64,7 @@
                 @error('form.customer_level_id') <span class="text-error text-xs">{{ $message }}</span> @enderror
             </div>
 
-            <div class="space-y-xs">
-                <label class="font-label-md text-on-surface-variant">Credit Limit (₹)</label>
-                <input type="number" step="0.01" wire:model="form.credit_limit" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all">
-                @if($editingId)
-                    <p class="text-xs text-on-surface-variant mt-1">Current customer limit can be customized here.</p>
-                @endif
-                @error('form.credit_limit') <span class="text-error text-xs">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="space-y-xs md:col-span-2">
-                <div class="flex items-start gap-sm mt-xs">
-                    <input type="checkbox" wire:model="form.allow_credit_beyond_limit" id="allow_credit" class="w-4 h-4 mt-1 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer">
-                    <div>
-                        <label for="allow_credit" class="font-body-md text-on-surface cursor-pointer">Allow credit beyond limit</label>
-                        <p class="text-xs text-on-surface-variant">Allow this customer to continue placing credit orders even after exceeding the approved credit limit.</p>
-                    </div>
-                </div>
-            </div>
+            <!-- Credit Limit inputs bypassed -->
             
             <div class="space-y-xs md:col-span-2">
                 <label class="font-label-md text-on-surface-variant">Street Address *</label>

@@ -4,7 +4,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-xl">
         <div>
             <h1 class="font-headline-lg text-primary tracking-tight">Customer Directory</h1>
-            <p class="font-body-md text-on-surface-variant">Manage wholesale partners, retail distributors, and credit limits.</p>
+            <p class="font-body-md text-on-surface-variant">Manage wholesale partners and retail distributors.</p>
         </div>
         <div class="flex gap-md w-full sm:w-auto">
             <x-admin.button wire:click="export" variant="outline" icon="download">Export CSV</x-admin.button>
@@ -50,7 +50,6 @@
                         <th class="px-lg py-md whitespace-nowrap">Company</th>
                         <th class="px-lg py-md whitespace-nowrap">Phone</th>
                         <th class="px-lg py-md whitespace-nowrap">Level</th>
-                        <th class="px-lg py-md text-right whitespace-nowrap">Credit Limit</th>
                         <th class="px-lg py-md text-center whitespace-nowrap">Status</th>
                         <th class="px-lg py-md text-right whitespace-nowrap">Actions</th>
                     </tr>
@@ -65,7 +64,6 @@
                         <td class="px-lg py-lg whitespace-nowrap">
                             <span class="inline-flex items-center px-sm py-xs rounded bg-surface-container-high text-on-surface text-[10px] font-bold uppercase tracking-wider border border-outline-variant/30">{{ $customer->level->name ?? 'N/A' }}</span>
                         </td>
-                        <td class="px-lg py-lg text-right font-medium whitespace-nowrap">₹{{ number_format($customer->credit_limit, 2) }}</td>
                         <td class="px-lg py-lg text-center whitespace-nowrap">
                             <x-admin.badge type="{{ $customer->is_active ? 'success' : 'default' }}">
                                 {{ $customer->is_active ? 'Active' : 'Inactive' }}
@@ -82,7 +80,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-lg py-2xl text-center text-on-surface-variant">
+                        <td colspan="7" class="px-lg py-2xl text-center text-on-surface-variant">
                             <div class="flex flex-col items-center justify-center">
                                 <span class="material-symbols-outlined text-4xl mb-sm text-outline">group_off</span>
                                 <p class="font-body-lg">No customers found.</p>
@@ -104,30 +102,6 @@
         </x-slot:footer>
         @endif
     </x-admin.card>
-
-    <!-- Dashboard Snapshot Widget -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-lg mt-xl">
-        <div class="lg:col-span-2 bg-surface-container-lowest p-lg rounded-xl card-shadow border border-outline-variant/30 relative overflow-hidden h-48 group">
-            <div class="relative z-10">
-                <h3 class="font-title-md text-primary mb-sm">Customer Acquisition Strategy</h3>
-                <p class="font-body-md text-on-surface-variant max-w-md">Our recent platinum client onboarding has increased regional credit utilization by 12%. Review the updated credit policy for high-volume wholesalers.</p>
-                <button class="mt-lg font-button text-secondary flex items-center gap-xs hover:gap-md transition-all">
-                    View Credit Insights <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </button>
-            </div>
-            <div class="absolute -right-8 -bottom-8 w-64 h-64 bg-secondary/5 rounded-full blur-3xl group-hover:bg-secondary/10 transition-colors duration-500"></div>
-        </div>
-        <div class="bg-primary p-lg rounded-xl shadow-xl flex flex-col justify-between text-on-primary h-48">
-            <div>
-                <p class="font-label-md text-on-primary/60 uppercase tracking-widest">Total Outstanding</p>
-                <h3 class="font-display-lg font-bold leading-tight mt-sm">₹1.28 Cr</h3>
-            </div>
-            <div class="flex items-center gap-sm mt-md">
-                <span class="material-symbols-outlined text-secondary">trending_up</span>
-                <span class="font-label-md text-label-md">8.4% vs last month</span>
-            </div>
-        </div>
-    </div>
 
     <!-- Modals -->
     @include('admin.modals.customer-details')

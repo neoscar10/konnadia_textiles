@@ -86,38 +86,16 @@
             </div>
         </div>
 
-        @if($orderData['checkout_method'] === 'credit')
-            <div class="flex items-start gap-md bg-surface-container-lowest p-md border rounded-lg {{ $orderData['used_credit_override_privilege'] ? 'border-error-container' : 'border-outline-variant/30' }} relative overflow-hidden">
-                <div class="w-10 h-10 rounded-full {{ $orderData['used_credit_override_privilege'] ? 'bg-error-container text-error' : 'bg-primary-container text-primary' }} flex items-center justify-center flex-shrink-0 relative z-10">
-                    <span class="material-symbols-outlined text-[20px]">warning</span>
-                </div>
-                <div class="relative z-10">
-                    <p class="font-label-md uppercase tracking-wider text-[10px] mb-1 {{ $orderData['used_credit_override_privilege'] ? 'text-error' : 'text-on-surface-variant' }}">Credit Status</p>
-                    <p class="font-title-md text-primary">
-                        @if($orderData['used_credit_override_privilege'])
-                            Extended Credit Used
-                        @else
-                            Within Limit
-                        @endif
-                    </p>
-                    <p class="font-body-md text-on-surface-variant text-sm">Limit: ₹{{ number_format($orderData['credit_limit_at_order'], 2) }} • Available: ₹{{ number_format($orderData['available_credit_at_order'], 2) }}</p>
-                </div>
-                @if($orderData['used_credit_override_privilege'])
-                    <div class="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-error-container/30 to-transparent"></div>
-                @endif
+        <div class="flex items-start gap-md bg-surface-container-lowest p-md border border-outline-variant/30 rounded-lg">
+            <div class="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[20px]">shopping_bag</span>
             </div>
-        @else
-            <div class="flex items-start gap-md bg-surface-container-lowest p-md border border-outline-variant/30 rounded-lg">
-                <div class="w-10 h-10 rounded-full bg-[#0F8A46]/10 text-[#0F8A46] flex items-center justify-center flex-shrink-0">
-                    <span class="material-symbols-outlined text-[20px]">check_circle</span>
-                </div>
-                <div>
-                    <p class="font-label-md text-on-surface-variant uppercase tracking-wider text-[10px] mb-1">Receipt Review</p>
-                    <p class="font-title-md text-[#0F8A46]">Manual Payment</p>
-                    <p class="font-body-md text-on-surface-variant text-sm">Receipts uploaded: {{ count($orderData['receipts']) }}</p>
-                </div>
+            <div>
+                <p class="font-label-md text-on-surface-variant uppercase tracking-wider text-[10px] mb-1">Order Summary</p>
+                <p class="font-title-md text-primary capitalize">{{ str_replace('_', ' ', $orderData['status']) }}</p>
+                <p class="font-body-md text-on-surface-variant text-sm">Items: {{ count($orderData['items']) }}</p>
             </div>
-        @endif
+        </div>
     </div>
 
     <!-- Main Content Split -->
@@ -217,42 +195,7 @@
 
         </div>
 
-        <!-- Summary & Remarks -->
         <div class="col-span-12 lg:col-span-4 space-y-xl">
-            <!-- Receipts Panel (If manual payment) -->
-            @if($orderData['checkout_method'] === 'manual_payment')
-                <x-admin.card>
-                    <x-slot:header class="flex items-center gap-sm bg-surface-container-low/30">
-                        <span class="material-symbols-outlined text-primary-fixed-dim">receipt</span>
-                        <h3 class="font-title-md text-primary">Payment Proof Receipts</h3>
-                    </x-slot:header>
-
-                    <div class="space-y-sm">
-                        @forelse($orderData['receipts'] as $receipt)
-                            <div class="bg-surface-container-low p-sm border border-outline-variant/30 rounded-xl flex items-center justify-between gap-sm">
-                                <div class="flex items-center gap-sm overflow-hidden">
-                                    <span class="material-symbols-outlined text-primary text-xl flex-shrink-0">description</span>
-                                    <div class="overflow-hidden">
-                                        <p class="font-title-sm text-primary truncate text-xs">{{ $receipt['original_name'] }}</p>
-                                        <div class="flex items-center gap-xs mt-0.5">
-                                            <span class="text-[9px] text-on-surface-variant font-mono">{{ round($receipt['size'] / 1024) }} KB</span>
-                                            <span class="px-1.5 py-[1px] text-[8px] font-extrabold uppercase border rounded {{ $receipt['status'] === 'verified' ? 'bg-[#0F8A46]/10 text-[#0F8A46] border-[#0F8A46]/20' : 'bg-warning-container/20 text-warning border-warning-container' }}">
-                                                {{ $receipt['status'] }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <a href="{{ $receipt['file_url'] }}" target="_blank" class="px-sm py-xs border border-outline-variant/30 hover:bg-surface-container text-[#001229] font-bold text-[10px] bg-white rounded-lg transition-colors flex items-center gap-xs flex-shrink-0 shadow-xs">
-                                    <span class="material-symbols-outlined text-xs">visibility</span> View
-                                </a>
-                            </div>
-                        @empty
-                            <p class="text-on-surface-variant italic text-xs">No receipts uploaded yet.</p>
-                        @endforelse
-                    </div>
-                </x-admin.card>
-            @endif
-
             <!-- Order Summary -->
             <x-admin.card>
                 <x-slot:header class="bg-surface-container-low/30">
@@ -370,7 +313,7 @@
         <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
                 <h3 class="font-headline-md text-error mb-md">Reject Order</h3>
-                <p class="font-body-md text-on-surface-variant mb-md">Reject this order? A rejection reason is **required**. If credit was applied to this order, it will be automatically reversed.</p>
+                <p class="font-body-md text-on-surface-variant mb-md">Reject this order? A rejection reason is **required**.</p>
                 <textarea wire:model="rejectionReason" class="w-full border border-outline-variant/50 rounded-lg p-md font-body-md focus:ring-2 focus:ring-secondary outline-none transition-all resize-none bg-surface-container-low mb-sm" placeholder="Enter reason for rejection..." rows="3"></textarea>
                 @error('rejectionReason') <span class="text-error text-xs block mb-md">{{ $message }}</span> @enderror
                 <div class="flex justify-end gap-sm">
@@ -401,7 +344,7 @@
         <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
                 <h3 class="font-headline-md text-error mb-md">Cancel Order</h3>
-                <p class="font-body-md text-on-surface-variant mb-md">Cancel this order? If inventory stock was deducted, it will be automatically restored. If credit was applied, it will be reversed.</p>
+                <p class="font-body-md text-on-surface-variant mb-md">Cancel this order? If inventory stock was deducted, it will be automatically restored.</p>
                 <textarea wire:model="adminComment" class="w-full border border-outline-variant/50 rounded-lg p-md font-body-md focus:ring-2 focus:ring-secondary outline-none transition-all resize-none bg-surface-container-low mb-md" placeholder="Enter cancellation reason/note (optional)..." rows="3"></textarea>
                 <div class="flex justify-end gap-sm">
                     <x-admin.button variant="outline" wire:click="$set('showCancelModal', false)">Go Back</x-admin.button>

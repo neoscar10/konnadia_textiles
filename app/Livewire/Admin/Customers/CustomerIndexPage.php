@@ -105,8 +105,6 @@ class CustomerIndexPage extends Component
                 Rule::unique('customers', 'email')->ignore($this->editingId),
                 Rule::unique('users', 'email')->ignore($this->editingId ? Customer::find($this->editingId)?->user_id : null)
             ],
-            'form.credit_limit' => ['required', 'numeric', 'min:0'],
-            'form.allow_credit_beyond_limit' => ['boolean'],
             'form.address' => ['nullable', 'string', 'max:500'],
             'form.city' => ['nullable', 'string', 'max:100'],
             'form.state' => ['nullable', 'string', 'max:100'],
