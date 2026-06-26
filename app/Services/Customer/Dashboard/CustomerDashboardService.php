@@ -255,48 +255,6 @@ class CustomerDashboardService
 
         $alerts = [];
 
-        // 1. Credit Hold (High Priority)
-        if ($customer->credit_hold) {
-            $alerts[] = [
-                'type' => 'danger',
-                'title' => 'Account On Hold',
-                'message' => 'Your account is currently on credit hold. ' . ($customer->credit_hold_reason ?: 'Please contact support to resolve this.'),
-                'priority' => 10,
-            ];
-        }
-
-        // 2. Over Limit (High Priority)
-        $limit = (float) $customer->credit_limit;
-        $outstanding = (float) $customer->outstanding_amount;
-        if ($limit > 0 && $outstanding > $limit) {
-            $alerts[] = [
-                'type' => 'danger',
-                'title' => 'Credit Limit Exceeded',
-                'message' => 'Your outstanding balance (' . $this->formatIndianCurrency($outstanding) . ') exceeds your credit limit (' . $this->formatIndianCurrency($limit) . '). Please clear outstanding payments.',
-                'priority' => 9,
-            ];
-        }
-
-        // 3. Near Limit (Medium Priority)
-        if ($limit > 0 && !$customer->credit_hold && $outstanding < $limit && $outstanding >= $limit * 0.85) {
-            $alerts[] = [
-                'type' => 'warning',
-                'title' => 'Approaching Credit Limit',
-                'message' => 'You have utilized over 85% of your credit limit. Remaining available credit is ' . $this->formatIndianCurrency($customer->available_credit) . '.',
-                'priority' => 7,
-            ];
-        }
-
-        // 4. Extended Privilege Alert (Info Priority)
-        if ($customer->allow_credit_beyond_limit && !$customer->credit_hold) {
-            $alerts[] = [
-                'type' => 'info',
-                'title' => 'Over-Limit Orders Enabled',
-                'message' => 'Your account is authorized to place credit orders beyond your standard limit, subject to review.',
-                'priority' => 5,
-            ];
-        }
-
         // 5. Rejected orders (High Priority)
         $rejectedOrdersCount = Order::where('user_id', $user->id)
             ->where('status', 'rejected')
@@ -308,19 +266,6 @@ class CustomerDashboardService
                 'title' => 'Rejected Orders',
                 'message' => "You have {$rejectedOrdersCount} order(s) rejected in the last 7 days. Please check order details.",
                 'priority' => 8,
-            ];
-        }
-
-        // 6. Pending Payment verification
-        $pendingVerificationCount = Order::where('user_id', $user->id)
-            ->where('status', 'pending_payment_verification')
-            ->count();
-        if ($pendingVerificationCount > 0) {
-            $alerts[] = [
-                'type' => 'warning',
-                'title' => 'Receipt Verification Pending',
-                'message' => "We are verifying payment receipts for {$pendingVerificationCount} order(s). We will process them shortly.",
-                'priority' => 6,
             ];
         }
 

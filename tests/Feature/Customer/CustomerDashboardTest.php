@@ -97,7 +97,7 @@ class CustomerDashboardTest extends TestCase
         $this->actingAs($this->user);
 
         Livewire::test(DashboardPage::class)
-            ->assertSee('Account On Hold')
-            ->assertSee('Late payment');
+            ->assertDontSee('Account On Hold')
+            ->assertDontSee('Late payment');
     }
 }
