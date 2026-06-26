@@ -1061,10 +1061,10 @@
                     <x-admin.button variant="outline" type="button" wire:click="prevStep">Back</x-admin.button>
                 @endif
                 @if($isEditMode && $currentStep < 7)
-                    <x-admin.button variant="primary" type="button" wire:click="saveCurrentStep" icon="save">Save Changes</x-admin.button>
+                    <x-admin.button variant="primary" type="button" wire:click="saveCurrentStep" icon="save" :disabled="$currentStep === 5 && $this->hasStockMismatch()">Save Changes</x-admin.button>
                 @endif
                 @if($currentStep < 7)
-                    <x-admin.button variant="primary" type="button" wire:click="nextStep">Next Step</x-admin.button>
+                    <x-admin.button variant="primary" type="button" wire:click="nextStep" :disabled="$currentStep === 5 && $this->hasStockMismatch()">Next Step</x-admin.button>
                 @endif
                 @if($currentStep === 7)
                     <x-admin.button variant="primary" type="button" wire:click="save" icon="save">

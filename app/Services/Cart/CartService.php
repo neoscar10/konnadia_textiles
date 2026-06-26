@@ -157,7 +157,8 @@ class CartService
         $selectedOptions = $payload['selected_options'] ?? null;
 
         // Validate
-        $this->validateItemSelection($product, $combination, $unit, $quantity, $user);
+        $skipMoq = $payload['skip_moq_validation'] ?? false;
+        $this->validateItemSelection($product, $combination, $unit, $quantity, $user, null, $skipMoq);
 
         $cart = $this->getOrCreateActiveCart($user);
 
@@ -310,7 +311,8 @@ class CartService
         ?ProductUnit $unit,
         int $quantity,
         ?User $user = null,
-        ?int $ignoreCartItemId = null
+        ?int $ignoreCartItemId = null,
+        bool $skipMoq = false
     ): void {
         $errors = [];
 
@@ -324,19 +326,21 @@ class CartService
 
         // MOQ enforcement — use total resolved pieces so that 1 Box (12 pcs)
         // correctly satisfies a 10-piece MOQ.
-        $moq = (int) ($product->minimum_order_quantity ?? 1);
-        $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
-        $totalPieces = (int) ($quantity * $conversion);
-        if ($moq > 1 && $totalPieces < $moq) {
-            $lvl2ForMoq = $product->units()->where('level', 2)->first();
-            if ($lvl2ForMoq) {
-                $conversion = (int) $lvl2ForMoq->conversion_to_base;
-                $moqBoxes   = (int) ceil($moq / $conversion);
-                $errors['quantity'] = "Minimum order quantity is {$moq} pieces. "
-                    . "You can order {$moqBoxes} {$lvl2ForMoq->name}(s) or more, "
-                    . "or at least {$moq} individual pieces.";
-            } else {
-                $errors['quantity'] = "Minimum order quantity is {$moq} pieces. Please increase your quantity.";
+        if (!$skipMoq) {
+            $moq = (int) ($product->minimum_order_quantity ?? 1);
+            $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
+            $totalPieces = (int) ($quantity * $conversion);
+            if ($moq > 1 && $totalPieces < $moq) {
+                $lvl2ForMoq = $product->units()->where('level', 2)->first();
+                if ($lvl2ForMoq) {
+                    $conversion = (int) $lvl2ForMoq->conversion_to_base;
+                    $moqBoxes   = (int) ceil($moq / $conversion);
+                    $errors['quantity'] = "Minimum order quantity is {$moq} pieces. "
+                        . "You can order {$moqBoxes} {$lvl2ForMoq->name}(s) or more, "
+                        . "or at least {$moq} individual pieces.";
+                } else {
+                    $errors['quantity'] = "Minimum order quantity is {$moq} pieces. Please increase your quantity.";
+                }
             }
         }
 

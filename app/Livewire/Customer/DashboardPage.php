@@ -17,6 +17,7 @@ class DashboardPage extends Component
     public array $recentOrders = [];
     public array $alerts = [];
     public array $quickActions = [];
+    public array $dynamicSections = [];
     // Slider sections
     public array $recentProducts = [];
     public array $popularProducts = [];
@@ -31,11 +32,9 @@ class DashboardPage extends Component
     public $quickAddProduct = null;
     public $quickAddVariations = [];
     public $quickAddSelectedValues = [];
-    public $quickAddSelectedUnitId = null;
     public $quickAddUnits = [];
-    public $quickAddQty = 1;
-    public $quickAddQtyLvl1 = 0;
-    public $quickAddQtyLvl2 = 0;
+    public array $quickAddQueuedItems = [];
+    public array $quickAddUnitQuantities = [];
     public $quickAddHasLvl2Unit = false;
     public $quickAddMoq = 1;
 
@@ -82,9 +81,12 @@ class DashboardPage extends Component
         $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
         $this->quickAddHasLvl2Unit = !empty($lvl2);
         
-        $selectedUnit = collect($this->quickAddUnits)->firstWhere('id', $this->quickAddSelectedUnitId);
-        $conversion = ($selectedUnit && $selectedUnit['level'] === 2) ? (float)$selectedUnit['conversion_to_base'] : 1.0;
-        $this->quickAddQty = (int) ceil($this->quickAddMoq / $conversion);
+        // Default all quantities to 0
+        $this->quickAddUnitQuantities = [];
+        $this->quickAddQueuedItems = [];
+        foreach ($this->quickAddUnits as $u) {
+            $this->quickAddUnitQuantities[$u['id']] = 0;
+        }
 
         $this->recalculateQuickAdd($catalogService);
         $this->showQuickAddModal = true;
@@ -96,21 +98,51 @@ class DashboardPage extends Component
         $this->recalculateQuickAdd($catalogService);
     }
 
-    public function updatedQuickAddSelectedUnitId(\App\Services\Portal\ProductCatalogService $catalogService)
+    public function decrementQuickAddUnitQuantity($unitId)
     {
-        $selectedUnit = collect($this->quickAddUnits)->firstWhere('id', $this->quickAddSelectedUnitId);
-        $conversion = ($selectedUnit && $selectedUnit['level'] === 2) ? (float)$selectedUnit['conversion_to_base'] : 1.0;
-        $minQty = (int) ceil($this->quickAddMoq / $conversion);
-        if ($this->quickAddQty < $minQty) {
-            $this->quickAddQty = $minQty;
-        }
-        $this->recalculateQuickAdd($catalogService);
+        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
+        $this->quickAddUnitQuantities[$unitId] = max(0, $curr - 1);
     }
 
-    public function updatedQuickAddQty(\App\Services\Portal\ProductCatalogService $catalogService)
+    public function incrementQuickAddUnitQuantity($unitId)
     {
-        $this->quickAddQty = max(1, (int)$this->quickAddQty);
-        $this->recalculateQuickAdd($catalogService);
+        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
+        $this->quickAddUnitQuantities[$unitId] = $curr + 1;
+    }
+
+    public function addQuickAddUnitToQueue($unitId)
+    {
+        $qty = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
+        if ($qty < 1) {
+            $this->dispatch('toast', type: 'error', message: 'Please enter a quantity greater than 0.');
+            return;
+        }
+
+        $unit = collect($this->quickAddUnits)->firstWhere('id', $unitId);
+        if (!$unit) return;
+
+        // Add or update in queuedItems
+        $this->quickAddQueuedItems[$unitId] = [
+            'unit_id' => $unitId,
+            'unit_name' => $unit['name'],
+            'unit_short_code' => $unit['short_code'],
+            'conversion_to_base' => (float)$unit['conversion_to_base'],
+            'quantity' => $qty,
+        ];
+
+        // Reset input quantity to 0
+        $this->quickAddUnitQuantities[$unitId] = 0;
+
+        $this->dispatch('toast', type: 'success', message: "Added {$qty} {$unit['name']}(s) to selection.");
+        
+        $this->recalculateQuickAdd(app(\App\Services\Portal\ProductCatalogService::class));
+    }
+
+    public function removeQuickAddUnitFromQueue($unitId)
+    {
+        unset($this->quickAddQueuedItems[$unitId]);
+        $this->dispatch('toast', type: 'info', message: 'Removed from selection.');
+        $this->recalculateQuickAdd(app(\App\Services\Portal\ProductCatalogService::class));
     }
 
     public function recalculateQuickAdd(\App\Services\Portal\ProductCatalogService $catalogService)
@@ -130,14 +162,21 @@ class DashboardPage extends Component
         $this->quickAddEffectiveBasePrice = $pricing['effective_base_price'];
         $this->quickAddDiscountPercentage = $pricing['discount_percentage'];
 
-        // Calculate unit pricing
-        $unit = \App\Models\ProductUnit::find($this->quickAddSelectedUnitId);
-        if ($unit) {
+        // Compute total pieces from queued items
+        $totalPieces = 0;
+        foreach ($this->quickAddQueuedItems as $item) {
+            $totalPieces += (int) ($item['quantity'] * $item['conversion_to_base']);
+        }
+
+        // Estimate based on lvl1 unit (piece-level) with total piece quantity
+        $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
+        $lvl1Unit = $lvl1 ? \App\Models\ProductUnit::find($lvl1['id']) : null;
+        if ($lvl1Unit && $totalPieces > 0) {
             $unitPricingService = app(\App\Services\Portal\ProductUnitPricingService::class);
             $estimate = $unitPricingService->calculateLineEstimate(
                 $this->pricePerPiece ?? $this->quickAddPricePerPiece,
-                $unit,
-                $this->quickAddQty,
+                $lvl1Unit,
+                $totalPieces,
                 $this->quickAddProduct->gst_percentage !== null ? (float) $this->quickAddProduct->gst_percentage : null
             );
 
@@ -145,6 +184,11 @@ class DashboardPage extends Component
             $this->quickAddSubtotal   = $estimate['subtotal'];
             $this->quickAddGstAmount  = $estimate['gst_amount'];
             $this->quickAddTotal      = $estimate['total'];
+        } else {
+            $this->quickAddUnitPrice  = 0.0;
+            $this->quickAddSubtotal   = 0.0;
+            $this->quickAddGstAmount  = 0.0;
+            $this->quickAddTotal      = 0.0;
         }
 
         // Calculate availability
@@ -165,23 +209,29 @@ class DashboardPage extends Component
             return;
         }
 
-        $unit = \App\Models\ProductUnit::find($this->quickAddSelectedUnitId);
-        $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
-        $totalPieces = $this->quickAddQty * $conversion;
+        if (empty($this->quickAddQueuedItems)) {
+            $this->dispatch('toast', type: 'error', message: 'Please add at least one unit to the selection first.');
+            return;
+        }
 
-        // MOQ gate
+        // MOQ check on total pieces in queue
+        $totalPieces = 0;
+        foreach ($this->quickAddQueuedItems as $item) {
+            $totalPieces += (int) ($item['quantity'] * $item['conversion_to_base']);
+        }
+
         if ($totalPieces < $this->quickAddMoq) {
             $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
             if ($lvl2) {
-                $conversion = (int) $lvl2['conversion_to_base'];
-                $moqBoxes   = (int) ceil($this->quickAddMoq / $conversion);
+                $moqBoxes = (int) ceil($this->quickAddMoq / (float)$lvl2['conversion_to_base']);
                 $this->dispatch('toast', type: 'error', message:
                     "Minimum order is {$this->quickAddMoq} pieces. "
-                    . "Order at least {$moqBoxes} {$lvl2['name']}(s) or {$this->quickAddMoq} individual pieces."
+                    . "Your current selection total is {$totalPieces} pieces. "
+                    . "Please select at least {$moqBoxes} {$lvl2['name']}(s) or {$this->quickAddMoq} Pieces."
                 );
             } else {
                 $this->dispatch('toast', type: 'error', message:
-                    "Minimum order quantity is {$this->quickAddMoq} pieces."
+                    "Minimum order quantity is {$this->quickAddMoq} pieces. Your current selection total is {$totalPieces} pieces."
                 );
             }
             return;
@@ -190,18 +240,21 @@ class DashboardPage extends Component
         $user = auth()->user();
         $combination = $catalogService->resolveSelectedCombination($this->quickAddProduct, $this->quickAddSelectedValues);
 
-
         try {
             $cartService = app(\App\Services\Cart\CartService::class);
-            $cartService->addItem($user, [
-                'product_id' => $this->quickAddProductId,
-                'combination_id' => $combination?->id,
-                'unit_id' => $this->quickAddSelectedUnitId,
-                'quantity' => $this->quickAddQty,
-                'selected_options' => $this->quickAddSelectedValues ?: null,
-            ]);
+            // Add each queued item as a separate cart item
+            foreach ($this->quickAddQueuedItems as $item) {
+                $cartService->addItem($user, [
+                    'product_id'          => $this->quickAddProductId,
+                    'combination_id'      => $combination?->id,
+                    'unit_id'             => $item['unit_id'],
+                    'quantity'            => $item['quantity'],
+                    'selected_options'    => $this->quickAddSelectedValues ?: null,
+                    'skip_moq_validation' => true,
+                ]);
+            }
 
-            $this->dispatch('toast', type: 'success', message: 'Variant added to cart successfully.');
+            $this->dispatch('toast', type: 'success', message: 'Product added to cart successfully.');
             $this->dispatch('cart-updated', count: $cartService->getCartItemCount($user));
             $this->showQuickAddModal = false;
         } catch (\Exception $e) {
@@ -256,6 +309,9 @@ class DashboardPage extends Component
             // Legacy
             $this->recommendedProducts = $this->recentProducts;
         }
+
+        $renderService = app(\App\Services\Home\HomeContentRenderService::class);
+        $this->dynamicSections = $renderService->getHomeContentForCustomer($user);
 
         $this->lastUpdatedAt = now()->format('h:i A');
     }

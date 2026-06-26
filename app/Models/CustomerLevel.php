@@ -35,4 +35,9 @@ class CustomerLevel extends Model
     {
         return $query->orderBy('sort_order', 'asc')->orderBy('id', 'desc');
     }
+
+    public function customers()
+    {
+        return $this->hasMany(Customer::class, 'customer_level_id');
+    }
 }

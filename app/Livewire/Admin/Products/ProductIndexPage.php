@@ -202,6 +202,27 @@ class ProductIndexPage extends Component
         }
     }
 
+    public function hasStockMismatch(): bool
+    {
+        if (empty($this->variationGroups)) {
+            return false;
+        }
+
+        if ($this->totalStock === '') {
+            return false;
+        }
+
+        $definedTotal = (int) $this->totalStock;
+        $combinationSum = collect($this->combinations)->sum(fn($c) =>
+            isset($c['stock_quantity']) && $c['stock_quantity'] !== '' ? (int)$c['stock_quantity'] : 0
+        );
+        $anySet = collect($this->combinations)->contains(fn($c) =>
+            isset($c['stock_quantity']) && $c['stock_quantity'] !== ''
+        );
+
+        return $anySet && $combinationSum !== $definedTotal;
+    }
+
     protected function validateStep(int $step): bool
     {
          if ($step === 1) {
@@ -254,18 +275,12 @@ class ProductIndexPage extends Component
                 ]);
 
                 // If totalStock is defined, combination stocks (when set) must sum to it
-                if ($this->totalStock !== '') {
-                    $definedTotal = (int) $this->totalStock;
+                if ($this->hasStockMismatch()) {
                     $combinationSum = collect($this->combinations)->sum(fn($c) =>
                         isset($c['stock_quantity']) && $c['stock_quantity'] !== '' ? (int)$c['stock_quantity'] : 0
                     );
-                    $anySet = collect($this->combinations)->contains(fn($c) =>
-                        isset($c['stock_quantity']) && $c['stock_quantity'] !== ''
-                    );
-                    if ($anySet && $combinationSum !== $definedTotal) {
-                        $this->addError('totalStock', "Combination stocks sum to {$combinationSum} but total stock is {$definedTotal}. They must match.");
-                        return false;
-                    }
+                    $this->addError('totalStock', "Combination stocks sum to {$combinationSum} but total stock is {$this->totalStock}. They must match.");
+                    return false;
                 }
             }
         } elseif ($step === 6) {
@@ -405,15 +420,15 @@ class ProductIndexPage extends Component
         ProductVariationService $varService,
         ProductMediaService $mediaService
     ) {
-        try {
-            // Validate current step
-            $this->validateStep($this->currentStep);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            throw $e;
+        // Validate current step
+        if (!$this->validateStep($this->currentStep)) {
+            return;
         }
 
         // Validate previous steps
-        $this->validateUntilStep($this->currentStep - 1);
+        if (!$this->validateUntilStep($this->currentStep - 1)) {
+            return;
+        }
 
         $this->save($productService, $varService, $mediaService);
     }
@@ -424,7 +439,9 @@ class ProductIndexPage extends Component
         ProductMediaService $mediaService
     ) {
         // Final validation
-        $this->validateUntilStep(6);
+        if (!$this->validateUntilStep(6)) {
+            return;
+        }
 
         try {
             DB::transaction(function () use ($productService, $varService, $mediaService) {

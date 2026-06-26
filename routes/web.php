@@ -49,6 +49,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         
         Route::get('reports', \App\Livewire\Admin\Reports\ReportIndexPage::class)->name('reports.index');
         Route::get('notifications', \App\Livewire\Admin\Notifications\NotificationIndexPage::class)->name('notifications.index');
+        Route::get('home-content', \App\Livewire\Admin\HomeContent\HomeContentPage::class)->name('home-content.index');
         Route::get('settings', \App\Livewire\Admin\Settings\SettingsPage::class)->name('settings.index');
         Route::get('support', \App\Livewire\Admin\Support\SupportPage::class)->name('support.index');
     });
@@ -96,7 +97,7 @@ Route::middleware(['auth', 'customer'])->prefix('portal')->group(function () {
     Route::get('orders/{orderNumber}', \App\Livewire\Customer\Orders\OrderShowPage::class)->name('customer.orders.show');
     Route::get('notifications', \App\Livewire\Customer\Notifications\NotificationPage::class)->name('customer.notifications.index');
     Route::get('profile', \App\Livewire\Customer\Profile\ProfilePage::class)->name('customer.profile.show');
-    Route::get('change-password', \App\Livewire\Customer\Profile\ChangePasswordPage::class)->name('customer.profile.change-password');
+    Route::get('change-password', function () { return redirect()->route('customer.profile.show'); })->name('customer.profile.change-password');
 });
 
 Route::redirect('/customer/dashboard', '/portal/dashboard');

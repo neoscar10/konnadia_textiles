@@ -44,7 +44,7 @@
                         <td class="px-lg py-lg font-bold text-primary">{{ $level->name }}</td>
                         <td class="px-lg py-lg text-on-surface">{{ number_format($level->discount_percentage, 2) }}%</td>
                         <td class="px-lg py-lg text-center">
-                            <span class="font-bold text-on-surface">0</span>
+                            <span class="font-bold text-on-surface">{{ $level->active_customers_count ?? 0 }}</span>
                         </td>
                         <td class="px-lg py-lg text-center">
                             <x-admin.badge type="{{ $level->is_active ? 'success' : 'default' }}">
@@ -93,11 +93,6 @@
                     @error('form.discount_percentage') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>
 
-                <div class="space-y-xs">
-                    <label class="font-label-md text-on-surface-variant">Sort Order</label>
-                    <input type="number" wire:model="form.sort_order" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
-                    @error('form.sort_order') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                </div>
             </div>
 
             <div class="space-y-xs">

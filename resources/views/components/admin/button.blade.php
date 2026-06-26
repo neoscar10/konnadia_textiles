@@ -1,7 +1,7 @@
 @props(['variant' => 'primary', 'type' => 'button', 'icon' => null])
 
 @php
-    $baseClasses = 'font-button rounded-lg transition-all flex items-center justify-center gap-sm active:scale-[0.98]';
+    $baseClasses = 'font-button rounded-lg transition-all flex items-center justify-center gap-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100';
     
     $variants = [
         'primary'   => 'bg-primary text-on-primary hover:bg-primary-fixed-variant border border-transparent shadow-sm px-md py-sm',

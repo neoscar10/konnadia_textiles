@@ -115,75 +115,70 @@
 
 
 
-                <!-- Quantity Stepper / Dual-Unit Input -->
+                <!-- Quantity Selector per Unit -->
                 <div class="space-y-4">
-                    <h5 class="text-sm font-bold text-slate-700">Order Quantity</h5>
+                    <h5 class="text-sm font-bold text-slate-700">Order Quantity by Unit</h5>
 
-                    @php
-                        $lvl1u = collect($units)->firstWhere('level', 1);
-                        $lvl2u = collect($units)->firstWhere('level', 2);
-                        $lvl1UName = $lvl1u ? strtoupper($lvl1u['name']) : 'PIECES';
-                        $lvl2UName = $lvl2u ? strtoupper($lvl2u['name']) : null;
-                        $convRate = $lvl2u ? (int)$lvl2u['conversion_to_base'] : 1;
-                        $totalPiecesCalc = ($qty_lvl2 * $convRate) + $qty_lvl1;
-                    @endphp
-
-                    <div class="flex items-start gap-3">
-                        @if($hasLvl2Unit && $lvl2u)
-                            {{-- lvl2: Boxes --}}
-                            <div class="flex-1 space-y-1">
-                                <label class="text-xs text-slate-400 font-bold uppercase block">{{ $lvl2UName }}</label>
-                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                    <button type="button" wire:click="decrementQtyLvl2" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                    @foreach($units as $u)
+                        <div class="space-y-1 bg-slate-50 p-2.5 rounded-lg border border-outline-variant/20">
+                            <div class="flex justify-between items-center">
+                                <label class="text-xs text-slate-500 font-bold uppercase block">Buy in {{ $u['name'] }}s</label>
+                                @if($u['level'] === 2)
+                                    <span class="text-[10px] text-slate-400 block">1 {{ ucfirst($u['name']) }} = {{ (int)$u['conversion_to_base'] }} Pieces</span>
+                                @endif
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="flex items-center border border-outline-variant/30 rounded-lg bg-white p-1 flex-1">
+                                    <button type="button" wire:click="decrementUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
                                         <span class="material-symbols-outlined text-lg">remove</span>
                                     </button>
-                                    <input type="number" wire:model.live.debounce.300ms="qty_lvl2" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
-                                    <button type="button" wire:click="incrementQtyLvl2" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
+                                    <input type="number" wire:model.live="unitQuantities.{{ $u['id'] }}" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
+                                    <button type="button" wire:click="incrementUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
                                         <span class="material-symbols-outlined text-lg">add</span>
                                     </button>
                                 </div>
-                                <span class="text-[10px] text-slate-400 block text-center">1 {{ ucfirst($lvl2u['name']) }} = {{ $convRate }} {{ ucfirst($lvl1u['name'] ?? 'Pcs') }}s</span>
-                            </div>
-
-                            <div class="flex items-center pt-6 pb-2 text-slate-300 font-bold text-sm select-none">+</div>
-                        @endif
-
-                        {{-- lvl1: Pieces --}}
-                        <div class="flex-1 space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase block">{{ $lvl1UName }}</label>
-                            <div class="flex items-center border border-outline-variant/30 rounded-lg bg-slate-50 p-1">
-                                <button type="button" wire:click="decrementQtyLvl1" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
-                                    <span class="material-symbols-outlined text-lg">remove</span>
-                                </button>
-                                <input type="number" wire:model.live.debounce.300ms="qty_lvl1" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
-                                <button type="button" wire:click="incrementQtyLvl1" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-white hover:shadow-sm active:bg-slate-100 transition-all focus:outline-none">
-                                    <span class="material-symbols-outlined text-lg">add</span>
+                                <button type="button" wire:click="addUnitToQueue({{ $u['id'] }})" class="px-3 py-2 bg-[#001229] hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all shadow-sm">
+                                    Add
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    @endforeach
+
+                    <!-- Queued Items List -->
+                    @if(!empty($queuedItems))
+                        <div class="space-y-2 bg-[#f8fafc] border border-slate-200 rounded-lg p-3">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Current Selection:</span>
+                            <div class="space-y-1.5">
+                                @foreach($queuedItems as $item)
+                                    <div class="flex items-center justify-between bg-white border border-outline-variant/20 rounded-md px-2.5 py-1.5 text-xs text-slate-700">
+                                        <span class="font-semibold">{{ $item['quantity'] }} {{ $item['unit_name'] }}(s)</span>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[10px] text-slate-400">({{ $item['quantity'] * $item['conversion_to_base'] }} pcs)</span>
+                                            <button type="button" wire:click="removeUnitFromQueue({{ $item['unit_id'] }})" class="text-rose-500 hover:text-rose-700 focus:outline-none" title="Remove">
+                                                <span class="material-symbols-outlined text-[16px] font-bold">close</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
 
                     <div class="flex justify-between items-center text-[10px] text-slate-400 font-semibold select-none">
-                        @if($hasLvl2Unit)
-                            <span>Total: {{ $totalPiecesCalc }} Pieces</span>
-                        @else
-                            <span></span>
-                        @endif
+                        @php
+                            $totalPiecesQueued = collect($queuedItems)->sum(fn($i) => $i['quantity'] * $i['conversion_to_base']);
+                        @endphp
+                        <span>Total Selected: {{ $totalPiecesQueued }} Pieces</span>
                         <span>MOQ: {{ $minimumOrderQuantity }} Pieces</span>
                     </div>
                 </div>
 
                 {{-- Live MOQ warning if below minimum --}}
-                @php
-                    $lvl2u2 = collect($units)->firstWhere('level', 2);
-                    $convRate2 = $lvl2u2 ? (float)$lvl2u2['conversion_to_base'] : 1.0;
-                    $totalPiecesMoq = ($qty_lvl2 * $convRate2) + $qty_lvl1;
-                @endphp
-                @if($totalPiecesMoq > 0 && $totalPiecesMoq < $minimumOrderQuantity)
+                @if($totalPiecesQueued > 0 && $totalPiecesQueued < $minimumOrderQuantity)
                     <div class="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 mt-2">
                         <span class="material-symbols-outlined text-sm text-rose-500 select-none mt-0.5">warning</span>
                         <span class="text-xs font-semibold text-rose-700">
-                            Minimum order is <strong>{{ $minimumOrderQuantity }} pieces</strong>. Please increase quantity.
+                            Minimum order is <strong>{{ $minimumOrderQuantity }} pieces</strong>. Please select more.
                         </span>
                     </div>
                 @endif

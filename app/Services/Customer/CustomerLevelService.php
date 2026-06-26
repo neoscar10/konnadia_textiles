@@ -13,7 +13,10 @@ class CustomerLevelService
      */
     public function list(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
-        $query = CustomerLevel::query();
+        $query = CustomerLevel::query()
+            ->withCount(['customers as active_customers_count' => function ($q) {
+                $q->where('is_active', true);
+            }]);
 
         if (!empty($filters['search'])) {
             $query->where('name', 'like', '%' . trim($filters['search']) . '%');
@@ -33,6 +36,12 @@ class CustomerLevelService
     {
         return DB::transaction(function () use ($data) {
             $data['name'] = trim($data['name']);
+            
+            if (!isset($data['sort_order']) || $data['sort_order'] === null || $data['sort_order'] === '' || $data['sort_order'] == 0) {
+                $maxSortOrder = CustomerLevel::max('sort_order');
+                $data['sort_order'] = $maxSortOrder !== null ? $maxSortOrder + 1 : 1;
+            }
+
             return CustomerLevel::create($data);
         });
     }

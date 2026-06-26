@@ -121,11 +121,15 @@ class CustomerLevelIndexPage extends Component
     {
         $this->resetValidation();
         $this->editingId = null;
+
+        $maxSortOrder = CustomerLevel::max('sort_order');
+        $nextSortOrder = $maxSortOrder !== null ? $maxSortOrder + 1 : 1;
+
         $this->form = [
             'name' => '',
             'discount_percentage' => 0,
             'default_credit_limit' => 0,
-            'sort_order' => 0,
+            'sort_order' => $nextSortOrder,
             'description' => '',
             'is_active' => true,
         ];

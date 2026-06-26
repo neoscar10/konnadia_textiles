@@ -22,6 +22,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/products/{product}/related', [\App\Http\Controllers\Api\V1\ProductCatalogController::class, 'related']);
 
         Route::middleware('api.customer')->group(function () {
+            Route::get('/home', [\App\Http\Controllers\Api\V1\HomeContentController::class, 'index']);
             Route::get('/dashboard', [\App\Http\Controllers\Api\V1\CustomerDashboardController::class, 'show']);
 
             Route::get('/cart', [\App\Http\Controllers\Api\V1\CartController::class, 'show']);
