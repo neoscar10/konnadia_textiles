@@ -66,6 +66,14 @@ class HomeContentPage extends Component
     // Image Slider items (Dynamic array of slides)
     public $slides = [];
 
+    // Image/Text Card fields
+    public $cardImage = null;
+    public $cardImageAlt = '';
+    public $cardMarkdown = '';
+    public $cardAlignment = 'left';
+    public $cardExistingImage = null;
+    public $cardPreviewMode = false;
+
     // Delete section confirmation modal
     public $confirmingDeletionId = null;
 
@@ -141,6 +149,29 @@ class HomeContentPage extends Component
                     'upload' => null, // Temp file upload placeholder
                 ];
             }
+        } elseif ($section->type === 'banner_slider') {
+            $this->slides = [];
+            foreach ($section->items as $item) {
+                $this->slides[] = [
+                    'id' => $item->id,
+                    'image_alt' => $item->image_alt ?? '',
+                    'cta_label' => $item->cta_label ?? '',
+                    'link_type' => $item->link_type ?? 'none',
+                    'link_category_id' => $item->link_category_id,
+                    'link_product_id' => $item->link_product_id,
+                    'external_url' => $item->external_url ?? '',
+                    'existing_image' => $item->image_path,
+                    'upload' => null,
+                ];
+            }
+        } elseif ($section->type === 'image_text_card') {
+            $item = $section->items->first();
+            if ($item) {
+                $this->cardMarkdown = $item->metadata['markdown'] ?? '';
+                $this->cardAlignment = $item->metadata['alignment'] ?? 'left';
+                $this->cardImageAlt = $item->image_alt ?? '';
+                $this->cardExistingImage = $item->image_path;
+            }
         }
 
         $this->wizardStep = 2; // Jump directly to configure step
@@ -153,19 +184,18 @@ class HomeContentPage extends Component
      */
     public function addSlide()
     {
-        $this->slides[] = [
+        array_unshift($this->slides, [
             'id' => null,
             'title' => '',
             'subtitle' => '',
             'cta_label' => 'Shop Now',
-            'image_alt' => '',
             'link_type' => 'none',
             'link_category_id' => null,
             'link_product_id' => null,
             'external_url' => '',
             'existing_image' => null,
             'upload' => null,
-        ];
+        ]);
     }
 
     /**
@@ -195,11 +225,35 @@ class HomeContentPage extends Component
      */
     public function toggleCategorySelection($id)
     {
+        $category = Category::with('children')->find($id);
+        if (!$category) return;
+
+        // Get all descendant category IDs recursively
+        $descendantIds = $this->getDescendantCategoryIds($category);
+
         if (in_array($id, $this->selectedCategoryIds)) {
-            $this->selectedCategoryIds = array_diff($this->selectedCategoryIds, [$id]);
+            // Deselect parent and all its descendants
+            $idsToRemove = array_merge([$id], $descendantIds);
+            $this->selectedCategoryIds = array_values(array_diff($this->selectedCategoryIds, $idsToRemove));
         } else {
-            $this->selectedCategoryIds[] = $id;
+            // Select parent and all its descendants
+            $idsToAdd = array_merge([$id], $descendantIds);
+            foreach ($idsToAdd as $toAddId) {
+                if (!in_array($toAddId, $this->selectedCategoryIds)) {
+                    $this->selectedCategoryIds[] = $toAddId;
+                }
+            }
         }
+    }
+
+    protected function getDescendantCategoryIds($category)
+    {
+        $ids = [];
+        foreach ($category->children as $child) {
+            $ids[] = $child->id;
+            $ids = array_merge($ids, $this->getDescendantCategoryIds($child));
+        }
+        return $ids;
     }
 
     /**
@@ -285,8 +339,6 @@ class HomeContentPage extends Component
         } elseif ($this->wizardStep === 3) {
             if ($this->sectionType === 'banner') {
                 $rules = [
-                    'bannerTitle' => ['nullable', 'string', 'max:150'],
-                    'bannerSubtitle' => ['nullable', 'string', 'max:250'],
                     'bannerCtaLabel' => ['nullable', 'string', 'max:50'],
                     'bannerLinkType' => ['required', 'in:none,category,product,url'],
                     'bannerLinkCategoryId' => ['required_if:bannerLinkType,category', 'nullable', 'exists:categories,id'],
@@ -294,9 +346,43 @@ class HomeContentPage extends Component
                     'bannerExternalUrl' => ['required_if:bannerLinkType,url', 'nullable', 'url', 'max:500'],
                 ];
                 if (!$this->bannerExistingImage) {
-                    $rules['bannerImage'] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'];
+                    $rules['bannerImage'] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
                 } else {
-                    $rules['bannerImage'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'];
+                    $rules['bannerImage'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                }
+                $this->validate($rules);
+            } elseif ($this->sectionType === 'banner_slider') {
+                if (empty($this->slides)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'slides' => 'Please add at least one banner slide.',
+                    ]);
+                }
+                foreach ($this->slides as $index => $slide) {
+                    $rules = [
+                        "slides.{$index}.cta_label" => ['nullable', 'string', 'max:50'],
+                        "slides.{$index}.link_type" => ['required', 'in:none,category,product,url'],
+                        "slides.{$index}.link_category_id" => ["required_if:slides.{$index}.link_type,category", 'nullable', 'exists:categories,id'],
+                        "slides.{$index}.link_product_id" => ["required_if:slides.{$index}.link_type,product", 'nullable', 'exists:products,id'],
+                        "slides.{$index}.external_url" => ["required_if:slides.{$index}.link_type,url", 'nullable', 'url', 'max:500'],
+                    ];
+                    if (empty($slide['existing_image'])) {
+                        $rules["slides.{$index}.upload"] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                    } else {
+                        $rules["slides.{$index}.upload"] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                    }
+                    $this->validate($rules, [
+                        "slides.{$index}.upload.required" => "An image file is required for slide #".($index + 1),
+                    ]);
+                }
+            } elseif ($this->sectionType === 'image_text_card') {
+                $rules = [
+                    'cardMarkdown' => ['required', 'string'],
+                    'cardAlignment' => ['required', 'in:left,right'],
+                ];
+                if (!$this->cardExistingImage) {
+                    $rules['cardImage'] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                } else {
+                    $rules['cardImage'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
                 }
                 $this->validate($rules);
             } elseif ($this->sectionType === 'category_slider') {
@@ -328,9 +414,9 @@ class HomeContentPage extends Component
                         "slides.{$index}.external_url" => ["required_if:slides.{$index}.link_type,url", 'nullable', 'url', 'max:500'],
                     ];
                     if (empty($slide['existing_image'])) {
-                        $rules["slides.{$index}.upload"] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'];
+                        $rules["slides.{$index}.upload"] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
                     } else {
-                        $rules["slides.{$index}.upload"] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'];
+                        $rules["slides.{$index}.upload"] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
                     }
                     $this->validate($rules, [
                         "slides.{$index}.upload.required" => "An image file is required for slide #".($index + 1),
@@ -369,15 +455,46 @@ class HomeContentPage extends Component
             }
             $sectionData['items'][] = [
                 'item_type' => 'banner',
-                'title' => $this->bannerTitle ?: null,
-                'subtitle' => $this->bannerSubtitle ?: null,
+                'title' => null,
+                'subtitle' => null,
                 'cta_label' => $this->bannerCtaLabel ?: null,
                 'image_path' => $imagePath,
-                'image_alt' => $this->bannerImageAlt ?: null,
+                'image_alt' => $this->sectionTitle ? 'Banner - ' . $this->sectionTitle : 'Banner image',
                 'link_type' => $this->bannerLinkType,
                 'link_category_id' => $this->bannerLinkCategoryId,
                 'link_product_id' => $this->bannerLinkProductId,
                 'external_url' => $this->bannerExternalUrl ?: null,
+            ];
+        } elseif ($this->sectionType === 'banner_slider') {
+            foreach ($this->slides as $index => $slide) {
+                $imagePath = $slide['existing_image'];
+                if ($slide['upload']) {
+                    $imagePath = $mediaService->storeImage($slide['upload'], 'banners');
+                }
+                $sectionData['items'][] = [
+                    'item_type' => 'banner_slide',
+                    'image_path' => $imagePath,
+                    'image_alt' => 'Banner slide ' . ($index + 1) . ($this->sectionTitle ? ' - ' . $this->sectionTitle : ''),
+                    'cta_label' => $slide['cta_label'] ?: null,
+                    'link_type' => $slide['link_type'],
+                    'link_category_id' => $slide['link_category_id'],
+                    'link_product_id' => $slide['link_product_id'],
+                    'external_url' => $slide['external_url'] ?: null,
+                ];
+            }
+        } elseif ($this->sectionType === 'image_text_card') {
+            $imagePath = $this->cardExistingImage;
+            if ($this->cardImage) {
+                $imagePath = $mediaService->storeImage($this->cardImage, 'cards');
+            }
+            $sectionData['items'][] = [
+                'item_type' => 'image_text_card',
+                'image_path' => $imagePath,
+                'image_alt' => $this->sectionTitle ? 'Card image - ' . $this->sectionTitle : 'Card image',
+                'metadata' => [
+                    'markdown' => $this->cardMarkdown,
+                    'alignment' => $this->cardAlignment,
+                ],
             ];
         } elseif ($this->sectionType === 'category_slider') {
             foreach ($this->selectedCategoryIds as $catId) {
@@ -407,7 +524,7 @@ class HomeContentPage extends Component
                     'subtitle' => $slide['subtitle'] ?: null,
                     'cta_label' => $slide['cta_label'] ?: null,
                     'image_path' => $imagePath,
-                    'image_alt' => $slide['image_alt'] ?: null,
+                    'image_alt' => $slide['title'] ?: ('Slide ' . ($index + 1) . ($this->sectionTitle ? ' - ' . $this->sectionTitle : '')),
                     'link_type' => $slide['link_type'],
                     'link_category_id' => $slide['link_category_id'],
                     'link_product_id' => $slide['link_product_id'],
@@ -465,9 +582,16 @@ class HomeContentPage extends Component
             'selectedProductIds',
             
             'slides',
+
+            'cardImage',
+            'cardImageAlt',
+            'cardMarkdown',
+            'cardAlignment',
+            'cardExistingImage',
         ]);
         $this->resetValidation();
         $this->slides = [];
+        $this->cardAlignment = 'left';
         $this->visibilityMode = 'live';
     }
 

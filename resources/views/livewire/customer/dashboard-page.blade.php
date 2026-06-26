@@ -22,44 +22,207 @@
         @foreach($dynamicSections as $section)
             @if($section['type'] === 'banner')
                 @foreach($section['items'] as $item)
-                    <div class="mb-8 relative w-full rounded-2xl overflow-hidden min-h-[260px] md:min-h-[320px] bg-slate-900 flex items-center justify-start p-8 md:p-12 border border-outline-variant/10 shadow-ambient">
-                        @if($item['image_url'])
-                            <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-cover opacity-70 hover:scale-105 transition-transform duration-700">
-                        @endif
-                        <div class="relative z-10 text-left space-y-3 max-w-lg text-white">
-                            <span class="text-[10px] font-bold text-gold uppercase tracking-widest block">{{ $section['title'] ?: 'OFFER' }}</span>
-                            <h3 class="text-2xl md:text-4xl font-black tracking-tight leading-tight">{{ $item['title'] }}</h3>
-                            @if($item['subtitle'])
-                                <p class="text-sm text-slate-200 leading-relaxed font-semibold">{{ $item['subtitle'] }}</p>
-                            @endif
-                            @if($item['link']['url'])
-                                <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-gold text-[#001229] text-xs font-black transition-all hover:bg-white hover:scale-105 shadow-md">
-                                    {{ $item['cta_label'] ?: 'Shop Now' }}
-                                </a>
+                    @if($item['link']['url'] && empty($item['cta_label']))
+                        <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block mb-8 rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 hover:shadow-md transition-all hover:scale-[1.005] duration-300">
+                            <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                        </a>
+                    @else
+                        <div class="mb-8 relative w-full rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 bg-slate-900">
+                            <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                            @if($item['link']['url'] && !empty($item['cta_label']))
+                                <div class="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-10">
+                                    <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-gold text-[#001229] text-xs font-black transition-all hover:bg-white hover:scale-105 shadow-md">
+                                        {{ $item['cta_label'] }}
+                                    </a>
+                                </div>
                             @endif
                         </div>
-                    </div>
+                    @endif
                 @endforeach
+            @endif
+
+            <!-- Banner Slider -->
+            @if($section['type'] === 'banner_slider')
+                <div class="mb-8 w-full rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 relative"
+                     x-data="{ 
+                        activeSlide: 0, 
+                        slidesCount: {{ count($section['items']) }},
+                        next() { this.activeSlide = (this.activeSlide + 1) % this.slidesCount },
+                        prev() { this.activeSlide = (this.activeSlide - 1 + this.slidesCount) % this.slidesCount }
+                     }"
+                     x-init="setInterval(() => next(), 6000)">
+                    
+                    <!-- Slides -->
+                    <div class="relative w-full overflow-hidden bg-slate-900">
+                        @foreach($section['items'] as $index => $item)
+                            <div x-show="activeSlide === {{ $index }}" 
+                                 x-transition:enter="transition ease-out duration-500"
+                                 x-transition:enter-start="opacity-0 transform scale-95"
+                                 x-transition:enter-end="opacity-100 transform scale-100"
+                                 class="w-full relative">
+                                @if($item['link']['url'] && empty($item['cta_label']))
+                                    <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block">
+                                        <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                                    </a>
+                                @else
+                                    <div class="relative w-full">
+                                        <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                                        @if($item['link']['url'] && !empty($item['cta_label']))
+                                            <div class="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-10">
+                                                <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-gold text-[#001229] text-xs font-black transition-all hover:bg-white hover:scale-105 shadow-md">
+                                                    {{ $item['cta_label'] }}
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <!-- Navigation Arrows -->
+                    @if(count($section['items']) > 1)
+                        <button @click="prev()" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all focus:outline-none z-20">
+                            <span class="material-symbols-outlined text-sm">chevron_left</span>
+                        </button>
+                        <button @click="next()" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all focus:outline-none z-20">
+                            <span class="material-symbols-outlined text-sm">chevron_right</span>
+                        </button>
+
+                        <!-- Indicators -->
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                            @foreach($section['items'] as $index => $item)
+                                <button @click="activeSlide = {{ $index }}" 
+                                        class="w-2 h-2 rounded-full transition-all focus:outline-none"
+                                        :class="activeSlide === {{ $index }} ? 'bg-gold w-4' : 'bg-white/40 hover:bg-white/60'"></button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            <!-- Image/Text Card -->
+            @if($section['type'] === 'image_text_card')
+                <div class="mb-8 w-full bg-white border border-outline-variant/20 rounded-2xl shadow-ambient overflow-hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2">
+                        @if(($section['alignment'] ?? 'left') === 'left')
+                            <!-- Image left, text right -->
+                            <div class="relative w-full h-64 md:h-auto min-h-[250px] bg-slate-50">
+                                @if($section['image_url'])
+                                    <img src="{{ $section['image_url'] }}" class="absolute inset-0 w-full h-full object-cover" alt="{{ $section['image_alt'] }}">
+                                @else
+                                    <div class="absolute inset-0 flex items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined text-4xl">image</span>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="p-8 md:p-12 flex flex-col justify-center">
+                                @if($section['title'])
+                                    <h3 class="text-xl md:text-2xl font-black text-[#001229] mb-2">{{ $section['title'] }}</h3>
+                                @endif
+                                @if($section['subtitle'])
+                                    <p class="text-xs text-slate-500 font-semibold mb-4">{{ $section['subtitle'] }}</p>
+                                @endif
+                                <div class="prose max-w-none text-slate-600 text-sm leading-relaxed prose-slate">
+                                    {!! \Illuminate\Support\Str::markdown($section['markdown'] ?? '') !!}
+                                </div>
+                            </div>
+                        @else
+                            <!-- Text left, image right -->
+                            <div class="p-8 md:p-12 flex flex-col justify-center order-2 md:order-1">
+                                @if($section['title'])
+                                    <h3 class="text-xl md:text-2xl font-black text-[#001229] mb-2">{{ $section['title'] }}</h3>
+                                @endif
+                                @if($section['subtitle'])
+                                    <p class="text-xs text-slate-500 font-semibold mb-4">{{ $section['subtitle'] }}</p>
+                                @endif
+                                <div class="prose max-w-none text-slate-600 text-sm leading-relaxed prose-slate">
+                                    {!! \Illuminate\Support\Str::markdown($section['markdown'] ?? '') !!}
+                                </div>
+                            </div>
+                            <div class="relative w-full h-64 md:h-auto min-h-[250px] bg-slate-50 order-1 md:order-2">
+                                @if($section['image_url'])
+                                    <img src="{{ $section['image_url'] }}" class="absolute inset-0 w-full h-full object-cover" alt="{{ $section['image_alt'] }}">
+                                @else
+                                    <div class="absolute inset-0 flex items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined text-4xl">image</span>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                </div>
             @endif
 
             <!-- Category Slider -->
             @if($section['type'] === 'category_slider')
-                <div class="mb-8 space-y-4">
-                    <div class="flex flex-col gap-0.5">
-                        <h3 class="text-base font-extrabold text-[#001229]">{{ $section['title'] ?: 'Shop by Category' }}</h3>
-                        @if($section['subtitle'])
-                            <p class="text-xs text-slate-500 font-semibold">{{ $section['subtitle'] }}</p>
-                        @endif
+                <div class="mb-8 space-y-4" x-data="{
+                    scrollNext() { 
+                        const container = this.$refs.sliderContainer;
+                        const halfWidth = container.scrollWidth / 2;
+                        if (container.scrollLeft >= halfWidth - 10) {
+                            container.scrollLeft = container.scrollLeft - halfWidth;
+                        }
+                        container.scrollBy({ left: 300, behavior: 'smooth' });
+                    },
+                    scrollPrev() { 
+                        const container = this.$refs.sliderContainer;
+                        const halfWidth = container.scrollWidth / 2;
+                        if (container.scrollLeft <= 10) {
+                            container.scrollLeft = container.scrollLeft + halfWidth;
+                        }
+                        container.scrollBy({ left: -300, behavior: 'smooth' });
+                    }
+                }" x-init="setInterval(() => scrollNext(), 4000)">
+                    <div class="flex justify-between items-end">
+                        <div class="flex flex-col gap-0.5">
+                            <h3 class="text-base font-extrabold text-[#001229]">{{ $section['title'] ?: 'Featured Collection' }}</h3>
+                            @if($section['subtitle'])
+                                <p class="text-xs text-slate-500 font-semibold">{{ $section['subtitle'] }}</p>
+                            @endif
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="scrollPrev()" class="w-8 h-8 rounded-full border border-outline-variant/30 bg-white hover:bg-slate-50 flex items-center justify-center text-[#001229] transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-sm font-bold">arrow_back</span>
+                            </button>
+                            <button @click="scrollNext()" class="w-8 h-8 rounded-full border border-outline-variant/30 bg-white hover:bg-slate-50 flex items-center justify-center text-[#001229] transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-sm font-bold">arrow_forward</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+
+                    <!-- Horizontal Snap List -->
+                    <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory" style="-ms-overflow-style: none; scrollbar-width: none;">
                         @foreach($section['items'] as $item)
-                            <a href="{{ $item['link']['url'] }}" class="flex flex-col items-center p-lg bg-white border border-outline-variant/20 rounded-2xl shadow-ambient hover:shadow-md hover:border-[#001229]/25 transition-all text-center group">
-                                <div class="w-12 h-12 rounded-full bg-[#001229]/5 text-[#001229] flex items-center justify-center group-hover:bg-gold/10 group-hover:text-gold transition-colors">
-                                    <span class="material-symbols-outlined text-2xl font-bold select-none">widgets</span>
-                                </div>
-                                <h4 class="text-xs font-bold text-[#001229] mt-3 group-hover:text-primary transition-colors">{{ $item['category']['name'] }}</h4>
-                                <span class="text-[10px] text-slate-400 font-semibold mt-1">{{ $item['category']['products_count'] }} Products</span>
-                            </a>
+                            @php $prod = $item['product']; @endphp
+                            <div class="flex-shrink-0 w-72 snap-start">
+                                <x-customer.product-card 
+                                    :title="$prod['title']" 
+                                    :sku="$prod['sku']" 
+                                    :price="$prod['price']['customer_price']" 
+                                    :moq="$prod['minimum_order_quantity']" 
+                                    :image="$prod['primary_image_url']" 
+                                    :inStock="$prod['stock']['status'] !== 'out_of_stock'"
+                                    :url="$item['link']['url']"
+                                    :productId="$prod['id']"
+                                />
+                            </div>
+                        @endforeach
+                        <!-- Duplicate items for seamless infinite looping -->
+                        @foreach($section['items'] as $item)
+                            @php $prod = $item['product']; @endphp
+                            <div class="flex-shrink-0 w-72 snap-start">
+                                <x-customer.product-card 
+                                    :title="$prod['title']" 
+                                    :sku="$prod['sku']" 
+                                    :price="$prod['price']['customer_price']" 
+                                    :moq="$prod['minimum_order_quantity']" 
+                                    :image="$prod['primary_image_url']" 
+                                    :inStock="$prod['stock']['status'] !== 'out_of_stock'"
+                                    :url="$item['link']['url']"
+                                    :productId="$prod['id']"
+                                />
+                            </div>
                         @endforeach
                     </div>
                 </div>
@@ -67,27 +230,73 @@
 
             <!-- Product Slider -->
             @if($section['type'] === 'product_slider')
-                <div class="mb-8 space-y-4">
-                    <div class="flex flex-col gap-0.5">
-                        <h3 class="text-base font-extrabold text-[#001229]">{{ $section['title'] ?: 'Featured Products' }}</h3>
-                        @if($section['subtitle'])
-                            <p class="text-xs text-slate-500 font-semibold">{{ $section['subtitle'] }}</p>
-                        @endif
+                <div class="mb-8 space-y-4" x-data="{
+                    scrollNext() { 
+                        const container = this.$refs.sliderContainer;
+                        const halfWidth = container.scrollWidth / 2;
+                        if (container.scrollLeft >= halfWidth - 10) {
+                            container.scrollLeft = container.scrollLeft - halfWidth;
+                        }
+                        container.scrollBy({ left: 300, behavior: 'smooth' });
+                    },
+                    scrollPrev() { 
+                        const container = this.$refs.sliderContainer;
+                        const halfWidth = container.scrollWidth / 2;
+                        if (container.scrollLeft <= 10) {
+                            container.scrollLeft = container.scrollLeft + halfWidth;
+                        }
+                        container.scrollBy({ left: -300, behavior: 'smooth' });
+                    }
+                }" x-init="setInterval(() => scrollNext(), 4000)">
+                    <div class="flex justify-between items-end">
+                        <div class="flex flex-col gap-0.5">
+                            <h3 class="text-base font-extrabold text-[#001229]">{{ $section['title'] ?: 'Featured Products' }}</h3>
+                            @if($section['subtitle'])
+                                <p class="text-xs text-slate-500 font-semibold">{{ $section['subtitle'] }}</p>
+                            @endif
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="scrollPrev()" class="w-8 h-8 rounded-full border border-outline-variant/30 bg-white hover:bg-slate-50 flex items-center justify-center text-[#001229] transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-sm font-bold">arrow_back</span>
+                            </button>
+                            <button @click="scrollNext()" class="w-8 h-8 rounded-full border border-outline-variant/30 bg-white hover:bg-slate-50 flex items-center justify-center text-[#001229] transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-sm font-bold">arrow_forward</span>
+                            </button>
+                        </div>
                     </div>
-                    <!-- Grid / Horizontal flex list -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                    <!-- Horizontal Snap List -->
+                    <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory" style="-ms-overflow-style: none; scrollbar-width: none;">
                         @foreach($section['items'] as $item)
                             @php $prod = $item['product']; @endphp
-                            <x-customer.product-card 
-                                :title="$prod['title']" 
-                                :sku="$prod['sku']" 
-                                :price="$prod['price']['customer_price']" 
-                                :moq="$prod['minimum_order_quantity']" 
-                                :image="$prod['primary_image_url']" 
-                                :inStock="$prod['stock']['status'] !== 'out_of_stock'"
-                                :url="$item['link']['url']"
-                                :productId="$prod['id']"
-                            />
+                            <div class="flex-shrink-0 w-72 snap-start">
+                                <x-customer.product-card 
+                                    :title="$prod['title']" 
+                                    :sku="$prod['sku']" 
+                                    :price="$prod['price']['customer_price']" 
+                                    :moq="$prod['minimum_order_quantity']" 
+                                    :image="$prod['primary_image_url']" 
+                                    :inStock="$prod['stock']['status'] !== 'out_of_stock'"
+                                    :url="$item['link']['url']"
+                                    :productId="$prod['id']"
+                                />
+                            </div>
+                        @endforeach
+                        <!-- Duplicate items for seamless infinite looping -->
+                        @foreach($section['items'] as $item)
+                            @php $prod = $item['product']; @endphp
+                            <div class="flex-shrink-0 w-72 snap-start">
+                                <x-customer.product-card 
+                                    :title="$prod['title']" 
+                                    :sku="$prod['sku']" 
+                                    :price="$prod['price']['customer_price']" 
+                                    :moq="$prod['minimum_order_quantity']" 
+                                    :image="$prod['primary_image_url']" 
+                                    :inStock="$prod['stock']['status'] !== 'out_of_stock'"
+                                    :url="$item['link']['url']"
+                                    :productId="$prod['id']"
+                                />
+                            </div>
                         @endforeach
                     </div>
                 </div>
@@ -95,21 +304,69 @@
 
             <!-- Image Slider -->
             @if($section['type'] === 'image_slider')
-                <div class="mb-8 space-y-4">
-                    <div class="flex flex-col gap-0.5">
-                        <h3 class="text-base font-extrabold text-[#001229]">{{ $section['title'] ?: 'Promotions' }}</h3>
-                        @if($section['subtitle'])
-                            <p class="text-xs text-slate-500 font-semibold">{{ $section['subtitle'] }}</p>
-                        @endif
+                <div class="mb-8 space-y-4" x-data="{
+                    scrollNext() { 
+                        const container = this.$refs.sliderContainer;
+                        const halfWidth = container.scrollWidth / 2;
+                        if (container.scrollLeft >= halfWidth - 10) {
+                            container.scrollLeft = container.scrollLeft - halfWidth;
+                        }
+                        container.scrollBy({ left: 350, behavior: 'smooth' });
+                    },
+                    scrollPrev() { 
+                        const container = this.$refs.sliderContainer;
+                        const halfWidth = container.scrollWidth / 2;
+                        if (container.scrollLeft <= 10) {
+                            container.scrollLeft = container.scrollLeft + halfWidth;
+                        }
+                        container.scrollBy({ left: -350, behavior: 'smooth' });
+                    }
+                }" x-init="setInterval(() => scrollNext(), 4000)">
+                    <div class="flex justify-between items-end">
+                        <div class="flex flex-col gap-0.5">
+                            <h3 class="text-base font-extrabold text-[#001229]">{{ $section['title'] ?: 'Promotions' }}</h3>
+                            @if($section['subtitle'])
+                                <p class="text-xs text-slate-500 font-semibold">{{ $section['subtitle'] }}</p>
+                            @endif
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="scrollPrev()" class="w-8 h-8 rounded-full border border-outline-variant/30 bg-white hover:bg-slate-50 flex items-center justify-center text-[#001229] transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-sm font-bold">arrow_back</span>
+                            </button>
+                            <button @click="scrollNext()" class="w-8 h-8 rounded-full border border-outline-variant/30 bg-white hover:bg-slate-50 flex items-center justify-center text-[#001229] transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-sm font-bold">arrow_forward</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <!-- Horizontal Snap List -->
+                    <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory" style="-ms-overflow-style: none; scrollbar-width: none;">
                         @foreach($section['items'] as $item)
-                            <div class="relative rounded-2xl overflow-hidden min-h-[200px] bg-slate-900 flex items-center justify-start p-6 md:p-10 border border-outline-variant/10 shadow-ambient">
+                            <div class="flex-shrink-0 w-80 md:w-96 snap-start relative rounded-2xl overflow-hidden min-h-[200px] bg-slate-900 flex items-center justify-start p-6 md:p-8 border border-outline-variant/10 shadow-ambient">
                                 @if($item['image_url'])
-                                    <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-700">
+                                    <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-700" alt="{{ $item['image_alt'] }}">
                                 @endif
                                 <div class="relative z-10 text-left space-y-2 text-white max-w-xs">
-                                    <h4 class="text-lg font-black tracking-tight leading-tight">{{ $item['title'] }}</h4>
+                                    <h4 class="text-base font-black tracking-tight leading-tight">{{ $item['title'] }}</h4>
+                                    @if($item['subtitle'])
+                                        <p class="text-xs text-slate-200 leading-relaxed font-semibold">{{ $item['subtitle'] }}</p>
+                                    @endif
+                                    @if($item['link']['url'])
+                                        <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gold text-[#001229] text-[10px] font-black transition-all hover:bg-white shadow-sm mt-1">
+                                            {{ $item['cta_label'] ?: 'Shop Now' }}
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                        <!-- Duplicate items for seamless infinite looping -->
+                        @foreach($section['items'] as $item)
+                            <div class="flex-shrink-0 w-80 md:w-96 snap-start relative rounded-2xl overflow-hidden min-h-[200px] bg-slate-900 flex items-center justify-start p-6 md:p-8 border border-outline-variant/10 shadow-ambient">
+                                @if($item['image_url'])
+                                    <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-700" alt="{{ $item['image_alt'] }}">
+                                @endif
+                                <div class="relative z-10 text-left space-y-2 text-white max-w-xs">
+                                    <h4 class="text-base font-black tracking-tight leading-tight">{{ $item['title'] }}</h4>
                                     @if($item['subtitle'])
                                         <p class="text-xs text-slate-200 leading-relaxed font-semibold">{{ $item['subtitle'] }}</p>
                                     @endif

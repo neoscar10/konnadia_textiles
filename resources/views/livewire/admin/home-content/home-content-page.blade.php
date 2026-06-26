@@ -139,25 +139,25 @@
             
             <!-- Step Indicators -->
             <div class="flex items-center justify-between border-b border-outline-variant/30 pb-md mb-lg text-xs font-semibold text-slate-500">
-                <div class="flex items-center gap-2 {{ $wizardStep === 1 ? 'text-primary font-black' : '' }}">
+                <button type="button" @if($editingSectionId) wire:click="$set('wizardStep', 1)" @endif class="flex items-center gap-2 focus:outline-none {{ $editingSectionId ? 'cursor-pointer hover:text-primary' : 'cursor-default' }} {{ $wizardStep === 1 ? 'text-primary font-black' : '' }}">
                     <span class="w-5 h-5 rounded-full flex items-center justify-center border text-[10px] {{ $wizardStep >= 1 ? 'bg-primary text-white border-primary' : '' }}">1</span>
                     <span>Choose Type</span>
-                </div>
+                </button>
                 <div class="w-12 h-px bg-slate-200"></div>
-                <div class="flex items-center gap-2 {{ $wizardStep === 2 ? 'text-primary font-black' : '' }}">
+                <button type="button" @if($editingSectionId) wire:click="$set('wizardStep', 2)" @endif class="flex items-center gap-2 focus:outline-none {{ $editingSectionId ? 'cursor-pointer hover:text-primary' : 'cursor-default' }} {{ $wizardStep === 2 ? 'text-primary font-black' : '' }}">
                     <span class="w-5 h-5 rounded-full flex items-center justify-center border text-[10px] {{ $wizardStep >= 2 ? 'bg-primary text-white border-primary' : '' }}">2</span>
                     <span>Configure Layout</span>
-                </div>
+                </button>
                 <div class="w-12 h-px bg-slate-200"></div>
-                <div class="flex items-center gap-2 {{ $wizardStep === 3 ? 'text-primary font-black' : '' }}">
+                <button type="button" @if($editingSectionId) wire:click="$set('wizardStep', 3)" @endif class="flex items-center gap-2 focus:outline-none {{ $editingSectionId ? 'cursor-pointer hover:text-primary' : 'cursor-default' }} {{ $wizardStep === 3 ? 'text-primary font-black' : '' }}">
                     <span class="w-5 h-5 rounded-full flex items-center justify-center border text-[10px] {{ $wizardStep >= 3 ? 'bg-primary text-white border-primary' : '' }}">3</span>
                     <span>Add/Select Items</span>
-                </div>
+                </button>
                 <div class="w-12 h-px bg-slate-200"></div>
-                <div class="flex items-center gap-2 {{ $wizardStep === 4 ? 'text-primary font-black' : '' }}">
+                <button type="button" @if($editingSectionId) wire:click="$set('wizardStep', 4)" @endif class="flex items-center gap-2 focus:outline-none {{ $editingSectionId ? 'cursor-pointer hover:text-primary' : 'cursor-default' }} {{ $wizardStep === 4 ? 'text-primary font-black' : '' }}">
                     <span class="w-5 h-5 rounded-full flex items-center justify-center border text-[10px] {{ $wizardStep >= 4 ? 'bg-primary text-white border-primary' : '' }}">4</span>
                     <span>Live Preview</span>
-                </div>
+                </button>
             </div>
 
             <!-- Steps Scroll Container -->
@@ -174,7 +174,25 @@
                                 <span class="material-symbols-outlined text-[32px] text-primary mt-1 select-none">photo_library</span>
                                 <div>
                                     <h5 class="font-bold text-sm text-[#001229]">Full Width Hero Banner</h5>
-                                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">A full-width high-quality cover image banner. Perfect for running targeted launch campaigns or seasonal store sales with customizable CTAs.</p>
+                                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">A single full-width image banner. Ideal for major promotions. Supports direct image-click target or optional CTA button overlay.</p>
+                                </div>
+                            </button>
+
+                            <!-- Banner Slider -->
+                            <button type="button" wire:click="$set('sectionType', 'banner_slider')" class="flex items-start text-left gap-md p-lg border rounded-xl hover:border-primary/50 transition-all focus:outline-none {{ $sectionType === 'banner_slider' ? 'border-primary bg-primary/[0.02] ring-2 ring-primary/20' : 'border-outline-variant/30' }}">
+                                <span class="material-symbols-outlined text-[32px] text-primary mt-1 select-none">view_carousel</span>
+                                <div>
+                                    <h5 class="font-bold text-sm text-[#001229]">Full Width Banner Slider</h5>
+                                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">Cycle through multiple full-width banners in a beautiful carousel. Great for highlighting multiple promotions. Optional CTA overlays.</p>
+                                </div>
+                            </button>
+
+                            <!-- Image/Text Card -->
+                            <button type="button" wire:click="$set('sectionType', 'image_text_card')" class="flex items-start text-left gap-md p-lg border rounded-xl hover:border-primary/50 transition-all focus:outline-none {{ $sectionType === 'image_text_card' ? 'border-primary bg-primary/[0.02] ring-2 ring-primary/20' : 'border-outline-variant/30' }}">
+                                <span class="material-symbols-outlined text-[32px] text-primary mt-1 select-none">chrome_reader_mode</span>
+                                <div>
+                                    <h5 class="font-bold text-sm text-[#001229]">Image / Text Card</h5>
+                                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">A split block showing an image on one side and a rich formatted description (Markdown editor) on the other. Responsive stacked layout.</p>
                                 </div>
                             </button>
 
@@ -183,7 +201,7 @@
                                 <span class="material-symbols-outlined text-[32px] text-primary mt-1 select-none">widgets</span>
                                 <div>
                                     <h5 class="font-bold text-sm text-[#001229]">Category Quick Slider</h5>
-                                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">A horizontal carousel of your wholesale product categories. Promotes discovery by letting partners jump straight to filtered listings.</p>
+                                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">A horizontal carousel of your product categories. Promotes division discovery by letting buyers browse straight to categories.</p>
                                 </div>
                             </button>
 
@@ -198,7 +216,7 @@
 
                             <!-- Image Slider -->
                             <button type="button" wire:click="$set('sectionType', 'image_slider')" class="flex items-start text-left gap-md p-lg border rounded-xl hover:border-primary/50 transition-all focus:outline-none {{ $sectionType === 'image_slider' ? 'border-primary bg-primary/[0.02] ring-2 ring-primary/20' : 'border-outline-variant/30' }}">
-                                <span class="material-symbols-outlined text-[32px] text-primary mt-1 select-none">view_carousel</span>
+                                <span class="material-symbols-outlined text-[32px] text-primary mt-1 select-none">auto_awesome_motion</span>
                                 <div>
                                     <h5 class="font-bold text-sm text-[#001229]">Image Slide Carousel</h5>
                                     <p class="text-xs text-slate-500 mt-1 leading-relaxed">An interactive image slider gallery. Upload multiple cover cards, configure individual CTAs, and redirect links for campaign promotions.</p>
@@ -262,25 +280,8 @@
                         </div>
 
                         <!-- Sliders Display Settings -->
-                        @if($sectionType !== 'banner')
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-md">
-                                <div>
-                                    <label class="text-xs text-slate-500 font-bold block mb-1.5">Display Style</label>
-                                    <select wire:model="sectionDisplayStyle" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                        <option value="">Default Style</option>
-                                        @if($sectionType === 'category_slider')
-                                            <option value="cards">Circular Cards</option>
-                                            <option value="compact">Compact Grid</option>
-                                            <option value="image_cards">Cover Image Cards</option>
-                                        @elseif($sectionType === 'image_slider')
-                                            <option value="hero">Hero Slider (Large)</option>
-                                            <option value="compact">Compact Banner Slider</option>
-                                        @else
-                                            <option value="cards">Standard Cards</option>
-                                            <option value="compact">List Layout</option>
-                                        @endif
-                                    </select>
-                                </div>
+                        @if($sectionType !== 'banner' && $sectionType !== 'banner_slider' && $sectionType !== 'image_text_card')
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
                                 <div>
                                     <label class="text-xs text-slate-500 font-bold block mb-1.5">Items Per View</label>
                                     <input type="number" wire:model="sectionItemsPerView" min="1" max="10" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
@@ -303,15 +304,20 @@
                         <!-- BANNER FORM -->
                         @if($sectionType === 'banner')
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-lg">
-                                <div class="md:col-span-5 space-y-md">
+                                <div class="md:col-span-4 space-y-md">
                                     <div>
                                         <label class="text-xs text-slate-500 font-bold block mb-1.5">Banner Image Cover (Ratio 16:5 / 16:6)*</label>
-                                        <div class="flex items-center justify-center border-2 border-dashed border-slate-200 rounded-xl p-6 bg-slate-50 hover:bg-slate-100 transition-colors relative">
-                                            <input type="file" wire:model="bannerImage" class="absolute inset-0 opacity-0 cursor-pointer">
-                                            <div class="text-center">
-                                                <span class="material-symbols-outlined text-slate-400 text-3xl select-none">cloud_upload</span>
-                                                <p class="text-xs font-semibold text-slate-500 mt-1">Drag file or click to select</p>
-                                                <p class="text-[10px] text-slate-400 mt-0.5">JPEG, PNG, WEBP (Max 5MB)</p>
+                                        <div class="relative flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer group min-h-[120px]">
+                                            <input type="file" wire:model="bannerImage" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                            <div class="text-center space-y-1 z-0">
+                                                <span class="material-symbols-outlined text-slate-400 text-3xl group-hover:text-primary transition-colors select-none">cloud_upload</span>
+                                                <p class="text-xs font-bold text-slate-600 group-hover:text-primary transition-colors">Choose Banner Image</p>
+                                                <p class="text-[10px] text-slate-400">JPEG, PNG, WEBP (Max 5MB)</p>
+                                            </div>
+                                            <!-- Loading indicator overlay -->
+                                            <div wire:loading wire:target="bannerImage" class="absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-xl z-20 space-y-2">
+                                                <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                <span class="text-xs font-bold text-primary">Uploading...</span>
                                             </div>
                                         </div>
                                         @error('bannerImage')
@@ -319,46 +325,40 @@
                                         @enderror
 
                                         @if($bannerImage)
-                                            <div class="mt-3">
-                                                <p class="text-[10px] font-bold text-slate-400 uppercase select-none">Temporary upload preview:</p>
-                                                <img src="{{ $bannerImage->temporaryUrl() }}" class="h-24 w-full object-cover rounded-lg border mt-1.5">
+                                            <div class="mt-3 relative rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs">
+                                                <img src="{{ $bannerImage->temporaryUrl() }}" class="h-24 w-full object-cover">
+                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-1 text-[10px] text-white font-bold truncate">
+                                                    {{ $bannerImage->getClientOriginalName() }}
+                                                </div>
                                             </div>
                                         @elseif($bannerExistingImage)
-                                            <div class="mt-3">
-                                                <p class="text-[10px] font-bold text-slate-400 uppercase select-none">Current live image:</p>
-                                                <img src="{{ Storage::disk('public')->url($bannerExistingImage) }}" class="h-24 w-full object-cover rounded-lg border mt-1.5">
+                                            <div class="mt-3 relative rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs">
+                                                <img src="{{ asset('storage/' . $bannerExistingImage) }}" class="h-24 w-full object-cover">
+                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-1 text-[10px] text-white font-bold">
+                                                    Current Image
+                                                </div>
                                             </div>
                                         @endif
                                     </div>
-                                    <div>
-                                        <label class="text-xs text-slate-500 font-bold block mb-1.5">Image Alt text</label>
-                                        <input type="text" wire:model="bannerImageAlt" placeholder="e.g. Promotional banner for cotton apparel" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                    </div>
                                 </div>
 
-                                <div class="md:col-span-7 space-y-md">
-                                    <div>
-                                        <label class="text-xs text-slate-500 font-bold block mb-1.5">Banner Custom Title (Optional)</label>
-                                        <input type="text" wire:model="bannerTitle" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-slate-500 font-bold block mb-1.5">Banner Subtitle (Optional)</label>
-                                        <input type="text" wire:model="bannerSubtitle" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-md">
-                                        <div>
-                                            <label class="text-xs text-slate-500 font-bold block mb-1.5">CTA Button Label</label>
-                                            <input type="text" wire:model="bannerCtaLabel" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                        </div>
+                                <div class="md:col-span-8 space-y-md pl-md">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
                                         <div>
                                             <label class="text-xs text-slate-500 font-bold block mb-1.5">Link Destination Type</label>
                                             <select wire:model.live="bannerLinkType" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                                <option value="none">No Link</option>
+                                                <option value="none">No Link (Unclickable)</option>
                                                 <option value="category">Linked Category</option>
                                                 <option value="product">Linked Product</option>
                                                 <option value="url">External Redirect URL</option>
                                             </select>
                                         </div>
+                                        @if($bannerLinkType !== 'none')
+                                            <div>
+                                                <label class="text-xs text-slate-500 font-bold block mb-1.5">CTA Button Label (Optional)</label>
+                                                <input type="text" wire:model="bannerCtaLabel" placeholder="e.g. Shop Now (Leave blank to make whole banner clickable)" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
+                                            </div>
+                                        @endif
                                     </div>
 
                                     @if($bannerLinkType === 'category')
@@ -395,22 +395,276 @@
                             </div>
                         @endif
 
+                        <!-- BANNER SLIDER FORM -->
+                        @if($sectionType === 'banner_slider')
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs text-slate-400 font-semibold uppercase select-none block">Banners List</span>
+                                    <x-admin.button type="button" wire:click="addSlide" variant="outline" icon="add" class="text-xs">Add Banner Slide</x-admin.button>
+                                </div>
+
+                                <div class="space-y-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+                                    @foreach($slides as $index => $slide)
+                                        <div class="p-lg bg-white border border-outline-variant/20 rounded-xl shadow-xs relative space-y-4">
+                                            <div class="flex justify-between items-center bg-slate-50 border border-outline-variant/10 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-600">
+                                                <span>Banner #{{ $index + 1 }}</span>
+                                                <div class="flex items-center gap-1.5">
+                                                    <button type="button" wire:click="moveSlide({{ $index }}, 'up')" @if($index === 0) disabled class="opacity-30 cursor-not-allowed" @endif class="text-slate-600 hover:text-[#001229]" title="Move Up">
+                                                        <span class="material-symbols-outlined text-sm font-bold">arrow_upward</span>
+                                                    </button>
+                                                    <button type="button" wire:click="moveSlide({{ $index }}, 'down')" @if($index === count($slides) - 1) disabled class="opacity-30 cursor-not-allowed" @endif class="text-slate-600 hover:text-[#001229]" title="Move Down">
+                                                        <span class="material-symbols-outlined text-sm font-bold">arrow_downward</span>
+                                                    </button>
+                                                    <button type="button" wire:click="removeSlide({{ $index }})" class="text-rose-500 hover:text-rose-700" title="Delete Slide">
+                                                        <span class="material-symbols-outlined text-sm font-bold">delete</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-1 md:grid-cols-12 gap-md">
+                                                <div class="md:col-span-4 space-y-md">
+                                                    <div>
+                                                        <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Banner Image*</label>
+                                                        <div class="relative flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-lg p-3 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer group min-h-[90px]">
+                                                            <input type="file" wire:model="slides.{{ $index }}.upload" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                                            <div class="text-center space-y-1 z-0">
+                                                                <span class="material-symbols-outlined text-slate-400 text-2xl group-hover:text-primary transition-colors select-none">cloud_upload</span>
+                                                                <p class="text-[10px] font-bold text-slate-600 group-hover:text-primary transition-colors">Choose Image File</p>
+                                                            </div>
+                                                            <!-- Loading indicator overlay -->
+                                                            <div wire:loading wire:target="slides.{{ $index }}.upload" class="absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-lg z-20 space-y-1">
+                                                                <div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                                <span class="text-[9px] font-bold text-primary">Uploading...</span>
+                                                            </div>
+                                                        </div>
+                                                        @error("slides.{$index}.upload") <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
+                                                        
+                                                        @if(isset($slide['upload']))
+                                                            <div class="mt-2 relative rounded overflow-hidden border border-outline-variant/30 shadow-xs">
+                                                                <img src="{{ $slide['upload']->temporaryUrl() }}" class="h-12 w-full object-cover">
+                                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold truncate">
+                                                                    {{ $slide['upload']->getClientOriginalName() }}
+                                                                </div>
+                                                            </div>
+                                                        @elseif(isset($slide['existing_image']))
+                                                            <div class="mt-2 relative rounded overflow-hidden border border-outline-variant/30 shadow-xs">
+                                                                <img src="{{ asset('storage/' . $slide['existing_image']) }}" class="h-12 w-full object-cover">
+                                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold">
+                                                                    Current Image
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+
+                                                <div class="md:col-span-8 space-y-md pl-md">
+                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
+                                                        <div>
+                                                            <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Link Type</label>
+                                                            <select wire:model.live="slides.{{ $index }}.link_type" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
+                                                                <option value="none">No Link (Unclickable)</option>
+                                                                <option value="category">Linked Category</option>
+                                                                <option value="product">Linked Product</option>
+                                                                <option value="url">External Redirect URL</option>
+                                                            </select>
+                                                        </div>
+                                                        @if(($slide['link_type'] ?? 'none') !== 'none')
+                                                            <div>
+                                                                <label class="text-[11px] text-slate-500 font-bold block mb-1.5">CTA Button Label (Optional)</label>
+                                                                <input type="text" wire:model="slides.{{ $index }}.cta_label" placeholder="e.g. Shop Now" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                    @if(($slide['link_type'] ?? 'none') === 'category')
+                                                        <div>
+                                                            <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Select Linked Category</label>
+                                                            <select wire:model="slides.{{ $index }}.link_category_id" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
+                                                                <option value="">Select Category</option>
+                                                                @foreach($categoriesList as $cat)
+                                                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                    @elseif(($slide['link_type'] ?? 'none') === 'product')
+                                                        <div>
+                                                            <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Select Linked Product</label>
+                                                            <select wire:model="slides.{{ $index }}.link_product_id" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
+                                                                <option value="">Select Product</option>
+                                                                @php $allProds = \App\Models\Product::where('is_active', true)->orderBy('title')->get(); @endphp
+                                                                @foreach($allProds as $prod)
+                                                                    <option value="{{ $prod->id }}">{{ $prod->title }} (SKU: {{ $prod->sku }})</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                    @elseif(($slide['link_type'] ?? 'none') === 'url')
+                                                        <div>
+                                                            <label class="text-[11px] text-slate-500 font-bold block mb-1.5">External URL</label>
+                                                            <input type="text" wire:model="slides.{{ $index }}.external_url" placeholder="https://example.com" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                    
+                                    @if(empty($slides))
+                                        <div class="py-12 border rounded-xl border-dashed text-center text-slate-400 text-xs">
+                                            <span class="material-symbols-outlined text-3xl mb-1.5 opacity-60">view_carousel</span>
+                                            <p>No banner slides added yet. Click "Add Banner Slide" to begin.</p>
+                                        </div>
+                                    @endif
+                                </div>
+                                @error('slides')
+                                    <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        @endif
+
+                        <!-- IMAGE / TEXT CARD FORM -->
+                        @if($sectionType === 'image_text_card')
+                            <div class="space-y-lg">
+                                <!-- Top Row: Image & Position Settings -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-lg bg-slate-50/50 p-lg rounded-xl border border-outline-variant/20 shadow-xs">
+                                    <div>
+                                        <label class="text-xs text-[#001229] font-bold block mb-1.5">Card Image*</label>
+                                        <div class="relative flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl p-4 bg-white hover:bg-slate-50 transition-all cursor-pointer group min-h-[100px]">
+                                            <input type="file" wire:model="cardImage" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                            <div class="text-center space-y-1 z-0">
+                                                <span class="material-symbols-outlined text-slate-400 text-2xl group-hover:text-primary transition-colors select-none">cloud_upload</span>
+                                                <p class="text-xs font-bold text-slate-600 group-hover:text-primary transition-colors">Choose Card Image</p>
+                                                <p class="text-[9px] text-slate-400">JPEG, PNG, WEBP (Max 15MB)</p>
+                                            </div>
+                                            <!-- Loading indicator overlay -->
+                                            <div wire:loading wire:target="cardImage" class="absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-xl z-20 space-y-2">
+                                                <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                <span class="text-xs font-bold text-primary">Uploading...</span>
+                                            </div>
+                                        </div>
+                                        @error('cardImage')
+                                            <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                    <div class="flex flex-col justify-between space-y-md">
+                                        <div>
+                                            <label class="text-xs text-[#001229] font-bold block mb-1.5">Image Position (Desktop Layout)</label>
+                                            <select wire:model="cardAlignment" class="w-full text-xs bg-white border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
+                                                <option value="left">Image on Left, Text on Right</option>
+                                                <option value="right">Text on Left, Image on Right</option>
+                                            </select>
+                                        </div>
+                                        
+                                        @if($cardImage)
+                                            <div class="relative rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs h-20">
+                                                <img src="{{ $cardImage->temporaryUrl() }}" class="h-full w-full object-cover">
+                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold truncate">
+                                                    {{ $cardImage->getClientOriginalName() }}
+                                                </div>
+                                            </div>
+                                        @elseif($cardExistingImage)
+                                            <div class="relative rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs h-20">
+                                                <img src="{{ asset('storage/' . $cardExistingImage) }}" class="h-full w-full object-cover">
+                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold">
+                                                    Current Image
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- Bottom Row: Accurate Markdown Editor -->
+                                <div class="space-y-xs">
+                                    <label class="text-xs text-[#001229] font-bold block mb-1.5">Card Text Content (Markdown formatted)*</label>
+                                    
+                                    <div class="border border-outline-variant/60 rounded-xl overflow-hidden bg-white shadow-xs">
+                                        <!-- Quick Markup Toolbar -->
+                                        <div class="px-md py-xs border-b border-outline-variant/20 bg-slate-50 flex items-center justify-between select-none flex-wrap gap-sm">
+                                            <div class="flex items-center gap-xs">
+                                                <!-- Bold -->
+                                                <button type="button" onclick="insertMarkdownCard('**', '**')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 font-extrabold text-sm text-slate-700" title="Bold">B</button>
+                                                <!-- Italic -->
+                                                <button type="button" onclick="insertMarkdownCard('*', '*')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 italic font-bold text-sm text-slate-700" title="Italic">I</button>
+                                                <!-- Heading -->
+                                                <button type="button" onclick="insertMarkdownCard('### ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 font-bold text-sm text-slate-700" title="Heading">H</button>
+                                                <div class="w-px h-4 bg-slate-300"></div>
+                                                <!-- Quote -->
+                                                <button type="button" onclick="insertMarkdownCard('> ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700 font-bold" title="Quote">"</button>
+                                                <!-- Bullet List -->
+                                                <button type="button" onclick="insertMarkdownCard('- ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700" title="Bullet List">
+                                                    <span class="material-symbols-outlined text-[18px]">format_list_bulleted</span>
+                                                </button>
+                                                <!-- Numbered List -->
+                                                <button type="button" onclick="insertMarkdownCard('1. ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700" title="Numbered List">
+                                                    <span class="material-symbols-outlined text-[18px]">format_list_numbered</span>
+                                                </button>
+                                                <!-- Link -->
+                                                <button type="button" onclick="insertMarkdownCard('[', '](url)')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700" title="Add Link">
+                                                    <span class="material-symbols-outlined text-[18px]">link</span>
+                                                </button>
+                                            </div>
+
+                                            <div class="flex items-center gap-xs">
+                                                <!-- Write/Preview tabs -->
+                                                <button type="button" wire:click="$set('cardPreviewMode', false)" class="px-3 py-1 text-xs font-bold rounded-lg border transition-colors {{ !$cardPreviewMode ? 'bg-[#001229] text-white border-[#001229]' : 'bg-white border-outline-variant/30 text-[#001229] hover:bg-slate-50' }}">
+                                                    Write
+                                                </button>
+                                                <button type="button" wire:click="$set('cardPreviewMode', true)" class="px-3 py-1 text-xs font-bold rounded-lg border transition-colors {{ $cardPreviewMode ? 'bg-[#001229] text-white border-[#001229]' : 'bg-white border-outline-variant/30 text-[#001229] hover:bg-slate-50' }}">
+                                                    Preview
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Editor Area -->
+                                        @if(!$cardPreviewMode)
+                                            <textarea id="card-desc-editor" rows="10" wire:model="cardMarkdown" placeholder="Write descriptions with **bold text**, *italics*, headers, lists, etc..." class="w-full px-md py-md bg-transparent border-0 outline-none focus:ring-0 font-body-md text-on-surface resize-none min-h-[200px]"></textarea>
+                                        @else
+                                            <div class="prose max-w-none p-md min-h-[200px] bg-slate-50/30 text-on-surface text-sm overflow-y-auto">
+                                                {!! \Illuminate\Support\Str::markdown($cardMarkdown ?: '*No text configured yet. Select the **Write** tab to start typing.*') !!}
+                                            </div>
+                                        @endif
+                                    </div>
+                                    @error('cardMarkdown')
+                                        <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+                        @endif
+
                         <!-- CATEGORY SLIDER ITEMS SELECTOR -->
                         @if($sectionType === 'category_slider')
                             <div class="space-y-md">
                                 <span class="text-xs text-slate-400 font-semibold uppercase select-none block">Select Categories (Multi-select)</span>
                                 
-                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-md max-h-72 overflow-y-auto border border-outline-variant/20 rounded-xl p-md bg-slate-50">
-                                    @foreach($categoriesList as $cat)
-                                        <label class="flex items-center gap-2 p-2 bg-white rounded-lg border border-outline-variant/20 cursor-pointer hover:bg-slate-100 transition-colors">
-                                            <input type="checkbox" 
-                                                   value="{{ $cat->id }}" 
-                                                   wire:click="toggleCategorySelection({{ $cat->id }})"
-                                                   @if(in_array($cat->id, $this->selectedCategoryIds)) checked @endif
-                                                   class="rounded text-primary focus:ring-primary h-4 w-4 border-slate-300">
-                                            <span class="text-xs text-[#001229] font-bold truncate">{{ $cat->name }}</span>
-                                        </label>
-                                    @endforeach
+                                <div class="max-h-72 overflow-y-auto border border-outline-variant/20 rounded-xl p-md bg-slate-50 space-y-2">
+                                    @php
+                                        $renderCategoryTree = function($categories, $depth = 0) use (&$renderCategoryTree) {
+                                            foreach ($categories as $cat) {
+                                                @endphp
+                                                <div style="padding-left: {{ $depth * 1.5 }}rem" class="flex items-center">
+                                                    <label class="flex items-center gap-2 p-2 bg-white rounded-lg border border-outline-variant/20 cursor-pointer hover:bg-slate-100 transition-colors w-full">
+                                                        <input type="checkbox" 
+                                                               value="{{ $cat->id }}" 
+                                                               wire:click="toggleCategorySelection({{ $cat->id }})"
+                                                               @if(in_array($cat->id, $this->selectedCategoryIds)) checked @endif
+                                                               class="rounded text-primary focus:ring-primary h-4 w-4 border-slate-300">
+                                                        <span class="text-xs text-[#001229] font-bold truncate">
+                                                            {{ $cat->name }}
+                                                            @if($depth > 0)
+                                                                <span class="text-[9px] text-slate-400 font-normal ml-1">Subcategory</span>
+                                                            @endif
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                                @php
+                                                if ($cat->children->isNotEmpty()) {
+                                                    $renderCategoryTree($cat->children, $depth + 1);
+                                                }
+                                            }
+                                        };
+                                        
+                                        $rootCategories = \App\Models\Category::whereNull('parent_id')->with('children.children')->orderBy('sort_order')->orderBy('name')->get();
+                                        $renderCategoryTree($rootCategories);
+                                    @endphp
                                 </div>
 
                                 <div class="mt-4">
@@ -548,27 +802,42 @@
                                             </div>
 
                                             <div class="grid grid-cols-1 md:grid-cols-12 gap-md">
-                                                <div class="md:col-span-5 space-y-md">
+                                                <div class="md:col-span-4 space-y-md">
                                                     <div>
-                                                        <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Upload Image*</label>
-                                                        <input type="file" wire:model="slides.{{ $index }}.upload" class="w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20">
+                                                        <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Slide Image*</label>
+                                                        <div class="relative flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-lg p-3 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer group min-h-[90px]">
+                                                            <input type="file" wire:model="slides.{{ $index }}.upload" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                                            <div class="text-center space-y-1 z-0">
+                                                                <span class="material-symbols-outlined text-slate-400 text-2xl group-hover:text-primary transition-colors select-none">cloud_upload</span>
+                                                                <p class="text-[10px] font-bold text-slate-600 group-hover:text-primary transition-colors">Choose Image File</p>
+                                                            </div>
+                                                            <!-- Loading indicator overlay -->
+                                                            <div wire:loading wire:target="slides.{{ $index }}.upload" class="absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-lg z-20 space-y-1">
+                                                                <div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                                <span class="text-[9px] font-bold text-primary">Uploading...</span>
+                                                            </div>
+                                                        </div>
                                                         @error("slides.{$index}.upload") <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
                                                         
                                                         @if(isset($slide['upload']))
-                                                            <div class="mt-2 text-[10px] text-slate-400">File Selected: {{ $slide['upload']->getClientOriginalName() }}</div>
+                                                            <div class="mt-2 relative rounded overflow-hidden border border-outline-variant/30 shadow-xs">
+                                                                <img src="{{ $slide['upload']->temporaryUrl() }}" class="h-12 w-full object-cover">
+                                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold truncate">
+                                                                    {{ $slide['upload']->getClientOriginalName() }}
+                                                                </div>
+                                                            </div>
                                                         @elseif(isset($slide['existing_image']))
-                                                            <div class="mt-2">
-                                                                <img src="{{ Storage::disk('public')->url($slide['existing_image']) }}" class="h-10 w-24 object-cover rounded border">
+                                                            <div class="mt-2 relative rounded overflow-hidden border border-outline-variant/30 shadow-xs">
+                                                                <img src="{{ asset('storage/' . $slide['existing_image']) }}" class="h-12 w-full object-cover">
+                                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold">
+                                                                    Current Image
+                                                                </div>
                                                             </div>
                                                         @endif
                                                     </div>
-                                                    <div>
-                                                        <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Image Alt text</label>
-                                                        <input type="text" wire:model="slides.{{ $index }}.image_alt" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                                    </div>
                                                 </div>
 
-                                                <div class="md:col-span-7 space-y-md">
+                                                <div class="md:col-span-8 space-y-md pl-md">
                                                     <div class="grid grid-cols-2 gap-md">
                                                         <div>
                                                             <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Slide Title</label>
@@ -659,43 +928,126 @@
                                         @if($bannerImage)
                                             <img src="{{ $bannerImage->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
                                         @elseif($bannerExistingImage)
-                                            <img src="{{ Storage::disk('public')->url($bannerExistingImage) }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
+                                            <img src="{{ asset('storage/' . $bannerExistingImage) }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
                                         @else
                                             <div class="text-slate-500 flex flex-col items-center">
                                                 <span class="material-symbols-outlined text-4xl mb-1">image</span>
                                                 <span class="text-xs">No banner cover uploaded</span>
                                             </div>
                                         @endif
-                                        <div class="relative z-10 text-center space-y-2 max-w-md">
-                                            <h3 class="text-xl font-black tracking-tight leading-tight">{{ $bannerTitle ?: $sectionTitle ?: 'Summer wholesale promotion' }}</h3>
-                                            <p class="text-xs font-semibold text-slate-200/90 leading-relaxed">{{ $bannerSubtitle ?: $sectionSubtitle ?: 'Check out catalog updates' }}</p>
-                                            <button type="button" class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gold text-[#001229] text-xs font-bold transition-all shadow-md mt-2">
-                                                {{ $bannerCtaLabel ?: 'Shop Now' }}
-                                            </button>
-                                        </div>
+                                        @if($bannerCtaLabel)
+                                            <div class="relative z-10 text-center space-y-2 max-w-md">
+                                                <button type="button" class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gold text-[#001229] text-xs font-bold transition-all shadow-md mt-2">
+                                                    {{ $bannerCtaLabel }}
+                                                </button>
+                                            </div>
+                                        @endif
                                     </div>
                                 @endif
 
-                                <!-- Category Slider Preview -->
+                                <!-- Banner Slider preview -->
+                                @if($sectionType === 'banner_slider')
+                                    <div class="relative w-full rounded-xl overflow-hidden min-h-[220px] bg-slate-800 flex items-center justify-center p-6 border border-white/5">
+                                        @if(!empty($slides))
+                                            @php $firstSlide = $slides[0]; @endphp
+                                            @if(isset($firstSlide['upload']))
+                                                <img src="{{ $firstSlide['upload']->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
+                                            @elseif(isset($firstSlide['existing_image']))
+                                                <img src="{{ asset('storage/' . $firstSlide['existing_image']) }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
+                                            @endif
+                                            @if(!empty($firstSlide['cta_label']))
+                                                <div class="relative z-10 text-center space-y-2 max-w-md">
+                                                    <button type="button" class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gold text-[#001229] text-xs font-bold transition-all shadow-md mt-2">
+                                                        {{ $firstSlide['cta_label'] }}
+                                                    </button>
+                                                </div>
+                                            @endif
+                                        @else
+                                            <div class="text-slate-500 flex flex-col items-center">
+                                                <span class="material-symbols-outlined text-4xl mb-1">view_carousel</span>
+                                                <span class="text-xs">No banner slides added yet</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    @if(count($slides) > 1)
+                                        <div class="flex items-center justify-center gap-1.5 mt-2">
+                                            @foreach($slides as $i => $s)
+                                                <span class="w-1.5 h-1.5 rounded-full {{ $i === 0 ? 'bg-gold' : 'bg-white/30' }}"></span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                @endif
+
+                                <!-- Image/Text Card preview -->
+                                @if($sectionType === 'image_text_card')
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-800 p-4 rounded-xl border border-white/5 text-xs text-slate-200">
+                                        @if($cardAlignment === 'left')
+                                            <div class="h-40 rounded-lg overflow-hidden bg-slate-700 relative">
+                                                @if($cardImage)
+                                                    <img src="{{ $cardImage->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover">
+                                                @elseif($cardExistingImage)
+                                                    <img src="{{ asset('storage/' . $cardExistingImage) }}" class="absolute inset-0 w-full h-full object-cover">
+                                                @else
+                                                    <div class="flex items-center justify-center h-full text-slate-500">
+                                                        <span class="material-symbols-outlined text-3xl">image</span>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <div class="overflow-y-auto max-h-40 p-2 prose prose-invert font-mono text-[10px]">
+                                                {!! \Illuminate\Support\Str::markdown($cardMarkdown ?: 'No text configured yet.') !!}
+                                            </div>
+                                        @else
+                                            <div class="overflow-y-auto max-h-40 p-2 prose prose-invert font-mono text-[10px]">
+                                                {!! \Illuminate\Support\Str::markdown($cardMarkdown ?: 'No text configured yet.') !!}
+                                            </div>
+                                            <div class="h-40 rounded-lg overflow-hidden bg-slate-700 relative">
+                                                @if($cardImage)
+                                                    <img src="{{ $cardImage->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover">
+                                                @elseif($cardExistingImage)
+                                                    <img src="{{ asset('storage/' . $cardExistingImage) }}" class="absolute inset-0 w-full h-full object-cover">
+                                                @else
+                                                    <div class="flex items-center justify-center h-full text-slate-500">
+                                                        <span class="material-symbols-outlined text-3xl">image</span>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif                                <!-- Category Slider Preview -->
                                 @if($sectionType === 'category_slider')
                                     <div class="space-y-3">
                                         <div class="flex flex-col gap-0.5">
-                                            <h4 class="text-sm font-black text-white leading-none">{{ $sectionTitle ?: 'Shop by Category' }}</h4>
+                                            <h4 class="text-sm font-black text-white leading-none">{{ $sectionTitle ?: 'Category Products' }}</h4>
                                             @if($sectionSubtitle) <p class="text-[10px] text-slate-400 font-semibold leading-none">{{ $sectionSubtitle }}</p> @endif
                                         </div>
 
                                         <div class="flex items-center gap-3 overflow-x-auto pb-2 scroll-smooth">
-                                            @foreach($selectedCategoryIds as $id)
-                                                @php $c = collect($categoriesList)->firstWhere('id', $id); @endphp
-                                                @if($c)
-                                                    <div class="flex-shrink-0 w-24 p-3 bg-white/5 border border-white/10 rounded-xl text-center space-y-2">
-                                                        <div class="w-10 h-10 rounded-full bg-gold/10 text-gold flex items-center justify-center mx-auto">
-                                                            <span class="material-symbols-outlined text-lg font-bold select-none">widgets</span>
-                                                        </div>
-                                                        <h5 class="text-[10px] font-bold tracking-tight truncate leading-none">{{ $c->name }}</h5>
+                                            @php
+                                                $catProducts = \App\Models\Product::where('is_active', true)
+                                                    ->whereHas('categories', function($q) {
+                                                        $q->whereIn('categories.id', $this->selectedCategoryIds);
+                                                    })
+                                                    ->with('primaryMedia')
+                                                    ->take(6)
+                                                    ->get();
+                                            @endphp
+                                            @forelse($catProducts as $p)
+                                                <div class="flex-shrink-0 w-32 p-2.5 bg-white/5 border border-white/10 rounded-xl space-y-2">
+                                                    @php
+                                                        $primaryImage = $p->primaryMedia ? $p->primaryMedia->file_path : null;
+                                                        $imageUrl = $primaryImage 
+                                                            ? (str_starts_with($primaryImage, 'http') ? $primaryImage : asset('storage/' . $primaryImage)) 
+                                                            : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100';
+                                                    @endphp
+                                                    <img src="{{ $imageUrl }}" class="w-full h-16 object-cover rounded-lg border border-white/5 bg-slate-800">
+                                                    <div class="space-y-1">
+                                                        <h5 class="text-[10px] font-bold truncate leading-none">{{ $p->title }}</h5>
+                                                        <p class="text-[9px] text-gold font-bold leading-none">₹{{ number_format($p->base_price, 2) }}</p>
                                                     </div>
-                                                @endif
-                                            @endforeach
+                                                </div>
+                                            @empty
+                                                <div class="text-slate-500 text-xs py-4">No products found in the selected categories.</div>
+                                            @endforelse
                                         </div>
                                     </div>
                                 @endif
@@ -717,7 +1069,7 @@
                                                         @php
                                                             $primaryImage = $p->primaryMedia ? $p->primaryMedia->file_path : null;
                                                             $imageUrl = $primaryImage 
-                                                                ? (str_starts_with($primaryImage, 'http') ? $primaryImage : Storage::disk('public')->url($primaryImage)) 
+                                                                ? (str_starts_with($primaryImage, 'http') ? $primaryImage : asset('storage/' . $primaryImage)) 
                                                                 : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100';
                                                         @endphp
                                                         <img src="{{ $imageUrl }}" class="w-full h-16 object-cover rounded-lg border border-white/5 bg-slate-800">
@@ -740,7 +1092,7 @@
                                             @if(isset($firstSlide['upload']))
                                                 <img src="{{ $firstSlide['upload']->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
                                             @elseif(isset($firstSlide['existing_image']))
-                                                <img src="{{ Storage::disk('public')->url($firstSlide['existing_image']) }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
+                                                <img src="{{ asset('storage/' . $firstSlide['existing_image']) }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
                                             @endif
                                             <div class="relative z-10 text-center space-y-2 max-w-md">
                                                 <h3 class="text-xl font-black tracking-tight leading-tight">{{ $firstSlide['title'] ?: 'Promo Slide Cover' }}</h3>
@@ -819,4 +1171,40 @@
             <x-admin.button wire:click="deleteSection" variant="primary" class="bg-error hover:bg-error/90 text-white border-error">Delete Block</x-admin.button>
         </x-slot>
     </x-admin.modal>
+
+    <script>
+        function insertMarkdownCard(tagOpen, tagClose = '') {
+            const ta = document.getElementById('card-desc-editor');
+            if (!ta) return;
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            const text = ta.value;
+            const selected = text.substring(start, end);
+            const replacement = tagOpen + selected + tagClose;
+            
+            ta.value = text.substring(0, start) + replacement + text.substring(end);
+            
+            ta.focus();
+            if (start === end) {
+                const newCursorPos = start + tagOpen.length;
+                ta.setSelectionRange(newCursorPos, newCursorPos);
+            } else {
+                ta.setSelectionRange(start + tagOpen.length, start + tagOpen.length + selected.length);
+            }
+            ta.dispatchEvent(new Event('input'));
+        }
+    </script>
+    <style>
+        .prose h1 { font-size: 1.8em; font-weight: 800; margin-top: 0.8em; margin-bottom: 0.4em; color: #0f172a; }
+        .prose h2 { font-size: 1.5em; font-weight: 700; margin-top: 0.8em; margin-bottom: 0.4em; color: #0f172a; }
+        .prose h3 { font-size: 1.25em; font-weight: 600; margin-top: 0.8em; margin-bottom: 0.4em; color: #0f172a; }
+        .prose p { margin-top: 0.4em; margin-bottom: 0.8em; line-height: 1.6; color: #334155; }
+        .prose ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin-top: 0.4em; margin-bottom: 0.8em; }
+        .prose ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin-top: 0.4em; margin-bottom: 0.8em; }
+        .prose li { margin-bottom: 0.25em; }
+        .prose blockquote { border-left: 4px solid #cbd5e1; padding-left: 1rem; italic: true; color: #475569; margin: 0.8em 0; }
+        .prose a { color: #5c44c4; text-decoration: underline; font-weight: 500; }
+        .prose strong { font-weight: 700; color: #0f172a; }
+        .prose em { font-style: italic; }
+    </style>
 </div>

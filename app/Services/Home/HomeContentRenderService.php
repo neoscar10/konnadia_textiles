@@ -58,6 +58,8 @@ class HomeContentRenderService
     {
         return match ($section->type) {
             'banner' => $this->formatBanner($section, $user),
+            'banner_slider' => $this->formatBannerSlider($section, $user),
+            'image_text_card' => $this->formatImageTextCard($section, $user),
             'category_slider' => $this->formatCategorySlider($section, $user),
             'product_slider' => $this->formatProductSlider($section, $user),
             'image_slider' => $this->formatImageSlider($section, $user),
@@ -75,11 +77,11 @@ class HomeContentRenderService
             $items[] = [
                 'id' => $item->id,
                 'type' => 'banner',
-                'title' => $item->title ?? $section->title,
-                'subtitle' => $item->subtitle ?? $section->subtitle,
-                'cta_label' => $item->cta_label ?? 'View Details',
+                'title' => null,
+                'subtitle' => null,
+                'cta_label' => $item->cta_label,
                 'image_url' => $item->image_path ? $this->mediaService->getUrl($item->image_path) : null,
-                'image_alt' => $item->image_alt ?? $item->title ?? 'Banner',
+                'image_alt' => $item->image_alt ?? 'Banner',
                 'link' => $this->resolveLink($item),
             ];
         }
@@ -100,30 +102,92 @@ class HomeContentRenderService
     }
 
     /**
+     * Format banner slider section.
+     */
+    public function formatBannerSlider(HomeContentSection $section, ?User $user = null): array
+    {
+        $items = [];
+        foreach ($section->items as $item) {
+            $items[] = [
+                'id' => $item->id,
+                'image_url' => $item->image_path ? $this->mediaService->getUrl($item->image_path) : null,
+                'image_alt' => $item->image_alt ?? 'Banner Slide',
+                'cta_label' => $item->cta_label,
+                'link' => $this->resolveLink($item),
+            ];
+        }
+
+        if (empty($items)) {
+            return [];
+        }
+
+        return [
+            'id' => $section->id,
+            'type' => 'banner_slider',
+            'title' => $section->title,
+            'subtitle' => $section->subtitle,
+            'sort_order' => $section->sort_order,
+            'display_style' => $section->display_style,
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * Format image text card section.
+     */
+    public function formatImageTextCard(HomeContentSection $section, ?User $user = null): array
+    {
+        $item = $section->items->first();
+        if (!$item) {
+            return [];
+        }
+
+        return [
+            'id' => $section->id,
+            'type' => 'image_text_card',
+            'title' => $section->title,
+            'subtitle' => $section->subtitle,
+            'sort_order' => $section->sort_order,
+            'image_url' => $item->image_path ? $this->mediaService->getUrl($item->image_path) : null,
+            'image_alt' => $item->image_alt ?? 'Card Image',
+            'markdown' => $item->metadata['markdown'] ?? '',
+            'alignment' => $item->metadata['alignment'] ?? 'left',
+        ];
+    }
+
+    /**
      * Format category slider section.
      */
     public function formatCategorySlider(HomeContentSection $section, ?User $user = null): array
     {
-        $items = [];
-        foreach ($section->items as $item) {
-            $category = $item->category;
-            if (!$category || !$category->is_active) {
-                continue;
-            }
+        $categoryIds = $section->items->pluck('category_id')->filter()->toArray();
+        if (empty($categoryIds)) {
+            return [];
+        }
 
-            $productsCount = DB::table('product_category')->where('category_id', $category->id)->count();
+        // Fetch active products in these categories
+        $products = Product::where('is_active', true)
+            ->whereHas('categories', function($q) use ($categoryIds) {
+                $q->whereIn('categories.id', $categoryIds);
+            })
+            ->with(['media', 'primaryMedia', 'customerLevelPrices', 'units'])
+            ->take($section->display_limit ?? 10)
+            ->get();
+
+        $items = [];
+        foreach ($products as $product) {
+            // Format card using catalog service
+            $formattedCard = $this->catalogService->formatProductCard($product, $user);
 
             $items[] = [
-                'id' => $item->id,
-                'type' => 'category',
-                'category' => [
-                    'id' => $category->id,
-                    'name' => $category->name,
-                    'slug' => Str::slug($category->name),
-                    'image_url' => null, // Placeholder or category icon placeholder
-                    'products_count' => $productsCount,
+                'id' => $product->id,
+                'type' => 'product',
+                'product' => $formattedCard,
+                'link' => [
+                    'type' => 'product',
+                    'url' => route('customer.products.show', ['slug' => $product->slug]),
+                    'target' => '_self',
                 ],
-                'link' => $this->resolveLink($item),
             ];
         }
 
@@ -137,7 +201,6 @@ class HomeContentRenderService
             'title' => $section->title,
             'subtitle' => $section->subtitle,
             'sort_order' => $section->sort_order,
-            'display_style' => $section->display_style ?? 'cards',
             'items' => $items,
         ];
     }

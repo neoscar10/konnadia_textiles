@@ -25,8 +25,8 @@
     @if($category)
         @php
             $currentCat = collect($categoriesList)->firstWhere('id', $category);
-            $parentId = $currentCat['parent_id'] ?? $currentCat['id'];
-            $subCategories = collect($categoriesList)->where('parent_id', $parentId);
+            $parentId = $currentCat ? ($currentCat['parent_id'] ?? $currentCat['id']) : null;
+            $subCategories = $parentId ? collect($categoriesList)->where('parent_id', $parentId) : collect();
         @endphp
         @if($subCategories->isNotEmpty())
             <div class="lg:hidden flex items-center gap-2 overflow-x-auto hide-scrollbar mb-4 pb-2">

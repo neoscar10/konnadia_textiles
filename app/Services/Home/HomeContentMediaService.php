@@ -12,7 +12,7 @@ class HomeContentMediaService
      */
     public function storeImage(UploadedFile $file, string $subDir = 'banners'): string
     {
-        return $file->store("home-content/{$subDir}", 'public');
+        return $file->store("products/{$subDir}", 'public');
     }
 
     /**
@@ -33,6 +33,6 @@ class HomeContentMediaService
         if (str_starts_with($path, 'http')) {
             return $path;
         }
-        return Storage::disk('public')->url($path);
+        return asset('storage/' . $path);
     }
 }
