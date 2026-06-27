@@ -1,19 +1,4 @@
 <div>
-    {{-- Mobile banner height enforcement - uses !important to survive Livewire morphdom and Alpine re-renders --}}
-    <style>
-        @media screen and (max-width: 767px) {
-            .banner-img-mobile {
-                height: 50vh !important;
-                min-height: 50vh !important;
-                width: 100% !important;
-                object-fit: cover !important;
-                display: block !important;
-            }
-            .banner-slider-track {
-                min-height: 50vh !important;
-            }
-        }
-    </style>
     <!-- Welcome section -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -38,12 +23,12 @@
             @if($section['type'] === 'banner')
                 @foreach($section['items'] as $item)
                     @if($item['link']['url'] && empty($item['cta_label']))
-                        <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block mb-8 rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 hover:shadow-md transition-all hover:scale-[1.005] duration-300">
-                            <img src="{{ $item['image_url'] }}" class="banner-img-mobile w-full h-auto object-contain md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
+                        <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block mb-8 rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 hover:shadow-md transition-all hover:scale-[1.005] duration-300 bg-slate-900">
+                            <img src="{{ $item['image_url'] }}" class="w-full h-[260px] md:h-auto object-contain md:object-contain block" alt="{{ $item['image_alt'] }}">
                         </a>
                     @else
                         <div class="mb-8 relative w-full rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 bg-slate-900">
-                            <img src="{{ $item['image_url'] }}" class="banner-img-mobile w-full h-auto object-contain md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
+                            <img src="{{ $item['image_url'] }}" class="w-full h-[260px] md:h-auto object-contain md:object-contain block" alt="{{ $item['image_alt'] }}">
                             @if($item['link']['url'] && !empty($item['cta_label']))
                                 <div class="absolute bottom-5 left-5 md:bottom-8 md:left-8 z-10">
                                     <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}"
@@ -70,7 +55,7 @@
                      x-init="setInterval(() => next(), 6000)">
                     
                     <!-- Slides -->
-                    <div class="banner-slider-track relative w-full overflow-hidden bg-slate-900">
+                    <div class="relative w-full overflow-hidden bg-slate-900">
                         @foreach($section['items'] as $index => $item)
                             <div x-show="activeSlide === {{ $index }}" 
                                  x-transition:enter="transition ease-out duration-500"
@@ -79,11 +64,11 @@
                                  class="w-full relative">
                                 @if($item['link']['url'] && empty($item['cta_label']))
                                     <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block">
-                                        <img src="{{ $item['image_url'] }}" class="banner-img-mobile w-full h-auto object-contain md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
+                                        <img src="{{ $item['image_url'] }}" class="w-full h-[260px] md:h-auto object-contain md:object-contain block" alt="{{ $item['image_alt'] }}">
                                     </a>
                                 @else
                                     <div class="relative w-full">
-                                        <img src="{{ $item['image_url'] }}" class="banner-img-mobile w-full h-auto object-contain md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
+                                        <img src="{{ $item['image_url'] }}" class="w-full h-[260px] md:h-auto object-contain md:object-contain block" alt="{{ $item['image_alt'] }}">
                                         @if($item['link']['url'] && !empty($item['cta_label']))
                                                 <div class="absolute bottom-5 left-5 md:bottom-8 md:left-8 z-10">
                                                 <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}"
