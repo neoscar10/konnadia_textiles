@@ -83,11 +83,23 @@ class ProductIndexPage extends Component
         $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
         $this->quickAddHasLvl2Unit = !empty($lvl2);
 
-        // Default all quantities to 0
+        $this->quickAddUnits = collect($detail['units'])->map(function($u) {
+            $moq = max(1, $this->quickAddMoq);
+            if ($u['level'] === 2) {
+                $conversion = (float) ($u['conversion_to_base'] ?? 1.0);
+                if ($conversion <= 0) $conversion = 1.0;
+                $u['min_qty'] = (int) ceil($moq / $conversion);
+            } else {
+                $u['min_qty'] = $moq;
+            }
+            return $u;
+        })->toArray();
+
+        // Default all quantities to min_qty
         $this->quickAddUnitQuantities = [];
         $this->quickAddQueuedItems = [];
         foreach ($this->quickAddUnits as $u) {
-            $this->quickAddUnitQuantities[$u['id']] = 0;
+            $this->quickAddUnitQuantities[$u['id']] = $u['min_qty'];
         }
 
         $this->recalculateQuickAdd($catalogService);
@@ -102,8 +114,11 @@ class ProductIndexPage extends Component
 
     public function decrementQuickAddUnitQuantity($unitId)
     {
-        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
-        $this->quickAddUnitQuantities[$unitId] = max(0, $curr - 1);
+        $unit = collect($this->quickAddUnits)->firstWhere('id', $unitId);
+        if (!$unit) return;
+        $min = $unit['min_qty'] ?? 1;
+        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? $min);
+        $this->quickAddUnitQuantities[$unitId] = max($min, $curr - 1);
     }
 
     public function incrementQuickAddUnitQuantity($unitId)
@@ -114,14 +129,15 @@ class ProductIndexPage extends Component
 
     public function addQuickAddUnitToQueue($unitId)
     {
-        $qty = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
-        if ($qty < 1) {
-            $this->dispatch('toast', type: 'error', message: 'Please enter a quantity greater than 0.');
-            return;
-        }
-
         $unit = collect($this->quickAddUnits)->firstWhere('id', $unitId);
         if (!$unit) return;
+        $min = $unit['min_qty'] ?? 1;
+
+        $qty = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
+        if ($qty < $min) {
+            $this->dispatch('toast', type: 'error', message: "Please enter a quantity of at least {$min} {$unit['name']}(s).");
+            return;
+        }
 
         // Add or update in queuedItems
         $this->quickAddQueuedItems[$unitId] = [
@@ -132,8 +148,8 @@ class ProductIndexPage extends Component
             'quantity' => $qty,
         ];
 
-        // Reset input quantity to 0
-        $this->quickAddUnitQuantities[$unitId] = 0;
+        // Reset input quantity to min_qty
+        $this->quickAddUnitQuantities[$unitId] = $unit['min_qty'] ?? 1;
 
         $this->dispatch('toast', type: 'success', message: "Added {$qty} {$unit['name']}(s) to selection.");
         

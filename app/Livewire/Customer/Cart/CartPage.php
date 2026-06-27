@@ -58,15 +58,25 @@ class CartPage extends Component
         $qtyLvl1 = max(0, (int) $qtyLvl1);
         $qtyLvl2 = max(0, (int) $qtyLvl2);
 
+        $unit = $item->unit;
         if ($qtyLvl1 === 0 && $qtyLvl2 === 0) {
-            $qtyLvl1 = 1;
+            if ($unit && $unit->level === 2) {
+                $qtyLvl2 = 1;
+            } else {
+                $qtyLvl1 = 1;
+            }
         }
 
         try {
-            $payload = [
-                'quantity_lvl1' => $qtyLvl1,
-                'quantity_lvl2' => $qtyLvl2,
-            ];
+            if ($unit && $unit->level === 2) {
+                $payload = [
+                    'quantity' => $qtyLvl2,
+                ];
+            } else {
+                $payload = [
+                    'quantity' => $qtyLvl1,
+                ];
+            }
 
             $cartService->updateItem(auth()->user(), $item, $payload);
             $this->loadCart($cartService);

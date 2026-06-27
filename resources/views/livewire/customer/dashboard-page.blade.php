@@ -573,7 +573,7 @@
                                         <button type="button" wire:click="decrementQuickAddUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
                                             <span class="material-symbols-outlined text-lg">remove</span>
                                         </button>
-                                        <input type="number" wire:model.live="quickAddUnitQuantities.{{ $u['id'] }}" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
+                                        <input type="number" wire:model.live="quickAddUnitQuantities.{{ $u['id'] }}" min="{{ $u['min_qty'] ?? 1 }}" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
                                         <button type="button" wire:click="incrementQuickAddUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
                                             <span class="material-symbols-outlined text-lg">add</span>
                                         </button>

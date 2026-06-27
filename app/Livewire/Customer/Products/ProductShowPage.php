@@ -99,11 +99,23 @@ class ProductShowPage extends Component
         $lvl2 = collect($this->units)->firstWhere('level', 2);
         $this->hasLvl2Unit = !empty($lvl2);
 
-        // Prepopulate quantities for each unit to 0
+        // Prepopulate quantities for each unit to min_qty
         $this->unitQuantities = [];
         $this->queuedItems = [];
+        $this->units = collect($detail['units'])->map(function($u) {
+            $moq = max(1, $this->minimumOrderQuantity);
+            if ($u['level'] === 2) {
+                $conversion = (float) ($u['conversion_to_base'] ?? 1.0);
+                if ($conversion <= 0) $conversion = 1.0;
+                $u['min_qty'] = (int) ceil($moq / $conversion);
+            } else {
+                $u['min_qty'] = $moq;
+            }
+            return $u;
+        })->toArray();
+
         foreach ($this->units as $u) {
-            $this->unitQuantities[$u['id']] = 0;
+            $this->unitQuantities[$u['id']] = $u['min_qty'];
         }
 
         // Expose tax info for blade display
@@ -134,8 +146,11 @@ class ProductShowPage extends Component
 
     public function decrementUnitQuantity($unitId)
     {
-        $curr = (int) ($this->unitQuantities[$unitId] ?? 0);
-        $this->unitQuantities[$unitId] = max(0, $curr - 1);
+        $unit = collect($this->units)->firstWhere('id', $unitId);
+        if (!$unit) return;
+        $min = $unit['min_qty'] ?? 1;
+        $curr = (int) ($this->unitQuantities[$unitId] ?? $min);
+        $this->unitQuantities[$unitId] = max($min, $curr - 1);
     }
 
     public function incrementUnitQuantity($unitId)
@@ -146,14 +161,15 @@ class ProductShowPage extends Component
 
     public function addUnitToQueue($unitId)
     {
-        $qty = (int) ($this->unitQuantities[$unitId] ?? 0);
-        if ($qty < 1) {
-            $this->dispatch('toast', type: 'error', message: 'Please enter a quantity greater than 0.');
-            return;
-        }
-
         $unit = collect($this->units)->firstWhere('id', $unitId);
         if (!$unit) return;
+        $min = $unit['min_qty'] ?? 1;
+
+        $qty = (int) ($this->unitQuantities[$unitId] ?? 0);
+        if ($qty < $min) {
+            $this->dispatch('toast', type: 'error', message: "Please enter a quantity of at least {$min} {$unit['name']}(s).");
+            return;
+        }
 
         // Add or update in queuedItems
         $this->queuedItems[$unitId] = [
@@ -164,8 +180,8 @@ class ProductShowPage extends Component
             'quantity' => $qty,
         ];
 
-        // Reset input quantity to 0
-        $this->unitQuantities[$unitId] = 0;
+        // Reset input quantity to min_qty
+        $this->unitQuantities[$unitId] = $unit['min_qty'] ?? 1;
 
         $this->dispatch('toast', type: 'success', message: "Added {$qty} {$unit['name']}(s) to selection.");
         

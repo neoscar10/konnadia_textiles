@@ -91,6 +91,7 @@ class CartService
                 'unit_id' => $item->product_unit_id,
                 'unit_name' => $item->unit ? $item->unit->name : 'Piece',
                 'unit_short_code' => $item->unit ? $item->unit->short_code : 'Pcs',
+                'unit_level' => $item->unit ? $item->unit->level : 1,
                 'unit_conversion_quantity' => (float) $item->unit_conversion_quantity,
                 'quantity' => $item->quantity,
                 'quantity_lvl1' => $item->quantity_lvl1,
