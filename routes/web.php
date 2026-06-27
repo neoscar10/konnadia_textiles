@@ -52,6 +52,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('home-content', \App\Livewire\Admin\HomeContent\HomeContentPage::class)->name('home-content.index');
         Route::get('settings', \App\Livewire\Admin\Settings\SettingsPage::class)->name('settings.index');
         Route::get('support', \App\Livewire\Admin\Support\SupportPage::class)->name('support.index');
+        
+        // Retail Transfers System
+        Route::get('retail-shops', \App\Livewire\Admin\RetailShops\RetailShopIndexPage::class)->name('retail-shops.index');
+        Route::get('product-transfers', \App\Livewire\Admin\ProductTransfers\ProductTransferIndexPage::class)->name('product-transfers.index');
+        Route::get('product-transfers/{id}/pdf', function ($id) {
+            $transfer = \App\Models\ProductTransfer::findOrFail($id);
+            return app(\App\Services\StockTransfer\TransferDocumentService::class)->download($transfer);
+        })->name('product-transfers.pdf');
     });
 });
 

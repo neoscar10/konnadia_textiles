@@ -15,9 +15,18 @@
     $classes = $baseClasses . ' ' . ($variants[$variant] ?? $variants['primary']);
 @endphp
 
-<button type="{{ $type }}" {{ $attributes->merge(['class' => $classes]) }}>
-    @if($icon)
-        <span class="material-symbols-outlined text-[18px]">{{ $icon }}</span>
-    @endif
-    {{ $slot }}
-</button>
+@if ($attributes->has('href'))
+    <a {{ $attributes->merge(['class' => $classes]) }}>
+        @if($icon)
+            <span class="material-symbols-outlined text-[18px]">{{ $icon }}</span>
+        @endif
+        {{ $slot }}
+    </a>
+@else
+    <button type="{{ $type }}" {{ $attributes->merge(['class' => $classes]) }}>
+        @if($icon)
+            <span class="material-symbols-outlined text-[18px]">{{ $icon }}</span>
+        @endif
+        {{ $slot }}
+    </button>
+@endif

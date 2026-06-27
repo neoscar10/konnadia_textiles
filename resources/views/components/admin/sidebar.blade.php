@@ -58,6 +58,16 @@
                 <span class="material-symbols-outlined shrink-0" data-icon="warehouse">warehouse</span>
                 <span class="font-label-md text-label-md" x-show="sidebarOpen">Inventory</span>
             </a>
+            
+            <a href="{{ route('admin.retail-shops.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.retail-shops.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                <span class="material-symbols-outlined shrink-0" data-icon="storefront">storefront</span>
+                <span class="font-label-md text-label-md" x-show="sidebarOpen">Retail Shops</span>
+            </a>
+
+            <a href="{{ route('admin.product-transfers.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.product-transfers.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                <span class="material-symbols-outlined shrink-0" data-icon="sync_alt">sync_alt</span>
+                <span class="font-label-md text-label-md" x-show="sidebarOpen">Product Transfers</span>
+            </a>
         </nav>
 
         <!-- Orders Group -->

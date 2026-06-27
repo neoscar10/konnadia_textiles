@@ -47,10 +47,6 @@
                 
                 <div class="flex items-baseline gap-2 mt-0.5">
                     <p class="text-2xl font-black text-[#001229]">₹{{ number_format($pricePerPiece, 2) }}</p>
-                    @if($discountPercentage > 0)
-                        <span class="text-xs text-slate-400 line-through">₹{{ number_format($effectiveBasePrice, 2) }}</span>
-                        <span class="text-xs text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">{{ round($discountPercentage) }}% Off</span>
-                    @endif
                 </div>
                 
                 <p class="text-[10px] text-slate-500 font-medium mt-1">

@@ -493,9 +493,6 @@
                             <span class="text-[10px] text-slate-400 font-semibold uppercase block select-none">Price per piece</span>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-xl font-black text-[#001229]">₹{{ number_format($quickAddPricePerPiece, 2) }}</span>
-                                @if($quickAddDiscountPercentage > 0)
-                                    <span class="text-xs text-slate-400 line-through">₹{{ number_format($quickAddEffectiveBasePrice, 2) }}</span>
-                                @endif
                             </div>
                         </div>
                         <div class="text-right">
