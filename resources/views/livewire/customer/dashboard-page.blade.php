@@ -3,14 +3,14 @@
     <style>
         @media screen and (max-width: 767px) {
             .banner-img-mobile {
-                height: 90vh !important;
-                min-height: 90vh !important;
+                height: 50vh !important;
+                min-height: 50vh !important;
                 width: 100% !important;
                 object-fit: cover !important;
                 display: block !important;
             }
             .banner-slider-track {
-                min-height: 90vh !important;
+                min-height: 50vh !important;
             }
         }
     </style>
