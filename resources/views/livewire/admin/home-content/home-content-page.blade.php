@@ -346,6 +346,9 @@
                                                 <span class="material-symbols-outlined text-slate-400 text-3xl group-hover:text-primary transition-colors select-none">cloud_upload</span>
                                                 <p class="text-xs font-bold text-slate-600 group-hover:text-primary transition-colors">Choose Banner Image</p>
                                                 <p class="text-[10px] text-slate-400">JPEG, PNG, WEBP (Max 5MB)</p>
+                                                <p class="text-[9px] text-slate-400 mt-1 max-w-[280px] mx-auto leading-normal">
+                                                    Recommended size: 1896 × 829px or 1920 × 840px. Mobile displays the full image without cropping, so keep important text near the center-left and avoid placing critical content at the extreme edges. For best mobile display, use banners with enough vertical space and keep text readable at small sizes.
+                                                </p>
                                             </div>
                                             <!-- Loading indicator overlay -->
                                             <div wire:loading wire:target="bannerImage" class="absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-xl z-20 space-y-2">

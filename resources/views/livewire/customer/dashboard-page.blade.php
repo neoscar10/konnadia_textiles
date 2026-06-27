@@ -1,4 +1,4 @@
-<div>
+<div class="portal-home-content overflow-x-hidden w-full max-w-full">
     <!-- Welcome section -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -23,18 +23,22 @@
             @if($section['type'] === 'banner')
                 @foreach($section['items'] as $item)
                     @if($item['link']['url'] && empty($item['cta_label']))
-                        <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block mb-8 rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 hover:shadow-md transition-all hover:scale-[1.005] duration-300">
-                            <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                        <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block mb-8 rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 hover:shadow-md transition-all hover:scale-[1.005] duration-300 bg-[#001229] max-w-full">
+                            <div class="aspect-[16/8] md:aspect-auto md:h-auto w-full flex items-center justify-center">
+                                <img src="{{ $item['image_url'] }}" class="w-full h-full md:h-auto object-contain md:object-contain block max-w-full" alt="{{ $item['image_alt'] }}">
+                            </div>
                         </a>
                     @else
-                        <div class="mb-8 relative w-full rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 bg-slate-900">
-                            <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                        <div class="mb-8 relative w-full rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 bg-[#001229] max-w-full">
+                            <div class="aspect-[16/8] md:aspect-auto md:h-auto w-full flex items-center justify-center">
+                                <img src="{{ $item['image_url'] }}" class="w-full h-full md:h-auto object-contain md:object-contain block max-w-full" alt="{{ $item['image_alt'] }}">
+                            </div>
                             @if($item['link']['url'] && !empty($item['cta_label']))
-                                <div class="absolute bottom-5 left-5 md:bottom-8 md:left-8 z-10">
+                                <div class="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-10">
                                     <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}"
-                                       class="group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gold/90 backdrop-blur-sm text-[#001229] text-xs font-black shadow-lg ring-1 ring-white/20 transition-all duration-200 hover:bg-gold hover:shadow-xl hover:scale-[1.04] active:scale-100">
+                                       class="group inline-flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 rounded-full bg-gold/90 backdrop-blur-sm text-[#001229] text-[10px] md:text-xs font-black shadow-lg ring-1 ring-white/20 transition-all duration-200 hover:bg-gold hover:shadow-xl hover:scale-[1.04] active:scale-100">
                                         <span>{{ $item['cta_label'] }}</span>
-                                        <span class="material-symbols-outlined text-[15px] font-black transition-transform duration-200 group-hover:translate-x-0.5">arrow_forward</span>
+                                        <span class="material-symbols-outlined text-[13px] md:text-[15px] font-black transition-transform duration-200 group-hover:translate-x-0.5">arrow_forward</span>
                                     </a>
                                 </div>
                             @endif
@@ -55,7 +59,7 @@
                      x-init="setInterval(() => next(), 6000)">
                     
                     <!-- Slides -->
-                    <div class="relative w-full overflow-hidden bg-slate-900">
+                    <div class="relative w-full overflow-hidden bg-[#001229] max-w-full">
                         @foreach($section['items'] as $index => $item)
                             <div x-show="activeSlide === {{ $index }}" 
                                  x-transition:enter="transition ease-out duration-500"
@@ -64,17 +68,21 @@
                                  class="w-full relative">
                                 @if($item['link']['url'] && empty($item['cta_label']))
                                     <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block">
-                                        <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                                        <div class="aspect-[16/8] md:aspect-auto md:h-auto w-full flex items-center justify-center">
+                                            <img src="{{ $item['image_url'] }}" class="w-full h-full md:h-auto object-contain md:object-contain block max-w-full" alt="{{ $item['image_alt'] }}">
+                                        </div>
                                     </a>
                                 @else
                                     <div class="relative w-full">
-                                        <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                                        <div class="aspect-[16/8] md:aspect-auto md:h-auto w-full flex items-center justify-center">
+                                            <img src="{{ $item['image_url'] }}" class="w-full h-full md:h-auto object-contain md:object-contain block max-w-full" alt="{{ $item['image_alt'] }}">
+                                        </div>
                                         @if($item['link']['url'] && !empty($item['cta_label']))
-                                                <div class="absolute bottom-5 left-5 md:bottom-8 md:left-8 z-10">
+                                            <div class="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-10">
                                                 <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}"
-                                                   class="group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gold/90 backdrop-blur-sm text-[#001229] text-xs font-black shadow-lg ring-1 ring-white/20 transition-all duration-200 hover:bg-gold hover:shadow-xl hover:scale-[1.04] active:scale-100">
+                                                   class="group inline-flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 rounded-full bg-gold/90 backdrop-blur-sm text-[#001229] text-[10px] md:text-xs font-black shadow-lg ring-1 ring-white/20 transition-all duration-200 hover:bg-gold hover:shadow-xl hover:scale-[1.04] active:scale-100">
                                                     <span>{{ $item['cta_label'] }}</span>
-                                                    <span class="material-symbols-outlined text-[15px] font-black transition-transform duration-200 group-hover:translate-x-0.5">arrow_forward</span>
+                                                    <span class="material-symbols-outlined text-[13px] md:text-[15px] font-black transition-transform duration-200 group-hover:translate-x-0.5">arrow_forward</span>
                                                 </a>
                                             </div>
                                         @endif
@@ -420,11 +428,11 @@
                     <!-- Horizontal Scroll List -->
                     <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4" style="-ms-overflow-style: none; scrollbar-width: none; scroll-behavior: smooth;">
                         @foreach($section['items'] as $item)
-                            <div class="flex-shrink-0 w-80 md:w-96 relative rounded-2xl overflow-hidden min-h-[200px] bg-slate-900 flex items-center justify-start p-6 md:p-8 border border-outline-variant/10 shadow-ambient">
+                            <div class="flex-shrink-0 w-80 md:w-96 relative rounded-2xl overflow-hidden aspect-[16/8] md:aspect-auto md:h-auto min-h-[200px] bg-[#001229] flex items-center justify-start border border-outline-variant/10 shadow-ambient max-w-full">
                                 @if($item['image_url'])
-                                    <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-700" alt="{{ $item['image_alt'] }}">
+                                    <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-contain md:object-cover opacity-60 hover:scale-105 transition-transform duration-700" alt="{{ $item['image_alt'] }}">
                                 @endif
-                                <div class="relative z-10 text-left space-y-2 text-white max-w-xs">
+                                <div class="relative z-10 text-left space-y-2 text-white p-6 md:p-8 max-w-xs">
                                     <h4 class="text-base font-black tracking-tight leading-tight">{{ $item['title'] }}</h4>
                                     @if($item['subtitle'])
                                         <p class="text-xs text-slate-200 leading-relaxed font-semibold">{{ $item['subtitle'] }}</p>
@@ -439,11 +447,11 @@
                         @endforeach
                         <!-- Duplicate items for seamless infinite looping -->
                         @foreach($section['items'] as $item)
-                            <div class="flex-shrink-0 w-80 md:w-96 relative rounded-2xl overflow-hidden min-h-[200px] bg-slate-900 flex items-center justify-start p-6 md:p-8 border border-outline-variant/10 shadow-ambient">
+                            <div class="flex-shrink-0 w-80 md:w-96 relative rounded-2xl overflow-hidden aspect-[16/8] md:aspect-auto md:h-auto min-h-[200px] bg-[#001229] flex items-center justify-start border border-outline-variant/10 shadow-ambient max-w-full">
                                 @if($item['image_url'])
-                                    <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-700" alt="{{ $item['image_alt'] }}">
+                                    <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-contain md:object-cover opacity-60 hover:scale-105 transition-transform duration-700" alt="{{ $item['image_alt'] }}">
                                 @endif
-                                <div class="relative z-10 text-left space-y-2 text-white max-w-xs">
+                                <div class="relative z-10 text-left space-y-2 text-white p-6 md:p-8 max-w-xs">
                                     <h4 class="text-base font-black tracking-tight leading-tight">{{ $item['title'] }}</h4>
                                     @if($item['subtitle'])
                                         <p class="text-xs text-slate-200 leading-relaxed font-semibold">{{ $item['subtitle'] }}</p>
