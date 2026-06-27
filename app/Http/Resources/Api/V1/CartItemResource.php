@@ -48,6 +48,7 @@ class CartItemResource extends JsonResource
                 'id' => $this->product_unit_id,
                 'name' => $this->unit->name,
                 'short_code' => $this->unit->short_code,
+                'level' => (int) $this->unit->level,
                 'conversion_to_base' => (float) $this->unit->conversion_to_base,
                 'label' => $this->unit->name . ' (' . round($this->unit->conversion_to_base) . ' ' . ($this->unit->conversion_to_base == 1 ? 'Pc' : 'Pcs') . ')',
             ] : null,

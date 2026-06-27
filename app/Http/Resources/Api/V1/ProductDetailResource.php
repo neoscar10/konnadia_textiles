@@ -194,8 +194,8 @@ class ProductDetailResource extends JsonResource
             'combinations' => $combinations,
             'purchase_defaults' => [
                 'selected_unit_id' => !empty($formattedUnits) ? $formattedUnits[0]['id'] : null,
-                'quantity' => 10,
-                'minimum_order_quantity' => 10,
+                'quantity' => (int) ($this->minimum_order_quantity ?? 10),
+                'minimum_order_quantity' => (int) ($this->minimum_order_quantity ?? 1),
             ],
             'tax' => [
                 'hsn_code' => $this->hsn_code,

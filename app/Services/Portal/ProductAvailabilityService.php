@@ -23,9 +23,20 @@ class ProductAvailabilityService
         }
 
         $hasCombinations = $product->combinations()->where('is_active', true)->exists();
+        $isFallbackStock = false;
 
         if ($hasCombinations) {
-            $qty = (int) $product->combinations()->where('is_active', true)->sum('stock_quantity');
+            $hasDefinedComboStock = $product->combinations()
+                ->where('is_active', true)
+                ->whereNotNull('stock_quantity')
+                ->exists();
+
+            if ($hasDefinedComboStock) {
+                $qty = (int) $product->combinations()->where('is_active', true)->sum('stock_quantity');
+            } else {
+                $qty = (int) $product->stock_quantity;
+                $isFallbackStock = true;
+            }
         } else {
             $qty = (int) $product->stock_quantity;
         }
@@ -34,7 +45,7 @@ class ProductAvailabilityService
         $label = 'Out of Stock';
         $isPurchasable = false;
 
-        if ($qty > 10) {
+        if ($qty > 10 || ($qty > 0 && $isFallbackStock)) {
             $status = 'in_stock';
             $label = 'In Stock';
             $isPurchasable = true;
