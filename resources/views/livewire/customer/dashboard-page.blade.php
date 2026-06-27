@@ -24,11 +24,11 @@
                 @foreach($section['items'] as $item)
                     @if($item['link']['url'] && empty($item['cta_label']))
                         <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block mb-8 rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 hover:shadow-md transition-all hover:scale-[1.005] duration-300">
-                            <img src="{{ $item['image_url'] }}" class="w-full h-[50vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
+                            <img src="{{ $item['image_url'] }}" class="w-full h-[90vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
                         </a>
                     @else
                         <div class="mb-8 relative w-full rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 bg-slate-900">
-                            <img src="{{ $item['image_url'] }}" class="w-full h-[50vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
+                            <img src="{{ $item['image_url'] }}" class="w-full h-[90vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
                             @if($item['link']['url'] && !empty($item['cta_label']))
                                 <div class="absolute bottom-5 left-5 md:bottom-8 md:left-8 z-10">
                                     <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}"
@@ -64,11 +64,11 @@
                                  class="w-full relative">
                                 @if($item['link']['url'] && empty($item['cta_label']))
                                     <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block">
-                                        <img src="{{ $item['image_url'] }}" class="w-full h-[50vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
+                                        <img src="{{ $item['image_url'] }}" class="w-full h-[90vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
                                     </a>
                                 @else
                                     <div class="relative w-full">
-                                        <img src="{{ $item['image_url'] }}" class="w-full h-[50vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
+                                        <img src="{{ $item['image_url'] }}" class="w-full h-[90vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
                                         @if($item['link']['url'] && !empty($item['cta_label']))
                                                 <div class="absolute bottom-5 left-5 md:bottom-8 md:left-8 z-10">
                                                 <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}"
