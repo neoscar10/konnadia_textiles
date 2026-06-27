@@ -341,7 +341,11 @@ class HomeContentPage extends Component
                 $rules = [
                     'bannerCtaLabel' => ['nullable', 'string', 'max:50'],
                     'bannerLinkType' => ['required', 'in:none,category,product,url'],
-                    'bannerLinkCategoryId' => ['required_if:bannerLinkType,category', 'nullable', 'exists:categories,id'],
+                    'bannerLinkCategoryId' => ['required_if:bannerLinkType,category', 'nullable', function ($attribute, $value, $fail) {
+                        if ($value !== 'all' && $value !== 0 && $value !== '0' && !\App\Models\Category::where('id', $value)->exists()) {
+                            $fail('The selected category is invalid.');
+                        }
+                    }],
                     'bannerLinkProductId' => ['required_if:bannerLinkType,product', 'nullable', 'exists:products,id'],
                     'bannerExternalUrl' => ['required_if:bannerLinkType,url', 'nullable', 'url', 'max:500'],
                 ];
@@ -361,7 +365,11 @@ class HomeContentPage extends Component
                     $rules = [
                         "slides.{$index}.cta_label" => ['nullable', 'string', 'max:50'],
                         "slides.{$index}.link_type" => ['required', 'in:none,category,product,url'],
-                        "slides.{$index}.link_category_id" => ["required_if:slides.{$index}.link_type,category", 'nullable', 'exists:categories,id'],
+                        "slides.{$index}.link_category_id" => ["required_if:slides.{$index}.link_type,category", 'nullable', function ($attribute, $value, $fail) {
+                            if ($value !== 'all' && $value !== 0 && $value !== '0' && !\App\Models\Category::where('id', $value)->exists()) {
+                                $fail('The selected category is invalid.');
+                            }
+                        }],
                         "slides.{$index}.link_product_id" => ["required_if:slides.{$index}.link_type,product", 'nullable', 'exists:products,id'],
                         "slides.{$index}.external_url" => ["required_if:slides.{$index}.link_type,url", 'nullable', 'url', 'max:500'],
                     ];
@@ -409,7 +417,11 @@ class HomeContentPage extends Component
                         "slides.{$index}.subtitle" => ['nullable', 'string', 'max:250'],
                         "slides.{$index}.cta_label" => ['nullable', 'string', 'max:50'],
                         "slides.{$index}.link_type" => ['required', 'in:none,category,product,url'],
-                        "slides.{$index}.link_category_id" => ["required_if:slides.{$index}.link_type,category", 'nullable', 'exists:categories,id'],
+                        "slides.{$index}.link_category_id" => ["required_if:slides.{$index}.link_type,category", 'nullable', function ($attribute, $value, $fail) {
+                            if ($value !== 'all' && $value !== 0 && $value !== '0' && !\App\Models\Category::where('id', $value)->exists()) {
+                                $fail('The selected category is invalid.');
+                            }
+                        }],
                         "slides.{$index}.link_product_id" => ["required_if:slides.{$index}.link_type,product", 'nullable', 'exists:products,id'],
                         "slides.{$index}.external_url" => ["required_if:slides.{$index}.link_type,url", 'nullable', 'url', 'max:500'],
                     ];

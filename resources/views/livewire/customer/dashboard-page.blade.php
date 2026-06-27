@@ -24,15 +24,17 @@
                 @foreach($section['items'] as $item)
                     @if($item['link']['url'] && empty($item['cta_label']))
                         <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block mb-8 rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 hover:shadow-md transition-all hover:scale-[1.005] duration-300">
-                            <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                            <img src="{{ $item['image_url'] }}" class="w-full h-[50vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
                         </a>
                     @else
                         <div class="mb-8 relative w-full rounded-2xl overflow-hidden shadow-ambient border border-outline-variant/10 bg-slate-900">
-                            <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                            <img src="{{ $item['image_url'] }}" class="w-full h-[50vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
                             @if($item['link']['url'] && !empty($item['cta_label']))
-                                <div class="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-10">
-                                    <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-gold text-[#001229] text-xs font-black transition-all hover:bg-white hover:scale-105 shadow-md">
-                                        {{ $item['cta_label'] }}
+                                <div class="absolute bottom-5 left-5 md:bottom-8 md:left-8 z-10">
+                                    <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}"
+                                       class="group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gold/90 backdrop-blur-sm text-[#001229] text-xs font-black shadow-lg ring-1 ring-white/20 transition-all duration-200 hover:bg-gold hover:shadow-xl hover:scale-[1.04] active:scale-100">
+                                        <span>{{ $item['cta_label'] }}</span>
+                                        <span class="material-symbols-outlined text-[15px] font-black transition-transform duration-200 group-hover:translate-x-0.5">arrow_forward</span>
                                     </a>
                                 </div>
                             @endif
@@ -62,15 +64,17 @@
                                  class="w-full relative">
                                 @if($item['link']['url'] && empty($item['cta_label']))
                                     <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="block">
-                                        <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                                        <img src="{{ $item['image_url'] }}" class="w-full h-[50vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
                                     </a>
                                 @else
                                     <div class="relative w-full">
-                                        <img src="{{ $item['image_url'] }}" class="w-full h-auto object-contain block" alt="{{ $item['image_alt'] }}">
+                                        <img src="{{ $item['image_url'] }}" class="w-full h-[50vh] object-cover md:h-auto md:object-contain block" alt="{{ $item['image_alt'] }}">
                                         @if($item['link']['url'] && !empty($item['cta_label']))
-                                            <div class="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-10">
-                                                <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-gold text-[#001229] text-xs font-black transition-all hover:bg-white hover:scale-105 shadow-md">
-                                                    {{ $item['cta_label'] }}
+                                                <div class="absolute bottom-5 left-5 md:bottom-8 md:left-8 z-10">
+                                                <a href="{{ $item['link']['url'] }}" target="{{ $item['link']['target'] ?? '_self' }}"
+                                                   class="group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gold/90 backdrop-blur-sm text-[#001229] text-xs font-black shadow-lg ring-1 ring-white/20 transition-all duration-200 hover:bg-gold hover:shadow-xl hover:scale-[1.04] active:scale-100">
+                                                    <span>{{ $item['cta_label'] }}</span>
+                                                    <span class="material-symbols-outlined text-[15px] font-black transition-transform duration-200 group-hover:translate-x-0.5">arrow_forward</span>
                                                 </a>
                                             </div>
                                         @endif
@@ -157,23 +161,49 @@
             <!-- Category Slider -->
             @if($section['type'] === 'category_slider')
                 <div class="mb-8 space-y-4" x-data="{
-                    scrollNext() { 
-                        const container = this.$refs.sliderContainer;
-                        const halfWidth = container.scrollWidth / 2;
-                        if (container.scrollLeft >= halfWidth - 10) {
-                            container.scrollLeft = container.scrollLeft - halfWidth;
-                        }
-                        container.scrollBy({ left: 300, behavior: 'smooth' });
+                    autoTimer: null,
+                    paused: false,
+                    step: 300,
+                    init() {
+                        const el = this.$refs.sliderContainer;
+                        // Start in the middle clone so both directions are seamless
+                        el.scrollLeft = el.scrollWidth / 2;
+                        this.startAuto();
+                        // Pause auto-scroll while user is touching/dragging
+                        el.addEventListener('touchstart', () => { this.paused = true; }, { passive: true });
+                        el.addEventListener('touchend',   () => { setTimeout(() => { this.paused = false; this.warpIfNeeded(); }, 800); }, { passive: true });
                     },
-                    scrollPrev() { 
-                        const container = this.$refs.sliderContainer;
-                        const halfWidth = container.scrollWidth / 2;
-                        if (container.scrollLeft <= 10) {
-                            container.scrollLeft = container.scrollLeft + halfWidth;
+                    warpIfNeeded() {
+                        const el = this.$refs.sliderContainer;
+                        const half = el.scrollWidth / 2;
+                        if (el.scrollLeft >= half - 2) {
+                            el.style.scrollBehavior = 'auto';
+                            el.scrollLeft -= half;
+                            void el.offsetWidth; // force reflow
+                            el.style.scrollBehavior = '';
+                        } else if (el.scrollLeft <= 2) {
+                            el.style.scrollBehavior = 'auto';
+                            el.scrollLeft += half;
+                            void el.offsetWidth;
+                            el.style.scrollBehavior = '';
                         }
-                        container.scrollBy({ left: -300, behavior: 'smooth' });
+                    },
+                    scrollNext() {
+                        const el = this.$refs.sliderContainer;
+                        this.warpIfNeeded();
+                        el.scrollBy({ left: this.step, behavior: 'smooth' });
+                    },
+                    scrollPrev() {
+                        const el = this.$refs.sliderContainer;
+                        this.warpIfNeeded();
+                        el.scrollBy({ left: -this.step, behavior: 'smooth' });
+                    },
+                    startAuto() {
+                        this.autoTimer = setInterval(() => {
+                            if (!this.paused) this.scrollNext();
+                        }, 4000);
                     }
-                }" x-init="setInterval(() => scrollNext(), 4000)">
+                }" x-init="init()">
                     <div class="flex justify-between items-end">
                         <div class="flex flex-col gap-0.5">
                             <h3 class="text-base font-extrabold text-[#001229]">{{ $section['title'] ?: 'Featured Collection' }}</h3>
@@ -192,10 +222,10 @@
                     </div>
 
                     <!-- Horizontal Snap List -->
-                    <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory" style="-ms-overflow-style: none; scrollbar-width: none;">
+                    <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4" style="-ms-overflow-style: none; scrollbar-width: none; scroll-behavior: smooth;">
                         @foreach($section['items'] as $item)
                             @php $prod = $item['product']; @endphp
-                            <div class="flex-shrink-0 w-72 snap-start">
+                            <div class="flex-shrink-0 w-72">
                                 <x-customer.product-card 
                                     :title="$prod['title']" 
                                     :sku="$prod['sku']" 
@@ -211,7 +241,7 @@
                         <!-- Duplicate items for seamless infinite looping -->
                         @foreach($section['items'] as $item)
                             @php $prod = $item['product']; @endphp
-                            <div class="flex-shrink-0 w-72 snap-start">
+                            <div class="flex-shrink-0 w-72">
                                 <x-customer.product-card 
                                     :title="$prod['title']" 
                                     :sku="$prod['sku']" 
@@ -231,23 +261,47 @@
             <!-- Product Slider -->
             @if($section['type'] === 'product_slider')
                 <div class="mb-8 space-y-4" x-data="{
-                    scrollNext() { 
-                        const container = this.$refs.sliderContainer;
-                        const halfWidth = container.scrollWidth / 2;
-                        if (container.scrollLeft >= halfWidth - 10) {
-                            container.scrollLeft = container.scrollLeft - halfWidth;
-                        }
-                        container.scrollBy({ left: 300, behavior: 'smooth' });
+                    autoTimer: null,
+                    paused: false,
+                    step: 300,
+                    init() {
+                        const el = this.$refs.sliderContainer;
+                        el.scrollLeft = el.scrollWidth / 2;
+                        this.startAuto();
+                        el.addEventListener('touchstart', () => { this.paused = true; }, { passive: true });
+                        el.addEventListener('touchend',   () => { setTimeout(() => { this.paused = false; this.warpIfNeeded(); }, 800); }, { passive: true });
                     },
-                    scrollPrev() { 
-                        const container = this.$refs.sliderContainer;
-                        const halfWidth = container.scrollWidth / 2;
-                        if (container.scrollLeft <= 10) {
-                            container.scrollLeft = container.scrollLeft + halfWidth;
+                    warpIfNeeded() {
+                        const el = this.$refs.sliderContainer;
+                        const half = el.scrollWidth / 2;
+                        if (el.scrollLeft >= half - 2) {
+                            el.style.scrollBehavior = 'auto';
+                            el.scrollLeft -= half;
+                            void el.offsetWidth;
+                            el.style.scrollBehavior = '';
+                        } else if (el.scrollLeft <= 2) {
+                            el.style.scrollBehavior = 'auto';
+                            el.scrollLeft += half;
+                            void el.offsetWidth;
+                            el.style.scrollBehavior = '';
                         }
-                        container.scrollBy({ left: -300, behavior: 'smooth' });
+                    },
+                    scrollNext() {
+                        const el = this.$refs.sliderContainer;
+                        this.warpIfNeeded();
+                        el.scrollBy({ left: this.step, behavior: 'smooth' });
+                    },
+                    scrollPrev() {
+                        const el = this.$refs.sliderContainer;
+                        this.warpIfNeeded();
+                        el.scrollBy({ left: -this.step, behavior: 'smooth' });
+                    },
+                    startAuto() {
+                        this.autoTimer = setInterval(() => {
+                            if (!this.paused) this.scrollNext();
+                        }, 4000);
                     }
-                }" x-init="setInterval(() => scrollNext(), 4000)">
+                }" x-init="init()">
                     <div class="flex justify-between items-end">
                         <div class="flex flex-col gap-0.5">
                             <h3 class="text-base font-extrabold text-[#001229]">{{ $section['title'] ?: 'Featured Products' }}</h3>
@@ -266,10 +320,10 @@
                     </div>
 
                     <!-- Horizontal Snap List -->
-                    <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory" style="-ms-overflow-style: none; scrollbar-width: none;">
+                    <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4" style="-ms-overflow-style: none; scrollbar-width: none; scroll-behavior: smooth;">
                         @foreach($section['items'] as $item)
                             @php $prod = $item['product']; @endphp
-                            <div class="flex-shrink-0 w-72 snap-start">
+                            <div class="flex-shrink-0 w-72">
                                 <x-customer.product-card 
                                     :title="$prod['title']" 
                                     :sku="$prod['sku']" 
@@ -285,7 +339,7 @@
                         <!-- Duplicate items for seamless infinite looping -->
                         @foreach($section['items'] as $item)
                             @php $prod = $item['product']; @endphp
-                            <div class="flex-shrink-0 w-72 snap-start">
+                            <div class="flex-shrink-0 w-72">
                                 <x-customer.product-card 
                                     :title="$prod['title']" 
                                     :sku="$prod['sku']" 
@@ -305,23 +359,47 @@
             <!-- Image Slider -->
             @if($section['type'] === 'image_slider')
                 <div class="mb-8 space-y-4" x-data="{
-                    scrollNext() { 
-                        const container = this.$refs.sliderContainer;
-                        const halfWidth = container.scrollWidth / 2;
-                        if (container.scrollLeft >= halfWidth - 10) {
-                            container.scrollLeft = container.scrollLeft - halfWidth;
-                        }
-                        container.scrollBy({ left: 350, behavior: 'smooth' });
+                    autoTimer: null,
+                    paused: false,
+                    step: 350,
+                    init() {
+                        const el = this.$refs.sliderContainer;
+                        el.scrollLeft = el.scrollWidth / 2;
+                        this.startAuto();
+                        el.addEventListener('touchstart', () => { this.paused = true; }, { passive: true });
+                        el.addEventListener('touchend',   () => { setTimeout(() => { this.paused = false; this.warpIfNeeded(); }, 800); }, { passive: true });
                     },
-                    scrollPrev() { 
-                        const container = this.$refs.sliderContainer;
-                        const halfWidth = container.scrollWidth / 2;
-                        if (container.scrollLeft <= 10) {
-                            container.scrollLeft = container.scrollLeft + halfWidth;
+                    warpIfNeeded() {
+                        const el = this.$refs.sliderContainer;
+                        const half = el.scrollWidth / 2;
+                        if (el.scrollLeft >= half - 2) {
+                            el.style.scrollBehavior = 'auto';
+                            el.scrollLeft -= half;
+                            void el.offsetWidth;
+                            el.style.scrollBehavior = '';
+                        } else if (el.scrollLeft <= 2) {
+                            el.style.scrollBehavior = 'auto';
+                            el.scrollLeft += half;
+                            void el.offsetWidth;
+                            el.style.scrollBehavior = '';
                         }
-                        container.scrollBy({ left: -350, behavior: 'smooth' });
+                    },
+                    scrollNext() {
+                        const el = this.$refs.sliderContainer;
+                        this.warpIfNeeded();
+                        el.scrollBy({ left: this.step, behavior: 'smooth' });
+                    },
+                    scrollPrev() {
+                        const el = this.$refs.sliderContainer;
+                        this.warpIfNeeded();
+                        el.scrollBy({ left: -this.step, behavior: 'smooth' });
+                    },
+                    startAuto() {
+                        this.autoTimer = setInterval(() => {
+                            if (!this.paused) this.scrollNext();
+                        }, 4000);
                     }
-                }" x-init="setInterval(() => scrollNext(), 4000)">
+                }" x-init="init()">
                     <div class="flex justify-between items-end">
                         <div class="flex flex-col gap-0.5">
                             <h3 class="text-base font-extrabold text-[#001229]">{{ $section['title'] ?: 'Promotions' }}</h3>
@@ -339,10 +417,10 @@
                         </div>
                     </div>
 
-                    <!-- Horizontal Snap List -->
-                    <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory" style="-ms-overflow-style: none; scrollbar-width: none;">
+                    <!-- Horizontal Scroll List -->
+                    <div x-ref="sliderContainer" class="flex gap-6 overflow-x-auto pb-4" style="-ms-overflow-style: none; scrollbar-width: none; scroll-behavior: smooth;">
                         @foreach($section['items'] as $item)
-                            <div class="flex-shrink-0 w-80 md:w-96 snap-start relative rounded-2xl overflow-hidden min-h-[200px] bg-slate-900 flex items-center justify-start p-6 md:p-8 border border-outline-variant/10 shadow-ambient">
+                            <div class="flex-shrink-0 w-80 md:w-96 relative rounded-2xl overflow-hidden min-h-[200px] bg-slate-900 flex items-center justify-start p-6 md:p-8 border border-outline-variant/10 shadow-ambient">
                                 @if($item['image_url'])
                                     <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-700" alt="{{ $item['image_alt'] }}">
                                 @endif
@@ -361,7 +439,7 @@
                         @endforeach
                         <!-- Duplicate items for seamless infinite looping -->
                         @foreach($section['items'] as $item)
-                            <div class="flex-shrink-0 w-80 md:w-96 snap-start relative rounded-2xl overflow-hidden min-h-[200px] bg-slate-900 flex items-center justify-start p-6 md:p-8 border border-outline-variant/10 shadow-ambient">
+                            <div class="flex-shrink-0 w-80 md:w-96 relative rounded-2xl overflow-hidden min-h-[200px] bg-slate-900 flex items-center justify-start p-6 md:p-8 border border-outline-variant/10 shadow-ambient">
                                 @if($item['image_url'])
                                     <img src="{{ $item['image_url'] }}" class="absolute inset-0 w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-700" alt="{{ $item['image_alt'] }}">
                                 @endif

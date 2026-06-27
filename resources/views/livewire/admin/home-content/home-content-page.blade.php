@@ -1,4 +1,42 @@
 <div>
+    @php
+        $renderCategorySelectTree = function($categories, $wireModelPath, $depth = 0) use (&$renderCategorySelectTree) {
+            foreach ($categories as $cat) {
+                $hasChildren = $cat->children->isNotEmpty();
+                @endphp
+                <div x-data="{ expanded: false }" 
+                     x-show="search === '' || '{{ strtolower(addslashes($cat->name)) }}'.includes(search.toLowerCase())"
+                     class="space-y-1">
+                    <div style="padding-left: {{ $depth * 1 }}rem" class="flex items-center gap-1 hover:bg-slate-50 rounded-lg p-1">
+                        @if($hasChildren)
+                            <button type="button" @click.stop="expanded = !expanded" class="p-1 hover:bg-slate-200 rounded flex items-center justify-center focus:outline-none text-slate-500">
+                                <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="expanded ? 'rotate-90' : ''">chevron_right</span>
+                            </button>
+                        @else
+                            <div class="w-6"></div>
+                        @endif
+                        <button type="button" 
+                                wire:click="$set('{{ $wireModelPath }}', '{{ $cat->id }}')"
+                                @click="open = false; selectedName = '{{ addslashes($cat->name) }}'"
+                                class="text-left text-xs text-slate-700 hover:text-primary font-medium flex-1 truncate py-0.5">
+                            {{ $cat->name }}
+                            @if($depth > 0)
+                                <span class="text-[9px] text-slate-400 font-normal ml-1">Subcategory</span>
+                            @endif
+                        </button>
+                    </div>
+                    @if($hasChildren)
+                        <div x-show="expanded || search !== ''" class="space-y-1">
+                            @php
+                            $renderCategorySelectTree($cat->children, $wireModelPath, $depth + 1);
+                            @endphp
+                        </div>
+                    @endif
+                </div>
+                @php
+            }
+        };
+    @endphp
     <x-slot:title>Home Content CMS</x-slot:title>
 
     <!-- Header Actions -->
@@ -281,15 +319,10 @@
 
                         <!-- Sliders Display Settings -->
                         @if($sectionType !== 'banner' && $sectionType !== 'banner_slider' && $sectionType !== 'image_text_card')
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
-                                <div>
-                                    <label class="text-xs text-slate-500 font-bold block mb-1.5">Items Per View</label>
-                                    <input type="number" wire:model="sectionItemsPerView" min="1" max="10" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                </div>
-                                <div>
-                                    <label class="text-xs text-slate-500 font-bold block mb-1.5">Display Limit</label>
-                                    <input type="number" wire:model="sectionDisplayLimit" min="1" max="50" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                </div>
+                            <div>
+                                <label class="text-xs text-slate-500 font-bold block mb-1.5">Display Limit</label>
+                                <input type="number" wire:model="sectionDisplayLimit" min="1" max="50" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold" placeholder="e.g. 10">
+                                <p class="text-[10px] text-slate-400 mt-1">Specify the maximum number of items (categories/products/slides) to render in this horizontal slider.</p>
                             </div>
                         @endif
 
@@ -363,13 +396,44 @@
 
                                     @if($bannerLinkType === 'category')
                                         <div>
-                                            <label class="text-xs text-slate-500 font-bold block mb-1.5">Select Linked Category</label>
-                                            <select wire:model="bannerLinkCategoryId" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                                <option value="">Select Category</option>
-                                                @foreach($categoriesList as $cat)
-                                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                                @endforeach
-                                            </select>
+                                            <label class="text-xs text-[#001229] font-bold block mb-1.5">Select Linked Category</label>
+                                            @php
+                                                $selectedCategory = $bannerLinkCategoryId === 'all' || $bannerLinkCategoryId == '0' || $bannerLinkCategoryId == ''
+                                                    ? (object)['name' => 'All Categories (Main Catalog)'] 
+                                                    : collect($categoriesList)->firstWhere('id', $bannerLinkCategoryId);
+                                                $selectedCategoryName = $selectedCategory ? $selectedCategory->name : 'Select Category';
+                                            @endphp
+                                            <div x-data="{ open: false, search: '', selectedName: '{{ addslashes($selectedCategoryName) }}' }" class="relative">
+                                                <button type="button" @click="open = !open" @click.outside="open = false" class="w-full flex items-center justify-between text-left text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
+                                                    <span x-text="selectedName"></span>
+                                                    <span class="material-symbols-outlined text-slate-400 text-[18px] select-none">arrow_drop_down</span>
+                                                </button>
+                                                
+                                                <div x-show="open" x-transition class="absolute z-50 mt-1 w-full bg-white border border-outline-variant/30 rounded-lg shadow-lg p-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                                    <!-- Search field -->
+                                                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-outline-variant/20 rounded-md mb-2">
+                                                        <span class="material-symbols-outlined text-slate-400 text-[16px] select-none">search</span>
+                                                        <input type="text" x-model="search" placeholder="Search category name..." class="w-full bg-transparent border-0 p-0 text-xs focus:ring-0 outline-none h-6">
+                                                    </div>
+                                                    
+                                                    <!-- Category list -->
+                                                    <div class="space-y-1">
+                                                        <div class="flex items-center gap-1 hover:bg-slate-50 rounded-lg p-1">
+                                                            <div class="w-6"></div>
+                                                            <button type="button" 
+                                                                    wire:click="$set('bannerLinkCategoryId', 'all')"
+                                                                    @click="open = false; selectedName = 'All Categories (Main Catalog)'"
+                                                                    class="text-left text-xs text-slate-700 hover:text-primary font-bold flex-1 py-0.5">
+                                                                All Categories (Main Catalog)
+                                                            </button>
+                                                        </div>
+                                                        @php
+                                                            $rootCategoriesSelect = \App\Models\Category::whereNull('parent_id')->with('children.children')->orderBy('sort_order')->orderBy('name')->get();
+                                                            $renderCategorySelectTree($rootCategoriesSelect, 'bannerLinkCategoryId');
+                                                        @endphp
+                                                    </div>
+                                                </div>
+                                            </div>
                                             @error('bannerLinkCategoryId') <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
                                         </div>
                                     @elseif($bannerLinkType === 'product')
@@ -479,12 +543,44 @@
                                                     @if(($slide['link_type'] ?? 'none') === 'category')
                                                         <div>
                                                             <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Select Linked Category</label>
-                                                            <select wire:model="slides.{{ $index }}.link_category_id" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                                                <option value="">Select Category</option>
-                                                                @foreach($categoriesList as $cat)
-                                                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                                                @endforeach
-                                                            </select>
+                                                            @php
+                                                                $selectedSlideCatId = $slide['link_category_id'] ?? '';
+                                                                $selectedSlideCat = $selectedSlideCatId === 'all' || $selectedSlideCatId == '0' || $selectedSlideCatId == ''
+                                                                    ? (object)['name' => 'All Categories (Main Catalog)'] 
+                                                                    : collect($categoriesList)->firstWhere('id', $selectedSlideCatId);
+                                                                $selectedSlideCatName = $selectedSlideCat ? $selectedSlideCat->name : 'Select Category';
+                                                            @endphp
+                                                            <div x-data="{ open: false, search: '', selectedName: '{{ addslashes($selectedSlideCatName) }}' }" class="relative">
+                                                                <button type="button" @click="open = !open" @click.outside="open = false" class="w-full flex items-center justify-between text-left text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-gold">
+                                                                    <span x-text="selectedName"></span>
+                                                                    <span class="material-symbols-outlined text-slate-400 text-[18px] select-none">arrow_drop_down</span>
+                                                                </button>
+                                                                
+                                                                <div x-show="open" x-transition class="absolute z-50 mt-1 w-full bg-white border border-outline-variant/30 rounded-lg shadow-lg p-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                                                    <!-- Search field -->
+                                                                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-outline-variant/20 rounded-md mb-2">
+                                                                        <span class="material-symbols-outlined text-slate-400 text-[16px] select-none">search</span>
+                                                                        <input type="text" x-model="search" placeholder="Search category name..." class="w-full bg-transparent border-0 p-0 text-xs focus:ring-0 outline-none h-6">
+                                                                    </div>
+                                                                    
+                                                                    <!-- Category list -->
+                                                                    <div class="space-y-1">
+                                                                        <div class="flex items-center gap-1 hover:bg-slate-50 rounded-lg p-1">
+                                                                            <div class="w-6"></div>
+                                                                            <button type="button" 
+                                                                                    wire:click="$set('slides.{{ $index }}.link_category_id', 'all')"
+                                                                                    @click="open = false; selectedName = 'All Categories (Main Catalog)'"
+                                                                                    class="text-left text-xs text-slate-700 hover:text-primary font-bold flex-1 py-0.5">
+                                                                                All Categories (Main Catalog)
+                                                                            </button>
+                                                                        </div>
+                                                                        @php
+                                                                            $rootCategoriesSelectSlider = \App\Models\Category::whereNull('parent_id')->with('children.children')->orderBy('sort_order')->orderBy('name')->get();
+                                                                            $renderCategorySelectTree($rootCategoriesSelectSlider, 'slides.' . $index . '.link_category_id');
+                                                                        @endphp
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     @elseif(($slide['link_type'] ?? 'none') === 'product')
                                                         <div>
@@ -640,25 +736,38 @@
                                         $renderCategoryTree = function($categories, $depth = 0) use (&$renderCategoryTree) {
                                             foreach ($categories as $cat) {
                                                 @endphp
-                                                <div style="padding-left: {{ $depth * 1.5 }}rem" class="flex items-center">
-                                                    <label class="flex items-center gap-2 p-2 bg-white rounded-lg border border-outline-variant/20 cursor-pointer hover:bg-slate-100 transition-colors w-full">
-                                                        <input type="checkbox" 
-                                                               value="{{ $cat->id }}" 
-                                                               wire:click="toggleCategorySelection({{ $cat->id }})"
-                                                               @if(in_array($cat->id, $this->selectedCategoryIds)) checked @endif
-                                                               class="rounded text-primary focus:ring-primary h-4 w-4 border-slate-300">
-                                                        <span class="text-xs text-[#001229] font-bold truncate">
-                                                            {{ $cat->name }}
-                                                            @if($depth > 0)
-                                                                <span class="text-[9px] text-slate-400 font-normal ml-1">Subcategory</span>
-                                                            @endif
-                                                        </span>
-                                                    </label>
+                                                <div x-data="{ expanded: false }" class="space-y-1">
+                                                    <div style="padding-left: {{ $depth * 1.5 }}rem" class="flex items-center gap-1.5">
+                                                        @if($cat->children->isNotEmpty())
+                                                            <button type="button" @click="expanded = !expanded" class="p-1 hover:bg-slate-200 rounded flex items-center justify-center focus:outline-none text-slate-500 hover:text-slate-800 transition-colors">
+                                                                <span class="material-symbols-outlined text-[18px] transition-transform duration-200 select-none" :class="expanded ? 'rotate-90' : ''">chevron_right</span>
+                                                            </button>
+                                                        @else
+                                                            <div class="w-[26px]"></div>
+                                                        @endif
+                                                        <label class="flex items-center gap-2 p-2 bg-white rounded-lg border border-outline-variant/20 cursor-pointer hover:bg-slate-100 transition-colors w-full">
+                                                            <input type="checkbox" 
+                                                                   value="{{ $cat->id }}" 
+                                                                   wire:click="toggleCategorySelection({{ $cat->id }})"
+                                                                   @if(in_array($cat->id, $this->selectedCategoryIds)) checked @endif
+                                                                   class="rounded text-primary focus:ring-primary h-4 w-4 border-slate-300">
+                                                            <span class="text-xs text-[#001229] font-bold truncate">
+                                                                {{ $cat->name }}
+                                                                @if($depth > 0)
+                                                                    <span class="text-[9px] text-slate-400 font-normal ml-1">Subcategory</span>
+                                                                @endif
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                    @if($cat->children->isNotEmpty())
+                                                        <div x-show="expanded" x-transition class="space-y-1">
+                                                            @php
+                                                            $renderCategoryTree($cat->children, $depth + 1);
+                                                            @endphp
+                                                        </div>
+                                                    @endif
                                                 </div>
                                                 @php
-                                                if ($cat->children->isNotEmpty()) {
-                                                    $renderCategoryTree($cat->children, $depth + 1);
-                                                }
                                             }
                                         };
                                         
@@ -820,16 +929,16 @@
                                                         @error("slides.{$index}.upload") <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
                                                         
                                                         @if(isset($slide['upload']))
-                                                            <div class="mt-2 relative rounded overflow-hidden border border-outline-variant/30 shadow-xs">
-                                                                <img src="{{ $slide['upload']->temporaryUrl() }}" class="h-12 w-full object-cover">
-                                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold truncate">
+                                                            <div class="mt-2 rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs bg-slate-900">
+                                                                <img src="{{ $slide['upload']->temporaryUrl() }}" class="w-full h-auto object-contain block max-h-48">
+                                                                <div class="px-2 py-1 bg-slate-900/80 text-[9px] text-white font-bold truncate">
                                                                     {{ $slide['upload']->getClientOriginalName() }}
                                                                 </div>
                                                             </div>
                                                         @elseif(isset($slide['existing_image']))
-                                                            <div class="mt-2 relative rounded overflow-hidden border border-outline-variant/30 shadow-xs">
-                                                                <img src="{{ asset('storage/' . $slide['existing_image']) }}" class="h-12 w-full object-cover">
-                                                                <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold">
+                                                            <div class="mt-2 rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs bg-slate-900">
+                                                                <img src="{{ asset('storage/' . $slide['existing_image']) }}" class="w-full h-auto object-contain block max-h-48">
+                                                                <div class="px-2 py-1 bg-slate-900/80 text-[9px] text-white font-bold">
                                                                     Current Image
                                                                 </div>
                                                             </div>
@@ -868,12 +977,44 @@
                                                     @if(($slide['link_type'] ?? 'none') === 'category')
                                                         <div>
                                                             <label class="text-[11px] text-slate-500 font-bold block mb-1.5">Select Linked Category</label>
-                                                            <select wire:model="slides.{{ $index }}.link_category_id" class="w-full text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-gold">
-                                                                <option value="">Select Category</option>
-                                                                @foreach($categoriesList as $cat)
-                                                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                                                @endforeach
-                                                            </select>
+                                                            @php
+                                                                $selectedSlideImageCatId = $slide['link_category_id'] ?? '';
+                                                                $selectedSlideImageCat = $selectedSlideImageCatId === 'all' || $selectedSlideImageCatId == '0' || $selectedSlideImageCatId == ''
+                                                                    ? (object)['name' => 'All Categories (Main Catalog)'] 
+                                                                    : collect($categoriesList)->firstWhere('id', $selectedSlideImageCatId);
+                                                                $selectedSlideImageCatName = $selectedSlideImageCat ? $selectedSlideImageCat->name : 'Select Category';
+                                                            @endphp
+                                                            <div x-data="{ open: false, search: '', selectedName: '{{ addslashes($selectedSlideImageCatName) }}' }" class="relative">
+                                                                <button type="button" @click="open = !open" @click.outside="open = false" class="w-full flex items-center justify-between text-left text-xs bg-slate-50 border border-outline-variant/30 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-gold">
+                                                                    <span x-text="selectedName"></span>
+                                                                    <span class="material-symbols-outlined text-slate-400 text-[18px] select-none">arrow_drop_down</span>
+                                                                </button>
+                                                                
+                                                                <div x-show="open" x-transition class="absolute z-50 mt-1 w-full bg-white border border-outline-variant/30 rounded-lg shadow-lg p-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                                                    <!-- Search field -->
+                                                                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-outline-variant/20 rounded-md mb-2">
+                                                                        <span class="material-symbols-outlined text-slate-400 text-[16px] select-none">search</span>
+                                                                        <input type="text" x-model="search" placeholder="Search category name..." class="w-full bg-transparent border-0 p-0 text-xs focus:ring-0 outline-none h-6">
+                                                                    </div>
+                                                                    
+                                                                    <!-- Category list -->
+                                                                    <div class="space-y-1">
+                                                                        <div class="flex items-center gap-1 hover:bg-slate-50 rounded-lg p-1">
+                                                                            <div class="w-6"></div>
+                                                                            <button type="button" 
+                                                                                    wire:click="$set('slides.{{ $index }}.link_category_id', 'all')"
+                                                                                    @click="open = false; selectedName = 'All Categories (Main Catalog)'"
+                                                                                    class="text-left text-xs text-slate-700 hover:text-primary font-bold flex-1 py-0.5">
+                                                                                All Categories (Main Catalog)
+                                                                            </button>
+                                                                        </div>
+                                                                        @php
+                                                                            $rootCategoriesSelectSliderImage = \App\Models\Category::whereNull('parent_id')->with('children.children')->orderBy('sort_order')->orderBy('name')->get();
+                                                                            $renderCategorySelectTree($rootCategoriesSelectSliderImage, 'slides.' . $index . '.link_category_id');
+                                                                        @endphp
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     @elseif(($slide['link_type'] ?? 'none') === 'product')
                                                         <div>
@@ -1086,35 +1227,70 @@
 
                                 <!-- Image Slider Preview -->
                                 @if($sectionType === 'image_slider')
-                                    <div class="relative w-full rounded-xl overflow-hidden min-h-[200px] bg-slate-800 flex items-center justify-center p-6 border border-white/5">
-                                        @if(!empty($slides))
-                                            @php $firstSlide = $slides[0]; @endphp
-                                            @if(isset($firstSlide['upload']))
-                                                <img src="{{ $firstSlide['upload']->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
-                                            @elseif(isset($firstSlide['existing_image']))
-                                                <img src="{{ asset('storage/' . $firstSlide['existing_image']) }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
-                                            @endif
-                                            <div class="relative z-10 text-center space-y-2 max-w-md">
-                                                <h3 class="text-xl font-black tracking-tight leading-tight">{{ $firstSlide['title'] ?: 'Promo Slide Cover' }}</h3>
-                                                <p class="text-xs font-semibold text-slate-200/90 leading-relaxed">{{ $firstSlide['subtitle'] ?: 'Check out catalog campaigns' }}</p>
-                                                <button type="button" class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gold text-[#001229] text-xs font-bold transition-all shadow-md mt-2">
-                                                    {{ $firstSlide['cta_label'] ?: 'Shop Now' }}
-                                                </button>
+                                    <div class="space-y-3">
+                                        {{-- Section header --}}
+                                        @if($sectionTitle)
+                                            <div class="flex flex-col gap-0.5">
+                                                <h4 class="text-sm font-black text-white leading-none">{{ $sectionTitle }}</h4>
+                                                @if($sectionSubtitle)<p class="text-[10px] text-slate-400 font-semibold leading-none">{{ $sectionSubtitle }}</p>@endif
                                             </div>
+                                        @endif
+
+                                        @if(!empty($slides))
+                                            {{-- Carousel strip --}}
+                                            <div class="flex items-stretch gap-3 overflow-x-auto pb-2 scroll-smooth">
+                                                @foreach($slides as $i => $slide)
+                                                    <div class="flex-shrink-0 w-48 rounded-xl overflow-hidden border border-white/10 bg-slate-800 relative group">
+                                                        {{-- Image --}}
+                                                        @if(isset($slide['upload']))
+                                                            <img src="{{ $slide['upload']->temporaryUrl() }}" class="w-full h-36 object-cover block">
+                                                        @elseif(isset($slide['existing_image']))
+                                                            <img src="{{ asset('storage/' . $slide['existing_image']) }}" class="w-full h-36 object-cover block">
+                                                        @else
+                                                            <div class="w-full h-36 bg-slate-700 flex items-center justify-center">
+                                                                <span class="material-symbols-outlined text-slate-500 text-2xl">image</span>
+                                                            </div>
+                                                        @endif
+
+                                                        {{-- Overlay with title/cta --}}
+                                                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent flex flex-col justify-end p-2.5 space-y-1">
+                                                            @if(!empty($slide['title']))
+                                                                <p class="text-[11px] font-black text-white leading-tight truncate">{{ $slide['title'] }}</p>
+                                                            @endif
+                                                            @if(!empty($slide['subtitle']))
+                                                                <p class="text-[9px] text-slate-300 leading-tight truncate">{{ $slide['subtitle'] }}</p>
+                                                            @endif
+                                                            @if(!empty($slide['cta_label']))
+                                                                <span class="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-full bg-gold/90 text-[#001229] text-[9px] font-black">
+                                                                    {{ $slide['cta_label'] }}
+                                                                    <span class="material-symbols-outlined text-[10px]">arrow_forward</span>
+                                                                </span>
+                                                            @endif
+                                                        </div>
+
+                                                        {{-- Slide number badge --}}
+                                                        <div class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center text-[9px] font-black text-white">
+                                                            {{ $i + 1 }}
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+
+                                            {{-- Dot indicators --}}
+                                            @if(count($slides) > 1)
+                                                <div class="flex items-center justify-center gap-1.5">
+                                                    @foreach($slides as $i => $s)
+                                                        <span class="w-1.5 h-1.5 rounded-full {{ $i === 0 ? 'bg-gold' : 'bg-white/30' }}"></span>
+                                                    @endforeach
+                                                </div>
+                                            @endif
                                         @else
-                                            <div class="text-slate-500 flex flex-col items-center">
-                                                <span class="material-symbols-outlined text-4xl mb-1">view_carousel</span>
-                                                <span class="text-xs">No slides uploaded yet</span>
+                                            <div class="rounded-xl border border-dashed border-white/20 bg-slate-800/50 flex flex-col items-center justify-center py-10 text-slate-500">
+                                                <span class="material-symbols-outlined text-3xl mb-1">view_carousel</span>
+                                                <span class="text-xs">No slides added yet — go back to Step 3</span>
                                             </div>
                                         @endif
                                     </div>
-                                    @if(count($slides) > 1)
-                                        <div class="flex items-center justify-center gap-1.5">
-                                            @foreach($slides as $i => $s)
-                                                <span class="w-1.5 h-1.5 rounded-full {{ $i === 0 ? 'bg-gold' : 'bg-white/30' }}"></span>
-                                            @endforeach
-                                        </div>
-                                    @endif
                                 @endif
                             </div>
                         </div>
