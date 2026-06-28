@@ -189,24 +189,18 @@ class ProductShowPage extends Component
         $this->recalculate($catalogService);
     }
 
-    public function decrementUnitQuantity($unitId)
+    public function updatedUnitQuantities($value, $key)
     {
-        $curr = (int) ($this->unitQuantities[$unitId] ?? 0);
-        $this->unitQuantities[$unitId] = max(0, $curr - 1);
+        $this->updateUnitQuantityInQueue((int)$key, (int)$value);
     }
 
-    public function incrementUnitQuantity($unitId)
-    {
-        $curr = (int) ($this->unitQuantities[$unitId] ?? 0);
-        $this->unitQuantities[$unitId] = $curr + 1;
-    }
-
-    public function addUnitToQueue($unitId)
+    public function updateUnitQuantityInQueue($unitId, $qty)
     {
         $unit = collect($this->units)->firstWhere('id', $unitId);
         if (!$unit) return;
 
-        $qty = (int) ($this->unitQuantities[$unitId] ?? 0);
+        $qty = max(0, (int)$qty);
+        $this->unitQuantities[$unitId] = $qty;
 
         if ($qty > 0) {
             $this->queuedItems[$unitId] = [
@@ -216,21 +210,29 @@ class ProductShowPage extends Component
                 'conversion_to_base' => (float)$unit['conversion_to_base'],
                 'quantity' => $qty,
             ];
-            $this->dispatch('toast', type: 'success', message: "Updated {$unit['name']} quantity to {$qty} in selection.");
         } else {
             unset($this->queuedItems[$unitId]);
-            $this->dispatch('toast', type: 'info', message: "Removed {$unit['name']} from selection.");
         }
-        
+
         $this->recalculate(app(ProductCatalogService::class));
+    }
+
+    public function decrementUnitQuantity($unitId)
+    {
+        $curr = (int) ($this->unitQuantities[$unitId] ?? 0);
+        $this->updateUnitQuantityInQueue($unitId, max(0, $curr - 1));
+    }
+
+    public function incrementUnitQuantity($unitId)
+    {
+        $curr = (int) ($this->unitQuantities[$unitId] ?? 0);
+        $this->updateUnitQuantityInQueue($unitId, $curr + 1);
     }
 
     public function removeUnitFromQueue($unitId)
     {
-        unset($this->queuedItems[$unitId]);
-        $this->unitQuantities[$unitId] = 0;
+        $this->updateUnitQuantityInQueue($unitId, 0);
         $this->dispatch('toast', type: 'info', message: 'Removed from selection.');
-        $this->recalculate(app(ProductCatalogService::class));
     }
 
     public function recalculate(ProductCatalogService $catalogService)

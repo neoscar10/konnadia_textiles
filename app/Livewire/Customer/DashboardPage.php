@@ -155,24 +155,18 @@ class DashboardPage extends Component
         $this->recalculateQuickAdd($catalogService);
     }
 
-    public function decrementQuickAddUnitQuantity($unitId)
+    public function updatedQuickAddUnitQuantities($value, $key)
     {
-        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
-        $this->quickAddUnitQuantities[$unitId] = max(0, $curr - 1);
+        $this->updateQuickAddUnitQuantityInQueue((int)$key, (int)$value);
     }
 
-    public function incrementQuickAddUnitQuantity($unitId)
-    {
-        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
-        $this->quickAddUnitQuantities[$unitId] = $curr + 1;
-    }
-
-    public function addQuickAddUnitToQueue($unitId)
+    public function updateQuickAddUnitQuantityInQueue($unitId, $qty)
     {
         $unit = collect($this->quickAddUnits)->firstWhere('id', $unitId);
         if (!$unit) return;
 
-        $qty = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
+        $qty = max(0, (int)$qty);
+        $this->quickAddUnitQuantities[$unitId] = $qty;
 
         if ($qty > 0) {
             $this->quickAddQueuedItems[$unitId] = [
@@ -182,21 +176,29 @@ class DashboardPage extends Component
                 'conversion_to_base' => (float)$unit['conversion_to_base'],
                 'quantity' => $qty,
             ];
-            $this->dispatch('toast', type: 'success', message: "Updated {$unit['name']} quantity to {$qty} in selection.");
         } else {
             unset($this->quickAddQueuedItems[$unitId]);
-            $this->dispatch('toast', type: 'info', message: "Removed {$unit['name']} from selection.");
         }
-        
+
         $this->recalculateQuickAdd(app(\App\Services\Portal\ProductCatalogService::class));
+    }
+
+    public function decrementQuickAddUnitQuantity($unitId)
+    {
+        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
+        $this->updateQuickAddUnitQuantityInQueue($unitId, max(0, $curr - 1));
+    }
+
+    public function incrementQuickAddUnitQuantity($unitId)
+    {
+        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
+        $this->updateQuickAddUnitQuantityInQueue($unitId, $curr + 1);
     }
 
     public function removeQuickAddUnitFromQueue($unitId)
     {
-        unset($this->quickAddQueuedItems[$unitId]);
-        $this->quickAddUnitQuantities[$unitId] = 0;
+        $this->updateQuickAddUnitQuantityInQueue($unitId, 0);
         $this->dispatch('toast', type: 'info', message: 'Removed from selection.');
-        $this->recalculateQuickAdd(app(\App\Services\Portal\ProductCatalogService::class));
     }
 
     public function recalculateQuickAdd(\App\Services\Portal\ProductCatalogService $catalogService)
