@@ -95,11 +95,56 @@ class ProductIndexPage extends Component
             return $u;
         })->toArray();
 
-        // Default all quantities to min_qty
-        $this->quickAddUnitQuantities = [];
+        // Prepopulate selection queue by resolving the MOQ into Boxes and/or Pieces
         $this->quickAddQueuedItems = [];
+        $moq = max(1, $this->quickAddMoq);
+        $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
+        $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
+
+        if ($lvl2) {
+            $conversion = (float) ($lvl2['conversion_to_base'] ?? 1.0);
+            if ($conversion <= 0) $conversion = 1.0;
+
+            $lvl2Qty = (int) floor($moq / $conversion);
+            $lvl1Qty = (int) ($moq - ($lvl2Qty * $conversion));
+
+            if ($lvl2Qty > 0) {
+                $this->quickAddQueuedItems[$lvl2['id']] = [
+                    'unit_id' => $lvl2['id'],
+                    'unit_name' => $lvl2['name'],
+                    'unit_short_code' => $lvl2['short_code'],
+                    'conversion_to_base' => $conversion,
+                    'quantity' => $lvl2Qty,
+                ];
+            }
+
+            if ($lvl1Qty > 0 || $lvl2Qty === 0) {
+                $this->quickAddQueuedItems[$lvl1['id']] = [
+                    'unit_id' => $lvl1['id'],
+                    'unit_name' => $lvl1['name'],
+                    'unit_short_code' => $lvl1['short_code'],
+                    'conversion_to_base' => 1.0,
+                    'quantity' => $lvl1Qty > 0 ? $lvl1Qty : 1,
+                ];
+            }
+        } else {
+            if ($lvl1) {
+                $this->quickAddQueuedItems[$lvl1['id']] = [
+                    'unit_id' => $lvl1['id'],
+                    'unit_name' => $lvl1['name'],
+                    'unit_short_code' => $lvl1['short_code'],
+                    'conversion_to_base' => 1.0,
+                    'quantity' => $moq,
+                ];
+            }
+        }
+
+        // Default all quantities to match selection queue (or 0 if not queued)
+        $this->quickAddUnitQuantities = [];
         foreach ($this->quickAddUnits as $u) {
-            $this->quickAddUnitQuantities[$u['id']] = $u['min_qty'];
+            $this->quickAddUnitQuantities[$u['id']] = isset($this->quickAddQueuedItems[$u['id']])
+                ? $this->quickAddQueuedItems[$u['id']]['quantity']
+                : 0;
         }
 
         $this->recalculateQuickAdd($catalogService);
@@ -114,11 +159,8 @@ class ProductIndexPage extends Component
 
     public function decrementQuickAddUnitQuantity($unitId)
     {
-        $unit = collect($this->quickAddUnits)->firstWhere('id', $unitId);
-        if (!$unit) return;
-        $min = $unit['min_qty'] ?? 1;
-        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? $min);
-        $this->quickAddUnitQuantities[$unitId] = max($min, $curr - 1);
+        $curr = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
+        $this->quickAddUnitQuantities[$unitId] = max(0, $curr - 1);
     }
 
     public function incrementQuickAddUnitQuantity($unitId)
@@ -131,27 +173,22 @@ class ProductIndexPage extends Component
     {
         $unit = collect($this->quickAddUnits)->firstWhere('id', $unitId);
         if (!$unit) return;
-        $min = $unit['min_qty'] ?? 1;
 
         $qty = (int) ($this->quickAddUnitQuantities[$unitId] ?? 0);
-        if ($qty < $min) {
-            $this->dispatch('toast', type: 'error', message: "Please enter a quantity of at least {$min} {$unit['name']}(s).");
-            return;
+
+        if ($qty > 0) {
+            $this->quickAddQueuedItems[$unitId] = [
+                'unit_id' => $unitId,
+                'unit_name' => $unit['name'],
+                'unit_short_code' => $unit['short_code'],
+                'conversion_to_base' => (float)$unit['conversion_to_base'],
+                'quantity' => $qty,
+            ];
+            $this->dispatch('toast', type: 'success', message: "Updated {$unit['name']} quantity to {$qty} in selection.");
+        } else {
+            unset($this->quickAddQueuedItems[$unitId]);
+            $this->dispatch('toast', type: 'info', message: "Removed {$unit['name']} from selection.");
         }
-
-        // Add or update in queuedItems
-        $this->quickAddQueuedItems[$unitId] = [
-            'unit_id' => $unitId,
-            'unit_name' => $unit['name'],
-            'unit_short_code' => $unit['short_code'],
-            'conversion_to_base' => (float)$unit['conversion_to_base'],
-            'quantity' => $qty,
-        ];
-
-        // Reset input quantity to min_qty
-        $this->quickAddUnitQuantities[$unitId] = $unit['min_qty'] ?? 1;
-
-        $this->dispatch('toast', type: 'success', message: "Added {$qty} {$unit['name']}(s) to selection.");
         
         $this->recalculateQuickAdd(app(ProductCatalogService::class));
     }
@@ -159,6 +196,7 @@ class ProductIndexPage extends Component
     public function removeQuickAddUnitFromQueue($unitId)
     {
         unset($this->quickAddQueuedItems[$unitId]);
+        $this->quickAddUnitQuantities[$unitId] = 0;
         $this->dispatch('toast', type: 'info', message: 'Removed from selection.');
         $this->recalculateQuickAdd(app(ProductCatalogService::class));
     }
@@ -225,6 +263,20 @@ class ProductIndexPage extends Component
         if (!$this->quickAddIsPurchasable) {
             $this->dispatch('toast', type: 'error', message: 'This variant is currently out of stock.');
             return;
+        }
+
+        // If no units queued, automatically add Level 1 unit with MOQ
+        if (empty($this->quickAddQueuedItems)) {
+            $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
+            if ($lvl1) {
+                $this->quickAddQueuedItems[$lvl1['id']] = [
+                    'unit_id' => $lvl1['id'],
+                    'unit_name' => $lvl1['name'],
+                    'unit_short_code' => $lvl1['short_code'],
+                    'conversion_to_base' => 1.0,
+                    'quantity' => max(1, $this->quickAddMoq),
+                ];
+            }
         }
 
         if (empty($this->quickAddQueuedItems)) {

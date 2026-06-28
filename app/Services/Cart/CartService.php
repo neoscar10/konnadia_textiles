@@ -331,11 +331,33 @@ class CartService
             $moq = (int) ($product->minimum_order_quantity ?? 1);
             $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
             $totalPieces = (int) ($quantity * $conversion);
+
+            if ($user) {
+                $cart = Cart::where('user_id', $user->id)
+                    ->where('status', 'active')
+                    ->first();
+                if ($cart) {
+                    $otherItemsQuery = $cart->items()
+                        ->where('product_id', $product->id)
+                        ->where('product_combination_id', $combination?->id);
+                        
+                    if ($ignoreCartItemId) {
+                        $otherItemsQuery->where('id', '!=', $ignoreCartItemId);
+                    }
+                    
+                    $otherItems = $otherItemsQuery->get();
+                    foreach ($otherItems as $otherItem) {
+                        $otherConversion = (float) ($otherItem->unit_conversion_quantity ?? 1.0);
+                        $totalPieces += (int) ($otherItem->quantity * $otherConversion);
+                    }
+                }
+            }
+
             if ($moq > 1 && $totalPieces < $moq) {
                 $lvl2ForMoq = $product->units()->where('level', 2)->first();
                 if ($lvl2ForMoq) {
-                    $conversion = (int) $lvl2ForMoq->conversion_to_base;
-                    $moqBoxes   = (int) ceil($moq / $conversion);
+                    $lvl2conversion = (int) $lvl2ForMoq->conversion_to_base;
+                    $moqBoxes   = (int) ceil($moq / $lvl2conversion);
                     $errors['quantity'] = "Minimum order quantity is {$moq} pieces. "
                         . "You can order {$moqBoxes} {$lvl2ForMoq->name}(s) or more, "
                         . "or at least {$moq} individual pieces.";

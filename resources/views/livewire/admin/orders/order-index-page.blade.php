@@ -162,7 +162,7 @@
     <x-admin.card class="shadow-sm border border-outline-variant/20 overflow-hidden">
         <x-slot:bodyClass>p-0</x-slot:bodyClass>
 
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto min-h-[200px] pb-16">
             <table class="w-full text-left font-body-md border-collapse">
                 <thead class="bg-surface-container-low text-on-surface-variant font-label-md uppercase tracking-wider border-b border-outline-variant/20 select-none">
                     <tr class="whitespace-nowrap text-xs">
