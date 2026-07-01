@@ -11,15 +11,15 @@
 
     <!-- Filter & Search Panel - Single Row -->
     <div class="bg-white rounded-xl card-shadow border border-outline-variant/30 p-md mb-xl select-none">
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-md w-full">
-            <!-- Search Input -->
+        <div class="flex flex-col md:flex-row items-stretch md:items-center gap-md w-full">
+            <!-- Search Input (grows to fill available space) -->
             <div class="flex-1 flex items-center gap-sm bg-surface-container-low border border-outline-variant/50 rounded-lg px-sm focus-within:ring-2 focus-within:ring-secondary focus-within:border-secondary transition-all">
                 <span class="material-symbols-outlined text-on-surface-variant/60 text-[20px] select-none pl-xs">search</span>
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by title, SKU, description..." class="w-full bg-transparent border-none py-sm pr-xs font-body-md focus:ring-0 focus:outline-none outline-none text-on-surface">
             </div>
 
-            <!-- Category Path Filter -->
-            <div class="w-full sm:w-80 shrink-0">
+            <!-- Category Path Filter (fixed width on desktop) -->
+            <div class="w-full md:w-80 shrink-0">
                 <select wire:model.live="filterCategory" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none cursor-pointer">
                     <option value="">All Leaf Categories</option>
                     @foreach($leafCategories as $leaf)
@@ -29,7 +29,7 @@
             </div>
 
             <!-- Total counter -->
-            <div class="shrink-0 text-xs text-on-surface-variant font-semibold bg-surface-container/40 border border-outline-variant/20 px-md py-sm rounded-lg flex items-center gap-xs">
+            <div class="shrink-0 text-xs text-on-surface-variant font-semibold bg-surface-container/40 border border-outline-variant/20 px-md py-sm rounded-lg flex items-center justify-center gap-xs">
                 <span class="material-symbols-outlined text-[16px] text-primary">analytics</span>
                 <span>Designs: <strong class="text-primary">{{ $products->total() }}</strong></span>
             </div>
