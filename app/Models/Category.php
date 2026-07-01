@@ -16,11 +16,13 @@ class Category extends Model
         'description',
         'is_active',
         'sort_order',
+        'is_leaf',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'is_leaf'   => 'boolean',
     ];
 
     /**
@@ -48,6 +50,14 @@ class Category extends Model
     }
 
     /**
+     * Products directly assigned to this (leaf) category.
+     */
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'product_category');
+    }
+
+    /**
      * Scope to only include root level categories.
      */
     public function scopeRoot($query)
@@ -61,6 +71,14 @@ class Category extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope to only include leaf categories.
+     */
+    public function scopeLeaf($query)
+    {
+        return $query->where('is_leaf', true);
     }
 
     /**

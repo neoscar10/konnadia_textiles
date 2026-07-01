@@ -42,7 +42,14 @@
                     @forelse($levels as $level)
                     <tr class="hover:bg-primary/[0.02] transition-colors group">
                         <td class="px-lg py-lg font-bold text-primary">{{ $level->name }}</td>
-                        <td class="px-lg py-lg text-on-surface">{{ number_format($level->discount_percentage, 2) }}%</td>
+                        <td class="px-lg py-lg text-on-surface">
+                            @php $disc = (float) $level->discount_percentage; @endphp
+                            @if($disc >= 0)
+                                <span class="text-success font-semibold">{{ number_format($disc, 2) }}% discount</span>
+                            @else
+                                <span class="text-error font-semibold">{{ number_format(abs($disc), 2) }}% markup</span>
+                            @endif
+                        </td>
                         <td class="px-lg py-lg text-center">
                             <span class="font-bold text-on-surface">{{ $level->active_customers_count ?? 0 }}</span>
                         </td>
@@ -88,8 +95,12 @@
                 </div>
 
                 <div class="space-y-xs">
-                    <label class="font-label-md text-on-surface-variant">Base Discount (%) *</label>
-                    <input type="number" step="0.01" wire:model="form.discount_percentage" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
+                    <label class="font-label-md text-on-surface-variant">Discount / Markup (%) *</label>
+                    <input type="number" step="0.01" min="-100" max="100" wire:model="form.discount_percentage" placeholder="0" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
+                    <p class="text-[11px] text-on-surface-variant/70 leading-snug">
+                        <span class="text-success font-semibold">Positive</span> = discount off base price &nbsp;|&nbsp;
+                        <span class="text-error font-semibold">Negative</span> = markup above base price (e.g. <em>-10</em> means customers pay 10% more)
+                    </p>
                     @error('form.discount_percentage') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>
 

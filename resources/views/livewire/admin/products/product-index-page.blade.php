@@ -64,7 +64,9 @@
                         <th class="px-lg py-md">Categories</th>
                         <th class="px-lg py-md font-bold text-primary">Base Price</th>
                         <th class="px-lg py-md text-center">Stock</th>
+                        {{-- VARIATIONS COLUMN HIDDEN: remove comment to restore
                         <th class="px-lg py-md text-center">Variations</th>
+                        --}}
                         <th class="px-lg py-md text-center">Status</th>
                         <th class="px-lg py-md text-right">Actions</th>
                     </tr>
@@ -102,11 +104,13 @@
                                     <span class="font-semibold text-error">Out of stock</span>
                                 @endif
                             </td>
+                            {{-- VARIATIONS CELL HIDDEN: remove comment to restore
                             <td class="px-lg py-md text-center whitespace-nowrap">
                                 <span class="inline-flex items-center justify-center px-sm py-xxs rounded bg-secondary-container text-on-secondary-container font-bold text-xs select-none">
                                     {{ $prod->combinations->count() ?: 'None' }}
                                 </span>
                             </td>
+                            --}}
                             <td class="px-lg py-md text-center">
                                 <button x-on:click="$wire.call('toggleStatus', {{ $prod->id }})" class="focus:outline-none">
                                     <x-admin.badge type="{{ $prod->is_active ? 'success' : 'default' }}">
@@ -125,7 +129,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-lg py-2xl text-center text-on-surface-variant font-medium">
+                            <td colspan="7" class="px-lg py-2xl text-center text-on-surface-variant font-medium">
                                 No products found matching criteria.
                             </td>
                         </tr>
@@ -144,8 +148,16 @@
         </x-slot:footer>
     </x-admin.card>
 
-    <!-- Wizard Modal -->
-    <x-admin.modal id="add-product" title="{{ $selectedProductId ? 'Edit Product' : 'Add New Product' }}" maxWidth="5xl">
+    <!-- Wizard Modal (shared partial) -->
+    @include('admin.products.product-wizard-modal', [
+        'modalId'           => 'add-product',
+        'deleteModalId'     => 'delete-product',
+        'valueMediaModalId' => 'manage-value-media',
+        'lockedCategory'    => null,
+    ])
+
+    {{-- placeholder to prevent the old modal code below from running --}}
+    @if(false)<x-admin.modal id="add-product" title="{{ $selectedProductId ? 'Edit Product' : 'Add New Product' }}" maxWidth="5xl">
         <!-- Stepper Navigation -->
         <div class="border-b border-outline-variant/20 px-xl py-md bg-surface-container-low flex flex-nowrap items-center justify-between gap-md overflow-x-auto whitespace-nowrap select-none">
             @php
@@ -153,10 +165,12 @@
                     1 => 'Basic Info',
                     2 => 'Media',
                     3 => 'Categories',
+                    {{-- VARIATION STEPS HIDDEN (steps 4 & 5 commented out below):
                     4 => 'Variations',
                     5 => 'Combinations',
-                    6 => 'Pricing & Units',
-                    7 => 'Review'
+                    --}}
+                    4 => 'Pricing & Units',
+                    5 => 'Review'
                 ];
             @endphp
             @foreach($steps as $num => $title)
@@ -518,6 +532,12 @@
                 </div>
             @endif
 
+            {{-- ======================================================
+                 STEP 4: Variations — COMMENTED OUT (not removed).
+                 Remove the comment tags below to re-enable this step.
+                 Remember to also restore steps array and step 5 below.
+            ====================================================== --}}
+            {{--
             <!-- STEP 4: Variations -->
             @if($currentStep === 4)
                 <div class="space-y-lg">
@@ -622,7 +642,13 @@
                     @endforeach
                 </div>
             @endif
+            --}}
 
+            {{-- ======================================================
+                 STEP 5: Combinations / Variant Stock — COMMENTED OUT.
+                 Remove the comment tags below to re-enable this step.
+            ====================================================== --}}
+            {{--
             <!-- STEP 5: Inventory / Stock (Both product types - stock is optional) -->
             @if($currentStep === 5)
                 <div class="space-y-lg">
@@ -765,14 +791,53 @@
                     @endif
                 </div>
             @endif
+            --}}
 
-            <!-- STEP 6: Pricing overrides & Units -->
-            @if($currentStep === 6)
+            <!-- STEP 4: Pricing overrides & Units (was step 6) -->
+            @if($currentStep === 4)
                 <div class="space-y-xl">
+
+                    <!-- Stock Quantity (moved from old step 5 combinations) -->
+                    <div class="space-y-md border-b border-outline-variant/20 pb-xl">
+                        <h4 class="font-title-md text-primary">Stock Quantity</h4>
+                        @if($basicInfo['product_type'] === 'retail')
+                            <div class="flex items-start gap-sm p-sm rounded-lg bg-primary/5 border border-primary/20 select-none">
+                                <span class="material-symbols-outlined text-primary text-[20px] mt-0.5">inventory_2</span>
+                                <div>
+                                    <p class="font-label-md text-primary">Manufactured Product &mdash; Stock tracking available</p>
+                                    <p class="text-xs text-on-surface-variant">You can define stock quantity or leave it empty to mark as <strong>N/A (Unlimited)</strong> &mdash; no stock restrictions will apply.</p>
+                                </div>
+                            </div>
+                        @else
+                            <div class="flex items-start gap-sm p-sm rounded-lg bg-secondary/5 border border-secondary/20 select-none">
+                                <span class="material-symbols-outlined text-secondary text-[20px] mt-0.5">shopping_bag</span>
+                                <div>
+                                    <p class="font-label-md text-secondary">Retail / Bought Product &mdash; Stock optional</p>
+                                    <p class="text-xs text-on-surface-variant">Stock tracking is optional. Leave empty to mark as <strong>N/A (Unlimited)</strong> &mdash; customers can order any quantity with no stock restriction.</p>
+                                </div>
+                            </div>
+                        @endif
+                        <div class="max-w-md space-y-xs">
+                            <label class="font-label-md text-on-surface-variant">Total Stock <span class="text-on-surface-variant/60 font-normal">(leave empty for N/A / Unlimited)</span></label>
+                            <div class="flex items-center gap-sm">
+                                <input type="number" wire:model.live="nonVariantStock" placeholder="N/A" min="0" class="w-48 px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                @if($nonVariantStock !== '')
+                                    <span class="font-label-md text-on-surface font-bold">{{ number_format((int)$nonVariantStock) }} units tracked</span>
+                                @else
+                                    <span class="flex items-center gap-xs text-xs text-on-surface-variant/80 bg-surface-container px-sm py-xs rounded-md border border-outline-variant/30">
+                                        <span class="material-symbols-outlined text-[14px]">all_inclusive</span>
+                                        N/A &mdash; Unlimited (no restriction)
+                                    </span>
+                                @endif
+                            </div>
+                            @error('nonVariantStock') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
                     <!-- Pricing overrides -->
                     <div class="space-y-md">
                         <h4 class="font-title-md text-primary">Customer Level-Specific Discount Overrides</h4>
-                        <p class="text-xs text-on-surface-variant">Define custom discounts overrides for specific levels instead of default level discounts.</p>
+                        <p class="text-xs text-on-surface-variant">Define custom discounts (or markups) per level. Positive = discount off base price. <span class="text-error font-semibold">Negative = markup above base price</span> (e.g. -10 means customers in that level pay 10% more).</p>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-lg bg-surface-container-low/40 p-lg border border-outline-variant/20 rounded-lg">
                             @foreach($customerLevels as $level)
@@ -780,7 +845,7 @@
                                     <label class="font-label-md text-on-surface-variant">{{ $level->name }}</label>
                                     <div class="flex items-center gap-xs">
                                         <div class="relative w-full">
-                                            <input type="number" step="0.01" wire:model="pricingOverrides.{{ $level->id }}" placeholder="Default: {{ $level->discount_percentage }}%" class="w-full pr-lg px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                            <input type="number" step="0.01" min="-100" max="100" wire:model="pricingOverrides.{{ $level->id }}" placeholder="Default: {{ $level->discount_percentage }}%" class="w-full pr-lg px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
                                             <span class="absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-sm">%</span>
                                         </div>
                                     </div>
@@ -919,8 +984,8 @@
                 </div>
             @endif
 
-            <!-- STEP 7: Review -->
-            @if($currentStep === 7)
+            <!-- STEP 5: Review (was step 7) -->
+            @if($currentStep === 5)
                 <div class="space-y-xl">
                     <h3 class="font-title-lg text-primary select-none border-b pb-xs border-outline-variant/20">Summary Review</h3>
 
@@ -1017,13 +1082,19 @@
                                             $override = $pricingOverrides[$level->id] ?? '';
                                             $disc = $override !== '' ? (float)$override : (float)$level->discount_percentage;
                                             $price = (float)($basicInfo['base_price'] ?: 0) * (1 - ($disc / 100));
+                                            $isMarkup = $disc < 0;
                                         @endphp
                                         <tr class="border-t">
                                             <td class="p-xs">{{ $level->name }}</td>
-                                            <td class="p-xs text-center font-semibold text-secondary">
-                                                {{ $disc }}% {{ $override !== '' ? '(Override)' : '(Default)' }}
+                                            <td class="p-xs text-center font-semibold {{ $isMarkup ? 'text-error' : 'text-success' }}">
+                                                @if($isMarkup)
+                                                    +{{ number_format(abs($disc), 2) }}% markup
+                                                @else
+                                                    {{ number_format($disc, 2) }}% discount
+                                                @endif
+                                                {{ $override !== '' ? '(Override)' : '(Default)' }}
                                             </td>
-                                            <td class="p-xs text-right font-bold text-primary">₹{{ number_format($price, 2) }}</td>
+                                            <td class="p-xs text-right font-bold {{ $isMarkup ? 'text-error' : 'text-primary' }}">₹{{ number_format($price, 2) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -1060,13 +1131,13 @@
                 @if($currentStep > 1)
                     <x-admin.button variant="outline" type="button" wire:click="prevStep">Back</x-admin.button>
                 @endif
-                @if($isEditMode && $currentStep < 7)
-                    <x-admin.button variant="primary" type="button" wire:click="saveCurrentStep" icon="save" :disabled="$currentStep === 5 && $this->hasStockMismatch()">Save Changes</x-admin.button>
+                @if($isEditMode && $currentStep < 5)
+                    <x-admin.button variant="primary" type="button" wire:click="saveCurrentStep" icon="save">Save Changes</x-admin.button>
                 @endif
-                @if($currentStep < 7)
-                    <x-admin.button variant="primary" type="button" wire:click="nextStep" :disabled="$currentStep === 5 && $this->hasStockMismatch()">Next Step</x-admin.button>
+                @if($currentStep < 5)
+                    <x-admin.button variant="primary" type="button" wire:click="nextStep">Next Step</x-admin.button>
                 @endif
-                @if($currentStep === 7)
+                @if($currentStep === 5)
                     <x-admin.button variant="primary" type="button" wire:click="save" icon="save">
                         {{ $isEditMode ? 'Save Changes' : 'Create Product' }}
                     </x-admin.button>
@@ -1074,8 +1145,9 @@
             </div>
         </x-slot>
     </x-admin.modal>
+    @endif {{-- close @if(false) wrapping old inlined wizard --}}
 
-    <!-- Delete Modal -->
+
     <x-admin.modal id="delete-product" title="Delete Product" maxWidth="md">
         <div class="space-y-md select-none">
             <div class="flex items-center justify-center w-16 h-16 rounded-full bg-error/10 mx-auto mb-lg text-error">

@@ -7,6 +7,7 @@ use App\Services\Auth\AuthService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -21,21 +22,29 @@ class AuthController extends Controller
 
     /**
      * Get a JWT via given credentials.
+     * Accepts either an email address or a phone number in the 'login' field.
      *
      * @return \Illuminate\Http\JsonResponse
      */
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
+        $request->validate([
+            'login'    => 'required|string|max:150',
+            'password' => 'required|string',
         ]);
 
-        if (! $token = auth('api')->attempt($credentials)) {
+        // Resolve user by email or mobile number
+        $user = $this->authService->resolveUserByLogin($request->input('login'));
+
+        if (!$user || !Hash::check($request->input('password'), $user->password)) {
             return $this->errorResponse('Invalid login credentials.', [], 401);
         }
 
-        $user = auth('api')->user();
+        $token = auth('api')->login($user);
+
+        if (!$token) {
+            return $this->errorResponse('Could not generate authentication token.', [], 500);
+        }
 
         return $this->successResponse(
             'Login successful.',

@@ -297,7 +297,7 @@ class ProductIndexPage extends Component
 
             foreach ($this->pricingOverrides as $levelId => $disc) {
                 if ($disc !== '') {
-                    $rules["pricingOverrides.{$levelId}"] = ['numeric', 'between:0,100'];
+                    $rules["pricingOverrides.{$levelId}"] = ['numeric', 'between:-100,100'];
                 }
             }
 

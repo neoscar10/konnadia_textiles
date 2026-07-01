@@ -7,14 +7,15 @@ use Livewire\Attributes\Layout;
 use App\Services\Auth\AuthService;
 use App\Services\Auth\OtpService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class LoginPage extends Component
 {
     public string $loginMode = 'password'; // 'password' or 'otp'
-    
+
     // Password login properties
-    public string $email = '';
+    public string $identifier = ''; // email or phone number
     public string $password = '';
     
     // OTP login properties
@@ -28,8 +29,8 @@ class LoginPage extends Component
     {
         if ($this->loginMode === 'password') {
             return [
-                'email' => ['required', 'email'],
-                'password' => ['required'],
+                'identifier' => ['required', 'string', 'min:3'],
+                'password'   => ['required'],
             ];
         }
 
@@ -53,22 +54,32 @@ class LoginPage extends Component
 
     /**
      * Handle Password Login via Livewire.
+     * Supports login by email address OR registered phone number.
      */
     public function loginWithPassword(AuthService $authService)
     {
         $this->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
+            'identifier' => ['required', 'string', 'min:3'],
+            'password'   => ['required'],
         ]);
 
-        if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
-            $this->addError('email', trans('auth.failed'));
+        // Resolve user by email or mobile number
+        $user = $authService->resolveUserByLogin($this->identifier);
+
+        if (!$user || !Hash::check($this->password, $user->password)) {
+            $this->addError('identifier', trans('auth.failed'));
             return;
         }
 
+        if (!$user->is_active) {
+            $this->addError('identifier', 'Your account is inactive. Please contact support.');
+            return;
+        }
+
+        Auth::login($user, $this->remember);
         session()->regenerate();
 
-        return redirect()->intended($authService->getWebRedirectRoute(Auth::user()));
+        return redirect()->intended($authService->getWebRedirectRoute($user));
     }
 
     /**

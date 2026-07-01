@@ -38,7 +38,7 @@ class CustomerLevelIndexPage extends Component
     {
         return [
             'form.name' => ['required', 'string', 'max:150', Rule::unique('customer_levels', 'name')->ignore($this->editingId)],
-            'form.discount_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
+            'form.discount_percentage' => ['required', 'numeric', 'min:-100', 'max:100'],
             'form.sort_order' => ['nullable', 'integer', 'min:0'],
             'form.description' => ['nullable', 'string', 'max:500'],
             'form.is_active' => ['boolean'],

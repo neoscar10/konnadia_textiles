@@ -104,7 +104,9 @@
                     <tr class="whitespace-nowrap">
                         <th class="px-lg py-md">Product Details</th>
                         <th class="px-lg py-md">SKU</th>
+                        {{-- TYPE COLUMN HIDDEN: remove comment to restore
                         <th class="px-lg py-md text-center">Type</th>
+                        --}}
                         <th class="px-lg py-md text-right">Unit Price</th>
                         <th class="px-lg py-md text-center">Current Stock</th>
                         <th class="px-lg py-md text-center">Stock Status</th>
@@ -135,12 +137,14 @@
                             </td>
                             <!-- Base SKU -->
                             <td class="px-lg py-md text-on-surface-variant font-mono text-sm whitespace-nowrap">{{ $prod->sku }}</td>
+                            {{-- TYPE CELL HIDDEN: remove comment to restore
                             <!-- Product Type -->
                             <td class="px-lg py-md text-center whitespace-nowrap">
                                 <span class="inline-flex items-center px-sm py-xxs rounded text-[10px] font-bold uppercase tracking-wider {{ $hasComb ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface' }}">
                                     {{ $hasComb ? 'Variant (' . $prod->combinations->count() . ')' : 'Simple' }}
                                 </span>
                             </td>
+                            --}}
                             <!-- Price -->
                             <td class="px-lg py-md text-right font-medium whitespace-nowrap">₹{{ number_format($prod->base_price, 2) }}</td>
                             <!-- Stock -->
@@ -170,7 +174,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-lg py-2xl text-center text-on-surface-variant font-medium">
+                            <td colspan="6" class="px-lg py-2xl text-center text-on-surface-variant font-medium">
                                 <div class="flex flex-col items-center justify-center">
                                     <span class="material-symbols-outlined text-4xl mb-sm text-outline">inventory</span>
                                     <p class="font-body-lg">No inventory listings found.</p>

@@ -76,16 +76,16 @@
                                 </div>
                             @endif
 
-                            <!-- Email Field -->
+                            <!-- Identifier Field (Email or Phone) -->
                             <div class="space-y-xs">
-                                <label class="font-label-md text-on-surface-variant flex items-center gap-xs" for="email">
-                                    <span class="material-symbols-outlined text-[18px]">mail</span>
-                                    Email Address
+                                <label class="font-label-md text-on-surface-variant flex items-center gap-xs" for="identifier">
+                                    <span class="material-symbols-outlined text-[18px]">person</span>
+                                    Email or Phone Number
                                 </label>
                                 <div class="relative group">
-                                    <input wire:model.defer="email" class="w-full h-[48px] px-md rounded-lg border border-outline-variant bg-surface-container-low focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none text-on-surface" id="email" type="email" placeholder="e.g. admin@kannodiatextiles.com" required/>
+                                    <input wire:model.defer="identifier" class="w-full h-[48px] px-md rounded-lg border border-outline-variant bg-surface-container-low focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none text-on-surface" id="identifier" type="text" placeholder="e.g. admin@example.com or 9876543210" required autocomplete="username"/>
                                 </div>
-                                @error('email')
+                                @error('identifier')
                                     <span class="text-error text-xs font-body-md block mt-xs">{{ $message }}</span>
                                 @enderror
                             </div>

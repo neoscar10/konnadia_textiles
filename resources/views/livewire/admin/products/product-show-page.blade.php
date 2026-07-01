@@ -166,15 +166,21 @@
                                 $priceRecord = $product->customerLevelPrices->where('customer_level_id', $level->id)->first();
                                 $disc = $priceRecord ? (float)$priceRecord->discount_percentage : (float)$level->discount_percentage;
                                 $calculatedSellingPrice = $product->base_price * (1 - ($disc / 100));
+                                $isMarkup = $disc < 0;
                             @endphp
                             <div class="flex justify-between items-center p-sm bg-surface-container-low border border-outline-variant/30 rounded-lg">
                                 <div class="flex flex-col">
                                     <span class="font-bold text-primary text-xs">{{ $level->name }}</span>
-                                    <span class="text-[10px] text-on-surface-variant">
-                                        {{ $disc }}% Discount {{ $priceRecord ? '(Override)' : '(Default)' }}
+                                    <span class="text-[10px] {{ $isMarkup ? 'text-error' : 'text-success' }}">
+                                        @if($isMarkup)
+                                            +{{ number_format(abs($disc), 2) }}% Markup
+                                        @else
+                                            {{ number_format($disc, 2) }}% Discount
+                                        @endif
+                                        {{ $priceRecord ? '(Override)' : '(Default)' }}
                                     </span>
                                 </div>
-                                <span class="font-bold text-primary text-sm">₹{{ number_format($calculatedSellingPrice, 2) }}</span>
+                                <span class="font-bold {{ $isMarkup ? 'text-error' : 'text-primary' }} text-sm">₹{{ number_format($calculatedSellingPrice, 2) }}</span>
                             </div>
                         @endforeach
                     </div>

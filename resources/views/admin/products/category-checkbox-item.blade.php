@@ -13,12 +13,19 @@
             </div>
         @endif
 
-        <!-- Checkbox -->
-        <input type="checkbox" id="cat_{{ $cat->id }}" value="{{ $cat->id }}" wire:model.live="selectedCategoryIds" class="w-4 h-4 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer">
+        <!-- Checkbox or folder icon depending on leaf status -->
+        @if($cat->is_leaf)
+            <input type="checkbox" id="cat_{{ $cat->id }}" value="{{ $cat->id }}" wire:model.live="selectedCategoryIds" class="w-4 h-4 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer">
+        @else
+            <span class="material-symbols-outlined text-[18px] text-primary/70 shrink-0 select-none mr-xxs">folder</span>
+        @endif
         
         <!-- Label -->
-        <label for="cat_{{ $cat->id }}" class="text-sm text-on-surface cursor-pointer select-none font-medium hover:text-primary transition-colors">
+        <label @if($cat->is_leaf) for="cat_{{ $cat->id }}" @endif class="text-sm text-on-surface select-none font-medium transition-colors {{ $cat->is_leaf ? 'cursor-pointer hover:text-primary' : 'text-on-surface-variant/75' }}">
             {{ $cat->name }}
+            @if(!$cat->is_leaf)
+                <span class="text-[10px] text-on-surface-variant font-normal normal-case">(Folder)</span>
+            @endif
         </label>
     </div>
 
