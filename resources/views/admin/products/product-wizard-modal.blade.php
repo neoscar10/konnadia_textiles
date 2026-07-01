@@ -17,10 +17,6 @@
                 1 => 'Basic Info',
                 2 => 'Media',
                 3 => 'Categories',
-                {{-- VARIATION STEPS HIDDEN (steps 4 & 5 commented out below):
-                4 => 'Variations',
-                5 => 'Combinations',
-                --}}
                 4 => 'Pricing & Units',
                 5 => 'Review'
             ];
