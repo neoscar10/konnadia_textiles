@@ -76,7 +76,7 @@ class ProductService
                 'minimum_order_quantity' => isset($payload['minimum_order_quantity']) ? (int) $payload['minimum_order_quantity'] : 1,
                 'description'    => trim($payload['description']),
                 'is_active'      => isset($payload['is_active']) ? (bool) $payload['is_active'] : true,
-                'stock_quantity' => isset($payload['stock_quantity']) ? (int) $payload['stock_quantity'] : 0,
+                'stock_quantity' => (array_key_exists('stock_quantity', $payload) && $payload['stock_quantity'] !== null && $payload['stock_quantity'] !== '') ? (int)$payload['stock_quantity'] : null,
                 'product_type'   => isset($payload['product_type']) ? $payload['product_type'] : 'retail',
             ]);
 
@@ -111,7 +111,7 @@ class ProductService
                 'minimum_order_quantity' => isset($payload['minimum_order_quantity']) ? (int) $payload['minimum_order_quantity'] : 1,
                 'description'    => trim($payload['description']),
                 'is_active'      => isset($payload['is_active']) ? (bool) $payload['is_active'] : true,
-                'stock_quantity' => isset($payload['stock_quantity']) ? (int) $payload['stock_quantity'] : 0,
+                'stock_quantity' => (array_key_exists('stock_quantity', $payload) && $payload['stock_quantity'] !== null && $payload['stock_quantity'] !== '') ? (int)$payload['stock_quantity'] : null,
                 'product_type'   => isset($payload['product_type']) ? $payload['product_type'] : 'retail',
             ]);
 

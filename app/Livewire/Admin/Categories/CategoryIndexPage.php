@@ -118,6 +118,22 @@ class CategoryIndexPage extends Component
         'level2_conversion' => '',
     ];
 
+    // Category Defaults
+    public array $categoryDefaults = [
+        'hsn_code' => '',
+        'gst_percentage' => '',
+        'minimum_order_quantity' => 1,
+        'product_type' => 'retail',
+        'pricingOverrides' => [],
+        'units' => [
+            'level1_name' => 'Piece',
+            'level1_code' => 'pcs',
+            'level2_name' => '',
+            'level2_code' => '',
+            'level2_conversion' => '',
+        ],
+    ];
+
     // ─────────────────────────────────────────────────────────────────────────
     // LIVEWIRE LIFECYCLE HOOKS
     // ─────────────────────────────────────────────────────────────────────────
@@ -314,6 +330,72 @@ class CategoryIndexPage extends Component
         $service->toggleStatus($category);
         $message = $category->is_active ? 'Category activated.' : 'Category deactivated.';
         $this->dispatch('toast', message: $message, type: 'success');
+    }
+
+    public function openCategoryDefaults(): void
+    {
+        $this->resetValidation();
+        if (!$this->currentCategoryId) return;
+
+        $category = Category::findOrFail($this->currentCategoryId);
+        $defaults = $category->default_product_config;
+
+        if (!empty($defaults)) {
+            // Merge defaults in case new levels were added
+            $customerLevels = CustomerLevel::active()->ordered()->get();
+            $pricing = $defaults['pricingOverrides'] ?? [];
+            foreach ($customerLevels as $lvl) {
+                if (!isset($pricing[$lvl->id])) {
+                    $pricing[$lvl->id] = '';
+                }
+            }
+            $defaults['pricingOverrides'] = $pricing;
+            $this->categoryDefaults = $defaults;
+        } else {
+            $customerLevels = CustomerLevel::active()->ordered()->get();
+            $pricing = [];
+            foreach ($customerLevels as $lvl) {
+                $pricing[$lvl->id] = '';
+            }
+
+            $this->categoryDefaults = [
+                'hsn_code' => '',
+                'gst_percentage' => '',
+                'minimum_order_quantity' => 1,
+                'product_type' => 'retail',
+                'pricingOverrides' => $pricing,
+                'units' => [
+                    'level1_name' => 'Piece',
+                    'level1_code' => 'pcs',
+                    'level2_name' => '',
+                    'level2_code' => '',
+                    'level2_conversion' => '',
+                ],
+            ];
+        }
+
+        $this->dispatch('open-modal', 'category-defaults');
+    }
+
+    public function saveCategoryDefaults(): void
+    {
+        $this->validate([
+            'categoryDefaults.gst_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
+            'categoryDefaults.minimum_order_quantity' => ['required', 'integer', 'min:1'],
+            'categoryDefaults.product_type' => ['required', 'string', 'in:retail,manufactured'],
+            'categoryDefaults.units.level1_name' => ['required', 'string', 'max:50'],
+            'categoryDefaults.units.level1_code' => ['required', 'string', 'max:20'],
+        ]);
+
+        if ($this->currentCategoryId) {
+            $category = Category::findOrFail($this->currentCategoryId);
+            $category->update([
+                'default_product_config' => $this->categoryDefaults,
+            ]);
+
+            $this->dispatch('toast', message: 'Category default configuration saved.', type: 'success');
+            $this->dispatch('close-modal', 'category-defaults');
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -558,27 +640,56 @@ class CategoryIndexPage extends Component
         $this->save($productService, $varService, $mediaService);
     }
 
+    protected function validateSimplifiedProduct(): void
+    {
+        $this->validate([
+            'basicInfo.title'       => ['required', 'string', 'max:200'],
+            'basicInfo.base_price'  => ['required', 'numeric', 'min:0'],
+            'basicInfo.description' => ['required', 'string'],
+            'nonVariantStock'       => ['nullable', 'integer', 'min:0'],
+        ]);
+    }
+
     public function save(
         ProductService $productService,
         ProductVariationService $varService,
         ProductMediaService $mediaService
     ): void {
-        if (!$this->validateUntilStep(4)) return;
+        $this->validateSimplifiedProduct();
 
         try {
             DB::transaction(function () use ($productService, $varService, $mediaService) {
-                $payload                 = $this->basicInfo;
-                $payload['category_ids'] = $this->getEffectiveCategoryIds();
+                // Get defaults from current category
+                $category = Category::findOrFail($this->currentCategoryId);
+                $defaults = $category->default_product_config ?? [];
 
+                $payload = [
+                    'title'                  => trim($this->basicInfo['title']),
+                    'base_price'             => (float) $this->basicInfo['base_price'],
+                    'description'            => trim($this->basicInfo['description']),
+                    'is_active'              => isset($this->basicInfo['is_active']) ? (bool) $this->basicInfo['is_active'] : true,
+                    'category_ids'           => [$category->id],
+                    // Merged defaults
+                    'hsn_code'               => isset($defaults['hsn_code']) && $defaults['hsn_code'] !== '' ? trim($defaults['hsn_code']) : null,
+                    'gst_percentage'         => isset($defaults['gst_percentage']) && $defaults['gst_percentage'] !== '' ? (float) $defaults['gst_percentage'] : null,
+                    'minimum_order_quantity' => isset($defaults['minimum_order_quantity']) ? (int) $defaults['minimum_order_quantity'] : 1,
+                    'product_type'           => isset($defaults['product_type']) ? $defaults['product_type'] : 'retail',
+                    'stock_quantity'         => $this->nonVariantStock !== '' ? (int)$this->nonVariantStock : null,
+                ];
+
+                // Build level prices from defaults
                 $levelPrices = [];
-                foreach ($this->pricingOverrides as $levelId => $disc) {
+                $pricingOverrides = $defaults['pricingOverrides'] ?? [];
+                foreach ($pricingOverrides as $levelId => $disc) {
                     if ($disc !== '') {
-                        $levelPrices[] = ['customer_level_id' => $levelId, 'discount_percentage' => $disc];
+                        $levelPrices[] = [
+                            'customer_level_id' => $levelId,
+                            'discount_percentage' => $disc,
+                        ];
                     }
                 }
                 $payload['customer_level_prices'] = $levelPrices;
-                $payload['units']                 = $this->units;
-                $payload['stock_quantity']         = $this->nonVariantStock !== '' ? (int)$this->nonVariantStock : null;
+                $payload['units']                 = $defaults['units'] ?? $this->units;
 
                 if ($this->selectedProductId) {
                     $product = Product::findOrFail($this->selectedProductId);
@@ -588,11 +699,9 @@ class CategoryIndexPage extends Component
                     $this->selectedProductId = $product->id;
                 }
 
-                // Clean up variations (hidden feature, not used in this context)
-                if (empty($this->variationGroups)) {
-                    $product->variationGroups()->delete();
-                    $product->combinations()->delete();
-                }
+                // Clean up variations (not used in simplified context)
+                $product->variationGroups()->delete();
+                $product->combinations()->delete();
 
                 if (!empty($this->mediaUploads)) {
                     $mediaService->storeProductMedia($product, $this->mediaUploads);
@@ -605,7 +714,6 @@ class CategoryIndexPage extends Component
             $this->dispatch('close-modal', 'cat-add-product');
             $this->resetWizard();
         } catch (\Exception $e) {
-            $this->currentStep = 1;
             $this->addError('basicInfo.title', $e->getMessage());
         }
     }

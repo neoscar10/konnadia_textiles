@@ -15,97 +15,130 @@
     <!-- Navigation Menu -->
     <div class="flex-1 overflow-y-auto py-lg flex flex-col gap-sm admin-sidebar-scroll">
         <!-- Overview Group -->
-        <div class="px-md mb-xs" x-show="sidebarOpen">
-            <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Overview</p>
-        </div>
-        <nav class="flex flex-col gap-xs px-sm">
-            <a href="{{ route('admin.dashboard') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.dashboard') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="dashboard">dashboard</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Dashboard</span>
-            </a>
-        </nav>
+        @can('access dashboard')
+            <div class="px-md mb-xs" x-show="sidebarOpen">
+                <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Overview</p>
+            </div>
+            <nav class="flex flex-col gap-xs px-sm">
+                <a href="{{ route('admin.dashboard') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.dashboard') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="dashboard">dashboard</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Dashboard</span>
+                </a>
+            </nav>
+        @endcan
 
         <!-- Customers Group -->
-        <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
-            <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Customers</p>
-        </div>
-        <nav class="flex flex-col gap-xs px-sm">
-            <a href="{{ route('admin.customers.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.customers.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="group">group</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Customers</span>
-            </a>
-            <a href="{{ route('admin.customer-levels.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.customer-levels.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="stars">stars</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Customer Levels</span>
-            </a>
-        </nav>
+        @if(auth()->user()->can('access customers') || auth()->user()->can('access customer-levels'))
+            <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
+                <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Customers</p>
+            </div>
+            <nav class="flex flex-col gap-xs px-sm">
+                @can('access customers')
+                    <a href="{{ route('admin.customers.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.customers.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="group">group</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Customers</span>
+                    </a>
+                @endcan
+                @can('access customer-levels')
+                    <a href="{{ route('admin.customer-levels.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.customer-levels.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="stars">stars</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Customer Levels</span>
+                    </a>
+                @endcan
+            </nav>
+        @endif
 
         <!-- Catalog Group -->
-        <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
-            <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Catalog</p>
-        </div>
-        <nav class="flex flex-col gap-xs px-sm">
-            <a href="{{ route('admin.products.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.products.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="inventory_2">inventory_2</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Products</span>
-            </a>
-            <a href="{{ route('admin.design-catalog.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.design-catalog.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="collections">collections</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Design Catalog</span>
-            </a>
-            <a href="{{ route('admin.categories.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.categories.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="category">category</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Categories</span>
-            </a>
-
-            <a href="{{ route('admin.inventory.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.inventory.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="warehouse">warehouse</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Inventory</span>
-            </a>
-            
-            <a href="{{ route('admin.retail-shops.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.retail-shops.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="storefront">storefront</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Retail Shops</span>
-            </a>
-
-            <a href="{{ route('admin.product-transfers.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.product-transfers.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="sync_alt">sync_alt</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Product Transfers</span>
-            </a>
-        </nav>
+        @if(auth()->user()->can('access products') || auth()->user()->can('access design-catalog') || auth()->user()->can('access categories') || auth()->user()->can('access inventory') || auth()->user()->can('access retail-shops') || auth()->user()->can('access product-transfers'))
+            <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
+                <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Catalog</p>
+            </div>
+            <nav class="flex flex-col gap-xs px-sm">
+                @can('access products')
+                    <a href="{{ route('admin.products.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.products.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="inventory_2">inventory_2</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Products</span>
+                    </a>
+                @endcan
+                @can('access design-catalog')
+                    <a href="{{ route('admin.design-catalog.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.design-catalog.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="collections">collections</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Design Catalog</span>
+                    </a>
+                @endcan
+                @can('access categories')
+                    <a href="{{ route('admin.categories.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.categories.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="category">category</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Categories</span>
+                    </a>
+                @endcan
+                @can('access inventory')
+                    <a href="{{ route('admin.inventory.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.inventory.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="warehouse">warehouse</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Inventory</span>
+                    </a>
+                @endcan
+                @can('access retail-shops')
+                    <a href="{{ route('admin.retail-shops.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.retail-shops.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="storefront">storefront</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Retail Shops</span>
+                    </a>
+                @endcan
+                @can('access product-transfers')
+                    <a href="{{ route('admin.product-transfers.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.product-transfers.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="sync_alt">sync_alt</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Product Transfers</span>
+                    </a>
+                @endcan
+            </nav>
+        @endif
 
         <!-- Orders Group -->
-        <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
-            <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Orders</p>
-        </div>
-        <nav class="flex flex-col gap-xs px-sm">
-            <a href="{{ route('admin.orders.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.orders.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="shopping_cart">shopping_cart</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Orders</span>
-            </a>
-        </nav>
+        @can('access orders')
+            <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
+                <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Orders</p>
+            </div>
+            <nav class="flex flex-col gap-xs px-sm">
+                <a href="{{ route('admin.orders.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.orders.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="shopping_cart">shopping_cart</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Orders</span>
+                </a>
+            </nav>
+        @endcan
 
         <!-- CMS Group -->
-        <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
-            <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">CMS</p>
-        </div>
-        <nav class="flex flex-col gap-xs px-sm">
-            <a href="{{ route('admin.home-content.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.home-content.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="dashboard_customize">dashboard_customize</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Home Content</span>
-            </a>
-        </nav>
+        @can('access home-content')
+            <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
+                <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">CMS</p>
+            </div>
+            <nav class="flex flex-col gap-xs px-sm">
+                <a href="{{ route('admin.home-content.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.home-content.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="dashboard_customize">dashboard_customize</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Home Content</span>
+                </a>
+            </nav>
+        @endcan
 
         <!-- System Group -->
-        <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
-            <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">System</p>
-        </div>
-        <nav class="flex flex-col gap-xs px-sm pb-xl">
-            <a href="{{ route('admin.settings.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.settings.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                <span class="material-symbols-outlined shrink-0" data-icon="settings">settings</span>
-                <span class="font-label-md text-label-md" x-show="sidebarOpen">Settings</span>
-            </a>
-        </nav>
+        @if(auth()->user()->hasRole('super_admin') || auth()->user()->can('access settings'))
+            <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
+                <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">System</p>
+            </div>
+            <nav class="flex flex-col gap-xs px-sm pb-xl">
+                @if(auth()->user()->hasRole('super_admin'))
+                    <a href="{{ route('admin.admins.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.admins.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="manage_accounts">manage_accounts</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Admins</span>
+                    </a>
+                @endif
+                @can('access settings')
+                    <a href="{{ route('admin.settings.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.settings.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="settings">settings</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Settings</span>
+                    </a>
+                @endcan
+            </nav>
+        @endif
 
         <!-- Footer Section -->
         <div class="mt-auto pt-lg pb-md border-t border-on-primary/10 px-md transition-all duration-300" :class="sidebarOpen ? 'px-md' : 'px-xs'">

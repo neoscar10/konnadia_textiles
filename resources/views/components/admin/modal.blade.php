@@ -7,10 +7,18 @@ $maxWidthClass = [
     'lg' => 'sm:max-w-lg',
     'xl' => 'sm:max-w-xl',
     '2xl' => 'sm:max-w-2xl',
+    '2.5xl' => 'sm:max-w-2xl',
+    '3xl' => 'sm:max-w-3xl',
+    '4xl' => 'sm:max-w-4xl',
     '5xl' => 'sm:max-w-5xl',
     '6xl' => 'sm:max-w-6xl',
     '7xl' => 'sm:max-w-7xl',
 ][$maxWidth];
+
+$inlineStyle = '';
+if ($maxWidth === '2.5xl') {
+    $inlineStyle = 'max-width: 630px;';
+}
 @endphp
 
 <div 
@@ -46,6 +54,7 @@ $maxWidthClass = [
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             class="relative transform overflow-hidden rounded-xl bg-surface-container-lowest text-left shadow-xl transition-all sm:my-8 w-full {{ $maxWidthClass }} border border-outline-variant/30"
+            style="{{ $inlineStyle }}"
             @click.stop
         >
             <!-- Header -->

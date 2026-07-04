@@ -69,10 +69,32 @@
 
                 <div class="flex items-center gap-sm">
                     @if($isLeafMode)
-                        {{-- Leaf mode: Add Product button --}}
-                        <x-admin.button variant="primary" icon="add" wire:click="create">
-                            Add Product
+                        @php
+                            $defaultsConfigured = $currentCategory && !empty($currentCategory->default_product_config) && !empty($currentCategory->default_product_config['units']['level1_name']);
+                        @endphp
+                        
+                        <x-admin.button variant="primary" icon="settings" wire:click="openCategoryDefaults" class="bg-secondary text-on-secondary hover:bg-secondary/90 whitespace-nowrap">
+                            Configure Defaults
                         </x-admin.button>
+
+                        @if($defaultsConfigured)
+                            <x-admin.button variant="primary" icon="add" wire:click="create" class="whitespace-nowrap">
+                                Add Product
+                            </x-admin.button>
+                        @else
+                            <div x-data="{ tooltip: false }" @mouseenter="tooltip = true" @mouseleave="tooltip = false" class="relative cursor-not-allowed">
+                                <x-admin.button variant="primary" icon="add" class="whitespace-nowrap !bg-[#001229] !text-white opacity-50 cursor-not-allowed">
+                                    Add Product
+                                </x-admin.button>
+                                <!-- High-fidelity custom dark tooltip using inline styles -->
+                                <div x-show="tooltip" x-cloak 
+                                     style="position: absolute; right: 0; top: 100%; margin-top: 8px; display: flex; flex-direction: column; background-color: #2e3135; color: #ffffff; border-radius: 8px; padding: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.05); z-index: 9999; min-width: 240px; text-align: left; border: 1px solid rgba(255,255,255,0.15);"
+                                     class="select-none">
+                                    <span style="font-weight: 700; font-size: 13.5px; color: #ffffff; display: block; line-height: 1.2;">Add Product</span>
+                                    <span style="font-weight: 400; font-size: 11.5px; color: rgba(255,255,255,0.85); margin-top: 6px; line-height: 1.5; display: block; white-space: normal;">Configure category defaults first to enable product uploads in this leaf folder.</span>
+                                </div>
+                            </div>
+                        @endif
                     @else
                         {{-- Folder mode: New Sub-Category button --}}
                         <x-admin.button variant="primary" icon="create_new_folder" wire:click="createCategory">
@@ -83,6 +105,17 @@
             </div>
 
             @if($isLeafMode)
+                @if(!$defaultsConfigured)
+                    <div class="mx-lg mt-lg p-md bg-warning/10 border border-warning/30 rounded-xl flex items-start gap-sm select-none">
+                        <span class="material-symbols-outlined text-warning shrink-0">info</span>
+                        <div>
+                            <p class="font-label-md text-on-surface font-bold text-sm">Category Defaults Not Configured</p>
+                            <p class="text-xs text-on-surface-variant mt-xxs">
+                                Please click the <strong class="text-secondary">Configure Defaults</strong> button to set HSN, GST, MOQ, and unit configuration. Product creation will be unlocked once defaults are configured.
+                            </p>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- ═══════════════════════════════════════════════════════════
                      LEAF MODE: Product Table
@@ -501,12 +534,182 @@
         </x-slot>
     </x-admin.modal>
 
-    <!-- ── Product Wizard Modal ── -->
-    @include('admin.products.product-wizard-modal', [
+    <!-- ── Simplified Product Wizard Modal ── -->
+    @include('admin.products.category-product-wizard-modal', [
         'modalId'         => 'cat-add-product',
         'deleteModalId'   => 'cat-delete-product',
         'valueMediaModalId' => 'cat-manage-value-media',
         'lockedCategory'  => $currentCategory,
     ])
+
+    <!-- ── Category Defaults Modal ── -->
+    <x-admin.modal id="category-defaults" title="Configure Category Defaults" maxWidth="5xl">
+        <div class="space-y-xl overflow-y-auto max-h-[550px] p-md">
+            <p class="text-sm text-on-surface-variant">Configure shared properties inherited by all products created inside this leaf category.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-lg border-b border-outline-variant/20 pb-lg">
+                <!-- HSN Code -->
+                <div class="space-y-xs">
+                    <label class="font-label-md text-on-surface-variant">Default HSN Code</label>
+                    <input type="text" wire:model="categoryDefaults.hsn_code" placeholder="e.g. 6205" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                    @error('categoryDefaults.hsn_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- GST Percentage -->
+                <div class="space-y-xs">
+                    <label class="font-label-md text-on-surface-variant">Default GST Percentage *</label>
+                    <div class="relative">
+                        <input type="number" step="0.01" min="0" max="100" wire:model="categoryDefaults.gst_percentage" placeholder="e.g. 12" class="w-full pr-xl px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                        <span class="absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">%</span>
+                    </div>
+                    @error('categoryDefaults.gst_percentage') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Min Order Qty -->
+                <div class="space-y-xs">
+                    <label class="font-label-md text-on-surface-variant">Default Min Order Qty *</label>
+                    <input type="number" min="1" step="1" wire:model="categoryDefaults.minimum_order_quantity" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                    @error('categoryDefaults.minimum_order_quantity') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Product Type -->
+                <div class="space-y-xs">
+                    <label class="font-label-md text-on-surface-variant">Default Product Type *</label>
+                    <select wire:model="categoryDefaults.product_type" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                        <option value="retail">Manufactured </option>
+                        <option value="manufactured">Retail / Bought</option>
+                    </select>
+                    @error('categoryDefaults.product_type') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            <!-- Customer Level Discounts -->
+            <div class="space-y-md border-b border-outline-variant/20 pb-lg">
+                <h4 class="font-title-md text-primary">Default Level-Specific Discount Overrides</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-lg bg-surface-container-low/40 p-lg border border-outline-variant/20 rounded-lg">
+                    @foreach($customerLevels as $level)
+                        <div class="space-y-xs">
+                            <label class="font-label-md text-on-surface-variant">{{ $level->name }}</label>
+                            <div class="relative w-full">
+                                <input type="number" step="0.01" min="-100" max="100" wire:model="categoryDefaults.pricingOverrides.{{ $level->id }}" placeholder="Default: {{ $level->discount_percentage }}%" class="w-full pr-lg px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                <span class="absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-sm">%</span>
+                            </div>
+                            @error("categoryDefaults.pricingOverrides.{$level->id}") <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Product Unit Configuration -->
+            <div class="space-y-lg">
+                <div>
+                    <h4 class="font-title-md text-primary">Default Unit Configuration</h4>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-sm items-stretch">
+                    <!-- Level 1 -->
+                    <div class="flex-1 bg-surface-container-low/60 border-2 {{ !empty($categoryDefaults['units']['level1_name']) ? 'border-primary/20' : 'border-dashed border-outline-variant/40' }} rounded-xl p-md space-y-md relative">
+                        <div class="flex items-center gap-xs mb-sm select-none">
+                            <span class="w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-bold flex items-center justify-center">1</span>
+                            <span class="font-label-md text-primary">Level 1 — Base Unit <span class="text-error">*</span></span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-sm">
+                            <div class="space-y-xs">
+                                <label class="text-xs text-on-surface-variant font-medium">Unit Name</label>
+                                <input type="text" wire:model.live="categoryDefaults.units.level1_name" placeholder="Piece" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all font-body-md text-on-surface text-sm">
+                                @error('categoryDefaults.units.level1_name') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="space-y-xs">
+                                <label class="text-xs text-on-surface-variant font-medium">Short Code</label>
+                                <input type="text" wire:model.live="categoryDefaults.units.level1_code" placeholder="pcs" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all font-body-md text-on-surface text-sm uppercase">
+                                @error('categoryDefaults.units.level1_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Arrow connector -->
+                    <div class="flex sm:flex-col items-center justify-center gap-xs px-sm text-on-surface-variant/50 select-none">
+                        @if(!empty($categoryDefaults['units']['level2_name']) && !empty($categoryDefaults['units']['level2_conversion']))
+                            <div class="hidden sm:flex flex-col items-center gap-xs">
+                                <span class="material-symbols-outlined text-[28px] text-secondary">swap_vert</span>
+                                <div class="text-center">
+                                    <div class="text-[10px] text-on-surface-variant leading-tight">1 {{ $categoryDefaults['units']['level2_name'] ?: '...' }}</div>
+                                    <div class="text-[10px] font-bold text-secondary leading-tight">= {{ $categoryDefaults['units']['level2_conversion'] }}×</div>
+                                </div>
+                            </div>
+                            <div class="sm:hidden flex items-center gap-xs">
+                                <span class="material-symbols-outlined text-[24px] text-secondary">swap_horiz</span>
+                                <span class="text-xs font-bold text-secondary">1 {{ $categoryDefaults['units']['level2_name'] }} = {{ $categoryDefaults['units']['level2_conversion'] }} {{ $categoryDefaults['units']['level1_name'] }}</span>
+                            </div>
+                        @else
+                            <span class="material-symbols-outlined text-[24px] opacity-30">add_circle</span>
+                        @endif
+                    </div>
+
+                    <!-- Level 2 -->
+                    <div class="flex-1 bg-surface-container-low/40 border-2 {{ !empty($categoryDefaults['units']['level2_name']) ? 'border-secondary/25' : 'border-dashed border-outline-variant/40' }} rounded-xl p-md space-y-md">
+                        <div class="flex items-center gap-xs mb-sm select-none">
+                            <span class="w-5 h-5 rounded-full {{ !empty($categoryDefaults['units']['level2_name']) ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/40 text-on-surface-variant' }} text-[11px] font-bold flex items-center justify-center">2</span>
+                            <span class="font-label-md {{ !empty($categoryDefaults['units']['level2_name']) ? 'text-secondary' : 'text-on-surface-variant/60' }}">Level 2 — Group Unit <span class="text-on-surface-variant/50 font-normal text-xs">(optional)</span></span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-sm">
+                            <div class="space-y-xs">
+                                <label class="text-xs text-on-surface-variant font-medium">Unit Name</label>
+                                <input type="text" wire:model.live="categoryDefaults.units.level2_name" placeholder="Box" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface text-sm">
+                                @error('categoryDefaults.units.level2_name') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="space-y-xs">
+                                <label class="text-xs text-on-surface-variant font-medium">Short Code</label>
+                                <input type="text" wire:model.live="categoryDefaults.units.level2_code" placeholder="box" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface text-sm uppercase">
+                                @error('categoryDefaults.units.level2_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                        <div class="space-y-xs">
+                            <label class="text-xs text-on-surface-variant font-medium">How many <strong>{{ $categoryDefaults['units']['level1_name'] ?: 'base units' }}</strong> in 1 <strong>{{ $categoryDefaults['units']['level2_name'] ?: 'group unit' }}</strong>?</label>
+                            <div class="flex items-center gap-sm">
+                                <div class="flex items-center gap-xs bg-white border border-outline-variant/50 rounded-lg px-sm py-xs focus-within:ring-2 focus-within:ring-secondary w-36">
+                                    <span class="text-xs text-on-surface-variant select-none font-medium whitespace-nowrap">1 {{ $categoryDefaults['units']['level2_name'] ?: '...' }} =</span>
+                                    <input type="number" wire:model.live="categoryDefaults.units.level2_conversion" placeholder="qty" min="0.0001" step="any" class="w-16 bg-transparent border-none focus:ring-0 outline-none text-on-surface font-bold text-sm text-right">
+                                </div>
+                                <span class="text-sm font-bold text-on-surface-variant">{{ $categoryDefaults['units']['level1_name'] ?: '...' }}</span>
+                            </div>
+                            @error('categoryDefaults.units.level2_conversion') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        @if(!empty($categoryDefaults['units']['level2_name']) && !empty($categoryDefaults['units']['level2_conversion']))
+                            <div class="bg-secondary/8 border border-secondary/15 rounded-lg px-sm py-xs flex items-center gap-xs select-none">
+                                <span class="material-symbols-outlined text-secondary text-[16px]">package_2</span>
+                                <span class="text-xs text-secondary font-medium">
+                                    <strong>1 {{ $categoryDefaults['units']['level2_name'] }} ({{ $categoryDefaults['units']['level2_code'] ?: '...' }})</strong> = <strong>{{ $categoryDefaults['units']['level2_conversion'] }} {{ $categoryDefaults['units']['level1_name'] }}</strong>
+                                </span>
+                            </div>
+                        @else
+                            <div class="bg-surface-container-low border border-dashed border-outline-variant/30 rounded-lg px-sm py-xs flex items-center gap-xs select-none opacity-60">
+                                <span class="material-symbols-outlined text-[16px]">info</span>
+                                <span class="text-xs text-on-surface-variant">Fill in Level 2 fields to enable group unit ordering</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                @if(!empty($categoryDefaults['units']['level2_name']) && !empty($categoryDefaults['units']['level2_conversion']))
+                    <div class="bg-gradient-to-r from-primary/5 to-secondary/5 border border-outline-variant/20 rounded-xl px-lg py-md flex items-center gap-md select-none mt-md">
+                        <span class="material-symbols-outlined text-primary text-[28px]">swap_horiz</span>
+                        <div class="flex-1">
+                            <p class="font-label-md text-on-surface">Unit Relationship</p>
+                            <p class="text-sm font-bold text-primary">
+                                1 <span class="text-secondary">{{ $categoryDefaults['units']['level2_name'] }}</span> ({{ $categoryDefaults['units']['level2_code'] ?: '...' }})
+                                = {{ $categoryDefaults['units']['level2_conversion'] }} <span class="text-primary">{{ $categoryDefaults['units']['level1_name'] }}</span> ({{ $categoryDefaults['units']['level1_code'] ?: '...' }})
+                            </p>
+                            <p class="text-xs text-on-surface-variant">Customers can order in individual <strong>{{ $categoryDefaults['units']['level1_name'] }}</strong> or by the <strong>{{ $categoryDefaults['units']['level2_name'] }}</strong>.</p>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+        <x-slot name="footer">
+            <x-admin.button variant="ghost" @click="show = false">Cancel</x-admin.button>
+            <x-admin.button variant="primary" icon="save" wire:click="saveCategoryDefaults">Save Defaults</x-admin.button>
+        </x-slot>
+    </x-admin.modal>
 
 </div>

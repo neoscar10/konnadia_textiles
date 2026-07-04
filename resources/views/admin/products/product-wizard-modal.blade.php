@@ -308,10 +308,10 @@
                         @foreach($selectedCategoryIds as $catId)
                             @php $catModel = $categories->firstWhere('id', $catId); @endphp
                             @if($catModel)
-                                <span class="inline-flex items-center gap-xxs px-sm py-xxs bg-secondary-container text-on-secondary-container text-xs font-semibold rounded-full">
+                                <span class="inline-flex items-center gap-xxs px-sm py-xxs bg-[#5c44c4]/10 text-[#5c44c4] text-xs font-bold rounded-full border border-[#5c44c4]/20">
                                     {{ $catModel->name }}
                                     @if(!isset($lockedCategory) || !$lockedCategory || (int)$catId !== $lockedCategory->id)
-                                        <button type="button" x-on:click="$wire.call('removeCategory', {{ $catId }})" class="hover:text-error text-sm font-bold">&times;</button>
+                                        <button type="button" x-on:click="$wire.call('removeCategory', {{ $catId }})" class="hover:text-error text-sm font-bold ml-1">&times;</button>
                                     @else
                                         <span class="material-symbols-outlined text-[12px] ml-xxs opacity-60">lock</span>
                                     @endif
@@ -321,10 +321,41 @@
                     </div>
                 @endif
 
-                <!-- Recursive categories checklist -->
-                <div class="border border-outline-variant/30 rounded-lg p-lg max-h-[300px] overflow-y-auto bg-surface-container-low custom-scrollbar">
-                    @foreach($categories->whereNull('parent_id') as $cat)
-                        @include('admin.products.category-checkbox-item', ['cat' => $cat, 'prefix' => ''])
+                <!-- Leaf categories flat checklist -->
+                <div class="border border-outline-variant/30 rounded-lg p-lg max-h-[300px] overflow-y-auto bg-surface-container-low custom-scrollbar divide-y divide-outline-variant/10">
+                    @php
+                        $categoriesById = $categories->keyBy('id');
+                        $buildPath = function($cat) use ($categoriesById) {
+                            $path = [$cat->name];
+                            $current = $cat;
+                            while ($current->parent_id && isset($categoriesById[$current->parent_id])) {
+                                $current = $categoriesById[$current->parent_id];
+                                array_unshift($path, $current->name);
+                            }
+                            return $path;
+                        };
+                        // Filter active leaf categories and sort them by path
+                        $leafCats = $categories->where('is_leaf', true)->where('is_active', true)->sortBy(fn($cat) => implode(' > ', $buildPath($cat)));
+                    @endphp
+                    @foreach($leafCats as $leaf)
+                        @php
+                            $pathSegments = $buildPath($leaf);
+                        @endphp
+                        <div class="flex items-center gap-md py-sm px-sm hover:bg-surface-container/30 transition-colors select-none">
+                            <input type="checkbox" id="cat_{{ $leaf->id }}" value="{{ $leaf->id }}" wire:model.live="selectedCategoryIds" class="w-4.5 h-4.5 rounded border-outline-variant text-[#5c44c4] focus:ring-[#5c44c4] cursor-pointer">
+                            
+                            <label for="cat_{{ $leaf->id }}" class="flex items-center flex-wrap gap-xs text-sm text-on-surface font-semibold cursor-pointer select-none">
+                                @foreach($pathSegments as $index => $segment)
+                                    @if($index > 0)
+                                        <!-- Nice arrow icon -->
+                                        <span class="material-symbols-outlined text-[16px] text-on-surface-variant/40 shrink-0 select-none">chevron_right</span>
+                                    @endif
+                                    <span class="{{ $index === count($pathSegments) - 1 ? 'text-[#5c44c4] font-extrabold uppercase' : 'text-on-surface-variant/60 font-medium' }}">
+                                        {{ $segment }}
+                                    </span>
+                                @endforeach
+                            </label>
+                        </div>
                     @endforeach
                 </div>
                 @error('selectedCategoryIds') <span class="text-error text-xs">{{ $message }}</span> @enderror

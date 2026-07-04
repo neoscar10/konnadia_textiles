@@ -52,6 +52,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('notifications', \App\Livewire\Admin\Notifications\NotificationIndexPage::class)->name('notifications.index');
         Route::get('home-content', \App\Livewire\Admin\HomeContent\HomeContentPage::class)->name('home-content.index');
         Route::get('settings', \App\Livewire\Admin\Settings\SettingsPage::class)->name('settings.index');
+        Route::get('admins', \App\Livewire\Admin\Admins\AdminIndexPage::class)->name('admins.index');
         Route::get('support', \App\Livewire\Admin\Support\SupportPage::class)->name('support.index');
         
         // Retail Transfers System

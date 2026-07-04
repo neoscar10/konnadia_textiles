@@ -5,7 +5,7 @@
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-md mb-xl select-none">
         <div>
             <h1 class="font-headline-lg text-primary tracking-tight font-extrabold">Design Catalog</h1>
-            <p class="font-body-md text-on-surface-variant">Browse products in a sleek list view with side-aligned previews, stock details, and category paths.</p>
+            <p class="font-body-md text-on-surface-variant">Browse products in a sleek grid layout with high-fidelity previews and stock details.</p>
         </div>
     </div>
 
@@ -36,101 +36,55 @@
         </div>
     </div>
 
-    <!-- Compact List Items with Image on the Side -->
-    <div class="space-y-md">
+    <!-- Grid Layout (4 items per row on desktop) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         @forelse($products as $prod)
-            <div class="bg-white rounded-xl card-shadow border border-outline-variant/20 hover:border-primary/30 overflow-hidden flex flex-row items-stretch hover:shadow-md transition-all duration-200">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200/60 overflow-hidden relative flex flex-col hover:shadow-md transition-shadow duration-200">
                 
-                <!-- Left Details Area -->
-                <div class="p-lg flex-1 flex flex-col justify-between">
+                <!-- Product Image Area -->
+                <a href="{{ route('admin.products.show', ['id' => $prod->id]) }}" class="block aspect-square w-full bg-slate-50 border-b border-slate-100 overflow-hidden relative group">
+                    @if($prod->primaryMedia)
+                        <img src="{{ Storage::url($prod->primaryMedia->file_path) }}" 
+                             alt="{{ $prod->title }}" 
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        >
+                    @else
+                        <div class="w-full h-full bg-[#e6f4fe] flex items-center justify-center">
+                            <!-- Custom Dress Icon -->
+                            <svg class="w-20 h-20 text-[#8ec8f6]" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm6 5.78V10c0 .55-.45 1-1 1h-1v10c0 .55-.45 1-1 1H9c-.55 0-1-.45-1-1V11H7c-.55 0-1-.45-1-1V7.78c0-.42.26-.79.66-.93l4.5-1.5c.54-.18 1.14-.18 1.68 0l4.5 1.5c.4.14.66.51.66.93z" />
+                            </svg>
+                        </div>
+                    @endif
+                </a>
+
+                <!-- Card Details -->
+                <div class="p-4 flex flex-col justify-between flex-1">
                     <div>
-                        <!-- Category path trail -->
-                        <div class="flex flex-wrap items-center gap-xs mb-xs select-none">
-                            @forelse($prod->category_paths as $path)
-                                <span class="inline-flex items-center gap-xxs text-[10px] font-bold text-secondary bg-secondary/5 border border-secondary/15 px-sm py-0.5 rounded">
-                                    <span class="material-symbols-outlined text-[11px] opacity-75">folder</span>
-                                    {{ $path }}
-                                </span>
-                            @empty
-                                <span class="inline-flex items-center gap-xxs text-[10px] font-bold text-outline bg-surface-container px-sm py-0.5 rounded">
-                                    Unassigned
-                                </span>
-                            @endforelse
-                        </div>
-
-                        <!-- Product Title & SKU -->
-                        <div class="mb-sm">
-                            <h3 class="font-title-md text-primary font-bold tracking-tight">
-                                {{ $prod->title }}
-                            </h3>
-                            <span class="font-mono text-[11px] text-on-surface-variant select-none">SKU: {{ $prod->sku }}</span>
-                        </div>
-
-                        <!-- Description Preview -->
-                        <p class="font-body-sm text-on-surface-variant/90 line-clamp-2 mb-md">
-                            {{ strip_tags($prod->description) ?: 'No description provided for this design.' }}
-                        </p>
-                    </div>
-
-                    <!-- Footer line: Stock status & Details Button -->
-                    <div class="border-t border-outline-variant/15 pt-md flex flex-wrap items-center justify-between gap-md select-none">
-                        <div class="flex items-center gap-lg">
-                            <!-- Selling Price -->
+                        <div class="text-xs text-slate-500 font-medium mb-2 flex flex-col gap-y-0.5">
+                            <div>Price: <span class="font-semibold text-slate-800">₹{{ number_format($prod->base_price, 2) }}</span></div>
                             <div>
-                                <span class="text-[9px] text-on-surface-variant block uppercase tracking-wider font-bold">MRP Price</span>
-                                <span class="font-title-md text-primary font-extrabold">₹{{ number_format($prod->base_price, 2) }}</span>
-                            </div>
-
-                            <!-- Stock status indicator -->
-                            <div>
-                                <span class="text-[9px] text-on-surface-variant block uppercase tracking-wider font-bold mb-xxs">Available Stock</span>
-                                @if($prod->stock_quantity === null)
-                                    <span class="inline-flex items-center gap-xxs px-sm py-0.5 rounded bg-surface-container text-on-surface-variant text-[11px] font-semibold">
-                                        <span class="material-symbols-outlined text-[13px]">all_inclusive</span>
-                                        Unlimited Stock
-                                    </span>
-                                @elseif($prod->stock_quantity > 10)
-                                    <span class="inline-flex items-center gap-xxs px-sm py-0.5 rounded bg-success-container/70 text-on-success-container text-[11px] font-bold">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
-                                        {{ number_format($prod->stock_quantity) }} In Stock
-                                    </span>
-                                @elseif($prod->stock_quantity > 0)
-                                    <span class="inline-flex items-center gap-xxs px-sm py-0.5 rounded bg-warning/15 text-warning text-[11px] font-bold">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-warning"></span>
-                                        {{ $prod->stock_quantity }} Low Stock
-                                    </span>
+                                Stock: 
+                                @if($prod->computed_stock === PHP_INT_MAX)
+                                    <span class="font-semibold text-slate-600">Unlimited</span>
+                                @elseif($prod->computed_stock > 10)
+                                    <span class="font-semibold text-emerald-600">{{ number_format($prod->computed_stock) }} In Stock</span>
+                                @elseif($prod->computed_stock > 0)
+                                    <span class="font-semibold text-amber-600">{{ number_format($prod->computed_stock) }} Low Stock</span>
                                 @else
-                                    <span class="inline-flex items-center gap-xxs px-sm py-0.5 rounded bg-error/10 text-error text-[11px] font-bold">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-error"></span>
-                                        Out of Stock
-                                    </span>
+                                    <span class="font-semibold text-rose-600">Out of Stock</span>
                                 @endif
                             </div>
                         </div>
-
-                        <!-- Action Button -->
-                        <a href="{{ route('admin.products.show', ['id' => $prod->id]) }}" class="px-md py-sm bg-primary hover:bg-primary/95 text-on-primary rounded-lg font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-xs">
-                            <span class="material-symbols-outlined text-[14px]">visibility</span>
-                            View Details
+                        <a href="{{ route('admin.products.show', ['id' => $prod->id]) }}" class="block font-semibold text-slate-800 hover:text-[#0f82c5] text-sm leading-snug truncate" title="{{ $prod->title }}">
+                            {{ $prod->title }}
                         </a>
                     </div>
                 </div>
 
-                <!-- Right: Side-Aligned Compact Image (e.g. w-48) -->
-                <div class="w-48 shrink-0 relative bg-surface-container border-l border-outline-variant/20 overflow-hidden flex items-center justify-center">
-                    @if($prod->primaryMedia)
-                        <img src="{{ Storage::url($prod->primaryMedia->file_path) }}" alt="{{ $prod->title }}" class="w-full h-full object-cover">
-                    @else
-                        <div class="w-full h-full bg-surface-container-low flex flex-col items-center justify-center text-on-surface-variant/30 p-md select-none">
-                            <span class="material-symbols-outlined text-[36px] mb-xxs">image</span>
-                            <span class="text-[9px] font-bold uppercase tracking-wider">No Image</span>
-                        </div>
-                    @endif
-                </div>
-
             </div>
         @empty
-            <div class="bg-white rounded-xl card-shadow border border-outline-variant/30 p-2xl text-center select-none">
+            <div class="col-span-full bg-white rounded-xl shadow-sm border border-outline-variant/30 p-2xl text-center select-none">
                 <span class="material-symbols-outlined text-5xl text-outline mb-md">inventory_2</span>
                 <h3 class="font-title-md text-primary font-bold">No designs found</h3>
                 <p class="text-sm text-on-surface-variant mt-xxs">Try adjusting your filters or search query.</p>

@@ -62,13 +62,21 @@ class DesignCatalogPage extends Component
 
         $products = $query->paginate(10);
 
-        // 3. For each product, build its category path string
+        $availabilityService = app(\App\Services\Portal\ProductAvailabilityService::class);
+
+        // 3. For each product, build its category path string and compute its stock
         foreach ($products as $product) {
             $paths = [];
             foreach ($product->categories as $category) {
                 $paths[] = $categoryService->buildPath($category);
             }
             $product->category_paths = $paths;
+
+            // Compute availability / stock
+            $availability = $availabilityService->getProductAvailability($product);
+            $product->computed_stock = $availability['available_quantity'];
+            $product->stock_status = $availability['status'];
+            $product->stock_label = $availability['label'];
         }
 
         return view('livewire.admin.products.design-catalog-page', compact('products', 'leafCategories'));

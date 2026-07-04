@@ -1,4 +1,4 @@
-@props(['title' => 'Dashboard'])
+@props(['title' => 'Dashboard', 'hideTopbar' => false])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="light">
@@ -22,7 +22,9 @@
         <!-- Main Content Area -->
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative transition-all duration-300" :class="sidebarOpen ? 'ml-[260px]' : 'ml-[70px]'">
             <!-- Top Navigation Bar -->
-            <x-admin.topbar :title="$title" />
+            @if(!$hideTopbar)
+                <x-admin.topbar :title="$title" />
+            @endif
 
             <!-- Scrollable Page Content -->
             <main class="flex-1 overflow-y-auto p-gutter relative custom-scrollbar">

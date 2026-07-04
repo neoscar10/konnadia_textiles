@@ -17,12 +17,14 @@ class Category extends Model
         'is_active',
         'sort_order',
         'is_leaf',
+        'default_product_config',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'sort_order' => 'integer',
         'is_leaf'   => 'boolean',
+        'default_product_config' => 'array',
     ];
 
     /**
