@@ -21,9 +21,13 @@ class DesignCatalogPage extends Component
     #[Url(history: true)]
     public string $filterCategory = '';
 
+    #[Url(history: true)]
+    public string $filterTag = '';
+
     protected $queryString = [
         'search'         => ['except' => ''],
         'filterCategory' => ['except' => ''],
+        'filterTag'      => ['except' => ''],
     ];
 
     public function updatingSearch(): void
@@ -36,13 +40,37 @@ class DesignCatalogPage extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterTag(): void
+    {
+        $this->resetPage();
+    }
+
+    public function shareCatalog(): void
+    {
+        $params = [];
+        if ($this->search !== '') {
+            $params['search'] = $this->search;
+        }
+        if ($this->filterCategory !== '') {
+            $params['category'] = $this->filterCategory;
+        }
+        if ($this->filterTag !== '') {
+            $params['selectedTags'] = [$this->filterTag];
+        }
+
+        $url = route('customer.products.index', $params);
+
+        $this->dispatch('copy-to-clipboard', url: $url);
+        $this->dispatch('toast', message: 'Catalog link copied to clipboard!', type: 'success');
+    }
+
     public function render(CategoryService $categoryService)
     {
         // 1. Fetch Leaf Categories with full breadcrumb paths for the filter
         $leafCategories = $categoryService->getLeafCategories();
 
         // 2. Query products
-        $query = Product::with(['categories', 'primaryMedia'])
+        $query = Product::with(['categories', 'primaryMedia', 'tags'])
             ->orderBy('created_at', 'desc');
 
         if ($this->search) {
@@ -57,6 +85,12 @@ class DesignCatalogPage extends Component
         if ($this->filterCategory) {
             $query->whereHas('categories', function ($sub) {
                 $sub->where('categories.id', $this->filterCategory);
+            });
+        }
+
+        if ($this->filterTag) {
+            $query->whereHas('tags', function ($sub) {
+                $sub->where('tags.id', $this->filterTag);
             });
         }
 
@@ -79,6 +113,8 @@ class DesignCatalogPage extends Component
             $product->stock_label = $availability['label'];
         }
 
-        return view('livewire.admin.products.design-catalog-page', compact('products', 'leafCategories'));
+        $tagsList = \App\Models\Tag::orderBy('name')->get();
+
+        return view('livewire.admin.products.design-catalog-page', compact('products', 'leafCategories', 'tagsList'));
     }
 }

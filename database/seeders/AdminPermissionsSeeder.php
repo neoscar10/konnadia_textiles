@@ -24,6 +24,7 @@ class AdminPermissionsSeeder extends Seeder
             'access products',
             'access design-catalog',
             'access categories',
+            'access tags',
             'access inventory',
             'access retail-shops',
             'access product-transfers',

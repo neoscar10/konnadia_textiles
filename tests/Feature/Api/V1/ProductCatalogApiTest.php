@@ -350,10 +350,59 @@ class ProductCatalogApiTest extends TestCase
                 'message',
                 'data' => [
                     'categories',
+                    'tags',
                     'availability',
                     'sort',
                     'price_range' => ['min', 'max', 'currency']
                 ]
             ]);
+    }
+
+    /**
+     * Test API filtering by tags and presence of tags in card/details resource.
+     */
+    public function test_api_tags_features(): void
+    {
+        $tag = \App\Models\Tag::create([
+            'name' => 'Eco Organic',
+            'slug' => 'eco-organic',
+        ]);
+
+        $p1 = Product::create([
+            'title' => 'Organic Cotton Shirt',
+            'sku' => 'ORG-SHT',
+            'base_price' => 1200.00,
+            'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
+            'stock_quantity' => 12,
+        ]);
+        $p1->tags()->attach($tag->id);
+
+        $p2 = Product::create([
+            'title' => 'Polyester Blend Shirt',
+            'sku' => 'PLY-SHT',
+            'base_price' => 800.00,
+            'is_active' => true,
+            'gst_percentage' => 12.0,
+            'hsn_code' => '6205',
+            'stock_quantity' => 15,
+        ]);
+
+        // Filter by tags array
+        $resFilter = $this->actingAs($this->customerUser, 'api')
+            ->getJson('/api/v1/products?tags[]=' . $tag->id);
+
+        $resFilter->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $p1->id)
+            ->assertJsonPath('data.0.tags.0.name', 'Eco Organic');
+
+        // Check details endpoint includes tags
+        $resDetail = $this->actingAs($this->customerUser, 'api')
+            ->getJson('/api/v1/products/' . $p1->id);
+
+        $resDetail->assertStatus(200)
+            ->assertJsonPath('data.tags.0.slug', 'eco-organic');
     }
 }

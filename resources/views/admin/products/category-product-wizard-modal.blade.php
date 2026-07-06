@@ -3,7 +3,7 @@
     Provides a clean, single-step interface for entering unique product data.
 --}}
 
-<x-admin.modal id="{{ $modalId }}" title="{{ $selectedProductId ? 'Edit Product' : 'Add New Product' }}" maxWidth="5xl">
+<x-admin.modal id="{{ $modalId }}" title="{{ $selectedProductId ? 'Edit Product' : 'Add New Product' }}" maxWidth="3xl">
     
     <!-- Wizard Steps Content (Single Step Layout) -->
     <div class="p-xl overflow-y-auto max-h-[600px] space-y-xl" style="min-height: 400px;">
@@ -154,7 +154,31 @@
             @endif
         </div>
 
-        <!-- Row 3: Description input, full width -->
+        <!-- Row 3: Product Tags -->
+        <div class="space-y-sm border-t border-outline-variant/10 pt-lg select-none">
+            <label class="font-label-md text-on-surface-variant font-semibold">Product Tags</label>
+            <div class="flex flex-wrap gap-xs">
+                @forelse($availableTags as $tag)
+                    @php $isSel = in_array($tag->id, $selectedTagIds); @endphp
+                    <button type="button" wire:click="toggleTag({{ $tag->id }})"
+                            class="px-md py-xs rounded-full text-xs font-semibold border transition-all flex items-center gap-xxs cursor-pointer
+                            {{ $isSel 
+                                ? 'bg-primary-container text-on-primary border-primary hover:bg-primary-container/90' 
+                                : 'bg-white border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-low' }}">
+                        @if($isSel)
+                            <span class="material-symbols-outlined text-[14px]">check</span>
+                        @else
+                            <span class="material-symbols-outlined text-[14px] text-outline-variant">add</span>
+                        @endif
+                        <span>{{ $tag->name }}</span>
+                    </button>
+                @empty
+                    <p class="text-xs text-on-surface-variant italic">No tags created yet. Go to Tags Management to add tags.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- Row 4: Description input, full width -->
         <div class="space-y-xs border-t border-outline-variant/10 pt-lg">
             <label class="font-label-md text-on-surface-variant select-none font-semibold">Description</label>
             <div class="border border-outline-variant/60 rounded-lg overflow-hidden bg-white shadow-sm">

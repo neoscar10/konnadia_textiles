@@ -92,6 +92,11 @@ class ProductCardResource extends JsonResource
             ],
             'minimum_order_quantity' => 10,
             'is_active' => (bool)$this->is_active,
+            'tags' => $this->tags->map(fn($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'slug' => $t->slug,
+            ])->toArray(),
         ];
     }
 }

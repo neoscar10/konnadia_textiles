@@ -49,7 +49,7 @@
         @endif
 
         <!-- Catalog Group -->
-        @if(auth()->user()->can('access products') || auth()->user()->can('access design-catalog') || auth()->user()->can('access categories') || auth()->user()->can('access inventory') || auth()->user()->can('access retail-shops') || auth()->user()->can('access product-transfers'))
+        @if(auth()->user()->can('access products') || auth()->user()->can('access design-catalog') || auth()->user()->can('access categories') || auth()->user()->can('access tags') || auth()->user()->can('access inventory') || auth()->user()->can('access retail-shops') || auth()->user()->can('access product-transfers'))
             <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
                 <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Catalog</p>
             </div>
@@ -70,6 +70,12 @@
                     <a href="{{ route('admin.categories.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.categories.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="category">category</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Categories</span>
+                    </a>
+                @endcan
+                @can('access tags')
+                    <a href="{{ route('admin.tags.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.tags.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                        <span class="material-symbols-outlined shrink-0" data-icon="sell">sell</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Tags</span>
                     </a>
                 @endcan
                 @can('access inventory')
@@ -143,7 +149,7 @@
         <!-- Footer Section -->
         <div class="mt-auto pt-lg pb-md border-t border-on-primary/10 px-md transition-all duration-300" :class="sidebarOpen ? 'px-md' : 'px-xs'">
             <div class="space-y-xs">
-                <form method="POST" action="#">
+                <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="w-full flex items-center text-on-primary/70 hover:text-on-primary hover:bg-error/20 rounded-lg transition-colors" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined text-error-container shrink-0" data-icon="logout">logout</span>

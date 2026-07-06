@@ -9,6 +9,7 @@ use App\Models\ProductMedia;
 use App\Services\Catalog\ProductService;
 use App\Services\Catalog\ProductVariationService;
 use App\Services\Catalog\ProductMediaService;
+use App\Services\Catalog\CategoryService;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -44,15 +45,15 @@ class ProductIndexPage extends Component
 
     // Step 1: Basic Info
     public array $basicInfo = [
-        'title'          => '',
-        'sku'            => '',
-        'base_price'     => '',
-        'hsn_code'       => '',
-        'gst_percentage' => '',
+        'title'                  => '',
+        'sku'                    => '',
+        'base_price'             => '',
+        'hsn_code'               => '',
+        'gst_percentage'         => '',
         'minimum_order_quantity' => 1,
-        'description'    => '',
-        'is_active'      => true,
-        'product_type'   => 'retail',
+        'description'            => '',
+        'is_active'              => true,
+        'product_type'           => 'retail',
     ];
 
     // Step 2: Media
@@ -87,6 +88,27 @@ class ProductIndexPage extends Component
 
     // Markdown preview state
     public bool $isPreviewMode = false;
+
+    // Tags state
+    public array $selectedTagIds = [];
+
+    // Category Defaults and navigation state
+    public ?int $currentCategoryId = null;
+    public ?int $productLockedCategoryId = null;
+    public array $categoryDefaults = [
+        'hsn_code' => '',
+        'gst_percentage' => '',
+        'minimum_order_quantity' => 1,
+        'product_type' => 'retail',
+        'pricingOverrides' => [],
+        'units' => [
+            'level1_name' => 'Piece',
+            'level1_code' => 'pcs',
+            'level2_name' => '',
+            'level2_code' => '',
+            'level2_conversion' => '',
+        ],
+    ];
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -307,77 +329,145 @@ class ProductIndexPage extends Component
         return true;
     }
 
-    public function create()
+    public function openSelectLeafForDefaults(): void
+    {
+        $this->resetValidation();
+        $this->currentCategoryId = null;
+        $this->dispatch('open-modal', 'select-leaf-for-defaults');
+    }
+
+    public function selectLeafForDefaults(int $categoryId): void
+    {
+        $this->currentCategoryId = $categoryId;
+        $this->dispatch('close-modal', 'select-leaf-for-defaults');
+        $this->openCategoryDefaults();
+    }
+
+    public function openCategoryDefaults(): void
+    {
+        $this->resetValidation();
+        if (!$this->currentCategoryId) return;
+
+        $category = Category::findOrFail($this->currentCategoryId);
+        $defaults = $category->default_product_config;
+
+        if (!empty($defaults)) {
+            $customerLevels = CustomerLevel::active()->ordered()->get();
+            $pricing = $defaults['pricingOverrides'] ?? [];
+            foreach ($customerLevels as $lvl) {
+                if (!isset($pricing[$lvl->id])) {
+                    $pricing[$lvl->id] = '';
+                }
+            }
+            $defaults['pricingOverrides'] = $pricing;
+            $this->categoryDefaults = $defaults;
+        } else {
+            $customerLevels = CustomerLevel::active()->ordered()->get();
+            $pricing = [];
+            foreach ($customerLevels as $lvl) {
+                $pricing[$lvl->id] = '';
+            }
+
+            $this->categoryDefaults = [
+                'hsn_code' => '',
+                'gst_percentage' => '',
+                'minimum_order_quantity' => 1,
+                'product_type' => 'retail',
+                'pricingOverrides' => $pricing,
+                'units' => [
+                    'level1_name' => 'Piece',
+                    'level1_code' => 'pcs',
+                    'level2_name' => '',
+                    'level2_code' => '',
+                    'level2_conversion' => '',
+                ],
+            ];
+        }
+
+        $this->dispatch('open-modal', 'category-defaults');
+    }
+
+    public function saveCategoryDefaults(): void
+    {
+        $this->validate([
+            'categoryDefaults.gst_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
+            'categoryDefaults.minimum_order_quantity' => ['required', 'integer', 'min:1'],
+            'categoryDefaults.product_type' => ['required', 'string', 'in:retail,manufactured'],
+            'categoryDefaults.units.level1_name' => ['required', 'string', 'max:50'],
+            'categoryDefaults.units.level1_code' => ['required', 'string', 'max:20'],
+        ]);
+
+        if ($this->currentCategoryId) {
+            $category = Category::findOrFail($this->currentCategoryId);
+            $category->update([
+                'default_product_config' => $this->categoryDefaults,
+            ]);
+
+            $this->dispatch('toast', message: 'Category default configuration saved.', type: 'success');
+            $this->dispatch('close-modal', 'category-defaults');
+        }
+    }
+
+    public function openSelectLeafForAddProduct(): void
+    {
+        $this->resetValidation();
+        $this->dispatch('open-modal', 'select-leaf-for-add-product');
+    }
+
+    public function selectLeafForAddProduct(int $categoryId): void
+    {
+        $this->currentCategoryId = $categoryId;
+        $this->productLockedCategoryId = $categoryId;
+        $this->dispatch('close-modal', 'select-leaf-for-add-product');
+        $this->create();
+    }
+
+    public function create(): void
     {
         $this->resetWizard();
         $this->isEditMode = false;
-        $this->showWizardModal = true;
+        $this->selectedCategoryIds = $this->currentCategoryId ? [$this->currentCategoryId] : [];
+        $this->productLockedCategoryId = $this->currentCategoryId;
         $this->dispatch('open-modal', 'add-product');
     }
 
-    public function edit(int $id)
+    public function edit(int $id): void
     {
         $this->resetWizard();
         $this->isEditMode = true;
-        $product = Product::with(['categories', 'media', 'variationGroups.values.media', 'combinations', 'customerLevelPrices', 'units'])->findOrFail($id);
-        
+
+        $product = Product::with([
+            'categories', 'media', 'variationGroups.values.media',
+            'combinations', 'customerLevelPrices', 'units', 'tags',
+        ])->findOrFail($id);
+
         $this->selectedProductId = $product->id;
+        $this->selectedTagIds = $product->tags->pluck('id')->toArray();
         $this->basicInfo = [
-            'title'          => $product->title,
-            'base_price'     => $product->base_price,
-            'hsn_code'       => $product->hsn_code ?? '',
-            'gst_percentage' => $product->gst_percentage !== null ? (string) $product->gst_percentage : '',
+            'title'                  => $product->title,
+            'base_price'             => $product->base_price,
+            'hsn_code'               => $product->hsn_code ?? '',
+            'gst_percentage'         => $product->gst_percentage !== null ? (string)$product->gst_percentage : '',
             'minimum_order_quantity' => $product->minimum_order_quantity ?? 1,
-            'description'    => $product->description ?? '',
-            'is_active'      => (bool) $product->is_active,
-            'product_type'   => $product->product_type ?? 'retail',
+            'description'            => $product->description ?? '',
+            'is_active'              => (bool)$product->is_active,
+            'product_type'           => $product->product_type ?? 'retail',
         ];
 
         foreach ($product->media as $m) {
             $this->existingMedia[] = [
-                'id' => $m->id,
-                'file_path' => $m->file_path,
+                'id'         => $m->id,
+                'file_path'  => $m->file_path,
                 'is_primary' => (bool)$m->is_primary,
             ];
         }
 
         $this->selectedCategoryIds = $product->categories->pluck('id')->map(fn($id) => (int)$id)->all();
-
-        foreach ($product->variationGroups as $g) {
-            $vals = [];
-            foreach ($g->values as $v) {
-                $vals[] = [
-                    'id' => $v->id,
-                    'value' => $v->value,
-                    'color_hex' => $v->color_hex ?? '',
-                    'is_default' => (bool)$v->is_default,
-                    'media' => $v->media->pluck('file_path')->all(),
-                ];
-            }
-            $this->variationGroups[] = [
-                'id' => $g->id,
-                'name' => $g->name,
-                'display_type' => $g->display_type,
-                'has_images' => (bool)$g->has_images,
-                'values' => $vals,
-            ];
-        }
+        $this->currentCategoryId = $product->categories->first()?->id;
+        $this->productLockedCategoryId = $this->currentCategoryId;
 
         if (empty($this->variationGroups)) {
-            // null = N/A/unlimited, 0 = explicitly zero stock, other = tracked quantity
             $this->nonVariantStock = $product->stock_quantity === null ? '' : $product->stock_quantity;
-        } else {
-            // Populate totalStock from the product's stored value (null = N/A)
-            $this->totalStock = $product->stock_quantity === null ? '' : (string)$product->stock_quantity;
-            foreach ($product->combinations as $comb) {
-                $this->combinations[] = [
-                    'combination_values' => $comb->combination_values,
-                    'sku' => $comb->sku ?? '',
-                    'price' => $comb->price !== null ? (float)$comb->price : '',
-                    'stock_quantity' => $comb->stock_quantity === null ? '' : $comb->stock_quantity,
-                    'is_active' => (bool)$comb->is_active,
-                ];
-            }
         }
 
         foreach ($product->customerLevelPrices as $price) {
@@ -386,71 +476,58 @@ class ProductIndexPage extends Component
 
         $lvl1 = $product->units->where('level', 1)->first();
         $lvl2 = $product->units->where('level', 2)->first();
-
         $this->units = [
-            'level1_name' => $lvl1 ? $lvl1->name : 'Piece',
-            'level1_code' => $lvl1 ? $lvl1->short_code : 'pcs',
-            'level2_name' => $lvl2 ? $lvl2->name : '',
-            'level2_code' => $lvl2 ? $lvl2->short_code : '',
+            'level1_name'       => $lvl1 ? $lvl1->name : 'Piece',
+            'level1_code'       => $lvl1 ? $lvl1->short_code : 'pcs',
+            'level2_name'       => $lvl2 ? $lvl2->name : '',
+            'level2_code'       => $lvl2 ? $lvl2->short_code : '',
             'level2_conversion' => $lvl2 ? (float)$lvl2->conversion_to_base : '',
         ];
 
-        $this->showWizardModal = true;
         $this->dispatch('open-modal', 'add-product');
     }
 
-    protected function validateUntilStep(int $maxStep): bool
+    protected function validateSimplifiedProduct(): void
     {
-        for ($s = 1; $s <= $maxStep; $s++) {
-            try {
-                if (!$this->validateStep($s)) {
-                    $this->currentStep = $s;
-                    return false;
-                }
-            } catch (\Illuminate\Validation\ValidationException $e) {
-                $this->currentStep = $s;
-                throw $e;
-            }
-        }
-        return true;
-    }
-
-    public function saveCurrentStep(
-        ProductService $productService,
-        ProductVariationService $varService,
-        ProductMediaService $mediaService
-    ) {
-        // Validate current step
-        if (!$this->validateStep($this->currentStep)) {
-            return;
-        }
-
-        // Validate previous steps
-        if (!$this->validateUntilStep($this->currentStep - 1)) {
-            return;
-        }
-
-        $this->save($productService, $varService, $mediaService);
+        $this->validate([
+            'basicInfo.title'       => ['required', 'string', 'max:200'],
+            'basicInfo.base_price'  => ['required', 'numeric', 'min:0'],
+            'basicInfo.description' => ['required', 'string'],
+            'nonVariantStock'       => ['nullable', 'integer', 'min:0'],
+        ]);
     }
 
     public function save(
         ProductService $productService,
         ProductVariationService $varService,
         ProductMediaService $mediaService
-    ) {
-        // Final validation
-        if (!$this->validateUntilStep(6)) {
-            return;
-        }
+    ): void {
+        $this->validateSimplifiedProduct();
 
         try {
             DB::transaction(function () use ($productService, $varService, $mediaService) {
-                $payload = $this->basicInfo;
-                $payload['category_ids'] = $this->selectedCategoryIds;
-                
-                // Formulate pricing overrides payload
+                // Get defaults from current category
+                $category = Category::findOrFail($this->currentCategoryId);
+                $defaults = $category->default_product_config ?? [];
+
+                $payload = [
+                    'title'                  => trim($this->basicInfo['title']),
+                    'base_price'             => (float) $this->basicInfo['base_price'],
+                    'description'            => trim($this->basicInfo['description']),
+                    'is_active'              => isset($this->basicInfo['is_active']) ? (bool) $this->basicInfo['is_active'] : true,
+                    'category_ids'           => [$category->id],
+                    // Merged defaults
+                    'hsn_code'               => isset($defaults['hsn_code']) && $defaults['hsn_code'] !== '' ? trim($defaults['hsn_code']) : null,
+                    'gst_percentage'         => isset($defaults['gst_percentage']) && $defaults['gst_percentage'] !== '' ? (float) $defaults['gst_percentage'] : null,
+                    'minimum_order_quantity' => isset($defaults['minimum_order_quantity']) ? (int) $defaults['minimum_order_quantity'] : 1,
+                    'product_type'           => isset($defaults['product_type']) ? $defaults['product_type'] : 'retail',
+                    'stock_quantity'         => $this->nonVariantStock !== '' ? (int)$this->nonVariantStock : null,
+                ];
+
+                // Build level prices from defaults
                 $levelPrices = [];
-                foreach ($this->pricingOverrides as $levelId => $disc) {
+                $pricingOverrides = $defaults['pricingOverrides'] ?? [];
+                foreach ($pricingOverrides as $levelId => $disc) {
                     if ($disc !== '') {
                         $levelPrices[] = [
                             'customer_level_id' => $levelId,
@@ -459,44 +536,34 @@ class ProductIndexPage extends Component
                     }
                 }
                 $payload['customer_level_prices'] = $levelPrices;
-                $payload['units'] = $this->units;
-                // null = N/A/unlimited, integer = tracked stock
-                $payload['stock_quantity'] = empty($this->variationGroups)
-                    ? ($this->nonVariantStock !== '' ? (int)$this->nonVariantStock : null)
-                    : ($this->totalStock !== '' ? (int)$this->totalStock : null);
+                $payload['units']                 = $defaults['units'] ?? $this->units;
 
                 if ($this->selectedProductId) {
                     $product = Product::findOrFail($this->selectedProductId);
                     $productService->update($product, $payload);
                 } else {
-                    $product = $productService->create($payload);
+                    $product                 = $productService->create($payload);
                     $this->selectedProductId = $product->id;
                 }
 
-                // Variations & Combinations Sync
-                if (!empty($this->variationGroups)) {
-                    $varService->syncVariationGroups($product, $this->variationGroups);
-                    $varService->syncCombinations($product, $this->combinations);
-                    // stock_quantity on the product is already set above from totalStock
-                } else {
-                    // Clean up variations if all group parameters removed
-                    $product->variationGroups()->delete();
-                    $product->combinations()->delete();
-                }
+                $product->tags()->sync($this->selectedTagIds);
 
-                // Media upload sync
+                // Clean up variations (not used in simplified context)
+                $product->variationGroups()->delete();
+                $product->combinations()->delete();
+
                 if (!empty($this->mediaUploads)) {
                     $mediaService->storeProductMedia($product, $this->mediaUploads);
                     $this->mediaUploads = [];
                 }
             });
 
-            $this->dispatch('toast', message: $this->isEditMode ? 'Product updated successfully.' : 'Product created successfully.', type: 'success');
+            $msg = $this->isEditMode ? 'Product updated successfully.' : 'Product created successfully.';
+            $this->dispatch('toast', message: $msg, type: 'success');
             $this->dispatch('close-modal', 'add-product');
             $this->resetWizard();
             $this->resetPage();
         } catch (\Exception $e) {
-            $this->currentStep = 1;
             $this->addError('basicInfo.title', $e->getMessage());
         }
     }
@@ -538,6 +605,15 @@ class ProductIndexPage extends Component
     public function removeCategory($id)
     {
         $this->selectedCategoryIds = array_values(array_diff($this->selectedCategoryIds, [(int)$id, (string)$id]));
+    }
+
+    public function toggleTag(int $tagId): void
+    {
+        if (in_array($tagId, $this->selectedTagIds)) {
+            $this->selectedTagIds = array_diff($this->selectedTagIds, [$tagId]);
+        } else {
+            $this->selectedTagIds[] = $tagId;
+        }
     }
 
     public function setVariationDefault(int $gIndex, int $vIndex)
@@ -805,6 +881,7 @@ class ProductIndexPage extends Component
         $this->mediaUploads = [];
         $this->existingMedia = [];
         $this->selectedCategoryIds = [];
+        $this->selectedTagIds = [];
         $this->variationGroups = [];
         $this->combinations = [];
         $this->nonVariantStock = '';
@@ -844,10 +921,16 @@ class ProductIndexPage extends Component
             }
         }
 
+        $categoryService = app(CategoryService::class);
+        $leafCategories = $categoryService->getLeafCategories();
+        $availableTags = \App\Models\Tag::orderBy('name')->get();
+
         return view('livewire.admin.products.product-index-page', [
             'products' => $products,
             'categories' => $categories,
             'customerLevels' => $customerLevels,
+            'leafCategories' => $leafCategories,
+            'availableTags' => $availableTags,
         ]);
     }
 }

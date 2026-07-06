@@ -53,6 +53,7 @@ class AdminIndexPage extends Component
         'access products' => 'Products',
         'access design-catalog' => 'Design Catalog',
         'access categories' => 'Categories',
+        'access tags' => 'Tags',
         'access inventory' => 'Inventory',
         'access retail-shops' => 'Retail Shops',
         'access product-transfers' => 'Product Transfers',

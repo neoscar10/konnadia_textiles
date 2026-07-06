@@ -105,4 +105,12 @@ class Product extends Model
     {
         return $this->hasMany(ProductUnit::class)->orderBy('level');
     }
+
+    /**
+     * Tags relationship.
+     */
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'product_tag');
+    }
 }

@@ -543,7 +543,7 @@
     ])
 
     <!-- ── Category Defaults Modal ── -->
-    <x-admin.modal id="category-defaults" title="Configure Category Defaults" maxWidth="5xl">
+    <x-admin.modal id="category-defaults" title="Configure Category Defaults" maxWidth="3xl">
         <div class="space-y-xl overflow-y-auto max-h-[550px] p-md">
             <p class="text-sm text-on-surface-variant">Configure shared properties inherited by all products created inside this leaf category.</p>
 

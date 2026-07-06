@@ -31,6 +31,8 @@ class ProductIndexRequest extends FormRequest
             'sort' => ['nullable', 'in:newest,price_asc,price_desc,name_asc,name_desc,availability'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
             'page' => ['nullable', 'integer', 'min:1'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['integer', 'exists:tags,id'],
         ];
     }
 

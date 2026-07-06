@@ -99,6 +99,28 @@
                     </div>
                 </div>
 
+                <!-- Tags Filter -->
+                <div>
+                    <h5 class="text-xs font-bold text-[#001229] uppercase tracking-wider mb-3">Filter by Tags</h5>
+                    <div class="flex flex-wrap gap-1.5 select-none">
+                        @forelse($tagsList as $tag)
+                            @php $isSel = in_array($tag->id, $selectedTags); @endphp
+                            <button type="button" wire:click="toggleTagFilter({{ $tag->id }})" 
+                                    class="px-3 py-1 rounded-full text-xs font-medium border transition-all flex items-center gap-1 cursor-pointer
+                                    {{ $isSel 
+                                        ? 'bg-gold/15 text-gold border-gold font-semibold' 
+                                        : 'bg-slate-50 border-[#cbd5e1] text-slate-600 hover:border-slate-400' }}">
+                                @if($isSel)
+                                    <span class="material-symbols-outlined text-[12px] font-bold">close</span>
+                                @endif
+                                <span>{{ $tag->name }}</span>
+                            </button>
+                        @empty
+                            <p class="text-xs text-slate-400 italic">No tags available.</p>
+                        @endforelse
+                    </div>
+                </div>
+
                 <!-- Price Range -->
                 <div>
                     <h5 class="text-xs font-bold text-[#001229] uppercase tracking-wider mb-3">Max Price: ₹{{ number_format($max_price) }}</h5>

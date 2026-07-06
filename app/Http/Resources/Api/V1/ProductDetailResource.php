@@ -200,7 +200,12 @@ class ProductDetailResource extends JsonResource
             'tax' => [
                 'hsn_code' => $this->hsn_code,
                 'gst_percentage' => $this->gst_percentage !== null ? (float)$this->gst_percentage : null,
-            ]
+            ],
+            'tags' => $this->tags->map(fn($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'slug' => $t->slug,
+            ])->toArray(),
         ];
     }
 }

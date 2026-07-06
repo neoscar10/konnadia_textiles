@@ -41,6 +41,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('products', \App\Livewire\Admin\Products\ProductIndexPage::class)->name('products.index');
         Route::get('products/details', \App\Livewire\Admin\Products\ProductShowPage::class)->name('products.show');
         Route::get('design-catalog', \App\Livewire\Admin\Products\DesignCatalogPage::class)->name('design-catalog.index');
+        Route::get('tags', \App\Livewire\Admin\Tags\TagIndexPage::class)->name('tags.index');
         Route::get('units', \App\Livewire\Admin\Units\UnitIndexPage::class)->name('units.index');
         Route::get('inventory', \App\Livewire\Admin\Inventory\InventoryIndexPage::class)->name('inventory.index');
         Route::get('pricing', \App\Livewire\Admin\Pricing\PricingIndexPage::class)->name('pricing.index');

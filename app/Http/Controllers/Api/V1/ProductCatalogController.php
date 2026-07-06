@@ -62,7 +62,13 @@ class ProductCatalogController extends Controller implements HasMiddleware
         }
 
         $paginator = Product::where('is_active', true)
-            ->with(['categories', 'media', 'primaryMedia', 'combinations', 'units', 'customerLevelPrices'])
+            ->with(['categories', 'media', 'primaryMedia', 'combinations', 'units', 'customerLevelPrices', 'tags'])
+            ->when(!empty($filters['tags']), function ($q) use ($filters) {
+                $tags = (array) $filters['tags'];
+                $q->whereHas('tags', function ($sq) use ($tags) {
+                    $sq->whereIn('tags.id', $tags);
+                });
+            })
             ->when(!empty($filters['search']), function ($q) use ($filters) {
                 $search = trim($filters['search']);
                 $q->where(function ($sq) use ($search) {
@@ -165,7 +171,8 @@ class ProductCatalogController extends Controller implements HasMiddleware
                 'variationGroups.values.media',
                 'combinations',
                 'customerLevelPrices',
-                'units'
+                'units',
+                'tags'
             ]);
 
         if (is_numeric($identifier)) {
@@ -203,9 +210,15 @@ class ProductCatalogController extends Controller implements HasMiddleware
         };
 
         $categories = \App\Models\Category::whereNull('parent_id')->orderBy('sort_order')->orderBy('name')->get()->map($formatCategory)->toArray();
+        $tags = \App\Models\Tag::orderBy('name')->get()->map(fn($t) => [
+            'id' => $t->id,
+            'name' => $t->name,
+            'slug' => $t->slug,
+        ])->toArray();
 
         return $this->successResponse('Product filters retrieved successfully.', [
             'categories' => $categories,
+            'tags' => $tags,
             'availability' => [
                 ['value' => 'all', 'label' => 'All'],
                 ['value' => 'in_stock', 'label' => 'In Stock'],

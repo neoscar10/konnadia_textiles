@@ -20,6 +20,7 @@ class ProductIndexPage extends Component
     public $sort = 'newest';
 
     public $expandedCategories = [];
+    public array $selectedTags = [];
 
     // Modal properties
     public $showQuickAddModal = false;
@@ -52,6 +53,7 @@ class ProductIndexPage extends Component
         'min_price' => ['except' => 0],
         'max_price' => ['except' => 10000],
         'sort' => ['except' => 'newest'],
+        'selectedTags' => ['except' => []],
     ];
 
     public function handleAddClick($productId, ProductCatalogService $catalogService)
@@ -372,14 +374,24 @@ class ProductIndexPage extends Component
 
     public function updating($name)
     {
-        if (in_array($name, ['search', 'category', 'availability', 'min_price', 'max_price', 'sort'])) {
+        if (in_array($name, ['search', 'category', 'availability', 'min_price', 'max_price', 'sort', 'selectedTags'])) {
             $this->resetPage();
         }
     }
 
     public function clearFilters()
     {
-        $this->reset(['search', 'category', 'availability', 'min_price', 'max_price', 'sort', 'expandedCategories']);
+        $this->reset(['search', 'category', 'availability', 'min_price', 'max_price', 'sort', 'expandedCategories', 'selectedTags']);
+        $this->resetPage();
+    }
+
+    public function toggleTagFilter(int $tagId): void
+    {
+        if (in_array($tagId, $this->selectedTags)) {
+            $this->selectedTags = array_diff($this->selectedTags, [$tagId]);
+        } else {
+            $this->selectedTags[] = $tagId;
+        }
         $this->resetPage();
     }
 
@@ -394,15 +406,18 @@ class ProductIndexPage extends Component
             'min_price' => $this->min_price,
             'max_price' => $this->max_price,
             'sort' => $this->sort,
+            'tags' => $this->selectedTags,
             'per_page' => 12
         ];
 
         $products = $catalogService->listProductsForCustomer(auth()->user(), $filters);
         $metadata = $catalogService->getAvailableFilters(auth()->user());
+        $tagsList = \App\Models\Tag::orderBy('name')->get();
 
         return view('livewire.customer.products.product-index-page', [
             'products' => $products,
-            'categoriesList' => $metadata['categories']
+            'categoriesList' => $metadata['categories'],
+            'tagsList' => $tagsList
         ])->layoutData(['title' => 'Products Catalog']);
     }
 }

@@ -1,4 +1,4 @@
-<div>
+<div x-on:copy-to-clipboard.window="navigator.clipboard.writeText($event.detail.url)">
     <x-slot:title>Design Catalog</x-slot:title>
 
     <!-- Header Section -->
@@ -6,6 +6,11 @@
         <div>
             <h1 class="font-headline-lg text-primary tracking-tight font-extrabold">Design Catalog</h1>
             <p class="font-body-md text-on-surface-variant">Browse products in a sleek grid layout with high-fidelity previews and stock details.</p>
+        </div>
+        <div class="flex gap-md w-full md:w-auto">
+            <x-admin.button variant="primary" icon="share" wire:click="shareCatalog" class="bg-secondary text-on-secondary hover:bg-secondary/90 whitespace-nowrap">
+                Share Filtered Catalog
+            </x-admin.button>
         </div>
     </div>
 
@@ -24,6 +29,16 @@
                     <option value="">All Leaf Categories</option>
                     @foreach($leafCategories as $leaf)
                         <option value="{{ $leaf->id }}">{{ $leaf->full_path }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Tag Filter -->
+            <div class="w-full md:w-48">
+                <select wire:model.live="filterTag" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none cursor-pointer">
+                    <option value="">All Tags</option>
+                    @foreach($tagsList as $tag)
+                        <option value="{{ $tag->id }}">{{ $tag->name }}</option>
                     @endforeach
                 </select>
             </div>

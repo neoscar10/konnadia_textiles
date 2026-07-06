@@ -33,7 +33,15 @@ class ProductCatalogService
     public function listProductsForCustomer(User $user, array $filters = []): LengthAwarePaginator
     {
         $query = Product::where('is_active', true)
-            ->with(['categories', 'media', 'primaryMedia', 'combinations', 'units', 'customerLevelPrices']);
+            ->with(['categories', 'media', 'primaryMedia', 'combinations', 'units', 'customerLevelPrices', 'tags']);
+
+        // Tags filter
+        if (!empty($filters['tags'])) {
+            $tags = (array) $filters['tags'];
+            $query->whereHas('tags', function ($q) use ($tags) {
+                $q->whereIn('tags.id', $tags);
+            });
+        }
 
         // Search filter
         if (!empty($filters['search'])) {
@@ -136,7 +144,8 @@ class ProductCatalogService
                 'variationGroups.values.media',
                 'combinations',
                 'customerLevelPrices',
-                'units'
+                'units',
+                'tags'
             ]);
 
         if (is_numeric($identifier)) {
@@ -234,6 +243,11 @@ class ProductCatalogService
                 'label' => $availability['label'],
             ],
             'minimum_order_quantity' => $product->minimum_order_quantity ?? 1,
+            'tags' => $product->tags->map(fn($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'slug' => $t->slug,
+            ])->toArray(),
         ];
     }
 
@@ -331,6 +345,11 @@ class ProductCatalogService
                 'minimum_order_quantity' => $product->minimum_order_quantity ?? 1,
                 'default_unit_id' => !empty($units) ? $units[0]['id'] : null,
             ],
+            'tags' => $product->tags->map(fn($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'slug' => $t->slug,
+            ])->toArray(),
             'raw_model' => $product // pass model down to retrieve it easily in Livewire
         ];
     }

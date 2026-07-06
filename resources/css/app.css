@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force rebuild to pick up tailwind safelist changes */
+
 @layer base {
   html {
     font-size: 14.5px;

@@ -75,6 +75,7 @@ class CategoryIndexPage extends Component
     public int   $currentStep             = 1;
     public bool  $isEditMode              = false;
     public bool  $isPreviewMode           = false;
+    public array $selectedTagIds          = [];
 
     // Step 1: Basic Info
     public array $basicInfo = [
@@ -499,10 +500,11 @@ class CategoryIndexPage extends Component
 
         $product = Product::with([
             'categories', 'media', 'variationGroups.values.media',
-            'combinations', 'customerLevelPrices', 'units',
+            'combinations', 'customerLevelPrices', 'units', 'tags',
         ])->findOrFail($id);
 
         $this->selectedProductId = $product->id;
+        $this->selectedTagIds = $product->tags->pluck('id')->toArray();
         $this->basicInfo = [
             'title'                  => $product->title,
             'base_price'             => $product->base_price,
@@ -699,6 +701,8 @@ class CategoryIndexPage extends Component
                     $this->selectedProductId = $product->id;
                 }
 
+                $product->tags()->sync($this->selectedTagIds);
+
                 // Clean up variations (not used in simplified context)
                 $product->variationGroups()->delete();
                 $product->combinations()->delete();
@@ -854,6 +858,15 @@ class CategoryIndexPage extends Component
         );
     }
 
+    public function toggleTag(int $tagId): void
+    {
+        if (in_array($tagId, $this->selectedTagIds)) {
+            $this->selectedTagIds = array_diff($this->selectedTagIds, [$tagId]);
+        } else {
+            $this->selectedTagIds[] = $tagId;
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // PRODUCT WIZARD — VARIATION HELPERS (kept for data integrity, hidden in UI)
     // ─────────────────────────────────────────────────────────────────────────
@@ -991,6 +1004,7 @@ class CategoryIndexPage extends Component
         $this->mediaUploads       = [];
         $this->existingMedia      = [];
         $this->selectedCategoryIds = [];
+        $this->selectedTagIds      = [];
         $this->variationGroups    = [];
         $this->combinations       = [];
         $this->nonVariantStock    = '';
@@ -1064,9 +1078,11 @@ class CategoryIndexPage extends Component
             $children = $categoryService->getChildren($this->currentCategoryId, ['search' => $this->search]);
         }
 
+        $availableTags = \App\Models\Tag::orderBy('name')->get();
+
         return view('livewire.admin.categories.category-index-page', compact(
             'currentCategory', 'isLeafMode', 'tree', 'breadcrumbs', 'openFolderIds',
-            'children', 'products', 'customerLevels', 'categories', 'leafCategories'
+            'children', 'products', 'customerLevels', 'categories', 'leafCategories', 'availableTags'
         ));
     }
 }
