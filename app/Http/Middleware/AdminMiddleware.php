@@ -66,9 +66,10 @@ class AdminMiddleware
                 'admin.settings' => 'access settings',
             ];
 
+            $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
             foreach ($routePermissionMap as $routePrefix => $permission) {
                 if ($routeName === $routePrefix || str_starts_with($routeName, $routePrefix . '.')) {
-                    if (!$user->hasPermissionTo($permission)) {
+                    if (!in_array($permission, $userPermissions)) {
                         return response()->view('admin.unauthorized', [], 403);
                     }
                     break;

@@ -34,7 +34,7 @@ class CustomerLevelManagementTest extends TestCase
         $user->assignRole('customer');
 
         $response = $this->actingAs($user)->get('/admin/customer-levels');
-        $response->assertRedirect('/home');
+        $response->assertRedirect(route('home'));
     }
 
     public function test_super_admin_can_access_customer_levels()

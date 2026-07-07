@@ -65,7 +65,7 @@ class ProductManagementTest extends TestCase
     public function test_normal_user_cannot_access_products_page()
     {
         $response = $this->actingAs($this->user)->get('/admin/products');
-        $response->assertRedirect('/home');
+        $response->assertRedirect(route('home'));
     }
 
     public function test_super_admin_can_access_products_page()

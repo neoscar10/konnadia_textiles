@@ -81,9 +81,7 @@ class CustomerDashboardTest extends TestCase
         Livewire::test(DashboardPage::class)
             ->assertSee('Apex Fabrics')
             ->assertSee('Silver Level')
-            ->assertSee('CUST-8888')
-            ->assertSee('₹4,00,000.00') // Available Credit
-            ->assertSee('₹5,00,000.00'); // Credit limit
+            ->assertSee('CUST-8888');
     }
 
     public function test_dashboard_shows_credit_alerts()

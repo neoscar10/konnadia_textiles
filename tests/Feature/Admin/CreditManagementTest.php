@@ -66,7 +66,7 @@ class CreditManagementTest extends TestCase
     public function test_normal_customer_cannot_access_credit_management_page()
     {
         $response = $this->actingAs($this->user)->get('/admin/credit-management');
-        $response->assertRedirect('/home');
+        $response->assertRedirect(route('home'));
     }
 
     public function test_super_admin_can_access_credit_management_page_and_see_real_metrics()

@@ -43,7 +43,7 @@ class CategoryManagementTest extends TestCase
     public function test_normal_user_cannot_access_categories_page()
     {
         $response = $this->actingAs($this->user)->get('/admin/categories');
-        $response->assertRedirect('/home');
+        $response->assertRedirect(route('home'));
     }
 
     public function test_super_admin_can_access_categories_page()
@@ -59,7 +59,7 @@ class CategoryManagementTest extends TestCase
             ->set('form.name', 'Men\'s Wear')
             ->set('form.description', 'All menswear clothing')
             ->set('form.is_active', true)
-            ->call('save')
+            ->call('saveCategory')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('categories', [
@@ -82,7 +82,7 @@ class CategoryManagementTest extends TestCase
             ->set('form.name', 'Shirts')
             ->set('form.description', 'Men\'s shirts')
             ->set('form.is_active', true)
-            ->call('save')
+            ->call('saveCategory')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('categories', [
@@ -107,7 +107,7 @@ class CategoryManagementTest extends TestCase
         Livewire::actingAs($this->superAdmin)
             ->test(CategoryIndexPage::class, ['currentCategoryId' => $parent->id])
             ->set('form.name', 'Shirts')
-            ->call('save')
+            ->call('saveCategory')
             ->assertHasErrors(['form.name']);
     }
 
@@ -121,10 +121,10 @@ class CategoryManagementTest extends TestCase
 
         Livewire::actingAs($this->superAdmin)
             ->test(CategoryIndexPage::class)
-            ->call('edit', $category->id)
+            ->call('editCategory', $category->id)
             ->set('form.name', 'Men\'s Fashion')
             ->set('form.description', 'Updated description')
-            ->call('save')
+            ->call('saveCategory')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('categories', [
@@ -147,7 +147,7 @@ class CategoryManagementTest extends TestCase
 
         Livewire::actingAs($this->superAdmin)
             ->test(CategoryIndexPage::class)
-            ->call('toggleStatus', $category->id);
+            ->call('toggleCategoryStatus', $category->id);
 
         $this->assertFalse((bool) $category->fresh()->is_active);
     }
@@ -161,8 +161,8 @@ class CategoryManagementTest extends TestCase
 
         Livewire::actingAs($this->superAdmin)
             ->test(CategoryIndexPage::class)
-            ->call('confirmDelete', $category->id)
-            ->call('delete');
+            ->call('confirmDeleteCategory', $category->id)
+            ->call('deleteCategory');
 
         $this->assertSoftDeleted('categories', [
             'id' => $category->id,
@@ -183,9 +183,9 @@ class CategoryManagementTest extends TestCase
 
         Livewire::actingAs($this->superAdmin)
             ->test(CategoryIndexPage::class)
-            ->call('confirmDelete', $parent->id)
-            ->call('delete')
-            ->assertDispatched('toast', message: 'This category has sub-categories. Delete or move them before deleting this category.', type: 'error');
+            ->call('confirmDeleteCategory', $parent->id)
+            ->call('deleteCategory')
+            ->assertDispatched('toast', message: 'This category has sub-categories. Delete or move them first.', type: 'error');
 
         $this->assertDatabaseHas('categories', [
             'id' => $parent->id,

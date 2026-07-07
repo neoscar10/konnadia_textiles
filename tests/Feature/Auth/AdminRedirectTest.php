@@ -49,7 +49,7 @@ class AdminRedirectTest extends TestCase
         $user->assignRole('customer');
 
         $response = $this->actingAs($user)->get('/admin/dashboard');
-        $response->assertRedirect('/home');
+        $response->assertRedirect(route('home'));
         $response->assertSessionHas('error', 'You do not have administrative access.');
     }
 }

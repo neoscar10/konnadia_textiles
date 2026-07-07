@@ -511,6 +511,7 @@ class ProductIndexPage extends Component
             'nonVariantStock'       => ['nullable', 'integer', 'min:0'],
             'units.level1_name'     => ['required', 'string', 'max:50'],
             'units.level1_code'     => ['required', 'string', 'max:20'],
+            'selectedCategoryIds'   => ['required', 'array', 'min:1'],
         ];
 
         if (!empty($this->units['level2_name']) || !empty($this->units['level2_code'])) {
@@ -532,7 +533,7 @@ class ProductIndexPage extends Component
         try {
             DB::transaction(function () use ($productService, $varService, $mediaService) {
                 // Get defaults from current category
-                $category = Category::findOrFail($this->currentCategoryId);
+                $category = Category::findOrFail($this->currentCategoryId ?: collect($this->selectedCategoryIds)->first());
                 $defaults = $category->default_product_config ?? [];
 
                 $payload = [
@@ -549,9 +550,10 @@ class ProductIndexPage extends Component
                     'stock_quantity'         => $this->nonVariantStock !== '' ? (int)$this->nonVariantStock : null,
                 ];
 
-                // Build level prices from defaults
+                // Build level prices from defaults or form overrides
                 $levelPrices = [];
-                $pricingOverrides = $defaults['pricingOverrides'] ?? [];
+                $hasFormOverrides = collect($this->pricingOverrides)->contains(fn($disc) => $disc !== '');
+                $pricingOverrides = $hasFormOverrides ? $this->pricingOverrides : ($defaults['pricingOverrides'] ?? []);
                 foreach ($pricingOverrides as $levelId => $disc) {
                     if ($disc !== '') {
                         $levelPrices[] = [
@@ -573,9 +575,18 @@ class ProductIndexPage extends Component
 
                 $product->tags()->sync($this->selectedTagIds);
 
-                // Clean up variations (not used in simplified context)
-                $product->variationGroups()->delete();
-                $product->combinations()->delete();
+                // Variations & Combinations Sync
+                if (!empty($this->variationGroups)) {
+                    $varService->syncVariationGroups($product, $this->variationGroups);
+                    $varService->syncCombinations($product, $this->combinations);
+                    
+                    // Sum up variant stocks into product main stock_quantity
+                    $totalStock = collect($this->combinations)->sum(fn($c) => (isset($c['stock_quantity']) && $c['stock_quantity'] !== '') ? (int)$c['stock_quantity'] : 0);
+                    $product->update(['stock_quantity' => $totalStock]);
+                } else {
+                    $product->variationGroups()->delete();
+                    $product->combinations()->delete();
+                }
 
                 if (!empty($this->mediaUploads)) {
                     $mediaService->storeProductMedia($product, $this->mediaUploads);

@@ -6,7 +6,9 @@ use App\Models\User;
 use App\Models\HomeContentSection;
 use App\Models\HomeContentItem;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -18,8 +20,11 @@ class HomeContentManagementTest extends TestCase
     {
         parent::setUp();
         Role::firstOrCreate(['name' => 'super_admin']);
-        Role::firstOrCreate(['name' => 'admin']);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
         Role::firstOrCreate(['name' => 'customer']);
+
+        $permission = Permission::firstOrCreate(['name' => 'access home-content', 'guard_name' => 'web']);
+        $adminRole->givePermissionTo($permission);
     }
 
     public function test_guest_cannot_access_home_content_builder()
@@ -34,7 +39,7 @@ class HomeContentManagementTest extends TestCase
         $user->assignRole('customer');
 
         $response = $this->actingAs($user)->get('/admin/home-content');
-        $response->assertRedirect('/home');
+        $response->assertRedirect(route('home'));
     }
 
     public function test_admin_can_access_home_content_builder()
@@ -53,12 +58,13 @@ class HomeContentManagementTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(\App\Livewire\Admin\HomeContent\HomeContentPage::class)
-            ->call('openCreateModal')
-            ->set('sectionForm.type', 'banner')
-            ->set('sectionForm.title', 'Summer Banner')
-            ->set('sectionForm.subtitle', 'Up to 50% Off')
-            ->set('sectionForm.display_style', 'hero')
-            ->set('sectionForm.is_active', true)
+            ->call('createSection')
+            ->set('sectionType', 'banner')
+            ->set('sectionTitle', 'Summer Banner')
+            ->set('sectionSubtitle', 'Up to 50% Off')
+            ->set('sectionDisplayStyle', 'hero')
+            ->set('sectionIsActive', true)
+            ->set('bannerImage', UploadedFile::fake()->image('banner.jpg'))
             ->call('saveSection')
             ->assertHasNoErrors();
 
@@ -81,10 +87,17 @@ class HomeContentManagementTest extends TestCase
             'is_active' => true,
         ]);
 
+        HomeContentItem::create([
+            'home_content_section_id' => $section->id,
+            'item_type' => 'banner',
+            'image_path' => 'banners/existing.jpg',
+            'sort_order' => 1,
+        ]);
+
         Livewire::actingAs($admin)
             ->test(\App\Livewire\Admin\HomeContent\HomeContentPage::class)
             ->call('editSection', $section->id)
-            ->set('sectionForm.title', 'Updated Banner Title')
+            ->set('sectionTitle', 'Updated Banner Title')
             ->call('saveSection')
             ->assertHasNoErrors();
 
@@ -108,12 +121,9 @@ class HomeContentManagementTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(\App\Livewire\Admin\HomeContent\HomeContentPage::class)
-            ->call('toggleSectionStatus', $section->id);
+            ->call('toggleStatus', $section->id);
 
-        $this->assertDatabaseHas('home_content_sections', [
-            'id' => $section->id,
-            'is_active' => false,
-        ]);
+        $this->assertFalse((bool)$section->fresh()->is_active);
     }
 
     public function test_admin_can_delete_section()
@@ -130,10 +140,11 @@ class HomeContentManagementTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(\App\Livewire\Admin\HomeContent\HomeContentPage::class)
-            ->call('confirmDeleteSection', $section->id)
+            ->call('confirmDelete', $section->id)
+            ->assertSet('confirmingDeletionId', $section->id)
             ->call('deleteSection');
 
-        $this->assertDatabaseMissing('home_content_sections', [
+        $this->assertSoftDeleted('home_content_sections', [
             'id' => $section->id,
         ]);
     }
@@ -159,12 +170,9 @@ class HomeContentManagementTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(\App\Livewire\Admin\HomeContent\HomeContentPage::class)
-            ->call('updateOrder', [
-                ['id' => $section2->id, 'order' => 1],
-                ['id' => $section1->id, 'order' => 2],
-            ]);
+            ->call('updateOrder', [$section2->id, $section1->id]);
 
-        $this->assertEquals(1, $section2->refresh()->sort_order);
-        $this->assertEquals(2, $section1->refresh()->sort_order);
+        $this->assertEquals(0, $section2->refresh()->sort_order);
+        $this->assertEquals(1, $section1->refresh()->sort_order);
     }
 }
