@@ -293,18 +293,7 @@ class AdminOrderService
     public function approve(Order $order, User $admin, ?string $note = null): Order
     {
         return DB::transaction(function () use ($order, $admin, $note) {
-            // 1. Verify stock availability first
-            $stockCheck = $this->inventoryService->validateOrderStock($order);
-            if (!$stockCheck['has_enough_stock']) {
-                throw ValidationException::withMessages([
-                    'stock' => 'Unable to approve order. Some items no longer have enough stock.',
-                ]);
-            }
-
-            // 2. Deduct stock
-            $this->inventoryService->deductStockForOrder($order);
-
-            // 3. Mark approved
+            // Mark approved
             $order->update([
                 'admin_note' => $note,
                 'approved_at' => now(),
@@ -530,6 +519,9 @@ class AdminOrderService
         return DB::transaction(function () use ($item, $qtyToDispatch, $order, $admin) {
             $item->load('unit');
 
+            // Deduct stock for this item
+            $this->inventoryService->deductStockForOrderItem($item, $qtyToDispatch);
+
             if ($qtyToDispatch < $item->quantity) {
                 // Split the item:
                 $remainingQty = $item->quantity - $qtyToDispatch;
@@ -608,9 +600,6 @@ class AdminOrderService
             // Mark item as cancelled
             $item->status = 'cancelled';
             $item->save();
-
-            // Restore stock for the cancelled quantity
-            $this->inventoryService->restoreStockForOrderItem($item, $item->quantity);
 
             // Recalculate order totals based on non-cancelled items
             $activeItems = $order->items()->where('status', '!=', 'cancelled')->get();

@@ -110,7 +110,7 @@ class OrderManagementTest extends TestCase
 
     public function test_customer_cannot_access_admin_orders(): void
     {
-        $this->actingAs($this->customerUser)->get('/admin/orders')->assertRedirect('/home');
+        $this->actingAs($this->customerUser)->get('/admin/orders')->assertRedirect(route('home'));
     }
 
     public function test_admin_can_list_orders(): void
@@ -204,7 +204,7 @@ class OrderManagementTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertEquals('approved', $this->order->fresh()->status);
-        $this->assertEquals(80, $this->product->fresh()->stock_quantity); // Deducted 20 units
+        $this->assertEquals(100, $this->product->fresh()->stock_quantity); // Stock NOT deducted on approval
     }
 
     public function test_admin_can_reject_order(): void
@@ -229,9 +229,9 @@ class OrderManagementTest extends TestCase
     }
     public function test_admin_can_dispatch_order_item_partially(): void
     {
-        // Approve order to deduct stock first (deducts 20 units, stock was 100, becomes 80)
-        $this->order->update(['status' => 'approved', 'stock_deducted_at' => now()]);
-        $this->product->update(['stock_quantity' => 80]);
+        // Approve order. Stock is not deducted on approval (remains 100)
+        $this->order->update(['status' => 'approved']);
+        $this->product->update(['stock_quantity' => 100]);
 
         $item = $this->order->items->first();
 
@@ -243,6 +243,8 @@ class OrderManagementTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertEquals('partially_dispatched', $this->order->fresh()->status);
+        // Stock should be deducted only for the dispatched 5 units (100 - 5 = 95)
+        $this->assertEquals(95, $this->product->fresh()->stock_quantity);
 
         $items = $this->order->fresh()->items;
         $this->assertCount(2, $items);
@@ -260,8 +262,9 @@ class OrderManagementTest extends TestCase
     public function test_admin_can_cancel_remaining_order_item(): void
     {
         // Setup partially dispatched order
-        $this->order->update(['status' => 'partially_dispatched', 'stock_deducted_at' => now()]);
-        $this->product->update(['stock_quantity' => 80]);
+        $this->order->update(['status' => 'partially_dispatched']);
+        // 5 units were dispatched (so stock was reduced to 95). 15 units are pending (no stock deducted yet)
+        $this->product->update(['stock_quantity' => 95]);
 
         $item = $this->order->items->first();
         $item->update(['quantity' => 5, 'status' => 'dispatched', 'line_total' => 250.0, 'line_subtotal' => 250.0]);
@@ -293,7 +296,7 @@ class OrderManagementTest extends TestCase
         $this->assertEquals('dispatched', $this->order->fresh()->status);
         $this->assertEquals('cancelled', $pendingItem->fresh()->status);
 
-        // Stock for the cancelled quantity (15) should be restored: 80 + 15 = 95
+        // Stock should remain 95 (no stock restore needed since the pending 15 units were never deducted)
         $this->assertEquals(95, $this->product->fresh()->stock_quantity);
 
         // Order total should be recalculated to exclude the cancelled item: only 250.0 is active

@@ -151,4 +151,40 @@ class OrderInventoryService
             }
         });
     }
+
+    /**
+     * Deduct stock for a specific quantity of an order item.
+     */
+    public function deductStockForOrderItem(OrderItem $item, int $quantityToDeduct): void
+    {
+        // Skip manufactured products (unlimited) and null-stock (N/A) products
+        if ($item->product && $item->product->product_type === 'manufactured') {
+            return;
+        }
+
+        $baseQty = (int) ($quantityToDeduct * $item->unit_conversion_quantity);
+
+        DB::transaction(function () use ($item, $baseQty) {
+            $available = 0;
+            if ($item->product_combination_id && $item->combination) {
+                if ($item->combination->stock_quantity === null) return;
+                $available = (int) $item->combination->stock_quantity;
+            } elseif ($item->product) {
+                if ($item->product->stock_quantity === null) return;
+                $available = (int) $item->product->stock_quantity;
+            }
+
+            if ($baseQty > $available) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'quantity' => "Unable to dispatch. Insufficient stock for product '{$item->product_title}'. Available: " . (int)($available / $item->unit_conversion_quantity) . " units."
+                ]);
+            }
+
+            if ($item->product_combination_id && $item->combination) {
+                $item->combination->decrement('stock_quantity', $baseQty);
+            } elseif ($item->product) {
+                $item->product->decrement('stock_quantity', $baseQty);
+            }
+        });
+    }
 }

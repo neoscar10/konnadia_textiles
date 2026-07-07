@@ -138,7 +138,7 @@
                         @if($lvl1 && $lvl2)
                             <div class="p-3 bg-secondary/10 border border-secondary/20 rounded-xl flex items-start gap-2 mb-2">
                                 <span class="material-symbols-outlined text-secondary text-base select-none mt-0.5">info</span>
-                                <div class="text-[11px] font-semibold text-secondary-container">
+                                <div class="text-[11px] font-semibold text-secondary">
                                     Only <strong>{{ $lvl2['name'] }}</strong> purchases are allowed for this product.<br>
                                     Relation: 1 {{ $lvl2['name'] }} = {{ (int)$lvl2['conversion_to_base'] }} {{ $lvl1['name'] }}s.
                                 </div>

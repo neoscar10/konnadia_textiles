@@ -127,4 +127,20 @@ class OrderInventoryServiceTest extends TestCase
         $this->inventoryService->deductStockForOrder($this->order);
         $this->assertEquals(80, $this->product->fresh()->stock_quantity);
     }
+
+    public function test_deduct_stock_for_order_item_reduces_inventory(): void
+    {
+        $item = $this->order->items->first();
+        $this->inventoryService->deductStockForOrderItem($item, 5);
+        $this->assertEquals(95, $this->product->fresh()->stock_quantity);
+    }
+
+    public function test_deduct_stock_for_order_item_throws_exception_on_shortage(): void
+    {
+        $item = $this->order->items->first();
+        $this->product->update(['stock_quantity' => 4]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->inventoryService->deductStockForOrderItem($item, 5);
+    }
 }

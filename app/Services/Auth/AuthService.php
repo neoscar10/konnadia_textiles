@@ -50,7 +50,33 @@ class AuthService
     public function getWebRedirectRoute(User $user): string
     {
         if ($this->isAdmin($user)) {
-            return route('admin.dashboard');
+            $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+
+            if ($user->hasRole('super_admin') || in_array('access dashboard', $userPermissions)) {
+                return route('admin.dashboard');
+            }
+
+            $routePermissionMap = [
+                'admin.customers.index' => 'access customers',
+                'admin.customer-levels.index' => 'access customer-levels',
+                'admin.products.index' => 'access products',
+                'admin.design-catalog.index' => 'access design-catalog',
+                'admin.categories.index' => 'access categories',
+                'admin.inventory.index' => 'access inventory',
+                'admin.retail-shops.index' => 'access retail-shops',
+                'admin.product-transfers.index' => 'access product-transfers',
+                'admin.orders.index' => 'access orders',
+                'admin.home-content.index' => 'access home-content',
+                'admin.settings.index' => 'access settings',
+            ];
+
+            foreach ($routePermissionMap as $route => $permission) {
+                if (in_array($permission, $userPermissions)) {
+                    return route($route);
+                }
+            }
+
+            return route('home');
         }
         if ($user->hasRole('customer')) {
             return route('customer.dashboard');
@@ -64,7 +90,33 @@ class AuthService
     public function getRedirectPath(User $user): string
     {
         if ($this->isAdmin($user)) {
-            return '/admin/dashboard';
+            $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+
+            if ($user->hasRole('super_admin') || in_array('access dashboard', $userPermissions)) {
+                return '/admin/dashboard';
+            }
+
+            $routePermissionMap = [
+                'access customers' => '/admin/customers',
+                'access customer-levels' => '/admin/customer-levels',
+                'access products' => '/admin/products',
+                'access design-catalog' => '/admin/design-catalog',
+                'access categories' => '/admin/categories',
+                'access inventory' => '/admin/inventory',
+                'access retail-shops' => '/admin/retail-shops',
+                'access product-transfers' => '/admin/product-transfers',
+                'access orders' => '/admin/orders',
+                'access home-content' => '/admin/home-content',
+                'access settings' => '/admin/settings',
+            ];
+
+            foreach ($routePermissionMap as $permission => $path) {
+                if (in_array($permission, $userPermissions)) {
+                    return $path;
+                }
+            }
+
+            return '/home';
         }
         if ($user->hasRole('customer')) {
             return '/portal/dashboard';
