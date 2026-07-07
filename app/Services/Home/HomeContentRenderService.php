@@ -77,8 +77,8 @@ class HomeContentRenderService
             $items[] = [
                 'id' => $item->id,
                 'type' => 'banner',
-                'title' => null,
-                'subtitle' => null,
+                'title' => $item->title,
+                'subtitle' => $item->subtitle,
                 'cta_label' => $item->cta_label,
                 'image_url' => $item->image_path ? $this->mediaService->getUrl($item->image_path) : null,
                 'image_alt' => $item->image_alt ?? 'Banner',

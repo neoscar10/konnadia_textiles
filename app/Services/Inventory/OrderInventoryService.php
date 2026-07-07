@@ -123,4 +123,32 @@ class OrderInventoryService
             $order->update(['stock_deducted_at' => null]);
         });
     }
+
+    /**
+     * Restore stock for a specific quantity of an order item.
+     */
+    public function restoreStockForOrderItem(OrderItem $item, int $quantityToRestore): void
+    {
+        // If stock has not been deducted for the order yet, nothing to restore
+        if ($item->order->stock_deducted_at === null) {
+            return;
+        }
+
+        // Skip manufactured products (unlimited) and null-stock (N/A) products
+        if ($item->product && $item->product->product_type === 'manufactured') {
+            return;
+        }
+
+        $baseQty = (int) ($quantityToRestore * $item->unit_conversion_quantity);
+
+        DB::transaction(function () use ($item, $baseQty) {
+            if ($item->product_combination_id && $item->combination) {
+                if ($item->combination->stock_quantity === null) return;
+                $item->combination->increment('stock_quantity', $baseQty);
+            } elseif ($item->product) {
+                if ($item->product->stock_quantity === null) return;
+                $item->product->increment('stock_quantity', $baseQty);
+            }
+        });
+    }
 }

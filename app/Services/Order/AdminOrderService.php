@@ -33,8 +33,10 @@ class AdminOrderService
      */
     public function listOrders(array $filters = []): LengthAwarePaginator
     {
-        $query = Order::with(['customer', 'items'])
+        $query = Order::with(['customer', 'items.product'])
             ->latestFirst();
+
+        $this->applyOrderScope($query);
 
         $query->status($filters['status'] ?? null);
         $query->checkoutMethod($filters['checkout_method'] ?? null);
@@ -58,6 +60,27 @@ class AdminOrderService
      */
     public function formatAdminOrderCard(Order $order): array
     {
+        $user = auth()->user();
+        $isSuperAdmin = $user && $user->hasRole('super_admin');
+        
+        $total_amount = (float) $order->total_amount;
+        if (!$isSuperAdmin && $user) {
+            $hasManufactured = $user->hasPermissionTo('manage manufactured orders');
+            $hasRetail = $user->hasPermissionTo('manage retail orders');
+            
+            if ($hasManufactured && !$hasRetail) {
+                $total_amount = (float) $order->items->filter(function ($item) {
+                    return $item->product && $item->product->product_type === 'manufactured';
+                })->sum('line_total');
+            } elseif ($hasRetail && !$hasManufactured) {
+                $total_amount = (float) $order->items->filter(function ($item) {
+                    return $item->product && $item->product->product_type === 'retail';
+                })->sum('line_total');
+            } elseif (!$hasManufactured && !$hasRetail) {
+                $total_amount = 0.0;
+            }
+        }
+
         return [
             'id' => $order->id,
             'order_number' => $order->order_number,
@@ -67,8 +90,8 @@ class AdminOrderService
             'checkout_method_label' => $order->checkout_method_label,
             'payment_status' => $order->payment_status,
             'credit_status' => $order->credit_status,
-            'total_amount' => (float) $order->total_amount,
-            'formatted_total' => '₹' . number_format($order->total_amount, 2),
+            'total_amount' => $total_amount,
+            'formatted_total' => '₹' . number_format($total_amount, 2),
             'status' => $order->status,
             'status_label' => $order->status_label,
             'submitted_at' => $order->submitted_at ? $order->submitted_at->format('d-M-Y') : 'N/A',
@@ -82,11 +105,37 @@ class AdminOrderService
     public function getOrderDetail(Order|string|int $order): array
     {
         if (!$order instanceof Order) {
-            $order = Order::where('order_number', $order)
-                ->orWhere('id', $order)
-                ->with(['customer.level', 'items.product', 'receipts', 'statusHistories.changedBy'])
-                ->firstOrFail();
+            $query = Order::where(function($q) use ($order) {
+                $q->where('order_number', $order)
+                  ->orWhere('id', $order);
+            })->with(['customer.level', 'items.product', 'receipts', 'statusHistories.changedBy']);
+            
+            $this->applyOrderScope($query);
+            
+            $order = $query->firstOrFail();
         } else {
+            $user = auth()->user();
+            if ($user && !$user->hasRole('super_admin')) {
+                $hasManufactured = $user->hasPermissionTo('manage manufactured orders');
+                $hasRetail = $user->hasPermissionTo('manage retail orders');
+
+                $hasItemsInScope = false;
+                if ($hasManufactured && !$hasRetail) {
+                    $hasItemsInScope = $order->items()->whereHas('product', function($q) {
+                        $q->where('product_type', 'manufactured');
+                    })->exists();
+                } elseif ($hasRetail && !$hasManufactured) {
+                    $hasItemsInScope = $order->items()->whereHas('product', function($q) {
+                        $q->where('product_type', 'retail');
+                    })->exists();
+                } elseif ($hasManufactured && $hasRetail) {
+                    $hasItemsInScope = true;
+                }
+
+                if (!$hasItemsInScope) {
+                    throw new \Illuminate\Database\Eloquent\ModelNotFoundException("Order not found or out of scope.");
+                }
+            }
             $order->load(['customer.level', 'items.product', 'receipts', 'statusHistories.changedBy']);
         }
 
@@ -98,7 +147,28 @@ class AdminOrderService
      */
     public function formatAdminOrderDetail(Order $order): array
     {
-        $items = $order->items->map(function ($item) {
+        $user = auth()->user();
+        $isSuperAdmin = $user && $user->hasRole('super_admin');
+        
+        $filteredItems = $order->items;
+        if (!$isSuperAdmin && $user) {
+            $hasManufactured = $user->hasPermissionTo('manage manufactured orders');
+            $hasRetail = $user->hasPermissionTo('manage retail orders');
+            
+            if ($hasManufactured && !$hasRetail) {
+                $filteredItems = $order->items->filter(function ($item) {
+                    return $item->product && $item->product->product_type === 'manufactured';
+                });
+            } elseif ($hasRetail && !$hasManufactured) {
+                $filteredItems = $order->items->filter(function ($item) {
+                    return $item->product && $item->product->product_type === 'retail';
+                });
+            } elseif (!$hasManufactured && !$hasRetail) {
+                $filteredItems = collect();
+            }
+        }
+
+        $items = $filteredItems->map(function ($item) {
             $product = $item->product;
             $lvl2Unit = $product ? $product->units->where('level', 2)->first() : null;
             return [
@@ -121,6 +191,7 @@ class AdminOrderService
                 'gst_amount' => (float) $item->gst_amount,
                 'line_total' => (float) $item->line_total,
                 'formatted_line_total' => '₹' . number_format($item->line_total, 2),
+                'status' => $item->status ?: 'pending_dispatch',
             ];
         })->toArray();
 
@@ -151,6 +222,16 @@ class AdminOrderService
 
         $customer = $order->customer;
 
+        if (!$isSuperAdmin && $user && (isset($hasManufactured) && isset($hasRetail) && $hasManufactured !== $hasRetail)) {
+            $subtotal = (float) $filteredItems->sum('line_subtotal');
+            $gst_amount = (float) $filteredItems->sum('gst_amount');
+            $total_amount = $subtotal + $gst_amount;
+        } else {
+            $subtotal = (float) $order->subtotal;
+            $gst_amount = (float) $order->gst_amount;
+            $total_amount = (float) $order->total_amount;
+        }
+
         return [
             'id' => $order->id,
             'order_number' => $order->order_number,
@@ -160,12 +241,12 @@ class AdminOrderService
             'checkout_method_label' => $order->checkout_method_label,
             'payment_status' => $order->payment_status,
             'credit_status' => $order->credit_status,
-            'subtotal' => (float) $order->subtotal,
-            'gst_amount' => (float) $order->gst_amount,
-            'total_amount' => (float) $order->total_amount,
-            'formatted_subtotal' => '₹' . number_format($order->subtotal, 2),
-            'formatted_gst' => '₹' . number_format($order->gst_amount, 2),
-            'formatted_total' => '₹' . number_format($order->total_amount, 2),
+            'subtotal' => $subtotal,
+            'gst_amount' => $gst_amount,
+            'total_amount' => $total_amount,
+            'formatted_subtotal' => '₹' . number_format($subtotal, 2),
+            'formatted_gst' => '₹' . number_format($gst_amount, 2),
+            'formatted_total' => '₹' . number_format($total_amount, 2),
             'credit_limit_at_order' => $order->credit_limit_at_order !== null ? (float) $order->credit_limit_at_order : null,
             'available_credit_at_order' => $order->available_credit_at_order !== null ? (float) $order->available_credit_at_order : null,
             'used_credit_override_privilege' => (bool) $order->used_credit_override_privilege,
@@ -248,7 +329,10 @@ class AdminOrderService
             // 1. Restore stock if it was previously approved/deducted
             $this->inventoryService->restoreStockForOrder($order);
 
-            // Credit reversal bypassed since credit limits are removed.
+            // 2. Reverse credit
+            if ($order->checkout_method === 'credit') {
+                $this->creditService->reverseCreditOrder($order->customer, $order);
+            }
 
             // 3. Reject order
             $order->update([
@@ -346,7 +430,10 @@ class AdminOrderService
             // 1. Restore stock if it was previously deducted
             $this->inventoryService->restoreStockForOrder($order);
 
-            // Credit reversal bypassed since credit limits are removed.
+            // 2. Reverse credit
+            if ($order->checkout_method === 'credit') {
+                $this->creditService->reverseCreditOrder($order->customer, $order);
+            }
 
             // 3. Update notes
             if ($note) {
@@ -364,6 +451,8 @@ class AdminOrderService
     public function getDashboardStats(array $filters = []): array
     {
         $baseQuery = Order::query();
+        $this->applyOrderScope($baseQuery);
+
         $baseQuery->checkoutMethod($filters['checkout_method'] ?? null);
         $baseQuery->paymentStatus($filters['payment_status'] ?? null);
         $baseQuery->creditStatus($filters['credit_status'] ?? null);
@@ -375,7 +464,40 @@ class AdminOrderService
         $pendingPayment = (clone $baseQuery)->where('status', 'pending_payment_verification')->count();
         $approvedOrders = (clone $baseQuery)->where('status', 'approved')->count();
         $rejectedOrders = (clone $baseQuery)->where('status', 'rejected')->count();
-        $totalValue = (clone $baseQuery)->whereNotIn('status', ['cancelled', 'rejected'])->sum('total_amount');
+
+        $user = auth()->user();
+        $isSuperAdmin = $user && $user->hasRole('super_admin');
+
+        if (!$isSuperAdmin && $user) {
+            $hasManufactured = $user->hasPermissionTo('manage manufactured orders');
+            $hasRetail = $user->hasPermissionTo('manage retail orders');
+
+            if ($hasManufactured && !$hasRetail) {
+                // Sum line_total for only manufactured items
+                $totalValue = DB::table('orders')
+                    ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->whereIn('orders.id', (clone $baseQuery)->pluck('id'))
+                    ->whereNotIn('orders.status', ['cancelled', 'rejected'])
+                    ->whereNull('products.deleted_at')
+                    ->where('products.product_type', 'manufactured')
+                    ->sum('order_items.line_total');
+            } elseif ($hasRetail && !$hasManufactured) {
+                // Sum line_total for only retail items
+                $totalValue = DB::table('orders')
+                    ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->whereIn('orders.id', (clone $baseQuery)->pluck('id'))
+                    ->whereNotIn('orders.status', ['cancelled', 'rejected'])
+                    ->whereNull('products.deleted_at')
+                    ->where('products.product_type', 'retail')
+                    ->sum('order_items.line_total');
+            } else {
+                $totalValue = 0.0;
+            }
+        } else {
+            $totalValue = (clone $baseQuery)->whereNotIn('status', ['cancelled', 'rejected'])->sum('total_amount');
+        }
 
         return [
             'total_orders' => $totalOrders,
@@ -386,5 +508,169 @@ class AdminOrderService
             'total_value' => (float) $totalValue,
             'formatted_total_value' => '₹' . number_format($totalValue, 2),
         ];
+    }
+
+    /**
+     * Dispatch a specific quantity of an order item.
+     */
+    public function dispatchOrderItem(\App\Models\OrderItem $item, int $qtyToDispatch, User $admin): Order
+    {
+        if ($qtyToDispatch <= 0) {
+            throw ValidationException::withMessages(['quantity' => 'Dispatch quantity must be greater than zero.']);
+        }
+        if ($qtyToDispatch > $item->quantity) {
+            throw ValidationException::withMessages(['quantity' => "Cannot dispatch more than the ordered quantity ({$item->quantity})."]);
+        }
+        if ($item->status && $item->status !== 'pending_dispatch') {
+            throw ValidationException::withMessages(['item' => 'Only pending dispatch items can be dispatched.']);
+        }
+
+        $order = $item->order;
+
+        return DB::transaction(function () use ($item, $qtyToDispatch, $order, $admin) {
+            $item->load('unit');
+
+            if ($qtyToDispatch < $item->quantity) {
+                // Split the item:
+                $remainingQty = $item->quantity - $qtyToDispatch;
+
+                // Create a new order item for the remainder
+                $newItem = $item->replicate();
+                $newItem->quantity = $remainingQty;
+                
+                // Adjust level-specific quantities
+                if ($item->product_unit_id && $item->unit && $item->unit->level === 2) {
+                    $newItem->quantity_lvl2 = $remainingQty;
+                    $newItem->quantity_lvl1 = 0;
+                } else {
+                    $newItem->quantity_lvl1 = $remainingQty;
+                    $newItem->quantity_lvl2 = 0;
+                }
+
+                // Recalculate line totals for the new item
+                $newItem->line_subtotal = $newItem->customer_unit_price * $remainingQty;
+                $newItem->gst_amount = $newItem->line_subtotal * ($newItem->gst_percentage / 100);
+                $newItem->line_total = $newItem->line_subtotal + $newItem->gst_amount;
+                $newItem->status = 'pending_dispatch';
+                $newItem->save();
+
+                // Adjust original item
+                $item->quantity = $qtyToDispatch;
+                if ($item->product_unit_id && $item->unit && $item->unit->level === 2) {
+                    $item->quantity_lvl2 = $qtyToDispatch;
+                    $item->quantity_lvl1 = 0;
+                } else {
+                    $item->quantity_lvl1 = $qtyToDispatch;
+                    $item->quantity_lvl2 = 0;
+                }
+                $item->line_subtotal = $item->customer_unit_price * $qtyToDispatch;
+                $item->gst_amount = $item->line_subtotal * ($item->gst_percentage / 100);
+                $item->line_total = $item->line_subtotal + $item->gst_amount;
+            }
+
+            // Mark original item as dispatched
+            $item->status = 'dispatched';
+            $item->save();
+
+            // Refresh items list for correct calculations
+            $order->load('items');
+
+            // Determine correct order status transition
+            $hasPending = $order->items->where('status', 'pending_dispatch')->isNotEmpty();
+            $hasDispatched = $order->items->where('status', 'dispatched')->isNotEmpty();
+
+            if (!$hasPending) {
+                if ($order->status !== 'dispatched') {
+                    $this->statusService->transition($order, 'dispatched', $admin, 'All items have been dispatched.');
+                }
+            } else {
+                if ($order->status !== 'partially_dispatched') {
+                    $this->statusService->transition($order, 'partially_dispatched', $admin, 'Some items have been dispatched.');
+                }
+            }
+
+            return $order->fresh();
+        });
+    }
+
+    /**
+     * Cancel an order item. Restores stock and updates order totals.
+     */
+    public function cancelOrderItem(\App\Models\OrderItem $item, User $admin): Order
+    {
+        if ($item->status && $item->status !== 'pending_dispatch') {
+            throw ValidationException::withMessages(['item' => 'Only pending dispatch items can be cancelled.']);
+        }
+
+        $order = $item->order;
+
+        return DB::transaction(function () use ($item, $order, $admin) {
+            // Mark item as cancelled
+            $item->status = 'cancelled';
+            $item->save();
+
+            // Restore stock for the cancelled quantity
+            $this->inventoryService->restoreStockForOrderItem($item, $item->quantity);
+
+            // Recalculate order totals based on non-cancelled items
+            $activeItems = $order->items()->where('status', '!=', 'cancelled')->get();
+            $subtotal = $activeItems->sum('line_subtotal');
+            $gst_amount = $activeItems->sum('gst_amount');
+            $total_amount = $subtotal + $gst_amount;
+
+            $order->update([
+                'subtotal' => $subtotal,
+                'gst_amount' => $gst_amount,
+                'total_amount' => $total_amount,
+            ]);
+
+            // Determine correct order status transition
+            $hasPending = $order->items()->where('status', 'pending_dispatch')->exists();
+            $hasDispatched = $order->items()->where('status', 'dispatched')->exists();
+
+            if (!$hasPending) {
+                if ($hasDispatched) {
+                    if ($order->status !== 'dispatched') {
+                        $this->statusService->transition($order, 'dispatched', $admin, 'All items dispatched or cancelled.');
+                    }
+                } else {
+                    if ($order->status !== 'cancelled') {
+                        $this->statusService->transition($order, 'cancelled', $admin, 'All items cancelled.');
+                    }
+                }
+            } else {
+                if ($hasDispatched) {
+                    if ($order->status !== 'partially_dispatched') {
+                        $this->statusService->transition($order, 'partially_dispatched', $admin, 'Item cancelled. Order is partially dispatched.');
+                    }
+                }
+            }
+
+            return $order->fresh();
+        });
+    }
+
+    /**
+     * Apply order scope filtering based on user permissions.
+     */
+    protected function applyOrderScope($query)
+    {
+        $user = auth()->user();
+        if ($user && !$user->hasRole('super_admin')) {
+            $hasManufactured = $user->hasPermissionTo('manage manufactured orders');
+            $hasRetail = $user->hasPermissionTo('manage retail orders');
+
+            if ($hasManufactured && !$hasRetail) {
+                $query->whereHas('items.product', function ($q) {
+                    $q->where('product_type', 'manufactured');
+                });
+            } elseif ($hasRetail && !$hasManufactured) {
+                $query->whereHas('items.product', function ($q) {
+                    $q->where('product_type', 'retail');
+                });
+            } elseif (!$hasManufactured && !$hasRetail) {
+                $query->whereRaw('1 = 0');
+            }
+        }
     }
 }

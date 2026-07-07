@@ -17,13 +17,13 @@
     <!-- Filter & Search Panel - Single Row (grouped compactly) -->
     <div class="bg-white rounded-xl card-shadow border border-outline-variant/30 p-md mb-xl select-none">
         <div class="flex flex-col md:flex-row items-start md:items-center gap-md w-full">
-            <!-- Search Input (reasonable fixed width, e.g. w-80) -->
-            <div class="w-full md:w-80 flex items-center gap-sm bg-surface-container-low border border-outline-variant/50 rounded-lg px-sm focus-within:ring-2 focus-within:ring-secondary focus-within:border-secondary transition-all">
+            <!-- Search Input (expands to fill available space, with comfortable min-width) -->
+            <div class="w-full md:flex-1 md:min-w-[360px] flex items-center gap-sm bg-surface-container-low border border-outline-variant/50 rounded-lg px-sm focus-within:ring-2 focus-within:ring-secondary focus-within:border-secondary transition-all">
                 <span class="material-symbols-outlined text-on-surface-variant/60 text-[20px] select-none pl-xs">search</span>
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by title, SKU, description..." class="w-full bg-transparent border-none py-sm pr-xs font-body-md focus:ring-0 focus:outline-none outline-none text-on-surface">
             </div>
 
-            <!-- Category Path Filter (reasonable fixed width, e.g. w-72) -->
+            <!-- Category Path Filter (balanced width) -->
             <div class="w-full md:w-72">
                 <select wire:model.live="filterCategory" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none cursor-pointer">
                     <option value="">All Leaf Categories</option>
@@ -33,8 +33,8 @@
                 </select>
             </div>
 
-            <!-- Tag Filter -->
-            <div class="w-full md:w-48">
+            <!-- Tag Filter (balanced width to match category) -->
+            <div class="w-full md:w-72">
                 <select wire:model.live="filterTag" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg font-body-md text-on-surface focus:ring-2 focus:ring-secondary outline-none cursor-pointer">
                     <option value="">All Tags</option>
                     @foreach($tagsList as $tag)

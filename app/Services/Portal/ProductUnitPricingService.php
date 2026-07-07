@@ -15,6 +15,8 @@ class ProductUnitPricingService
         $units = $product->units;
         $result = [];
 
+        $hasLvl2 = $units->where('level', 2)->isNotEmpty();
+
         foreach ($units as $unit) {
             $price = $this->calculatePriceForUnit($customerUnitPrice, $unit);
             
@@ -30,6 +32,7 @@ class ProductUnitPricingService
                 'conversion_to_base' => (float) $unit->conversion_to_base,
                 'price' => $price,
                 'label' => $label,
+                'is_purchasable' => $hasLvl2 ? ($unit->level === 2) : ($unit->level === 1),
             ];
         }
 

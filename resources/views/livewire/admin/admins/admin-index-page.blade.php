@@ -70,8 +70,17 @@
                                 <div class="flex flex-wrap gap-xs select-none">
                                     @php $perms = $admin->permissions->pluck('name')->toArray(); @endphp
                                     @forelse($perms as $perm)
+                                        @php
+                                            if ($perm === 'manage manufactured orders') {
+                                                $displayName = 'Orders: Manufactured';
+                                            } elseif ($perm === 'manage retail orders') {
+                                                $displayName = 'Orders: Retail';
+                                            } else {
+                                                $displayName = str_replace('access ', '', $perm);
+                                            }
+                                        @endphp
                                         <span class="px-xs py-0.5 bg-secondary/10 text-secondary border border-secondary/20 text-[10px] font-bold rounded-md uppercase">
-                                            {{ str_replace('access ', '', $perm) }}
+                                            {{ $displayName }}
                                         </span>
                                     @empty
                                         <span class="text-xs text-on-surface-variant/60 italic">No page access</span>
@@ -184,11 +193,31 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-md bg-surface-container-low/40 p-lg border border-outline-variant/20 rounded-lg">
                     @foreach($availablePermissions as $permission => $label)
                         <div class="flex items-center gap-xs select-none">
-                            <input type="checkbox" id="perm-{{ $permission }}" value="{{ $permission }}" wire:model="selectedPermissions" class="w-4 h-4 text-secondary border-outline-variant focus:ring-secondary rounded cursor-pointer">
+                            <input type="checkbox" id="perm-{{ $permission }}" value="{{ $permission }}" wire:model.live="selectedPermissions" class="w-4 h-4 text-secondary border-outline-variant focus:ring-secondary rounded cursor-pointer">
                             <label for="perm-{{ $permission }}" class="font-label-md text-on-surface-variant cursor-pointer font-medium">{{ $label }}</label>
                         </div>
                     @endforeach
                 </div>
+
+                @if(in_array('access orders', $selectedPermissions))
+                    <div class="space-y-xs bg-surface-container-low/40 p-lg border border-outline-variant/20 rounded-lg">
+                        <h5 class="font-title-sm text-primary font-bold">Order Management Scope *</h5>
+                        <p class="text-xs text-on-surface-variant mb-sm">Select which types of product orders this admin is authorized to view and dispatch.</p>
+                        <div class="flex flex-col sm:flex-row gap-md pt-xs">
+                            <div class="flex items-center gap-xs select-none">
+                                <input type="checkbox" id="scope-manufactured" value="manage manufactured orders" wire:model="selectedPermissions" class="w-4 h-4 text-secondary border-outline-variant focus:ring-secondary rounded cursor-pointer">
+                                <label for="scope-manufactured" class="font-label-md text-on-surface-variant cursor-pointer font-semibold">Manufactured Product Orders</label>
+                            </div>
+                            <div class="flex items-center gap-xs select-none">
+                                <input type="checkbox" id="scope-retail" value="manage retail orders" wire:model="selectedPermissions" class="w-4 h-4 text-secondary border-outline-variant focus:ring-secondary rounded cursor-pointer">
+                                <label for="scope-retail" class="font-label-md text-on-surface-variant cursor-pointer font-semibold">Retail / Bought Product Orders</label>
+                            </div>
+                        </div>
+                        @error('orderScope')
+                            <span class="text-error text-xs block mt-xs">{{ $message }}</span>
+                        @enderror
+                    </div>
+                @endif
             </div>
         </div>
         <x-slot name="footer">

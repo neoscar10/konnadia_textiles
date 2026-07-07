@@ -36,10 +36,18 @@ class OrderService
             $status = 'submitted';
             $paymentStatus = 'not_required';
             $creditStatus = null;
+            $usedOverride = false;
 
-            $status = 'submitted';
-            $paymentStatus = 'not_required';
-            $creditStatus = null;
+            if ($method === 'manual_payment') {
+                $status = 'pending_payment_verification';
+                $paymentStatus = 'pending_verification';
+            } elseif ($method === 'credit') {
+                $status = 'submitted';
+                $paymentStatus = 'not_required';
+                $isWithinLimit = $checkoutEvaluation['is_within_limit'] ?? true;
+                $creditStatus = $isWithinLimit ? 'within_limit' : 'over_limit_allowed';
+                $usedOverride = $checkoutEvaluation['is_privileged_override'] ?? false;
+            }
 
             $order = Order::create([
                 'order_number' => $this->orderNumberService->generate(),
@@ -52,15 +60,19 @@ class OrderService
                 'subtotal' => $checkoutPayload['subtotal'],
                 'gst_amount' => $checkoutPayload['gst_amount'],
                 'total_amount' => $checkoutPayload['total'],
-                'credit_limit_at_order' => null,
-                'available_credit_at_order' => null,
-                'used_credit_override_privilege' => false,
+                'credit_limit_at_order' => $method === 'credit' ? $customer->credit_limit : null,
+                'available_credit_at_order' => $method === 'credit' ? $customer->available_credit : null,
+                'used_credit_override_privilege' => $usedOverride,
                 'customer_notes' => $checkoutPayload['customer_notes'] ?? null,
                 'submitted_at' => now(),
             ]);
 
             // Copy cart items to order items
             $this->createOrderItems($order, $cart);
+
+            if ($method === 'credit') {
+                app(\App\Services\Credit\CustomerCreditService::class)->applyCreditOrder($customer, $order);
+            }
 
             // Record initial status history
             $this->recordStatus($order, null, $status, 'Order submitted by customer.', $user);
@@ -307,6 +319,7 @@ class OrderService
                     'formatted_line_subtotal' => '₹' . number_format($item->line_subtotal, 2),
                     'formatted_line_total' => '₹' . number_format($item->line_total, 2),
                 ],
+                'status' => $item->status ?: 'pending_dispatch',
             ];
         })->toArray();
 
@@ -415,6 +428,14 @@ class OrderService
             ];
         }
 
+        if ($order->status === 'partially_dispatched') {
+            return [
+                'type' => 'info',
+                'title' => 'Order partially dispatched',
+                'message' => 'Some items in your order have been dispatched.',
+            ];
+        }
+
         if ($order->checkout_method === 'manual_payment') {
             if ($order->payment_status === 'pending_verification') {
                 return [
@@ -499,6 +520,7 @@ class OrderService
                 ['value' => 'pending_payment_verification', 'label' => 'Pending Payment Verification'],
                 ['value' => 'approved', 'label' => 'Approved'],
                 ['value' => 'rejected', 'label' => 'Rejected'],
+                ['value' => 'partially_dispatched', 'label' => 'Partially Dispatched'],
                 ['value' => 'dispatched', 'label' => 'Dispatched'],
                 ['value' => 'cancelled', 'label' => 'Cancelled'],
             ],

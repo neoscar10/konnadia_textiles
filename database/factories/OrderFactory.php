@@ -19,6 +19,8 @@ class OrderFactory extends Factory
         return [
             'order_number' => 'ORD-' . $this->faker->unique()->numerify('######'),
             'customer_id' => Customer::factory(),
+            'user_id' => \App\Models\User::factory(),
+            'checkout_method' => $this->faker->randomElement(['credit', 'manual_payment']),
             'status' => $this->faker->randomElement([
                 'submitted',
                 'under_review',

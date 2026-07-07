@@ -29,6 +29,8 @@ class AdminPermissionsSeeder extends Seeder
             'access retail-shops',
             'access product-transfers',
             'access orders',
+            'manage manufactured orders',
+            'manage retail orders',
             'access home-content',
             'access settings',
         ];

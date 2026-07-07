@@ -58,7 +58,7 @@ class OrderReviewPage extends Component
 
         try {
             $payload = [
-                'checkout_method' => 'regular',
+                'checkout_method' => $this->checkoutMethod,
                 'customer_notes' => $this->customerNotes ?: null,
             ];
 
@@ -70,7 +70,7 @@ class OrderReviewPage extends Component
                 'total_amount' => (float) $order->total_amount,
                 'payment_status' => $order->payment_status,
                 'credit_status' => $order->credit_status,
-                'used_credit_override' => $order->used_credit_override_privilege_privilege ?? false,
+                'used_credit_override' => $order->used_credit_override_privilege ?? false,
             ]);
 
             return redirect()->route('customer.orders.success');

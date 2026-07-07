@@ -227,17 +227,76 @@ class OrderManagementTest extends TestCase
         $this->assertEquals(10000.0, (float) $this->customer->fresh()->available_credit);
         $this->assertNotNull($this->order->fresh()->credit_reversed_at);
     }
-
-    public function test_admin_can_dispatch_order(): void
+    public function test_admin_can_dispatch_order_item_partially(): void
     {
-        $this->order->update(['status' => 'approved']);
+        // Approve order to deduct stock first (deducts 20 units, stock was 100, becomes 80)
+        $this->order->update(['status' => 'approved', 'stock_deducted_at' => now()]);
+        $this->product->update(['stock_quantity' => 80]);
+
+        $item = $this->order->items->first();
 
         Livewire::actingAs($this->adminUser)
             ->test(OrderShowPage::class, ['orderNumber' => $this->order->order_number])
-            ->set('adminComment', 'Shipped via transport')
-            ->call('dispatchOrder')
+            ->set('selectedItemId', $item->id)
+            ->set('dispatchQty', 5)
+            ->call('confirmDispatchItem')
             ->assertHasNoErrors();
 
+        $this->assertEquals('partially_dispatched', $this->order->fresh()->status);
+
+        $items = $this->order->fresh()->items;
+        $this->assertCount(2, $items);
+
+        $dispatchedItem = $items->where('status', 'dispatched')->first();
+        $pendingItem = $items->where('status', 'pending_dispatch')->first();
+
+        $this->assertNotNull($dispatchedItem);
+        $this->assertNotNull($pendingItem);
+
+        $this->assertEquals(5, $dispatchedItem->quantity);
+        $this->assertEquals(15, $pendingItem->quantity);
+    }
+
+    public function test_admin_can_cancel_remaining_order_item(): void
+    {
+        // Setup partially dispatched order
+        $this->order->update(['status' => 'partially_dispatched', 'stock_deducted_at' => now()]);
+        $this->product->update(['stock_quantity' => 80]);
+
+        $item = $this->order->items->first();
+        $item->update(['quantity' => 5, 'status' => 'dispatched', 'line_total' => 250.0, 'line_subtotal' => 250.0]);
+
+        $pendingItem = OrderItem::create([
+            'order_id' => $this->order->id,
+            'product_id' => $this->product->id,
+            'product_title' => $this->product->title,
+            'product_sku' => $this->product->sku,
+            'unit_name' => 'Meter',
+            'unit_short_code' => 'Mtr',
+            'unit_conversion_quantity' => 1.0,
+            'quantity' => 15,
+            'base_unit_price' => 50.0,
+            'customer_unit_price' => 50.0,
+            'line_subtotal' => 750.0,
+            'line_total' => 750.0,
+            'status' => 'pending_dispatch',
+        ]);
+
+        // Cancel the remaining pending item
+        Livewire::actingAs($this->adminUser)
+            ->test(OrderShowPage::class, ['orderNumber' => $this->order->order_number])
+            ->set('selectedItemId', $pendingItem->id)
+            ->call('confirmCancelItem')
+            ->assertHasNoErrors();
+
+        // Status should become dispatched as there are no pending items
         $this->assertEquals('dispatched', $this->order->fresh()->status);
+        $this->assertEquals('cancelled', $pendingItem->fresh()->status);
+
+        // Stock for the cancelled quantity (15) should be restored: 80 + 15 = 95
+        $this->assertEquals(95, $this->product->fresh()->stock_quantity);
+
+        // Order total should be recalculated to exclude the cancelled item: only 250.0 is active
+        $this->assertEquals(250.0, (float) $this->order->fresh()->total_amount);
     }
 }

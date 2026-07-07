@@ -62,7 +62,7 @@
                     @if($currentCategory && $currentCategory->is_leaf)
                         <span class="inline-flex items-center gap-xxs px-sm py-xxs rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider select-none">
                             <span class="material-symbols-outlined text-[12px]">bookmark</span>
-                            Leaf Category
+                            Catalog
                         </span>
                     @endif
                 </div>

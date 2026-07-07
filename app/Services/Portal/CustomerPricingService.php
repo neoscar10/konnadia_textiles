@@ -12,8 +12,11 @@ class CustomerPricingService
     /**
      * Get the discount percentage for a product and customer.
      */
-    public function getDiscountForCustomer(Product $product, User $user): float
+    public function getDiscountForCustomer(Product $product, ?User $user): float
     {
+        if (!$user) {
+            return 0.0;
+        }
         $customer = $user->customer;
         if (!$customer || !$customer->customer_level_id || !$customer->is_active) {
             return 0.0;
@@ -42,13 +45,13 @@ class CustomerPricingService
     /**
      * Calculate customer-specific price for a product or product combination.
      */
-    public function calculateCustomerPrice(Product $product, User $user, ?ProductCombination $combination = null): array
+    public function calculateCustomerPrice(Product $product, ?User $user, ?ProductCombination $combination = null): array
     {
         $basePrice = $combination && $combination->price !== null 
             ? (float) $combination->price 
             : (float) $product->base_price;
 
-        $customer = $user->customer;
+        $customer = $user ? $user->customer : null;
         if (!$customer || !$customer->is_active) {
             return [
                 'base_price' => (float) $product->base_price,

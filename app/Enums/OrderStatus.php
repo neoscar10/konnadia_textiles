@@ -11,6 +11,7 @@ enum OrderStatus: string
     case PENDING_PAYMENT_VERIFICATION = 'pending_payment_verification';
     case APPROVED = 'approved';
     case REJECTED = 'rejected';
+    case PARTIALLY_DISPATCHED = 'partially_dispatched';
     case DISPATCHED = 'dispatched';
     case CANCELLED = 'cancelled';
 
@@ -24,6 +25,7 @@ enum OrderStatus: string
             self::PENDING_PAYMENT_VERIFICATION => 'Pending Payment Verification',
             self::APPROVED => 'Approved',
             self::REJECTED => 'Rejected',
+            self::PARTIALLY_DISPATCHED => 'Partially Dispatched',
             self::DISPATCHED => 'Dispatched',
             self::CANCELLED => 'Cancelled',
         };

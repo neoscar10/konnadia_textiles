@@ -27,6 +27,7 @@ class OrderItem extends Model
         'gst_percentage',
         'gst_amount',
         'line_total',
+        'status',
     ];
 
     protected $casts = [

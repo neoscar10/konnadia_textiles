@@ -101,12 +101,22 @@ class ProductShowPage extends Component
 
         $this->units = collect($detail['units'])->map(function($u) {
             $moq = max(1, $this->minimumOrderQuantity);
-            if ($u['level'] === 2) {
-                $conversion = (float) ($u['conversion_to_base'] ?? 1.0);
-                if ($conversion <= 0) $conversion = 1.0;
-                $u['min_qty'] = (int) ceil($moq / $conversion);
+            if ($this->hasLvl2Unit) {
+                if ($u['level'] === 2) {
+                    $u['min_qty'] = $moq;
+                    $u['is_purchasable'] = true;
+                } else {
+                    $u['min_qty'] = 0;
+                    $u['is_purchasable'] = false;
+                }
             } else {
-                $u['min_qty'] = $moq;
+                if ($u['level'] === 1) {
+                    $u['min_qty'] = $moq;
+                    $u['is_purchasable'] = true;
+                } else {
+                    $u['min_qty'] = 0;
+                    $u['is_purchasable'] = false;
+                }
             }
             return $u;
         })->toArray();
@@ -121,28 +131,13 @@ class ProductShowPage extends Component
             $conversion = (float) ($lvl2['conversion_to_base'] ?? 1.0);
             if ($conversion <= 0) $conversion = 1.0;
 
-            $lvl2Qty = (int) floor($moq / $conversion);
-            $lvl1Qty = (int) ($moq - ($lvl2Qty * $conversion));
-
-            if ($lvl2Qty > 0) {
-                $this->queuedItems[$lvl2['id']] = [
-                    'unit_id' => $lvl2['id'],
-                    'unit_name' => $lvl2['name'],
-                    'unit_short_code' => $lvl2['short_code'],
-                    'conversion_to_base' => $conversion,
-                    'quantity' => $lvl2Qty,
-                ];
-            }
-
-            if ($lvl1Qty > 0 || $lvl2Qty === 0) {
-                $this->queuedItems[$lvl1['id']] = [
-                    'unit_id' => $lvl1['id'],
-                    'unit_name' => $lvl1['name'],
-                    'unit_short_code' => $lvl1['short_code'],
-                    'conversion_to_base' => 1.0,
-                    'quantity' => $lvl1Qty > 0 ? $lvl1Qty : 1,
-                ];
-            }
+            $this->queuedItems[$lvl2['id']] = [
+                'unit_id' => $lvl2['id'],
+                'unit_name' => $lvl2['name'],
+                'unit_short_code' => $lvl2['short_code'],
+                'conversion_to_base' => $conversion,
+                'quantity' => $moq,
+            ];
         } else {
             if ($lvl1) {
                 $this->queuedItems[$lvl1['id']] = [
@@ -297,15 +292,29 @@ class ProductShowPage extends Component
 
     public function addToCart(CartService $cartService, ProductCatalogService $catalogService)
     {
+        $user = auth()->user();
+        if (!$user) {
+            $this->dispatch('toast', type: 'error', message: 'Please log in to purchase products.');
+            return;
+        }
         if (!$this->isPurchasable) {
             $this->dispatch('toast', type: 'error', message: 'This product is currently out of stock.');
             return;
         }
 
-        // If no units queued, automatically add Level 1 unit with MOQ
+        // If no units queued, automatically add Level 2 unit with MOQ (if exists), else Level 1
         if (empty($this->queuedItems)) {
+            $lvl2 = collect($this->units)->firstWhere('level', 2);
             $lvl1 = collect($this->units)->firstWhere('level', 1);
-            if ($lvl1) {
+            if ($lvl2) {
+                $this->queuedItems[$lvl2['id']] = [
+                    'unit_id' => $lvl2['id'],
+                    'unit_name' => $lvl2['name'],
+                    'unit_short_code' => $lvl2['short_code'],
+                    'conversion_to_base' => (float)$lvl2['conversion_to_base'],
+                    'quantity' => max(1, $this->minimumOrderQuantity),
+                ];
+            } elseif ($lvl1) {
                 $this->queuedItems[$lvl1['id']] = [
                     'unit_id' => $lvl1['id'],
                     'unit_name' => $lvl1['name'],
@@ -317,15 +326,28 @@ class ProductShowPage extends Component
         }
 
         // Handle backward compatibility for test suite setting qty
-        if (empty($this->queuedItems) && $this->qty > 0) {
+        if ($this->qty > 0) {
+            $lvl2 = collect($this->units)->firstWhere('level', 2);
             $lvl1 = collect($this->units)->firstWhere('level', 1);
-            if ($lvl1) {
-                $this->queuedItems[$lvl1['id']] = [
-                    'unit_id' => $lvl1['id'],
-                    'unit_name' => $lvl1['name'],
-                    'unit_short_code' => $lvl1['short_code'],
-                    'conversion_to_base' => 1.0,
-                    'quantity' => $this->qty,
+            if ($lvl2) {
+                $this->queuedItems = [
+                    $lvl2['id'] => [
+                        'unit_id' => $lvl2['id'],
+                        'unit_name' => $lvl2['name'],
+                        'unit_short_code' => $lvl2['short_code'],
+                        'conversion_to_base' => (float)$lvl2['conversion_to_base'],
+                        'quantity' => $this->qty,
+                    ]
+                ];
+            } elseif ($lvl1) {
+                $this->queuedItems = [
+                    $lvl1['id'] => [
+                        'unit_id' => $lvl1['id'],
+                        'unit_name' => $lvl1['name'],
+                        'unit_short_code' => $lvl1['short_code'],
+                        'conversion_to_base' => 1.0,
+                        'quantity' => $this->qty,
+                    ]
                 ];
             }
         }
@@ -335,27 +357,32 @@ class ProductShowPage extends Component
             return;
         }
 
-        // MOQ check on total pieces in queue
-        $totalPieces = 0;
-        foreach ($this->queuedItems as $item) {
-            $totalPieces += (int) ($item['quantity'] * $item['conversion_to_base']);
-        }
-
-        if ($totalPieces < $this->minimumOrderQuantity) {
-            $lvl2 = collect($this->units)->firstWhere('level', 2);
-            if ($lvl2) {
-                $moqBoxes = (int) ceil($this->minimumOrderQuantity / (float)$lvl2['conversion_to_base']);
+        // MOQ check
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        if ($lvl2) {
+            $totalUnits = 0;
+            foreach ($this->queuedItems as $item) {
+                if ($item['unit_id'] == $lvl2['id']) {
+                    $totalUnits += $item['quantity'];
+                }
+            }
+            if ($totalUnits < $this->minimumOrderQuantity) {
                 $this->dispatch('toast', type: 'error', message:
-                    "Minimum order is {$this->minimumOrderQuantity} pieces. "
-                    . "Your current selection total is {$totalPieces} pieces. "
-                    . "Please select at least {$moqBoxes} {$lvl2['name']}(s) or {$this->minimumOrderQuantity} Pieces."
+                    "Minimum order is {$this->minimumOrderQuantity} {$lvl2['name']}(s). Your current selection is {$totalUnits} {$lvl2['name']}(s)."
                 );
-            } else {
+                return;
+            }
+        } else {
+            $totalPieces = 0;
+            foreach ($this->queuedItems as $item) {
+                $totalPieces += (int) ($item['quantity'] * $item['conversion_to_base']);
+            }
+            if ($totalPieces < $this->minimumOrderQuantity) {
                 $this->dispatch('toast', type: 'error', message:
                     "Minimum order quantity is {$this->minimumOrderQuantity} pieces. Your current selection total is {$totalPieces} pieces."
                 );
+                return;
             }
-            return;
         }
 
         $user = auth()->user();

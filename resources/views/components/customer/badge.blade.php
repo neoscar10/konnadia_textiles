@@ -34,6 +34,11 @@
             'dot' => 'bg-rose-500',
             'label' => 'Rejected'
         ],
+        'partially dispatched', 'partially_dispatched' => [
+            'class' => 'bg-indigo-50 text-indigo-700 border-indigo-200/50',
+            'dot' => 'bg-indigo-500',
+            'label' => 'Partially Dispatched'
+        ],
         'dispatched', 'shipped' => [
             'class' => 'bg-cyan-50 text-cyan-700 border-cyan-200/50',
             'dot' => 'bg-cyan-500',

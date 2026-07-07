@@ -96,10 +96,10 @@ class HomeContentRenderingTest extends TestCase
             'is_active' => true,
         ]);
 
-        // Add custom price for level
+        // Add custom price for level (15% discount on 1000.00 is 850.00)
         $product->customerLevelPrices()->create([
             'customer_level_id' => $this->level->id,
-            'price' => 850.00,
+            'discount_percentage' => 15.00,
         ]);
 
         // Create product slider section
@@ -120,7 +120,7 @@ class HomeContentRenderingTest extends TestCase
         Livewire::test(DashboardPage::class)
             ->assertSee('Exclusive Fabric Picks')
             ->assertSee('B2B Cotton Fabric')
-            ->assertSee('₹850.00') // level price
-            ->assertDontSee('₹1000.00'); // should not see base price
+            ->assertSee('₹850') // level price
+            ->assertDontSee('₹1000'); // should not see base price
     }
 }

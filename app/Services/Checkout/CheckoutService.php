@@ -46,13 +46,7 @@ class CheckoutService
         $cartData = $this->cartService->getCartForCustomer($user);
         $customer = $user->customer;
 
-        $creditEligibility = [
-            'can_use_credit' => true,
-            'is_within_limit' => true,
-            'is_privileged_override' => false,
-            'excess_amount' => 0.0,
-            'message' => 'Credit check disabled.',
-        ];
+        $creditEligibility = $this->creditService->evaluate($customer, (float) $cartData['totals']['total']);
 
         return [
             'cart' => $cartData,
@@ -60,10 +54,10 @@ class CheckoutService
             'customer' => [
                 'company_name' => $customer->company_name,
                 'contact_person' => $customer->contact_person,
-                'credit_limit' => 0.0,
-                'available_credit' => 0.0,
-                'outstanding_amount' => 0.0,
-                'allow_credit_beyond_limit' => false,
+                'credit_limit' => (float) $customer->credit_limit,
+                'available_credit' => (float) $customer->available_credit,
+                'outstanding_amount' => (float) $customer->outstanding_amount,
+                'allow_credit_beyond_limit' => (bool) $customer->allow_credit_beyond_limit,
                 'billing_address' => $customer->billing_address,
             ],
         ];
@@ -117,6 +111,23 @@ class CheckoutService
      */
     public function validateCheckoutMethod(User $user, $cart, string $method, array $payload): array
     {
+        if ($method === 'credit') {
+            $customer = $user->customer;
+            $totals = $this->cartPricingService->recalculateCart($cart);
+            $evaluation = $this->creditService->evaluate($customer, (float) $totals['total']);
+
+            if (!$evaluation['can_use_credit']) {
+                throw ValidationException::withMessages([
+                    'checkout_method' => $evaluation['message'],
+                ]);
+            }
+
+            return [
+                'is_within_limit' => $evaluation['is_within_limit'],
+                'is_privileged_override' => $evaluation['is_privileged_override'],
+            ];
+        }
+
         return [
             'is_within_limit' => true,
             'is_privileged_override' => false,

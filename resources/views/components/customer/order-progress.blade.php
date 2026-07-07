@@ -21,6 +21,9 @@
         $currentIndex = 2;
     } elseif ($statusLower === 'approved') {
         $currentIndex = 3;
+    } elseif ($statusLower === 'partially dispatched' || $statusLower === 'partially_dispatched') {
+        $steps[4] = ['key' => 'partially_dispatched', 'label' => 'Partially Dispatched', 'icon' => 'local_shipping'];
+        $currentIndex = 4;
     } elseif ($statusLower === 'dispatched' || $statusLower === 'shipped') {
         $currentIndex = 4;
     } elseif ($statusLower === 'rejected') {

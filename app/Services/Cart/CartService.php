@@ -131,28 +131,30 @@ class CartService
         $lvl2Unit = $product->units()->where('level', 2)->first();
         $conversion = $lvl2Unit ? (float)$lvl2Unit->conversion_to_base : 1.0;
 
-        $unit = isset($payload['unit_id'])
-            ? ProductUnit::find($payload['unit_id'])
-            : $lvl1Unit;
-
-        if (!$unit) {
-            $unit = $lvl1Unit;
-        }
-
-        if (isset($payload['quantity_lvl1']) || isset($payload['quantity_lvl2'])) {
-            $qty_lvl1 = (int) ($payload['quantity_lvl1'] ?? 0);
-            $qty_lvl2 = (int) ($payload['quantity_lvl2'] ?? 0);
-            $quantity = (int) (($qty_lvl2 * $conversion) + $qty_lvl1);
-            $unit = $lvl1Unit;
-        } else {
-            $quantity = (int) ($payload['quantity'] ?? 1);
-            if ($unit && $unit->level === 2) {
-                $qty_lvl2 = $quantity;
-                $qty_lvl1 = 0;
-            } else {
-                $qty_lvl1 = $quantity;
-                $qty_lvl2 = 0;
+        if ($lvl2Unit) {
+            // Level 2 is configured: only Level 2 purchases allowed.
+            if (isset($payload['unit_id']) && (int)$payload['unit_id'] !== $lvl2Unit->id) {
+                throw ValidationException::withMessages(['unit_id' => "Only {$lvl2Unit->name} purchases are allowed for this product."]);
             }
+            if (isset($payload['quantity_lvl1']) && (int)$payload['quantity_lvl1'] > 0) {
+                throw ValidationException::withMessages(['quantity' => "Only {$lvl2Unit->name} purchases are allowed for this product."]);
+            }
+            $quantity = isset($payload['quantity_lvl2']) ? (int)$payload['quantity_lvl2'] : (int)($payload['quantity'] ?? 1);
+            $qty_lvl2 = $quantity;
+            $qty_lvl1 = 0;
+            $unit = $lvl2Unit;
+        } else {
+            // Only Level 1 unit is configured:
+            if (isset($payload['unit_id']) && (int)$payload['unit_id'] !== $lvl1Unit->id) {
+                throw ValidationException::withMessages(['unit_id' => "This product only supports {$lvl1Unit->name} unit."]);
+            }
+            if (isset($payload['quantity_lvl2']) && (int)$payload['quantity_lvl2'] > 0) {
+                throw ValidationException::withMessages(['quantity' => "This product only supports {$lvl1Unit->name} unit."]);
+            }
+            $quantity = isset($payload['quantity_lvl1']) ? (int)$payload['quantity_lvl1'] : (int)($payload['quantity'] ?? 1);
+            $qty_lvl1 = $quantity;
+            $qty_lvl2 = 0;
+            $unit = $lvl1Unit;
         }
 
         $selectedOptions = $payload['selected_options'] ?? null;
@@ -232,21 +234,24 @@ class CartService
         $lvl2Unit = $product->units()->where('level', 2)->first();
         $conversion = $lvl2Unit ? (float)$lvl2Unit->conversion_to_base : 1.0;
 
-        if (isset($payload['quantity_lvl1']) || isset($payload['quantity_lvl2'])) {
-            $qty_lvl1 = (int) ($payload['quantity_lvl1'] ?? 0);
-            $qty_lvl2 = (int) ($payload['quantity_lvl2'] ?? 0);
-            $quantity = (int) (($qty_lvl2 * $conversion) + $qty_lvl1);
-            $unit = $lvl1Unit;
-        } else {
-            $quantity = (int) ($payload['quantity'] ?? $item->quantity);
-            $unit = $item->unit ?? $lvl1Unit;
-            if ($unit && $unit->level === 2) {
-                $qty_lvl2 = $quantity;
-                $qty_lvl1 = 0;
-            } else {
-                $qty_lvl1 = $quantity;
-                $qty_lvl2 = 0;
+        if ($lvl2Unit) {
+            // Level 2 is configured: only Level 2 purchases allowed.
+            if (isset($payload['quantity_lvl1']) && (int)$payload['quantity_lvl1'] > 0) {
+                throw ValidationException::withMessages(['quantity' => "Only {$lvl2Unit->name} purchases are allowed for this product."]);
             }
+            $quantity = isset($payload['quantity_lvl2']) ? (int)$payload['quantity_lvl2'] : (int)($payload['quantity'] ?? $item->quantity);
+            $qty_lvl2 = $quantity;
+            $qty_lvl1 = 0;
+            $unit = $lvl2Unit;
+        } else {
+            // Only Level 1 unit is configured:
+            if (isset($payload['quantity_lvl2']) && (int)$payload['quantity_lvl2'] > 0) {
+                throw ValidationException::withMessages(['quantity' => "This product only supports {$lvl1Unit->name} unit."]);
+            }
+            $quantity = isset($payload['quantity_lvl1']) ? (int)$payload['quantity_lvl1'] : (int)($payload['quantity'] ?? $item->quantity);
+            $qty_lvl1 = $quantity;
+            $qty_lvl2 = 0;
+            $unit = $lvl1Unit;
         }
 
         if ($quantity < 1) {
@@ -325,44 +330,61 @@ class CartService
             $errors['quantity'] = 'Quantity must be at least 1.';
         }
 
-        // MOQ enforcement — use total resolved pieces so that 1 Box (12 pcs)
-        // correctly satisfies a 10-piece MOQ.
+        // MOQ enforcement
         if (!$skipMoq) {
             $moq = (int) ($product->minimum_order_quantity ?? 1);
-            $conversion = $unit ? (float) $unit->conversion_to_base : 1.0;
-            $totalPieces = (int) ($quantity * $conversion);
+            $lvl2Unit = $product->units()->where('level', 2)->first();
 
-            if ($user) {
-                $cart = Cart::where('user_id', $user->id)
-                    ->where('status', 'active')
-                    ->first();
-                if ($cart) {
-                    $otherItemsQuery = $cart->items()
-                        ->where('product_id', $product->id)
-                        ->where('product_combination_id', $combination?->id);
-                        
-                    if ($ignoreCartItemId) {
-                        $otherItemsQuery->where('id', '!=', $ignoreCartItemId);
-                    }
-                    
-                    $otherItems = $otherItemsQuery->get();
-                    foreach ($otherItems as $otherItem) {
-                        $otherConversion = (float) ($otherItem->unit_conversion_quantity ?? 1.0);
-                        $totalPieces += (int) ($otherItem->quantity * $otherConversion);
+            if ($lvl2Unit) {
+                if ($unit->level !== 2) {
+                    $errors['unit_id'] = "Only {$lvl2Unit->name} purchases are allowed for this product.";
+                }
+
+                $totalUnits = $quantity;
+                if ($user) {
+                    $cart = Cart::where('user_id', $user->id)
+                        ->where('status', 'active')
+                        ->first();
+                    if ($cart) {
+                        $otherItemsQuery = $cart->items()
+                            ->where('product_id', $product->id)
+                            ->where('product_combination_id', $combination?->id)
+                            ->where('product_unit_id', $lvl2Unit->id);
+                        if ($ignoreCartItemId) {
+                            $otherItemsQuery->where('id', '!=', $ignoreCartItemId);
+                        }
+                        $totalUnits += (int)$otherItemsQuery->sum('quantity');
                     }
                 }
-            }
 
-            if ($moq > 1 && $totalPieces < $moq) {
-                $lvl2ForMoq = $product->units()->where('level', 2)->first();
-                if ($lvl2ForMoq) {
-                    $lvl2conversion = (int) $lvl2ForMoq->conversion_to_base;
-                    $moqBoxes   = (int) ceil($moq / $lvl2conversion);
-                    $errors['quantity'] = "Minimum order quantity is {$moq} pieces. "
-                        . "You can order {$moqBoxes} {$lvl2ForMoq->name}(s) or more, "
-                        . "or at least {$moq} individual pieces.";
-                } else {
-                    $errors['quantity'] = "Minimum order quantity is {$moq} pieces. Please increase your quantity.";
+                if ($moq > 1 && $totalUnits < $moq) {
+                    $errors['quantity'] = "Minimum order quantity is {$moq} {$lvl2Unit->name}(s). Please increase your quantity.";
+                }
+            } else {
+                $lvl1Unit = $product->units()->where('level', 1)->first();
+                if ($unit->level !== 1) {
+                    $errors['unit_id'] = "Selected unit is not supported.";
+                }
+
+                $totalUnits = $quantity;
+                if ($user) {
+                    $cart = Cart::where('user_id', $user->id)
+                        ->where('status', 'active')
+                        ->first();
+                    if ($cart) {
+                        $otherItemsQuery = $cart->items()
+                            ->where('product_id', $product->id)
+                            ->where('product_combination_id', $combination?->id)
+                            ->where('product_unit_id', $lvl1Unit->id);
+                        if ($ignoreCartItemId) {
+                            $otherItemsQuery->where('id', '!=', $ignoreCartItemId);
+                        }
+                        $totalUnits += (int)$otherItemsQuery->sum('quantity');
+                    }
+                }
+
+                if ($moq > 1 && $totalUnits < $moq) {
+                    $errors['quantity'] = "Minimum order quantity is {$moq} {$lvl1Unit->name}(s). Please increase your quantity.";
                 }
             }
         }

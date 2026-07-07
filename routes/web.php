@@ -2,13 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Redirect root to home
-Route::get('/', function () {
-    return redirect()->route('home');
-});
-
-// Public Landing Page
-Route::view('/home', 'home')->name('home');
+// Landing Page and B2B Home redirected to DashboardPage
+// Defined under the optional_customer group below
 
 // Unified Login Page
 Route::middleware('guest')->group(function () {
@@ -66,40 +61,49 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });
 });
 
-// Customer Portal Routes
-Route::middleware(['auth', 'customer'])->prefix('portal')->group(function () {
-    Route::get('products/search-suggestions', function (\Illuminate\Http\Request $request) {
-        $q = $request->query('q', '');
-        if (strlen($q) < 2) {
-            return response()->json([]);
-        }
-        $products = \App\Models\Product::where('is_active', true)
-            ->where(function($query) use ($q) {
-                $query->where('title', 'like', "%{$q}%")
-                      ->orWhere('sku', 'like', "%{$q}%");
-            })
-            ->with(['primaryMedia'])
-            ->limit(6)
-            ->get();
-        $results = $products->map(function ($product) {
-            return [
-                'id' => $product->id,
-                'title' => $product->title,
-                'sku' => $product->sku,
-                'slug' => $product->slug,
-                'base_price' => (float)$product->base_price,
-                'image' => $product->primaryMedia ? asset('storage/' . $product->primaryMedia->file_path) : null,
-                'url' => route('customer.products.show', ['slug' => $product->slug]),
-            ];
-        });
-        return response()->json($results);
-    })->name('customer.products.suggestions');
+// Optional Customer Route Group (available to guests and logged-in customers)
+Route::middleware(['optional_customer'])->group(function () {
+    Route::get('/', \App\Livewire\Customer\DashboardPage::class)->name('home');
+    Route::redirect('/home', '/');
 
+    Route::prefix('portal')->group(function () {
+        Route::get('products/search-suggestions', function (\Illuminate\Http\Request $request) {
+            $q = $request->query('q', '');
+            if (strlen($q) < 2) {
+                return response()->json([]);
+            }
+            $products = \App\Models\Product::where('is_active', true)
+                ->where(function($query) use ($q) {
+                    $query->where('title', 'like', "%{$q}%")
+                          ->orWhere('sku', 'like', "%{$q}%");
+                })
+                ->with(['primaryMedia'])
+                ->limit(6)
+                ->get();
+            $results = $products->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'title' => $product->title,
+                    'sku' => $product->sku,
+                    'slug' => $product->slug,
+                    'base_price' => auth()->check() ? (float)$product->base_price : null,
+                    'image' => $product->primaryMedia ? asset('storage/' . $product->primaryMedia->file_path) : null,
+                    'url' => route('customer.products.show', ['slug' => $product->slug]),
+                ];
+            });
+            return response()->json($results);
+        })->name('customer.products.suggestions');
+
+        Route::get('categories', \App\Livewire\Customer\Categories\CategoryIndexPage::class)->name('customer.categories.index');
+        Route::get('categories/{slug}', \App\Livewire\Customer\Categories\CategoryShowPage::class)->name('customer.categories.show');
+        Route::get('products', \App\Livewire\Customer\Products\ProductIndexPage::class)->name('customer.products.index');
+        Route::get('products/{slug}', \App\Livewire\Customer\Products\ProductShowPage::class)->name('customer.products.show');
+    });
+});
+
+// Customer Portal Routes (Requires Authentication & Customer Role)
+Route::middleware(['auth', 'customer'])->prefix('portal')->group(function () {
     Route::get('dashboard', \App\Livewire\Customer\DashboardPage::class)->name('customer.dashboard');
-    Route::get('categories', \App\Livewire\Customer\Categories\CategoryIndexPage::class)->name('customer.categories.index');
-    Route::get('categories/{slug}', \App\Livewire\Customer\Categories\CategoryShowPage::class)->name('customer.categories.show');
-    Route::get('products', \App\Livewire\Customer\Products\ProductIndexPage::class)->name('customer.products.index');
-    Route::get('products/{slug}', \App\Livewire\Customer\Products\ProductShowPage::class)->name('customer.products.show');
     Route::get('cart', \App\Livewire\Customer\Cart\CartPage::class)->name('customer.cart.index');
     Route::get('cart/saved', \App\Livewire\Customer\Cart\SavedCartsPage::class)->name('customer.cart.saved');
     Route::get('order/review', \App\Livewire\Customer\Orders\OrderReviewPage::class)->name('customer.orders.review');

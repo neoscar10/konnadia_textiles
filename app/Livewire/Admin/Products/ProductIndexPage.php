@@ -428,6 +428,21 @@ class ProductIndexPage extends Component
         $this->isEditMode = false;
         $this->selectedCategoryIds = $this->currentCategoryId ? [$this->currentCategoryId] : [];
         $this->productLockedCategoryId = $this->currentCategoryId;
+
+        if ($this->currentCategoryId) {
+            $category = Category::find($this->currentCategoryId);
+            if ($category && !empty($category->default_product_config['units'])) {
+                $catUnits = $category->default_product_config['units'];
+                $this->units = [
+                    'level1_name'       => $catUnits['level1_name'] ?? 'Piece',
+                    'level1_code'       => $catUnits['level1_code'] ?? 'pcs',
+                    'level2_name'       => $catUnits['level2_name'] ?? '',
+                    'level2_code'       => $catUnits['level2_code'] ?? '',
+                    'level2_conversion' => $catUnits['level2_conversion'] ?? '',
+                ];
+            }
+        }
+
         $this->dispatch('open-modal', 'add-product');
     }
 
@@ -489,12 +504,22 @@ class ProductIndexPage extends Component
 
     protected function validateSimplifiedProduct(): void
     {
-        $this->validate([
+        $rules = [
             'basicInfo.title'       => ['required', 'string', 'max:200'],
             'basicInfo.base_price'  => ['required', 'numeric', 'min:0'],
             'basicInfo.description' => ['required', 'string'],
             'nonVariantStock'       => ['nullable', 'integer', 'min:0'],
-        ]);
+            'units.level1_name'     => ['required', 'string', 'max:50'],
+            'units.level1_code'     => ['required', 'string', 'max:20'],
+        ];
+
+        if (!empty($this->units['level2_name']) || !empty($this->units['level2_code'])) {
+            $rules['units.level2_name'] = ['required', 'string', 'max:50'];
+            $rules['units.level2_code'] = ['required', 'string', 'max:20'];
+            $rules['units.level2_conversion'] = ['required', 'numeric', 'min:0.0001'];
+        }
+
+        $this->validate($rules);
     }
 
     public function save(
@@ -536,7 +561,7 @@ class ProductIndexPage extends Component
                     }
                 }
                 $payload['customer_level_prices'] = $levelPrices;
-                $payload['units']                 = $defaults['units'] ?? $this->units;
+                $payload['units']                 = $this->units;
 
                 if ($this->selectedProductId) {
                     $product = Product::findOrFail($this->selectedProductId);

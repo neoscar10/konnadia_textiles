@@ -52,9 +52,6 @@
                 <x-admin.button variant="danger" icon="cancel" wire:click="$set('showRejectModal', true)">Reject Order</x-admin.button>
             @endif
 
-            @if(in_array('dispatch', $allowedActions))
-                <x-admin.button variant="primary" icon="local_shipping" wire:click="$set('showDispatchModal', true)">Dispatch Order</x-admin.button>
-            @endif
 
             @if(in_array('cancel', $allowedActions))
                 <x-admin.button variant="danger" icon="cancel" wire:click="$set('showCancelModal', true)">Cancel Order</x-admin.button>
@@ -115,12 +112,12 @@
                         <thead class="bg-surface-container text-on-surface-variant font-label-md uppercase tracking-wider border-b border-outline-variant/20">
                             <tr>
                                 <th class="px-lg py-md">Product</th>
-                                <th class="px-lg py-md">Variants</th>
                                 <th class="px-lg py-md">Qty/Unit</th>
                                 <th class="px-lg py-md text-right">Price</th>
-                                <th class="px-lg py-md text-center">HSN</th>
+                                <th class="px-lg py-md text-center">Status</th>
                                 <th class="px-lg py-md text-right">GST</th>
                                 <th class="px-lg py-md text-right">Total</th>
+                                <th class="px-lg py-md text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant/10">
@@ -129,17 +126,6 @@
                                     <td class="px-lg py-md">
                                         <p class="font-title-md text-primary">{{ $item['product_title'] }}</p>
                                         <p class="font-body-md text-on-surface-variant text-xs font-mono mt-1">{{ $item['product_sku'] }}</p>
-                                    </td>
-                                    <td class="px-lg py-md">
-                                        <div class="flex flex-col gap-xs">
-                                            @if($item['selected_options'])
-                                                @foreach($item['selected_options'] as $key => $val)
-                                                    <span class="px-xs py-[2px] bg-surface-container rounded text-[10px] font-bold w-fit text-on-surface">{{ strtoupper($key) }}: {{ strtoupper($val) }}</span>
-                                                @endforeach
-                                            @else
-                                                <span class="text-on-surface-variant text-xs italic">Standard</span>
-                                            @endif
-                                        </div>
                                     </td>
                                     <td class="px-lg py-md">
                                         @if(!empty($item['has_lvl2_unit']))
@@ -156,12 +142,38 @@
                                         @endif
                                     </td>
                                     <td class="px-lg py-md text-right font-medium">₹{{ number_format($item['customer_unit_price'], 2) }}</td>
-                                    <td class="px-lg py-md text-center font-mono text-[10px] text-on-surface-variant">{{ $item['hsn_code'] ?? '—' }}</td>
+                                    <td class="px-lg py-md text-center">
+                                        @php
+                                            $itemStatus = $item['status'] ?? 'pending_dispatch';
+                                            $itemBadge = match($itemStatus) {
+                                                'dispatched' => ['bg' => 'bg-purple-50 text-purple-700 border-purple-200/50', 'label' => 'Dispatched'],
+                                                'cancelled' => ['bg' => 'bg-slate-100 text-slate-500 border-slate-200', 'label' => 'Cancelled'],
+                                                default => ['bg' => 'bg-amber-50 text-amber-700 border-amber-200/50', 'label' => 'Pending Dispatch'],
+                                            };
+                                        @endphp
+                                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border {{ $itemBadge['bg'] }}">
+                                            {{ $itemBadge['label'] }}
+                                        </span>
+                                    </td>
                                     <td class="px-lg py-md text-right">
                                         <span class="block">₹{{ number_format($item['gst_amount'], 2) }}</span>
                                         <span class="text-[9px] text-on-surface-variant/70">({{ (float) $item['gst_percentage'] }}%)</span>
                                     </td>
                                     <td class="px-lg py-md text-right font-bold text-primary">₹{{ number_format($item['line_total'], 2) }}</td>
+                                    <td class="px-lg py-md text-center">
+                                        @if(in_array($orderData['status'], ['approved', 'partially_dispatched']) && ($item['status'] ?? 'pending_dispatch') === 'pending_dispatch')
+                                            <div class="flex items-center justify-center gap-xs">
+                                                <button type="button" wire:click="openDispatchItemModal({{ $item['id'] }})" class="px-2 py-1 bg-primary text-on-primary rounded text-xs font-bold hover:bg-primary-hover transition-colors flex items-center gap-xxs cursor-pointer">
+                                                    <span class="material-symbols-outlined text-[14px]">local_shipping</span> Dispatch
+                                                </button>
+                                                <button type="button" wire:click="openCancelItemModal({{ $item['id'] }})" class="px-2 py-1 bg-error-container text-error rounded text-xs font-bold hover:bg-error-container/80 transition-colors flex items-center gap-xxs border border-error/20 cursor-pointer">
+                                                    <span class="material-symbols-outlined text-[14px]">cancel</span> Cancel
+                                                </button>
+                                            </div>
+                                        @else
+                                            <span class="text-xs text-on-surface-variant/50">—</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -324,20 +336,6 @@
         </div>
     @endif
 
-    <!-- Dispatch Order Modal -->
-    @if($showDispatchModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
-            <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
-                <h3 class="font-headline-md text-primary mb-md">Dispatch Order</h3>
-                <p class="font-body-md text-on-surface-variant mb-md">Mark this order as dispatched? This will update the status to dispatched and log the action.</p>
-                <textarea wire:model="adminComment" class="w-full border border-outline-variant/50 rounded-lg p-md font-body-md focus:ring-2 focus:ring-secondary outline-none transition-all resize-none bg-surface-container-low mb-md" placeholder="Enter dispatch details (optional)..." rows="3"></textarea>
-                <div class="flex justify-end gap-sm">
-                    <x-admin.button variant="outline" wire:click="$set('showDispatchModal', false)">Cancel</x-admin.button>
-                    <x-admin.button variant="primary" wire:click="dispatchOrder">Confirm Dispatch</x-admin.button>
-                </div>
-            </div>
-        </div>
-    @endif
 
     <!-- Cancel Order Modal -->
     @if($showCancelModal)
@@ -349,6 +347,50 @@
                 <div class="flex justify-end gap-sm">
                     <x-admin.button variant="outline" wire:click="$set('showCancelModal', false)">Go Back</x-admin.button>
                     <x-admin.button variant="danger" wire:click="cancelOrder">Confirm Cancellation</x-admin.button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Dispatch Item Modal -->
+    @if($showItemDispatchModal)
+        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+            <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
+                <h3 class="font-headline-md text-primary mb-md">Dispatch Item</h3>
+                <p class="font-body-md text-on-surface-variant mb-md">Confirm the quantity getting dispatched in the unit the order was placed.</p>
+                
+                @php
+                    $selItem = collect($orderData['items'])->firstWhere('id', $selectedItemId);
+                    $unitName = $selItem ? ($selItem['unit_short_code'] ?: 'Pcs') : 'qty';
+                    $maxQty = $selItem ? $selItem['quantity'] : 1;
+                @endphp
+
+                <div class="space-y-sm mb-md">
+                    <label class="font-label-md text-on-surface-variant font-semibold">Quantity to Dispatch (Max {{ $maxQty }} {{ $unitName }})</label>
+                    <div class="relative">
+                        <input type="number" wire:model="dispatchQty" min="1" max="{{ $maxQty }}" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface" placeholder="Enter quantity to dispatch">
+                        <span class="absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-sm">{{ $unitName }}</span>
+                    </div>
+                    @error('dispatchQty') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="flex justify-end gap-sm">
+                    <x-admin.button variant="outline" wire:click="$set('showItemDispatchModal', false)">Cancel</x-admin.button>
+                    <x-admin.button variant="primary" wire:click="confirmDispatchItem">Confirm Dispatch</x-admin.button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Cancel Item Modal -->
+    @if($showItemCancelModal)
+        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+            <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
+                <h3 class="font-headline-md text-error mb-md">Cancel Order Item</h3>
+                <p class="font-body-md text-on-surface-variant mb-md">Are you sure you want to cancel this order item? If stock was deducted, it will be automatically restored, and the order total will be updated.</p>
+                <div class="flex justify-end gap-sm">
+                    <x-admin.button variant="outline" wire:click="$set('showItemCancelModal', false)">Go Back</x-admin.button>
+                    <x-admin.button variant="danger" wire:click="confirmCancelItem">Confirm Cancellation</x-admin.button>
                 </div>
             </div>
         </div>

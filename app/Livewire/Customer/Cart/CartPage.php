@@ -103,6 +103,11 @@ class CartPage extends Component
         }
     }
 
+    public function updateQuantity($itemId, $qty, CartService $cartService)
+    {
+        $this->updateQtyLvl1($itemId, $qty, $cartService);
+    }
+
     public function incrementQtyLvl1($itemId, CartService $cartService)
     {
         $item = CartItem::find($itemId);

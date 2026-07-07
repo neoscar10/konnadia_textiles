@@ -30,7 +30,7 @@ class ProductCatalogService
     /**
      * List paginated products with filters for a customer.
      */
-    public function listProductsForCustomer(User $user, array $filters = []): LengthAwarePaginator
+    public function listProductsForCustomer(?User $user, array $filters = []): LengthAwarePaginator
     {
         $query = Product::where('is_active', true)
             ->with(['categories', 'media', 'primaryMedia', 'combinations', 'units', 'customerLevelPrices', 'tags']);
@@ -135,7 +135,7 @@ class ProductCatalogService
     /**
      * Resolve a product and format it for customer detail view.
      */
-    public function getProductForCustomer(User $user, string|int $identifier): array
+    public function getProductForCustomer(?User $user, string|int $identifier): array
     {
         $query = Product::where('is_active', true)
             ->with([
@@ -164,7 +164,7 @@ class ProductCatalogService
     /**
      * Get list of available categories and filter metadata.
      */
-    public function getAvailableFilters(User $user): array
+    public function getAvailableFilters(?User $user = null): array
     {
         return [
             'categories' => Category::orderBy('name')->get()->map(fn($c) => [
@@ -179,7 +179,7 @@ class ProductCatalogService
     /**
      * Get products related to the current product.
      */
-    public function getRelatedProducts(User $user, Product $product, int $limit = 4): Collection
+    public function getRelatedProducts(?User $user, Product $product, int $limit = 4): Collection
     {
         $categoryIds = $product->categories->pluck('id')->toArray();
 
@@ -198,7 +198,7 @@ class ProductCatalogService
     /**
      * Format a product for a standard card display.
      */
-    public function formatProductCard(Product $product, User $user): array
+    public function formatProductCard(Product $product, ?User $user): array
     {
         $pricing = $this->pricingService->calculateCustomerPrice($product, $user);
         $availability = $this->availabilityService->getProductAvailability($product);
@@ -254,7 +254,7 @@ class ProductCatalogService
     /**
      * Format full details of a product.
      */
-    public function formatProductDetail(Product $product, User $user): array
+    public function formatProductDetail(Product $product, ?User $user): array
     {
         $pricing = $this->pricingService->calculateCustomerPrice($product, $user);
         $availability = $this->availabilityService->getProductAvailability($product);

@@ -18,7 +18,8 @@ class OrderStatusService
         'pending_payment_verification' => ['under_review', 'rejected'],
         'under_review' => ['pending_approval', 'approved', 'rejected'],
         'pending_approval' => ['approved', 'rejected'],
-        'approved' => ['dispatched', 'cancelled'],
+        'approved' => ['partially_dispatched', 'dispatched', 'cancelled'],
+        'partially_dispatched' => ['dispatched', 'cancelled'],
         'rejected' => [],
         'dispatched' => [],
         'cancelled' => [],
@@ -36,8 +37,8 @@ class OrderStatusService
             return $order->payment_status === 'verified';
         }
 
-        // Custom validation: cannot dispatch if not approved
-        if ($toStatus === 'dispatched' && $current !== 'approved') {
+        // Custom validation: cannot dispatch if not approved or partially dispatched
+        if ($toStatus === 'dispatched' && !in_array($current, ['approved', 'partially_dispatched'], true)) {
             return false;
         }
 
@@ -122,9 +123,6 @@ class OrderStatusService
             if ($this->canTransition($order, 'rejected')) {
                 $actions[] = 'reject';
             }
-            if ($this->canTransition($order, 'dispatched')) {
-                $actions[] = 'dispatch';
-            }
             if ($this->canTransition($order, 'cancelled')) {
                 $actions[] = 'cancel';
             }
@@ -194,6 +192,12 @@ class OrderStatusService
                 'text' => 'text-rose-700',
                 'label' => 'Rejected',
                 'type' => 'danger'
+            ],
+            'partially_dispatched' => [
+                'bg' => 'bg-indigo-50 border border-indigo-200',
+                'text' => 'text-indigo-700',
+                'label' => 'Partially Dispatched',
+                'type' => 'primary'
             ],
             'dispatched' => [
                 'bg' => 'bg-purple-50 border border-purple-200',

@@ -123,6 +123,21 @@ class AdminIndexPage extends Component
     {
         $this->validate();
 
+        if (in_array('access orders', $this->selectedPermissions)) {
+            $hasManufactured = in_array('manage manufactured orders', $this->selectedPermissions);
+            $hasRetail = in_array('manage retail orders', $this->selectedPermissions);
+            if (!$hasManufactured && !$hasRetail) {
+                $this->addError('orderScope', 'Please select at least one product type scope (Manufactured or Retail/Bought) for Orders access.');
+                return;
+            }
+        } else {
+            // Remove permissions if access orders is not granted
+            $this->selectedPermissions = array_values(array_diff($this->selectedPermissions, [
+                'manage manufactured orders',
+                'manage retail orders'
+            ]));
+        }
+
         if ($this->editingId) {
             $user = User::findOrFail($this->editingId);
             

@@ -53,6 +53,10 @@ class DashboardPage extends Component
     public function handleAddClick($productId, \App\Services\Portal\ProductCatalogService $catalogService)
     {
         $user = auth()->user();
+        if (!$user) {
+            $this->dispatch('toast', type: 'error', message: 'Please log in to purchase products.');
+            return;
+        }
         $product = \App\Models\Product::with(['units', 'variationGroups.values.media', 'combinations'])->findOrFail($productId);
 
         // Always open the modal so the user can confirm quantity,
@@ -260,6 +264,11 @@ class DashboardPage extends Component
 
     public function addVariantToCart(\App\Services\Portal\ProductCatalogService $catalogService)
     {
+        $user = auth()->user();
+        if (!$user) {
+            $this->dispatch('toast', type: 'error', message: 'Please log in to purchase products.');
+            return;
+        }
         if (!$this->quickAddIsPurchasable) {
             $this->dispatch('toast', type: 'error', message: 'This variant is currently out of stock.');
             return;
@@ -358,26 +367,24 @@ class DashboardPage extends Component
     protected function loadDashboardData(CustomerDashboardService $dashboardService)
     {
         $user = Auth::user();
-        if (!$user || !$user->customer) {
-            return;
-        }
+        if ($user && $user->customer) {
+            $data = $dashboardService->getDashboard($user);
 
-        $data = $dashboardService->getDashboard($user);
-
-        if (!empty($data)) {
-            $this->customer        = $data['customer'];
-            $this->credit          = $data['credit'];
-            $this->cart            = $data['cart'];
-            $this->orders          = $data['orders'];
-            $this->recentOrders    = $data['recent_orders'];
-            $this->alerts          = $data['alerts'];
-            $this->quickActions    = $data['quick_actions'];
-            // Slider sections
-            $this->recentProducts  = $data['recent_products']   ?? [];
-            $this->popularProducts = $data['popular_products']  ?? [];
-            $this->recentPurchases = $data['recent_purchases']  ?? [];
-            // Legacy
-            $this->recommendedProducts = $this->recentProducts;
+            if (!empty($data)) {
+                $this->customer        = $data['customer'];
+                $this->credit          = $data['credit'];
+                $this->cart            = $data['cart'];
+                $this->orders          = $data['orders'];
+                $this->recentOrders    = $data['recent_orders'];
+                $this->alerts          = $data['alerts'];
+                $this->quickActions    = $data['quick_actions'];
+                // Slider sections
+                $this->recentProducts  = $data['recent_products']   ?? [];
+                $this->popularProducts = $data['popular_products']  ?? [];
+                $this->recentPurchases = $data['recent_purchases']  ?? [];
+                // Legacy
+                $this->recommendedProducts = $this->recentProducts;
+            }
         }
 
         $renderService = app(\App\Services\Home\HomeContentRenderService::class);

@@ -178,6 +178,84 @@
             </div>
         </div>
 
+        <!-- Row 3.5: Product Units -->
+        <div class="space-y-md border-t border-outline-variant/10 pt-lg">
+            <div class="flex justify-between items-center select-none">
+                <label class="font-label-md text-on-surface-variant font-semibold">Product Units</label>
+                @php
+                    $category = \App\Models\Category::find($currentCategoryId);
+                    $catDefaults = $category ? $category->default_product_config : null;
+                    $catUnits = $catDefaults['units'] ?? null;
+                @endphp
+                @if($catUnits)
+                    <div class="flex items-center gap-xs text-[10px] font-bold text-secondary bg-secondary-container/10 border border-secondary/20 rounded-lg px-2.5 py-1">
+                        <span class="material-symbols-outlined text-[14px]">info</span>
+                        <span>
+                            Category Default:
+                            @if(!empty($catUnits['level2_name']) && !empty($catUnits['level2_conversion']))
+                                1 {{ $catUnits['level2_name'] }} = {{ (int)$catUnits['level2_conversion'] }} {{ $catUnits['level1_name'] }}s
+                            @else
+                                {{ $catUnits['level1_name'] }}
+                            @endif
+                        </span>
+                    </div>
+                @endif
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-md items-stretch">
+                <!-- Level 1 -->
+                <div class="flex-1 bg-surface-container-low/60 border border-outline-variant/30 rounded-xl p-md space-y-md">
+                    <div class="flex items-center gap-xs select-none">
+                        <span class="w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-bold flex items-center justify-center">1</span>
+                        <span class="font-label-md text-primary font-bold">Level 1 — Base Unit <span class="text-error">*</span></span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-sm">
+                        <div class="space-y-xs">
+                            <label class="text-xs text-on-surface-variant font-medium">Unit Name</label>
+                            <input type="text" wire:model.live="units.level1_name" placeholder="Piece" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all font-body-md text-on-surface text-sm">
+                            @error('units.level1_name') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="space-y-xs">
+                            <label class="text-xs text-on-surface-variant font-medium">Short Code</label>
+                            <input type="text" wire:model.live="units.level1_code" placeholder="pcs" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all font-body-md text-on-surface text-sm uppercase">
+                            @error('units.level1_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Level 2 -->
+                <div class="flex-1 bg-surface-container-low/40 border border-outline-variant/30 rounded-xl p-md space-y-md">
+                    <div class="flex items-center gap-xs select-none">
+                        <span class="w-5 h-5 rounded-full {{ !empty($units['level2_name']) ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/40 text-on-surface-variant' }} text-[11px] font-bold flex items-center justify-center">2</span>
+                        <span class="font-label-md {{ !empty($units['level2_name']) ? 'text-secondary font-bold' : 'text-on-surface-variant/60 font-semibold' }}">Level 2 — Group Unit <span class="text-on-surface-variant/50 font-normal text-xs">(optional)</span></span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-sm">
+                        <div class="space-y-xs">
+                            <label class="text-xs text-on-surface-variant font-medium">Unit Name</label>
+                            <input type="text" wire:model.live="units.level2_name" placeholder="Box" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface text-sm">
+                            @error('units.level2_name') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="space-y-xs">
+                            <label class="text-xs text-on-surface-variant font-medium">Short Code</label>
+                            <input type="text" wire:model.live="units.level2_code" placeholder="box" class="w-full px-sm py-sm bg-white border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface text-sm uppercase">
+                            @error('units.level2_code') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="space-y-xs">
+                        <label class="text-xs text-on-surface-variant font-medium">Relation: How many <strong>{{ $units['level1_name'] ?: 'base units' }}</strong> in 1 <strong>{{ $units['level2_name'] ?: 'group unit' }}</strong>?</label>
+                        <div class="flex items-center gap-sm">
+                            <div class="flex items-center gap-xs bg-white border border-outline-variant/50 rounded-lg px-sm py-xs focus-within:ring-2 focus-within:ring-secondary w-36">
+                                <span class="text-xs text-on-surface-variant select-none font-medium whitespace-nowrap">1 {{ $units['level2_name'] ?: '...' }} =</span>
+                                <input type="number" wire:model.live="units.level2_conversion" placeholder="qty" min="0.0001" step="any" class="w-16 bg-transparent border-none focus:ring-0 outline-none text-on-surface font-bold text-sm text-right">
+                            </div>
+                            <span class="text-sm font-bold text-on-surface-variant">{{ $units['level1_name'] ?: '...' }}</span>
+                        </div>
+                        @error('units.level2_conversion') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Row 4: Description input, full width -->
         <div class="space-y-xs border-t border-outline-variant/10 pt-lg">
             <label class="font-label-md text-on-surface-variant select-none font-semibold">Description</label>

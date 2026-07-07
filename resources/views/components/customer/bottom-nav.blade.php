@@ -11,6 +11,7 @@
         <span class="text-[10px] font-medium">Shop</span>
     </a>
 
+    @auth
     <!-- Cart Tab -->
     @php
         $cartCount = 0;
@@ -38,4 +39,11 @@
         <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' {{ request()->routeIs('customer.profile.show') || request()->routeIs('customer.profile.change-password') ? 1 : 0 }}">person</span>
         <span class="text-[10px] font-medium">Profile</span>
     </a>
+    @else
+    <!-- Login Tab -->
+    <a href="{{ route('login') }}" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all text-slate-500">
+        <span class="material-symbols-outlined text-2xl">login</span>
+        <span class="text-[10px] font-medium">Login</span>
+    </a>
+    @endauth
 </nav>

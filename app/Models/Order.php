@@ -94,6 +94,7 @@ class Order extends Model
             'pending_payment_verification' => 'Pending Payment Verification',
             'approved' => 'Approved',
             'rejected' => 'Rejected',
+            'partially_dispatched' => 'Partially Dispatched',
             'dispatched' => 'Dispatched',
             'cancelled' => 'Cancelled',
             default => ucfirst(str_replace('_', ' ', $this->status)),

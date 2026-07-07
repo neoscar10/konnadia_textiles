@@ -43,6 +43,7 @@
 
             <!-- Price display -->
             <div class="bg-slate-50 rounded-xl p-4 border border-outline-variant/10">
+                @auth
                 <span class="text-xs text-slate-400 font-semibold block">Wholesale Price (Excl. GST)</span>
                 
                 <div class="flex items-baseline gap-2 mt-0.5">
@@ -56,12 +57,27 @@
                         GST not configured
                     @endif
                 </p>
+                @else
+                <span class="text-xs text-slate-400 font-semibold block">Wholesale Price</span>
+                <p class="text-lg font-bold text-gold mt-1">
+                    <a href="{{ route('login') }}" class="underline hover:text-gold-dark">Login to view price</a>
+                </p>
+                @endauth
 
                 {{-- Prominent MOQ badge --}}
                 <div class="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
                     <span class="material-symbols-outlined text-base text-amber-600 select-none">info</span>
                     <span class="text-xs font-bold text-amber-800">
-                        Min. Order Qty: <span class="text-amber-900">{{ $minimumOrderQuantity }} {{ $minimumOrderQuantity === 1 ? 'Piece' : 'Pieces' }}</span>
+                        Min. Order Qty: 
+                        <span class="text-amber-900">
+                            @php
+                                $purchasableUnit = $hasLvl2Unit 
+                                    ? collect($units)->firstWhere('level', 2) 
+                                    : collect($units)->firstWhere('level', 1);
+                                $unitNameLabel = $purchasableUnit ? $purchasableUnit['name'] : 'Piece';
+                            @endphp
+                            {{ $minimumOrderQuantity }} {{ $unitNameLabel }}{{ $minimumOrderQuantity === 1 ? '' : 's' }}
+                        </span>
                     </span>
                 </div>
             </div>
@@ -104,39 +120,56 @@
 
         <!-- Right: Purchase configuration card (3 cols) -->
         <div class="lg:col-span-3">
+            @auth
             <x-customer.card bodyClass="p-5 space-y-6">
                 <x-slot name="header">
                     <span class="font-bold text-slate-800 text-sm">Purchase Configuration</span>
                 </x-slot>
-
-
-
+ 
                 <!-- Quantity Selector per Unit -->
                 <div class="space-y-4">
                     <h5 class="text-sm font-bold text-slate-700">Order Quantity by Unit</h5>
-
-                    @foreach($units as $u)
-                        <div class="space-y-1 bg-slate-50 p-2.5 rounded-lg border border-outline-variant/20">
-                            <div class="flex justify-between items-center">
-                                <label class="text-xs text-slate-500 font-bold uppercase block">Buy in {{ $u['name'] }}s</label>
-                                @if($u['level'] === 2)
-                                    <span class="text-[10px] text-slate-400 block">1 {{ ucfirst($u['name']) }} = {{ (int)$u['conversion_to_base'] }} Pieces</span>
-                                @endif
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="flex items-center justify-between border border-outline-variant/30 rounded-lg bg-white p-1 flex-1">
-                                    <button type="button" wire:click="decrementUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
-                                        <span class="material-symbols-outlined text-lg">remove</span>
-                                    </button>
-                                    <input type="number" wire:model.live="unitQuantities.{{ $u['id'] }}" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
-                                    <button type="button" wire:click="incrementUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
-                                        <span class="material-symbols-outlined text-lg">add</span>
-                                    </button>
+ 
+                    @if($hasLvl2Unit)
+                        @php
+                            $lvl1 = collect($units)->firstWhere('level', 1);
+                            $lvl2 = collect($units)->firstWhere('level', 2);
+                        @endphp
+                        @if($lvl1 && $lvl2)
+                            <div class="p-3 bg-secondary/10 border border-secondary/20 rounded-xl flex items-start gap-2 mb-2">
+                                <span class="material-symbols-outlined text-secondary text-base select-none mt-0.5">info</span>
+                                <div class="text-[11px] font-semibold text-secondary-container">
+                                    Only <strong>{{ $lvl2['name'] }}</strong> purchases are allowed for this product.<br>
+                                    Relation: 1 {{ $lvl2['name'] }} = {{ (int)$lvl2['conversion_to_base'] }} {{ $lvl1['name'] }}s.
                                 </div>
                             </div>
-                        </div>
+                        @endif
+                    @endif
+ 
+                    @foreach($units as $u)
+                        @if(!$hasLvl2Unit || $u['level'] === 2)
+                            <div class="space-y-1 bg-slate-50 p-2.5 rounded-lg border border-outline-variant/20">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-xs text-slate-500 font-bold uppercase block">Buy in {{ $u['name'] }}s</label>
+                                    @if($u['level'] === 2)
+                                        <span class="text-[10px] text-slate-400 block">1 {{ ucfirst($u['name']) }} = {{ (int)$u['conversion_to_base'] }} Pieces</span>
+                                    @endif
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex items-center justify-between border border-outline-variant/30 rounded-lg bg-white p-1 flex-1">
+                                        <button type="button" wire:click="decrementUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
+                                            <span class="material-symbols-outlined text-lg">remove</span>
+                                        </button>
+                                        <input type="number" wire:model.live="unitQuantities.{{ $u['id'] }}" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
+                                        <button type="button" wire:click="incrementUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
+                                            <span class="material-symbols-outlined text-lg">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     @endforeach
-
+ 
                     <!-- Queued Items List -->
                     @if(!empty($queuedItems))
                         <style>
@@ -167,26 +200,46 @@
                             </div>
                         </div>
                     @endif
-
+ 
                     <div class="flex justify-between items-center text-[10px] text-slate-400 font-semibold select-none">
                         @php
                             $totalPiecesQueued = collect($queuedItems)->sum(fn($i) => $i['quantity'] * $i['conversion_to_base']);
+                            $purchasableUnit = $hasLvl2Unit 
+                                ? collect($units)->firstWhere('level', 2) 
+                                : collect($units)->firstWhere('level', 1);
+                            $totalUnitsQueued = $purchasableUnit 
+                                ? collect($queuedItems)->where('unit_id', $purchasableUnit['id'])->sum('quantity') 
+                                : 0;
+                            $unitLabelPlural = $purchasableUnit ? $purchasableUnit['name'] . 's' : 'Pieces';
                         @endphp
-                        <span>Total Selected: {{ $totalPiecesQueued }} Pieces</span>
-                        <span>MOQ: {{ $minimumOrderQuantity }} Pieces</span>
+                        @if($hasLvl2Unit)
+                            <span>Total Selected: {{ $totalUnitsQueued }} {{ $unitLabelPlural }} ({{ $totalPiecesQueued }} pcs)</span>
+                            <span>MOQ: {{ $minimumOrderQuantity }} {{ $unitLabelPlural }}</span>
+                        @else
+                            <span>Total Selected: {{ $totalPiecesQueued }} Pieces</span>
+                            <span>MOQ: {{ $minimumOrderQuantity }} Pieces</span>
+                        @endif
                     </div>
                 </div>
-
+ 
                 {{-- Live MOQ warning if below minimum --}}
-                @if($totalPiecesQueued > 0 && $totalPiecesQueued < $minimumOrderQuantity)
+                @php
+                    $isBelowMoq = false;
+                    if ($hasLvl2Unit) {
+                        $isBelowMoq = $totalUnitsQueued > 0 && $totalUnitsQueued < $minimumOrderQuantity;
+                    } else {
+                        $isBelowMoq = $totalPiecesQueued > 0 && $totalPiecesQueued < $minimumOrderQuantity;
+                    }
+                @endphp
+                @if($isBelowMoq)
                     <div class="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 mt-2">
                         <span class="material-symbols-outlined text-sm text-rose-500 select-none mt-0.5">warning</span>
                         <span class="text-xs font-semibold text-rose-700">
-                            Minimum order is <strong>{{ $minimumOrderQuantity }} pieces</strong>. Please select more.
+                            Minimum order is <strong>{{ $minimumOrderQuantity }} {{ $hasLvl2Unit ? $purchasableUnit['name'] . 's' : 'pieces' }}</strong>. Please select more.
                         </span>
                     </div>
                 @endif
-
+ 
                 <!-- Pricing Summary Block -->
                 <div class="border-t border-slate-100 pt-4 space-y-2">
                     <div class="flex justify-between text-xs text-slate-500 font-medium">
@@ -208,7 +261,7 @@
                         <span class="text-[#001229]">₹{{ number_format($total, 2) }}</span>
                     </div>
                 </div>
-
+ 
                 <!-- Add to Cart CTA -->
                 <button type="button" 
                         wire:click="addToCart"
@@ -217,6 +270,16 @@
                     <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Wholesale Cart
                 </button>
             </x-customer.card>
+            @else
+            <x-customer.card bodyClass="p-5 text-center space-y-4">
+                <span class="material-symbols-outlined text-4xl text-gold">lock</span>
+                <h5 class="text-sm font-bold text-[#001229]">Wholesale Ordering Restricted</h5>
+                <p class="text-xs text-slate-500 leading-relaxed">Please sign in to your B2B account to customize quantities and add items to your wholesale cart.</p>
+                <a href="{{ route('login') }}" class="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold text-white bg-[#001229] hover:bg-slate-800 transition-colors shadow-sm">
+                    <span class="material-symbols-outlined text-sm">login</span> Sign In to Order
+                </a>
+            </x-customer.card>
+            @endauth
         </div>
 
     </div>
@@ -280,6 +343,7 @@
     </div>
 
     <!-- Mobile Sticky Footer Add to Cart Bar -->
+    @auth
     <div class="lg:hidden fixed bottom-16 left-0 right-0 bg-white border-t border-outline-variant/30 p-4 z-40 flex items-center justify-between shadow-ambient">
         <div>
             <span class="text-[10px] text-slate-400 font-semibold block uppercase">Total Subtotal</span>
@@ -292,4 +356,15 @@
             <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Cart
         </button>
     </div>
+    @else
+    <div class="lg:hidden fixed bottom-16 left-0 right-0 bg-white border-t border-outline-variant/30 p-4 z-40 flex items-center justify-between shadow-ambient">
+        <div>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Ordering Restricted</span>
+            <span class="text-xs text-slate-500 font-bold">Please log in to purchase</span>
+        </div>
+        <a href="{{ route('login') }}" class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-[#001229]">
+            <span class="material-symbols-outlined text-sm">login</span> Log In
+        </a>
+    </div>
+    @endauth
 </div>

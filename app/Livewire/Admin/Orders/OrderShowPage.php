@@ -19,8 +19,11 @@ class OrderShowPage extends Component
     public bool $showRejectModal = false;
     public bool $showVerifyReceiptModal = false;
     public bool $showRejectReceiptModal = false;
-    public bool $showDispatchModal = false;
     public bool $showCancelModal = false;
+    public bool $showItemDispatchModal = false;
+    public bool $showItemCancelModal = false;
+    public $selectedItemId;
+    public $dispatchQty;
 
     public string $adminComment = '';
     public string $rejectionReason = '';
@@ -104,16 +107,6 @@ class OrderShowPage extends Component
         $this->loadOrder($adminOrderService);
     }
 
-    public function dispatchOrder(AdminOrderService $adminOrderService)
-    {
-        $order = \App\Models\Order::findOrFail($this->orderData['id']);
-        $adminOrderService->dispatch($order, auth()->user(), $this->adminComment);
-
-        session()->flash('success', 'Order marked as dispatched successfully.');
-        $this->reset(['showDispatchModal', 'adminComment']);
-        $this->loadOrder($adminOrderService);
-    }
-
     public function cancelOrder(AdminOrderService $adminOrderService)
     {
         $order = \App\Models\Order::findOrFail($this->orderData['id']);
@@ -121,6 +114,55 @@ class OrderShowPage extends Component
 
         session()->flash('success', 'Order cancelled successfully.');
         $this->reset(['showCancelModal', 'adminComment']);
+        $this->loadOrder($adminOrderService);
+    }
+
+    public function openDispatchItemModal($itemId)
+    {
+        $this->selectedItemId = $itemId;
+        $items = collect($this->orderData['items']);
+        $item = $items->firstWhere('id', $itemId);
+        if ($item) {
+            $this->dispatchQty = $item['quantity'];
+        }
+        $this->showItemDispatchModal = true;
+    }
+
+    public function confirmDispatchItem(AdminOrderService $adminOrderService)
+    {
+        $this->validate([
+            'dispatchQty' => 'required|integer|min:1',
+        ]);
+
+        try {
+            $item = \App\Models\OrderItem::findOrFail($this->selectedItemId);
+            $adminOrderService->dispatchOrderItem($item, (int) $this->dispatchQty, auth()->user());
+            session()->flash('success', 'Order item dispatched successfully.');
+        } catch (ValidationException $e) {
+            session()->flash('error', collect($e->errors())->flatten()->first());
+        }
+
+        $this->reset(['showItemDispatchModal', 'selectedItemId', 'dispatchQty']);
+        $this->loadOrder($adminOrderService);
+    }
+
+    public function openCancelItemModal($itemId)
+    {
+        $this->selectedItemId = $itemId;
+        $this->showItemCancelModal = true;
+    }
+
+    public function confirmCancelItem(AdminOrderService $adminOrderService)
+    {
+        try {
+            $item = \App\Models\OrderItem::findOrFail($this->selectedItemId);
+            $adminOrderService->cancelOrderItem($item, auth()->user());
+            session()->flash('success', 'Order item cancelled successfully.');
+        } catch (ValidationException $e) {
+            session()->flash('error', collect($e->errors())->flatten()->first());
+        }
+
+        $this->reset(['showItemCancelModal', 'selectedItemId']);
         $this->loadOrder($adminOrderService);
     }
 

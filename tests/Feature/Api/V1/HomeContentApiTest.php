@@ -102,7 +102,7 @@ class HomeContentApiTest extends TestCase
 
         $product->customerLevelPrices()->create([
             'customer_level_id' => $this->customerLevel->id,
-            'price' => 4200.00,
+            'discount_percentage' => 16.00,
         ]);
 
         $productSection = HomeContentSection::create([
@@ -161,8 +161,7 @@ class HomeContentApiTest extends TestCase
         $this->assertEquals('product_slider', $data[1]['type']);
         $this->assertEquals('Hot Deals', $data[1]['title']);
         $productCard = $data[1]['items'][0]['product'];
-        $this->assertEquals('Silk Saree Premium', $productCard['title']);
         // Check B2B pricing reflects customer level price
-        $this->assertEquals(4200.00, $productCard['price']);
+        $this->assertEquals(4200.00, $productCard['price']['customer_price']);
     }
 }

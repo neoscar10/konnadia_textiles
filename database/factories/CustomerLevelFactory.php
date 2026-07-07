@@ -12,7 +12,7 @@ class CustomerLevelFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->randomElement(['Bronze', 'Silver', 'Gold', 'Platinum']),
+            'name' => $this->faker->unique()->word() . ' ' . $this->faker->unique()->randomNumber(5),
             'description' => $this->faker->sentence(),
             'is_active' => true,
         ];

@@ -44,7 +44,7 @@
                             <th class="px-5 py-3.5">SKU / Specs</th>
                             <th class="px-5 py-3.5 text-center">Qty</th>
                             <th class="px-5 py-3.5 text-right">Unit Price</th>
-                            <th class="px-5 py-3.5 text-center">HSN</th>
+                            <th class="px-5 py-3.5 text-center">Status</th>
                             <th class="px-5 py-3.5 text-right">GST</th>
                             <th class="px-5 py-3.5 text-right">Subtotal</th>
                         </tr>
@@ -79,7 +79,19 @@
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 text-right">₹{{ number_format($item['pricing']['customer_unit_price'], 2) }}</td>
-                                <td class="px-5 py-4 text-center font-mono text-[10px] text-slate-500">{{ $item['tax']['hsn_code'] ?? '—' }}</td>
+                                <td class="px-5 py-4 text-center">
+                                    @php
+                                        $itemStatus = $item['status'] ?? 'pending_dispatch';
+                                        $itemBadge = match($itemStatus) {
+                                            'dispatched' => ['bg' => 'bg-purple-50 text-purple-700 border-purple-200/50', 'label' => 'Dispatched'],
+                                            'cancelled' => ['bg' => 'bg-slate-100 text-slate-500 border-slate-200', 'label' => 'Cancelled'],
+                                            default => ['bg' => 'bg-amber-50 text-amber-700 border-amber-200/50', 'label' => 'Pending Dispatch'],
+                                        };
+                                    @endphp
+                                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border {{ $itemBadge['bg'] }}">
+                                        {{ $itemBadge['label'] }}
+                                    </span>
+                                </td>
                                 <td class="px-5 py-4 text-right">
                                     <span class="block">₹{{ number_format($item['tax']['gst_amount'], 2) }}</span>
                                     <span class="text-[9px] text-slate-400">({{ (float) $item['tax']['gst_percentage'] }}%)</span>
