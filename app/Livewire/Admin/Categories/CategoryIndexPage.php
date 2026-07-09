@@ -125,6 +125,7 @@ class CategoryIndexPage extends Component
         'gst_percentage' => '',
         'minimum_order_quantity' => 1,
         'product_type' => 'retail',
+        'base_price' => '',
         'pricingOverrides' => [],
         'units' => [
             'level1_name' => 'Piece',
@@ -163,7 +164,13 @@ class CategoryIndexPage extends Component
             DB::transaction(function () use ($productService, $mediaService) {
                 if (!$this->selectedProductId) {
                     $this->validateStep(1);
+
+                    $catId = $this->currentCategoryId ?: collect($this->selectedCategoryIds)->first();
+                    $category = $catId ? Category::find($catId) : null;
+                    $defaults = $category ? ($category->default_product_config ?? []) : [];
+
                     $payload                          = $this->basicInfo;
+                    $payload['base_price']            = isset($defaults['base_price']) && $defaults['base_price'] !== '' ? (float)$defaults['base_price'] : 0.00;
                     $payload['category_ids']          = $this->getEffectiveCategoryIds();
                     $payload['customer_level_prices'] = [];
                     $payload['units']                 = $this->units;
@@ -351,6 +358,9 @@ class CategoryIndexPage extends Component
                 }
             }
             $defaults['pricingOverrides'] = $pricing;
+            if (!isset($defaults['base_price'])) {
+                $defaults['base_price'] = '';
+            }
             $this->categoryDefaults = $defaults;
         } else {
             $customerLevels = CustomerLevel::active()->ordered()->get();
@@ -364,6 +374,7 @@ class CategoryIndexPage extends Component
                 'gst_percentage' => '',
                 'minimum_order_quantity' => 1,
                 'product_type' => 'retail',
+                'base_price' => '',
                 'pricingOverrides' => $pricing,
                 'units' => [
                     'level1_name' => 'Piece',
@@ -381,6 +392,7 @@ class CategoryIndexPage extends Component
     public function saveCategoryDefaults(): void
     {
         $this->validate([
+            'categoryDefaults.base_price' => ['required', 'numeric', 'min:0'],
             'categoryDefaults.gst_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'categoryDefaults.minimum_order_quantity' => ['required', 'integer', 'min:1'],
             'categoryDefaults.product_type' => ['required', 'string', 'in:retail,manufactured'],
@@ -598,7 +610,6 @@ class CategoryIndexPage extends Component
         if ($step === 1) {
             $this->validate([
                 'basicInfo.title'                  => ['required', 'string', 'max:200'],
-                'basicInfo.base_price'             => ['required', 'numeric', 'min:0'],
                 'basicInfo.hsn_code'               => ['nullable', 'string', 'max:20'],
                 'basicInfo.gst_percentage'         => ['required', 'numeric', 'min:0', 'max:100'],
                 'basicInfo.minimum_order_quantity' => ['required', 'integer', 'min:1'],
@@ -661,7 +672,6 @@ class CategoryIndexPage extends Component
     {
         $rules = [
             'basicInfo.title'       => ['required', 'string', 'max:200'],
-            'basicInfo.base_price'  => ['required', 'numeric', 'min:0'],
             'basicInfo.description' => ['required', 'string'],
             'nonVariantStock'       => ['nullable', 'integer', 'min:0'],
             'units.level1_name'     => ['required', 'string', 'max:50'],
@@ -693,7 +703,7 @@ class CategoryIndexPage extends Component
 
                 $payload = [
                     'title'                  => trim($this->basicInfo['title']),
-                    'base_price'             => (float) $this->basicInfo['base_price'],
+                    'base_price'             => isset($defaults['base_price']) && $defaults['base_price'] !== '' ? (float) $defaults['base_price'] : 0.00,
                     'description'            => trim($this->basicInfo['description']),
                     'is_active'              => isset($this->basicInfo['is_active']) ? (bool) $this->basicInfo['is_active'] : true,
                     'category_ids'           => [$category->id],

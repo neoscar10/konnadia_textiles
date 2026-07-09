@@ -44,6 +44,21 @@ class ProductManagementTest extends TestCase
             'is_active' => true,
             'gst_percentage' => 12.0,
             'hsn_code' => '6205',
+            'default_product_config' => [
+                'hsn_code' => '6205',
+                'gst_percentage' => 12.0,
+                'minimum_order_quantity' => 1,
+                'product_type' => 'retail',
+                'base_price' => 1000.00,
+                'pricingOverrides' => [],
+                'units' => [
+                    'level1_name' => 'Piece',
+                    'level1_code' => 'pcs',
+                    'level2_name' => '',
+                    'level2_code' => '',
+                    'level2_conversion' => '',
+                ],
+            ],
         ]);
 
         $this->customerLevel = CustomerLevel::create([
@@ -74,18 +89,30 @@ class ProductManagementTest extends TestCase
         $response->assertSuccessful();
     }
 
-    public function test_requires_title_base_price_and_description()
+    public function test_requires_title_and_description()
     {
         Livewire::actingAs($this->superAdmin)
             ->test(ProductIndexPage::class)
             ->set('basicInfo.title', '')
-            ->set('basicInfo.base_price', '')
             ->set('basicInfo.description', '')
             ->call('save')
             ->assertHasErrors([
                 'basicInfo.title' => 'required',
-                'basicInfo.base_price' => 'required',
                 'basicInfo.description' => 'required'
+            ]);
+    }
+
+    public function test_category_defaults_requires_base_price_and_gst()
+    {
+        Livewire::actingAs($this->superAdmin)
+            ->test(ProductIndexPage::class)
+            ->set('currentCategoryId', $this->category->id)
+            ->set('categoryDefaults.base_price', '')
+            ->set('categoryDefaults.gst_percentage', '')
+            ->call('saveCategoryDefaults')
+            ->assertHasErrors([
+                'categoryDefaults.base_price' => 'required',
+                'categoryDefaults.gst_percentage' => 'required'
             ]);
     }
 
@@ -94,7 +121,6 @@ class ProductManagementTest extends TestCase
         Livewire::actingAs($this->superAdmin)
             ->test(ProductIndexPage::class)
             ->set('basicInfo.title', 'Linen Shirt')
-            ->set('basicInfo.base_price', 1000)
             ->set('basicInfo.description', 'Nice linen shirt description')
             ->set('basicInfo.gst_percentage', 12.0)
             ->set('selectedCategoryIds', [])
@@ -104,10 +130,14 @@ class ProductManagementTest extends TestCase
 
     public function test_can_create_non_variant_product()
     {
+        $this->category->update([
+            'default_product_config' => array_merge($this->category->default_product_config, ['base_price' => 999.00])
+        ]);
+
         Livewire::actingAs($this->superAdmin)
             ->test(ProductIndexPage::class)
+            ->set('currentCategoryId', $this->category->id)
             ->set('basicInfo.title', 'Classic Chinos')
-            ->set('basicInfo.base_price', 999.00)
             ->set('basicInfo.description', 'Soft cotton fabric')
             ->set('basicInfo.gst_percentage', 12.0)
             ->set('basicInfo.hsn_code', '6205')
@@ -178,8 +208,8 @@ class ProductManagementTest extends TestCase
 
         Livewire::actingAs($this->superAdmin)
             ->test(ProductIndexPage::class)
+            ->set('currentCategoryId', $this->category->id)
             ->set('basicInfo.title', 'Variant Polo')
-            ->set('basicInfo.base_price', 1000.00)
             ->set('basicInfo.description', 'Variant polo t-shirts')
             ->set('basicInfo.gst_percentage', 12.0)
             ->set('basicInfo.hsn_code', '6205')
@@ -212,8 +242,8 @@ class ProductManagementTest extends TestCase
     {
         Livewire::actingAs($this->superAdmin)
             ->test(ProductIndexPage::class)
+            ->set('currentCategoryId', $this->category->id)
             ->set('basicInfo.title', 'Special Linen')
-            ->set('basicInfo.base_price', 2000.00)
             ->set('basicInfo.description', 'Description')
             ->set('basicInfo.gst_percentage', 12.0)
             ->set('basicInfo.hsn_code', '6205')

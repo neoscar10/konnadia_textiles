@@ -261,6 +261,16 @@
                     </select>
                     @error('categoryDefaults.product_type') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>
+
+                <!-- Default Base Price -->
+                <div class="space-y-xs">
+                    <label class="font-label-md text-on-surface-variant">Default Base Price (MRP in INR) *</label>
+                    <div class="relative">
+                        <span class="absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">₹</span>
+                        <input type="number" step="0.01" min="0" wire:model="categoryDefaults.base_price" placeholder="0.00" class="w-full pl-xl pr-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                    </div>
+                    @error('categoryDefaults.base_price') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
             </div>
 
             <!-- Customer Level Discounts -->
