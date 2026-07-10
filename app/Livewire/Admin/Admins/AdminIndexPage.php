@@ -138,6 +138,12 @@ class AdminIndexPage extends Component
             ]));
         }
 
+        // Ensure all selected permissions exist in the database for both guards to prevent Spatie errors
+        foreach ($this->selectedPermissions as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'api']);
+        }
+
         if ($this->editingId) {
             $user = User::findOrFail($this->editingId);
             
