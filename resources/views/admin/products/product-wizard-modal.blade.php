@@ -105,17 +105,17 @@
                         <!-- Quick Markup toolbar -->
                         <div class="px-md py-xs border-b border-outline-variant/30 bg-surface-container-low/40 flex items-center gap-md select-none flex-wrap">
                             <div class="flex items-center gap-xs">
-                                <button type="button" onclick="const ta = document.getElementById('desc-editor-wiz'); const start = ta.selectionStart; const end = ta.selectionEnd; const text = ta.value; ta.value = text.substring(0, start) + '**' + text.substring(start, end) + '**' + text.substring(end); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-extrabold text-sm text-primary" title="Bold">B</button>
-                                <button type="button" onclick="const ta = document.getElementById('desc-editor-wiz'); const start = ta.selectionStart; const end = ta.selectionEnd; const text = ta.value; ta.value = text.substring(0, start) + '*' + text.substring(start, end) + '*' + text.substring(end); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container italic font-bold text-sm text-primary" title="Italic">I</button>
-                                <button type="button" onclick="const ta = document.getElementById('desc-editor-wiz'); const start = ta.selectionStart; const text = ta.value; ta.value = text.substring(0, start) + '### ' + text.substring(start); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-bold text-sm text-primary" title="Heading">H</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-wiz', '**', '**')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-extrabold text-sm text-primary" title="Bold">B</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-wiz', '*', '*')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container italic font-bold text-sm text-primary" title="Italic">I</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-wiz', '# ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-bold text-sm text-primary" title="Heading">H</button>
                             </div>
                             <div class="w-px h-5 bg-outline-variant/40"></div>
                             <div class="flex items-center gap-xs">
-                                <button type="button" onclick="const ta = document.getElementById('desc-editor-wiz'); const start = ta.selectionStart; const text = ta.value; ta.value = text.substring(0, start) + '> ' + text.substring(start); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary text-base font-bold" title="Quote">"</button>
-                                <button type="button" onclick="const ta = document.getElementById('desc-editor-wiz'); const start = ta.selectionStart; const text = ta.value; ta.value = text.substring(0, start) + '- ' + text.substring(start); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary flex items-center justify-center" title="Bullet List">
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-wiz', '> ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary text-base font-bold" title="Quote">"</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-wiz', '- ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary flex items-center justify-center" title="Bullet List">
                                     <span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
                                 </button>
-                                <button type="button" onclick="const ta = document.getElementById('desc-editor-wiz'); const start = ta.selectionStart; const text = ta.value; ta.value = text.substring(0, start) + '1. ' + text.substring(start); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary flex items-center justify-center" title="Numbered List">
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-wiz', '1. ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary flex items-center justify-center" title="Numbered List">
                                     <span class="material-symbols-outlined text-[20px]">format_list_numbered</span>
                                 </button>
                             </div>
@@ -710,3 +710,26 @@
         </div>
     </x-slot>
 </x-admin.modal>
+
+<script>
+    if (typeof insertMarkdown !== 'function') {
+        window.insertMarkdown = function(textareaId, tagOpen, tagClose = '') {
+            const ta = document.getElementById(textareaId);
+            if (!ta) return;
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            const text = ta.value;
+            const selected = text.substring(start, end);
+            const replacement = tagOpen + selected + tagClose;
+            ta.value = text.substring(0, start) + replacement + text.substring(end);
+            ta.focus();
+            if (start === end) {
+                const newCursorPos = start + tagOpen.length;
+                ta.setSelectionRange(newCursorPos, newCursorPos);
+            } else {
+                ta.setSelectionRange(start + tagOpen.length, start + tagOpen.length + selected.length);
+            }
+            ta.dispatchEvent(new Event('input'));
+        }
+    }
+</script>

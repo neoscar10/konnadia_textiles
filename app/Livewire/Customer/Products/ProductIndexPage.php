@@ -413,6 +413,17 @@ class ProductIndexPage extends Component
         $this->resetPage();
     }
 
+    public function getActiveFiltersCount()
+    {
+        $count = 0;
+        if (!empty($this->search)) $count++;
+        if (!empty($this->category)) $count++;
+        if ($this->availability !== 'all') $count++;
+        if ($this->max_price != 10000) $count++;
+        if (!empty($this->selectedTags)) $count += count($this->selectedTags);
+        return $count;
+    }
+
     public function render(ProductCatalogService $catalogService)
     {
         $this->expandParentIfNeeded($this->category);
@@ -435,7 +446,8 @@ class ProductIndexPage extends Component
         return view('livewire.customer.products.product-index-page', [
             'products' => $products,
             'categoriesList' => $metadata['categories'],
-            'tagsList' => $tagsList
+            'tagsList' => $tagsList,
+            'activeFiltersCount' => $this->getActiveFiltersCount(),
         ])->layoutData(['title' => 'Products Catalog']);
     }
 }

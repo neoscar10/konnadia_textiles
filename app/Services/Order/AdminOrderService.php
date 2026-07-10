@@ -70,11 +70,11 @@ class AdminOrderService
             
             if ($hasManufactured && !$hasRetail) {
                 $total_amount = (float) $order->items->filter(function ($item) {
-                    return $item->product && $item->product->product_type === 'manufactured';
+                    return $item->product && $item->product->product_type === 'retail';
                 })->sum('line_total');
             } elseif ($hasRetail && !$hasManufactured) {
                 $total_amount = (float) $order->items->filter(function ($item) {
-                    return $item->product && $item->product->product_type === 'retail';
+                    return $item->product && $item->product->product_type === 'manufactured';
                 })->sum('line_total');
             } elseif (!$hasManufactured && !$hasRetail) {
                 $total_amount = 0.0;
@@ -122,11 +122,11 @@ class AdminOrderService
                 $hasItemsInScope = false;
                 if ($hasManufactured && !$hasRetail) {
                     $hasItemsInScope = $order->items()->whereHas('product', function($q) {
-                        $q->where('product_type', 'manufactured');
+                        $q->where('product_type', 'retail');
                     })->exists();
                 } elseif ($hasRetail && !$hasManufactured) {
                     $hasItemsInScope = $order->items()->whereHas('product', function($q) {
-                        $q->where('product_type', 'retail');
+                        $q->where('product_type', 'manufactured');
                     })->exists();
                 } elseif ($hasManufactured && $hasRetail) {
                     $hasItemsInScope = true;
@@ -157,11 +157,11 @@ class AdminOrderService
             
             if ($hasManufactured && !$hasRetail) {
                 $filteredItems = $order->items->filter(function ($item) {
-                    return $item->product && $item->product->product_type === 'manufactured';
+                    return $item->product && $item->product->product_type === 'retail';
                 });
             } elseif ($hasRetail && !$hasManufactured) {
                 $filteredItems = $order->items->filter(function ($item) {
-                    return $item->product && $item->product->product_type === 'retail';
+                    return $item->product && $item->product->product_type === 'manufactured';
                 });
             } elseif (!$hasManufactured && !$hasRetail) {
                 $filteredItems = collect();
@@ -192,6 +192,8 @@ class AdminOrderService
                 'line_total' => (float) $item->line_total,
                 'formatted_line_total' => '₹' . number_format($item->line_total, 2),
                 'status' => $item->status ?: 'pending_dispatch',
+                'product_type' => $product ? $product->product_type : 'retail',
+                'dispatch_note' => $item->dispatch_note,
             ];
         })->toArray();
 
@@ -469,7 +471,7 @@ class AdminOrderService
                     ->whereIn('orders.id', (clone $baseQuery)->pluck('id'))
                     ->whereNotIn('orders.status', ['cancelled', 'rejected'])
                     ->whereNull('products.deleted_at')
-                    ->where('products.product_type', 'manufactured')
+                    ->where('products.product_type', 'retail')
                     ->sum('order_items.line_total');
             } elseif ($hasRetail && !$hasManufactured) {
                 // Sum line_total for only retail items
@@ -479,7 +481,7 @@ class AdminOrderService
                     ->whereIn('orders.id', (clone $baseQuery)->pluck('id'))
                     ->whereNotIn('orders.status', ['cancelled', 'rejected'])
                     ->whereNull('products.deleted_at')
-                    ->where('products.product_type', 'retail')
+                    ->where('products.product_type', 'manufactured')
                     ->sum('order_items.line_total');
             } else {
                 $totalValue = 0.0;
@@ -502,7 +504,7 @@ class AdminOrderService
     /**
      * Dispatch a specific quantity of an order item.
      */
-    public function dispatchOrderItem(\App\Models\OrderItem $item, int $qtyToDispatch, User $admin): Order
+    public function dispatchOrderItem(\App\Models\OrderItem $item, int $qtyToDispatch, User $admin, ?string $note = null): Order
     {
         if ($qtyToDispatch <= 0) {
             throw ValidationException::withMessages(['quantity' => 'Dispatch quantity must be greater than zero.']);
@@ -516,7 +518,7 @@ class AdminOrderService
 
         $order = $item->order;
 
-        return DB::transaction(function () use ($item, $qtyToDispatch, $order, $admin) {
+        return DB::transaction(function () use ($item, $qtyToDispatch, $order, $admin, $note) {
             $item->load('unit');
 
             // Deduct stock for this item
@@ -562,6 +564,9 @@ class AdminOrderService
 
             // Mark original item as dispatched
             $item->status = 'dispatched';
+            if ($item->product && $item->product->product_type === 'retail') {
+                $item->dispatch_note = $note;
+            }
             $item->save();
 
             // Refresh items list for correct calculations
@@ -651,11 +656,11 @@ class AdminOrderService
 
             if ($hasManufactured && !$hasRetail) {
                 $query->whereHas('items.product', function ($q) {
-                    $q->where('product_type', 'manufactured');
+                    $q->where('product_type', 'retail');
                 });
             } elseif ($hasRetail && !$hasManufactured) {
                 $query->whereHas('items.product', function ($q) {
-                    $q->where('product_type', 'retail');
+                    $q->where('product_type', 'manufactured');
                 });
             } elseif (!$hasManufactured && !$hasRetail) {
                 $query->whereRaw('1 = 0');

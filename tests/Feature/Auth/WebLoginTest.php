@@ -37,7 +37,7 @@ class WebLoginTest extends TestCase
         $user->assignRole('super_admin');
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'identifier' => $user->email,
             'password' => 'password',
         ]);
 
@@ -51,7 +51,7 @@ class WebLoginTest extends TestCase
         $user->assignRole('customer');
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'identifier' => $user->email,
             'password' => 'password',
         ]);
 

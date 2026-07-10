@@ -218,8 +218,14 @@ class AdminDashboardService
     {
         $pendingStatuses = ['submitted', 'under_review', 'pending_approval', 'pending_payment_verification'];
 
-        $orders = Order::whereIn('status', $pendingStatuses)
-            ->with('customer')
+        $query = Order::whereIn('status', $pendingStatuses);
+
+        if (!empty($filters['date_range'])) {
+            $dateRange = $this->getDateRangeFromFilter($filters['date_range']);
+            $query->whereBetween('created_at', $dateRange);
+        }
+
+        $orders = (clone $query)->with('customer')
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
@@ -237,7 +243,7 @@ class AdminDashboardService
             ->toArray();
 
         return [
-            'count' => Order::whereIn('status', $pendingStatuses)->count(),
+            'count' => $query->count(),
             'orders' => $orders,
         ];
     }

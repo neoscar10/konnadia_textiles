@@ -136,15 +136,10 @@ class ProductManagementTest extends TestCase
 
         Livewire::actingAs($this->superAdmin)
             ->test(ProductIndexPage::class)
-            ->set('currentCategoryId', $this->category->id)
+            ->call('selectLeafForAddProduct', $this->category->id)
             ->set('basicInfo.title', 'Classic Chinos')
             ->set('basicInfo.description', 'Soft cotton fabric')
-            ->set('basicInfo.gst_percentage', 12.0)
-            ->set('basicInfo.hsn_code', '6205')
-            ->set('selectedCategoryIds', [$this->category->id])
             ->set('nonVariantStock', 50)
-            ->set('units.level1_name', 'Piece')
-            ->set('units.level1_code', 'pcs')
             ->call('save')
             ->assertHasNoErrors();
 
@@ -208,16 +203,11 @@ class ProductManagementTest extends TestCase
 
         Livewire::actingAs($this->superAdmin)
             ->test(ProductIndexPage::class)
-            ->set('currentCategoryId', $this->category->id)
+            ->call('selectLeafForAddProduct', $this->category->id)
             ->set('basicInfo.title', 'Variant Polo')
             ->set('basicInfo.description', 'Variant polo t-shirts')
-            ->set('basicInfo.gst_percentage', 12.0)
-            ->set('basicInfo.hsn_code', '6205')
-            ->set('selectedCategoryIds', [$this->category->id])
             ->set('variationGroups', $groupsPayload)
             ->set('combinations', $combinationsPayload)
-            ->set('units.level1_name', 'Piece')
-            ->set('units.level1_code', 'pcs')
             ->call('save')
             ->assertHasNoErrors();
 
@@ -242,12 +232,9 @@ class ProductManagementTest extends TestCase
     {
         Livewire::actingAs($this->superAdmin)
             ->test(ProductIndexPage::class)
-            ->set('currentCategoryId', $this->category->id)
+            ->call('selectLeafForAddProduct', $this->category->id)
             ->set('basicInfo.title', 'Special Linen')
             ->set('basicInfo.description', 'Description')
-            ->set('basicInfo.gst_percentage', 12.0)
-            ->set('basicInfo.hsn_code', '6205')
-            ->set('selectedCategoryIds', [$this->category->id])
             ->set('pricingOverrides.' . $this->customerLevel->id, 15.00) // Custom 15% discount
             ->call('save')
             ->assertHasNoErrors();

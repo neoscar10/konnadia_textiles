@@ -39,7 +39,7 @@ class OrderApiTest extends TestCase
             'hsn_code' => '6205',
         ]);
 
-        $this->customerUser = User::factory()->create();
+        $this->customerUser = User::factory()->create(['is_active' => true]);
         $this->customerUser->assignRole('customer');
 
         $this->customer = Customer::create([

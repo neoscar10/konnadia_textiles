@@ -60,6 +60,7 @@ class OrderReviewPage extends Component
             $payload = [
                 'checkout_method' => $this->checkoutMethod,
                 'customer_notes' => $this->customerNotes ?: null,
+                'receipt_file' => $this->receiptFile,
             ];
 
             $order = $checkoutService->submitOrder(auth()->user(), $payload);

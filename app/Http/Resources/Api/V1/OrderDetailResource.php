@@ -31,6 +31,7 @@ class OrderDetailResource extends JsonResource
             ],
             'items' => OrderItemResource::collection($this->items),
             'receipts' => PaymentReceiptResource::collection($this->receipts),
+            'important_message' => app(\App\Services\Order\OrderService::class)->getImportantMessageForCustomer($this->resource),
             'timeline' => $this->statusHistories->map(function ($history) {
                 return [
                     'id' => $history->id,

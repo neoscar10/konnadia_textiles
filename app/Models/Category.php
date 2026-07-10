@@ -90,4 +90,12 @@ class Category extends Model
     {
         return $query->orderBy('sort_order')->orderBy('name');
     }
+
+    /**
+     * Tags relationship.
+     */
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'category_tag');
+    }
 }

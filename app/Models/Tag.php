@@ -39,4 +39,12 @@ class Tag extends Model
     {
         return $this->belongsToMany(Product::class, 'product_tag');
     }
+
+    /**
+     * Categories relationship.
+     */
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'category_tag');
+    }
 }

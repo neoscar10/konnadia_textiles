@@ -680,24 +680,24 @@
                                         <div class="px-md py-xs border-b border-outline-variant/20 bg-slate-50 flex items-center justify-between select-none flex-wrap gap-sm">
                                             <div class="flex items-center gap-xs">
                                                 <!-- Bold -->
-                                                <button type="button" onclick="insertMarkdownCard('**', '**')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 font-extrabold text-sm text-slate-700" title="Bold">B</button>
+                                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdownCard('**', '**')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 font-extrabold text-sm text-slate-700" title="Bold">B</button>
                                                 <!-- Italic -->
-                                                <button type="button" onclick="insertMarkdownCard('*', '*')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 italic font-bold text-sm text-slate-700" title="Italic">I</button>
+                                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdownCard('*', '*')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 italic font-bold text-sm text-slate-700" title="Italic">I</button>
                                                 <!-- Heading -->
-                                                <button type="button" onclick="insertMarkdownCard('### ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 font-bold text-sm text-slate-700" title="Heading">H</button>
+                                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdownCard('# ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 font-bold text-sm text-slate-700" title="Heading">H</button>
                                                 <div class="w-px h-4 bg-slate-300"></div>
                                                 <!-- Quote -->
-                                                <button type="button" onclick="insertMarkdownCard('> ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700 font-bold" title="Quote">"</button>
+                                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdownCard('> ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700 font-bold" title="Quote">"</button>
                                                 <!-- Bullet List -->
-                                                <button type="button" onclick="insertMarkdownCard('- ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700" title="Bullet List">
+                                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdownCard('- ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700" title="Bullet List">
                                                     <span class="material-symbols-outlined text-[18px]">format_list_bulleted</span>
                                                 </button>
                                                 <!-- Numbered List -->
-                                                <button type="button" onclick="insertMarkdownCard('1. ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700" title="Numbered List">
+                                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdownCard('1. ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700" title="Numbered List">
                                                     <span class="material-symbols-outlined text-[18px]">format_list_numbered</span>
                                                 </button>
                                                 <!-- Link -->
-                                                <button type="button" onclick="insertMarkdownCard('[', '](url)')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700" title="Add Link">
+                                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdownCard('[', '](url)')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-slate-200/50 text-slate-700" title="Add Link">
                                                     <span class="material-symbols-outlined text-[18px]">link</span>
                                                 </button>
                                             </div>

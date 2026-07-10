@@ -35,7 +35,7 @@ class OtpAuthController extends Controller
         $user = $this->otpService->resolveUser($validated['login']);
 
         if (!$user) {
-            return $this->errorResponse('Account not found.', 404);
+            return $this->errorResponse('Account not found.', [], 404);
         }
 
         // Apply same checks as password login for API
@@ -49,7 +49,7 @@ class OtpAuthController extends Controller
         $sent = $this->otpService->sendOtp($validated['login']);
 
         if (!$sent) {
-            return $this->errorResponse('Failed to send OTP.', 400);
+            return $this->errorResponse('Failed to send OTP.', [], 400);
         }
 
         return $this->successResponse('OTP sent successfully. Any 6-digit code will pass.', [
@@ -64,13 +64,13 @@ class OtpAuthController extends Controller
     {
         $validated = $request->validate([
             'login' => ['required', 'string'],
-            'otp' => ['required', 'string', 'size:6'],
+            'otp' => ['required', 'digits:6'],
         ]);
 
         $user = $this->otpService->resolveUser($validated['login']);
 
         if (!$user) {
-            return $this->errorResponse('Account not found.', 404);
+            return $this->errorResponse('Account not found.', [], 404);
         }
 
         // Apply same checks as password login for API
@@ -81,13 +81,13 @@ class OtpAuthController extends Controller
         }
 
         if (!$this->otpService->verifyOtp($validated['login'], $validated['otp'])) {
-            return $this->errorResponse('Invalid OTP code. Please enter any 6 digits.', 401);
+            return $this->errorResponse('Invalid OTP code. Please enter any 6 digits.', [], 401);
         }
 
         // Generate JWT
         $token = auth('api')->login($user);
         if (!$token) {
-            return $this->errorResponse('Could not generate authentication token.', 500);
+            return $this->errorResponse('Could not generate authentication token.', [], 500);
         }
 
         $data = $this->mobileAuthService->buildAuthPayload($user, $token);

@@ -84,6 +84,15 @@ class CheckoutService
 
             $method = $payload['checkout_method'] ?? 'regular';
 
+            if ($method === 'manual_payment') {
+                if (empty($payload['receipt_file'])) {
+                    throw ValidationException::withMessages([
+                        'receipt_file' => 'Please upload a valid payment receipt.',
+                    ]);
+                }
+                $this->receiptService->validateReceiptFile($payload['receipt_file']);
+            }
+
             // Validate checkout method (bypass checks)
             $checkoutEvaluation = $this->validateCheckoutMethod($user, $cart, $method, $payload);
 
@@ -98,6 +107,11 @@ class CheckoutService
 
             // Create order
             $order = $this->orderService->createFromCart($user, $cart, $checkoutPayload, $checkoutEvaluation);
+
+            // Store receipt if manual payment
+            if ($method === 'manual_payment') {
+                $this->receiptService->storeReceipt($order, $payload['receipt_file']);
+            }
 
             // Mark cart as converted
             $cart->update(['status' => 'converted']);

@@ -3,7 +3,7 @@
         
         <!-- Left: Logo / Branding -->
         <div class="flex items-center gap-8 shrink-0">
-            <a href="{{ route('customer.dashboard') }}" wire:navigate class="flex items-center gap-2">
+            <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-gold lg:text-gold text-3xl">storefront</span>
                 <span class="font-bold text-lg tracking-tight text-[#001229] lg:text-white">
                     Kannodia<span class="text-gold"> Textiles</span>
@@ -12,8 +12,8 @@
 
             <!-- Desktop Nav Links -->
             <nav class="hidden lg:flex items-center gap-6">
-                <a href="{{ route('customer.dashboard') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.dashboard') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
-                    Dashboard
+                <a href="{{ auth()->check() ? route('customer.dashboard') : route('home') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.dashboard') || request()->routeIs('home') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
+                    {{ auth()->check() ? 'Dashboard' : 'Home' }}
                 </a>
                 <a href="{{ route('customer.products.index') }}" wire:navigate class="px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('customer.products.*') || request()->routeIs('customer.categories.*') ? 'text-gold' : 'text-slate-300 hover:text-white' }}">
                     Shop

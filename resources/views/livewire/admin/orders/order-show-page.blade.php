@@ -56,6 +56,12 @@
             @if(in_array('cancel', $allowedActions))
                 <x-admin.button variant="danger" icon="cancel" wire:click="$set('showCancelModal', true)">Cancel Order</x-admin.button>
             @endif
+
+            @if(in_array($orderData['status'], ['approved', 'partially_dispatched']) && !empty($selectedItemIds))
+                <x-admin.button variant="primary" icon="local_shipping" wire:click="openBulkDispatchModal" class="!bg-purple-600 hover:!bg-purple-700 !text-white">
+                    Bulk Dispatch ({{ count($selectedItemIds) }})
+                </x-admin.button>
+            @endif
         </div>
     </div>
 
@@ -100,9 +106,16 @@
         <!-- Order Items List -->
         <div class="col-span-12 lg:col-span-8 space-y-xl">
             <x-admin.card>
-                <x-slot:header class="flex items-center gap-sm bg-surface-container-low/30">
-                    <span class="material-symbols-outlined text-primary-fixed-dim">inventory_2</span>
-                    <h3 class="font-title-md text-primary">Order Items</h3>
+                <x-slot:header class="flex items-center justify-between bg-surface-container-low/30 w-full">
+                    <div class="flex items-center gap-sm">
+                        <span class="material-symbols-outlined text-primary-fixed-dim">inventory_2</span>
+                        <h3 class="font-title-md text-primary">Order Items</h3>
+                    </div>
+                    @if(in_array($orderData['status'], ['approved', 'partially_dispatched']) && !empty($selectedItemIds))
+                        <x-admin.button variant="primary" icon="local_shipping" wire:click="openBulkDispatchModal" class="!bg-purple-600 hover:!bg-purple-700 !text-white text-xs py-1.5 px-3">
+                            Dispatch All Selected ({{ count($selectedItemIds) }})
+                        </x-admin.button>
+                    @endif
                 </x-slot:header>
 
                 <x-slot:bodyClass>p-0</x-slot:bodyClass>
@@ -124,8 +137,15 @@
                             @foreach($orderData['items'] as $item)
                                 <tr class="hover:bg-primary/[0.02] transition-colors">
                                     <td class="px-lg py-md">
-                                        <p class="font-title-md text-primary">{{ $item['product_title'] }}</p>
-                                        <p class="font-body-md text-on-surface-variant text-xs font-mono mt-1">{{ $item['product_sku'] }}</p>
+                                        <div class="flex items-start gap-sm">
+                                            @if(in_array($orderData['status'], ['approved', 'partially_dispatched']) && $item['status'] === 'pending_dispatch' && $item['product_type'] === 'retail')
+                                                <input type="checkbox" wire:model.live="selectedItemIds" value="{{ $item['id'] }}" class="w-4.5 h-4.5 rounded border-outline-variant text-[#5c44c4] focus:ring-[#5c44c4] cursor-pointer mt-0.5">
+                                            @endif
+                                            <div class="flex-1">
+                                                <p class="font-title-md text-primary">{{ $item['product_title'] }}</p>
+                                                <p class="font-body-md text-on-surface-variant text-xs font-mono mt-1">{{ $item['product_sku'] }}</p>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td class="px-lg py-md">
                                         @if(!empty($item['has_lvl2_unit']))
@@ -255,6 +275,59 @@
                     </div>
                 @endif
             </x-admin.card>
+
+            <!-- Dispatches History -->
+            <x-admin.card>
+                <x-slot:header class="bg-surface-container-low/30">
+                    <div class="flex items-center gap-sm">
+                        <span class="material-symbols-outlined text-primary-fixed-dim font-bold">local_shipping</span>
+                        <h3 class="font-title-md text-primary">Dispatches</h3>
+                    </div>
+                </x-slot:header>
+
+                @php
+                    $dispatchedItems = collect($orderData['items'])->filter(fn($i) => ($i['status'] ?? '') === 'dispatched');
+                @endphp
+
+                @if($dispatchedItems->isEmpty())
+                    <div class="flex flex-col items-center justify-center p-lg bg-surface-container-low/40 border border-dashed border-outline-variant/30 rounded-lg text-center opacity-60 select-none">
+                        <span class="material-symbols-outlined text-[36px] text-on-surface-variant mb-xs">local_shipping</span>
+                        <p class="font-body-md text-on-surface-variant text-sm">No dispatches logged for this order yet.</p>
+                    </div>
+                @else
+                    <div class="space-y-md">
+                        @foreach($dispatchedItems as $dispItem)
+                            <div class="p-md bg-surface-container-low rounded-lg border border-outline-variant/20 space-y-xs">
+                                <div class="flex items-start justify-between gap-sm">
+                                    <div>
+                                        <p class="font-title-sm text-primary font-bold">{{ $dispItem['product_title'] }}</p>
+                                        <p class="text-xs text-on-surface-variant font-mono">{{ $dispItem['product_sku'] }}</p>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <span class="text-xs bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full border border-purple-200">
+                                            @if(!empty($dispItem['has_lvl2_unit']))
+                                                @if($dispItem['quantity_lvl2'] > 0)
+                                                    {{ $dispItem['quantity_lvl2'] }} {{ $dispItem['lvl2_unit_name'] }}{{ $dispItem['quantity_lvl2'] != 1 ? 's' : '' }}
+                                                @endif
+                                                @if($dispItem['quantity_lvl1'] > 0)
+                                                    @if($dispItem['quantity_lvl2'] > 0), @endif
+                                                    {{ $dispItem['quantity_lvl1'] }} {{ $dispItem['lvl1_unit_name'] }}{{ $dispItem['quantity_lvl1'] != 1 ? 's' : '' }}
+                                                @endif
+                                            @else
+                                                {{ $dispItem['quantity'] }} {{ $dispItem['unit_short_code'] ?: 'Pcs' }}
+                                            @endif
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="pt-xs border-t border-outline-variant/10 text-xs text-on-surface-variant">
+                                    <strong>Dispatch Note:</strong>
+                                    <p class="mt-0.5 italic text-on-surface-variant/80">{{ $dispItem['dispatch_note'] ?: 'No dispatch note entered.' }}</p>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-admin.card>
         </div>
     </div>
 
@@ -374,9 +447,59 @@
                     @error('dispatchQty') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>
 
+                @if($selItem && $selItem['product_type'] === 'retail')
+                    <div class="space-y-sm mb-md">
+                        <label class="font-label-md text-on-surface-variant font-semibold">Dispatch Note</label>
+                        <textarea wire:model="dispatchNote" rows="3" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface" placeholder="Enter dispatch note..."></textarea>
+                        @error('dispatchNote') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                    </div>
+                @endif
+
                 <div class="flex justify-end gap-sm">
                     <x-admin.button variant="outline" wire:click="$set('showItemDispatchModal', false)">Cancel</x-admin.button>
                     <x-admin.button variant="primary" wire:click="confirmDispatchItem">Confirm Dispatch</x-admin.button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Bulk Dispatch Modal -->
+    @if($showBulkDispatchModal)
+        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+            <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-lg">
+                <h3 class="font-headline-md text-primary mb-md">Bulk Dispatch Items</h3>
+                <p class="font-body-md text-on-surface-variant mb-md">Confirm quantities and enter a dispatch note for the selected manufactured items.</p>
+                
+                <div class="space-y-md max-h-[220px] overflow-y-auto pr-xs mb-md">
+                    @foreach($selectedItemIds as $itemId)
+                        @php
+                            $selItem = collect($orderData['items'])->firstWhere('id', $itemId);
+                        @endphp
+                        @if($selItem)
+                            <div class="flex items-center justify-between gap-md p-sm bg-surface-container-low rounded-lg border border-outline-variant/20">
+                                <div class="flex-1">
+                                    <p class="font-title-sm text-primary text-sm font-bold">{{ $selItem['product_title'] }}</p>
+                                    <p class="text-xs text-on-surface-variant font-mono">{{ $selItem['product_sku'] }}</p>
+                                </div>
+                                <div class="w-36 flex items-center gap-xs">
+                                    <input type="number" wire:model="bulkDispatchQuantities.{{ $itemId }}" min="1" max="{{ $selItem['quantity'] }}" class="w-full px-sm py-xs bg-white border border-outline-variant/50 rounded text-sm text-right focus:ring-1 focus:ring-secondary outline-none">
+                                    <span class="text-xs text-on-surface-variant font-bold">{{ $selItem['unit_short_code'] ?: 'Pcs' }}</span>
+                                </div>
+                            </div>
+                            @error("bulkDispatchQuantities.{$itemId}") <span class="text-error text-xs block text-right mt-xxs">{{ $message }}</span> @enderror
+                        @endif
+                    @endforeach
+                </div>
+
+                <div class="space-y-sm mb-md">
+                    <label class="font-label-md text-on-surface-variant font-semibold">Dispatch Note</label>
+                    <textarea wire:model="dispatchNote" rows="3" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface" placeholder="Enter dispatch note for all selected items..."></textarea>
+                    @error('dispatchNote') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="flex justify-end gap-sm">
+                    <x-admin.button variant="outline" wire:click="$set('showBulkDispatchModal', false)">Cancel</x-admin.button>
+                    <x-admin.button variant="primary" wire:click="confirmBulkDispatch">Confirm Dispatch</x-admin.button>
                 </div>
             </div>
         </div>

@@ -8,8 +8,8 @@
     <!-- Wizard Steps Content (Single Step Layout) -->
     <div class="p-xl overflow-y-auto max-h-[600px] space-y-xl" style="min-height: 400px;">
 
-        <!-- Row 1: Title and Stock on same row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-md items-end">
+        <!-- Row 1: Title, Stock, and Price on same row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-md items-end">
             <!-- Product Title -->
             <div class="space-y-xs">
                 <label class="font-label-md text-on-surface-variant">Product Title *</label>
@@ -32,6 +32,16 @@
                     @endif
                 </div>
                 @error('nonVariantStock') <span class="text-error text-xs">{{ $message }}</span> @enderror
+            </div>
+
+            <!-- Base Price -->
+            <div class="space-y-xs">
+                <label class="font-label-md text-on-surface-variant">Base Price (MRP in INR) *</label>
+                <div class="relative">
+                    <span class="absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">₹</span>
+                    <input type="number" step="0.01" wire:model="basicInfo.base_price" placeholder="0.00" class="w-full pl-xl pr-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                </div>
+                @error('basicInfo.base_price') <span class="text-error text-xs">{{ $message }}</span> @enderror
             </div>
         </div>
 
@@ -253,9 +263,9 @@
                 <!-- Toolbar -->
                 <div class="px-md py-xs border-b border-outline-variant/30 bg-surface-container-low/40 flex items-center gap-md select-none flex-wrap">
                     <div class="flex items-center gap-xs">
-                        <button type="button" onclick="const ta = document.getElementById('desc-editor-wiz-cat'); const start = ta.selectionStart; const end = ta.selectionEnd; const text = ta.value; ta.value = text.substring(0, start) + '**' + text.substring(start, end) + '**' + text.substring(end); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-extrabold text-sm text-primary" title="Bold">B</button>
-                        <button type="button" onclick="const ta = document.getElementById('desc-editor-wiz-cat'); const start = ta.selectionStart; const end = ta.selectionEnd; const text = ta.value; ta.value = text.substring(0, start) + '*' + text.substring(start, end) + '*' + text.substring(end); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container italic font-bold text-sm text-primary" title="Italic">I</button>
-                        <button type="button" onclick="const ta = document.getElementById('desc-editor-wiz-cat'); const start = ta.selectionStart; text = ta.value; ta.value = text.substring(0, start) + '### ' + text.substring(start); ta.focus(); ta.dispatchEvent(new Event('input'));" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-bold text-sm text-primary" title="Heading">H</button>
+                        <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-wiz-cat', '**', '**')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-extrabold text-sm text-primary" title="Bold">B</button>
+                        <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-wiz-cat', '*', '*')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container italic font-bold text-sm text-primary" title="Italic">I</button>
+                        <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-wiz-cat', '# ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-bold text-sm text-primary" title="Heading">H</button>
                     </div>
                     <div class="w-px h-5 bg-outline-variant/40"></div>
                     <div class="flex items-center gap-xs">
@@ -283,3 +293,26 @@
         <x-admin.button variant="primary" icon="save" wire:click="save">Save Product</x-admin.button>
     </x-slot>
 </x-admin.modal>
+
+<script>
+    if (typeof insertMarkdown !== 'function') {
+        window.insertMarkdown = function(textareaId, tagOpen, tagClose = '') {
+            const ta = document.getElementById(textareaId);
+            if (!ta) return;
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            const text = ta.value;
+            const selected = text.substring(start, end);
+            const replacement = tagOpen + selected + tagClose;
+            ta.value = text.substring(0, start) + replacement + text.substring(end);
+            ta.focus();
+            if (start === end) {
+                const newCursorPos = start + tagOpen.length;
+                ta.setSelectionRange(newCursorPos, newCursorPos);
+            } else {
+                ta.setSelectionRange(start + tagOpen.length, start + tagOpen.length + selected.length);
+            }
+            ta.dispatchEvent(new Event('input'));
+        }
+    }
+</script>

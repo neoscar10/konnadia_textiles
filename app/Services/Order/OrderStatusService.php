@@ -42,10 +42,6 @@ class OrderStatusService
             return false;
         }
 
-        // Allow cancellation from any status except cancelled or rejected
-        if ($toStatus === 'cancelled') {
-            return !in_array($current, ['cancelled', 'rejected'], true);
-        }
 
         $allowed = $this->transitions[$current] ?? [];
         

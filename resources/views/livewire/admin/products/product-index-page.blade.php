@@ -148,12 +148,20 @@
     ])
 
     <!-- ── Select Leaf Category for Defaults Modal ── -->
-    <x-admin.modal id="select-leaf-for-defaults" title="Configure Category Defaults" maxWidth="lg">
-        <div class="space-y-md p-md max-h-[500px] overflow-y-auto">
+    <x-admin.modal id="select-leaf-for-defaults" title="Configure Category Defaults" maxWidth="5xl">
+        <div x-data="{ search: '' }" class="space-y-md p-md max-h-[600px] flex flex-col">
             <p class="text-sm text-on-surface-variant">Select a leaf category to configure or edit its default HSN, GST, MOQ, units, and pricing matrix overrides.</p>
-            <div class="divide-y divide-outline-variant/10 border border-outline-variant/20 rounded-lg overflow-hidden bg-surface-container-low/30">
+            
+            <!-- Search input -->
+            <div class="relative mb-2">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">search</span>
+                <input type="text" x-model="search" placeholder="Search leaf categories by name or path..." class="w-full bg-slate-100 text-[#001229] placeholder-slate-400 pl-10 pr-4 py-2 rounded-lg text-sm border border-outline-variant/20 focus:outline-none focus:ring-2 focus:ring-[#001229]">
+            </div>
+
+            <div class="divide-y divide-outline-variant/10 border border-outline-variant/20 rounded-lg overflow-y-auto bg-surface-container-low/30 flex-1">
                 @forelse($leafCategories as $leaf)
-                    <div class="flex justify-between items-center px-lg py-md hover:bg-surface-container-high/50 transition-colors">
+                    <div x-show="search === '' || '{{ addslashes(strtolower($leaf->name)) }}'.includes(search.toLowerCase()) || '{{ addslashes(strtolower($leaf->full_path)) }}'.includes(search.toLowerCase())"
+                         class="flex justify-between items-center px-lg py-md hover:bg-surface-container-high/50 transition-colors">
                         <div class="flex items-center gap-sm">
                             <span class="material-symbols-outlined text-secondary text-[22px] select-none">bookmark</span>
                             <div class="flex flex-col">
@@ -161,7 +169,7 @@
                                 <span class="text-xs text-on-surface-variant">{{ $leaf->full_path }}</span>
                             </div>
                         </div>
-                        <x-admin.button variant="primary" icon="settings" wire:click="selectLeafForDefaults({{ $leaf->id }})" class="bg-secondary text-on-secondary hover:bg-secondary/90 text-xs">
+                        <x-admin.button variant="primary" icon="settings" wire:click="selectLeafForDefaults({{ $leaf->id }})" class="bg-secondary text-on-secondary hover:bg-secondary/90 text-xs whitespace-nowrap !shrink-0">
                             Configure Defaults
                         </x-admin.button>
                     </div>
@@ -176,15 +184,23 @@
     </x-admin.modal>
 
     <!-- ── Select Leaf Category for Add Product Modal ── -->
-    <x-admin.modal id="select-leaf-for-add-product" title="Select Category for New Product" maxWidth="lg">
-        <div class="space-y-md p-md max-h-[500px] overflow-y-auto">
+    <x-admin.modal id="select-leaf-for-add-product" title="Select Category for New Product" maxWidth="5xl">
+        <div x-data="{ search: '' }" class="space-y-md p-md max-h-[600px] flex flex-col">
             <p class="text-sm text-on-surface-variant">Choose the leaf category you want to add the product to. Only categories with configured defaults can accept new products.</p>
-            <div class="divide-y divide-outline-variant/10 border border-outline-variant/20 rounded-lg overflow-hidden bg-surface-container-low/30">
+            
+            <!-- Search input -->
+            <div class="relative mb-2">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">search</span>
+                <input type="text" x-model="search" placeholder="Search leaf categories by name or path..." class="w-full bg-slate-100 text-[#001229] placeholder-slate-400 pl-10 pr-4 py-2 rounded-lg text-sm border border-outline-variant/20 focus:outline-none focus:ring-2 focus:ring-[#001229]">
+            </div>
+
+            <div class="divide-y divide-outline-variant/10 border border-outline-variant/20 rounded-lg overflow-y-auto bg-surface-container-low/30 flex-1">
                 @forelse($leafCategories as $leaf)
                     @php
                         $defaultsConfigured = !empty($leaf->default_product_config) && !empty($leaf->default_product_config['units']['level1_name']);
                     @endphp
-                    <div class="flex justify-between items-center px-lg py-md hover:bg-surface-container-high/50 transition-colors {{ !$defaultsConfigured ? 'opacity-60 bg-surface-container-low' : '' }}">
+                    <div x-show="search === '' || '{{ addslashes(strtolower($leaf->name)) }}'.includes(search.toLowerCase()) || '{{ addslashes(strtolower($leaf->full_path)) }}'.includes(search.toLowerCase())"
+                         class="flex justify-between items-center px-lg py-md hover:bg-surface-container-high/50 transition-colors {{ !$defaultsConfigured ? 'opacity-60 bg-surface-container-low' : '' }}">
                         <div class="flex items-center gap-sm">
                             <span class="material-symbols-outlined text-[22px] select-none {{ $defaultsConfigured ? 'text-secondary' : 'text-outline-variant' }}">bookmark</span>
                             <div class="flex flex-col">
@@ -194,19 +210,19 @@
                         </div>
 
                         @if($defaultsConfigured)
-                            <x-admin.button variant="primary" icon="add" wire:click="selectLeafForAddProduct({{ $leaf->id }})" class="text-xs">
+                            <x-admin.button variant="primary" icon="add" wire:click="selectLeafForAddProduct({{ $leaf->id }})" class="text-xs whitespace-nowrap !shrink-0">
                                 Select Category
                             </x-admin.button>
                         @else
-                            <div x-data="{ tooltip: false }" @mouseenter="tooltip = true" @mouseleave="tooltip = false" class="relative cursor-not-allowed">
-                                <x-admin.button variant="primary" icon="add" class="text-xs !bg-[#001229] !text-white opacity-50 cursor-not-allowed">
+                            <div x-data="{ tooltip: false }" @mouseenter="tooltip = true" @mouseleave="tooltip = false" class="relative cursor-not-allowed flex-shrink-0">
+                                <x-admin.button variant="primary" icon="add" class="text-xs !bg-[#001229] !text-white opacity-50 cursor-not-allowed whitespace-nowrap">
                                     Select Category
                                 </x-admin.button>
                                 <!-- High-fidelity custom dark tooltip using inline styles -->
                                 <div x-show="tooltip" x-cloak 
                                      style="position: absolute; right: 0; top: 100%; margin-top: 8px; display: flex; flex-direction: column; background-color: #2e3135; color: #ffffff; border-radius: 8px; padding: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.05); z-index: 9999; min-width: 240px; text-align: left; border: 1px solid rgba(255,255,255,0.15);"
                                      class="select-none">
-                                    <span style="font-weight: 700; font-size: 13.5px; color: #ffffff; display: block; line-height: 1.2;">Add Product</span>
+                                    <span style="font-weight: 700; font-size: 13.5px; color: #ffffff; display: block; line-height: 1.2;">Select Category</span>
                                     <span style="font-weight: 400; font-size: 11.5px; color: rgba(255,255,255,0.85); margin-top: 6px; line-height: 1.5; display: block; white-space: normal;">Configure category defaults first to enable product uploads in this leaf folder.</span>
                                 </div>
                             </div>
@@ -270,6 +286,46 @@
                         <input type="number" step="0.01" min="0" wire:model="categoryDefaults.base_price" placeholder="0.00" class="w-full pl-xl pr-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
                     </div>
                     @error('categoryDefaults.base_price') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Default Description -->
+                <div class="space-y-xs md:col-span-2">
+                    <label class="font-label-md text-on-surface-variant select-none">Default Product Description</label>
+                    <div class="border border-outline-variant/60 rounded-lg overflow-hidden bg-white shadow-sm">
+                        <!-- Quick Markup toolbar -->
+                        <div class="px-md py-xs border-b border-outline-variant/30 bg-surface-container-low/40 flex items-center gap-md select-none flex-wrap">
+                            <div class="flex items-center gap-xs">
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-prod', '**', '**')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-extrabold text-sm text-primary" title="Bold">B</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-prod', '*', '*')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container italic font-bold text-sm text-primary" title="Italic">I</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-prod', '# ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-bold text-sm text-primary" title="Heading">H</button>
+                            </div>
+                            <div class="w-px h-5 bg-outline-variant/40"></div>
+                            <div class="flex items-center gap-xs">
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-prod', '> ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary text-base font-bold" title="Quote">"</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-prod', '- ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary flex items-center justify-center" title="Bullet List">
+                                    <span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+                                </button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-prod', '1. ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary flex items-center justify-center" title="Numbered List">
+                                    <span class="material-symbols-outlined text-[20px]">format_list_numbered</span>
+                                </button>
+                            </div>
+                            <div class="w-px h-5 bg-outline-variant/40"></div>
+                            <div class="flex items-center gap-xs">
+                                <button type="button" wire:click="$toggle('isPreviewModeDefaults')" class="w-8 h-8 rounded flex items-center justify-center {{ $isPreviewModeDefaults ? 'bg-secondary/15 text-secondary' : 'text-primary hover:bg-surface-container' }} flex items-center justify-center" title="Toggle Preview">
+                                    <span class="material-symbols-outlined text-[20px]">visibility</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        @if(!$isPreviewModeDefaults)
+                            <textarea id="desc-editor-defaults-prod" rows="6" wire:model="categoryDefaults.description" placeholder="Enter default product description..." class="w-full px-md py-md bg-transparent border-0 outline-none focus:ring-0 font-body-md text-on-surface resize-none min-h-[160px]"></textarea>
+                        @else
+                            <div class="prose max-w-none p-md min-h-[160px] bg-surface-container-low/20 text-on-surface text-sm overflow-y-auto">
+                                {!! Illuminate\Support\Str::markdown($categoryDefaults['description'] ?? '*Enter default product description...*') !!}
+                            </div>
+                        @endif
+                    </div>
+                    @error('categoryDefaults.description') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>
             </div>
 
@@ -491,4 +547,27 @@
             <x-admin.button variant="primary" @click="show = false">Done</x-admin.button>
         </x-slot>
     </x-admin.modal>
+
+    <script>
+        if (typeof insertMarkdown !== 'function') {
+            window.insertMarkdown = function(textareaId, tagOpen, tagClose = '') {
+                const ta = document.getElementById(textareaId);
+                if (!ta) return;
+                const start = ta.selectionStart;
+                const end = ta.selectionEnd;
+                const text = ta.value;
+                const selected = text.substring(start, end);
+                const replacement = tagOpen + selected + tagClose;
+                ta.value = text.substring(0, start) + replacement + text.substring(end);
+                ta.focus();
+                if (start === end) {
+                    const newCursorPos = start + tagOpen.length;
+                    ta.setSelectionRange(newCursorPos, newCursorPos);
+                } else {
+                    ta.setSelectionRange(start + tagOpen.length, start + tagOpen.length + selected.length);
+                }
+                ta.dispatchEvent(new Event('input'));
+            }
+        }
+    </script>
 </div>

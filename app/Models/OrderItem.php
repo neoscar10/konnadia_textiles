@@ -28,6 +28,7 @@ class OrderItem extends Model
         'gst_amount',
         'line_total',
         'status',
+        'dispatch_note',
     ];
 
     protected $casts = [

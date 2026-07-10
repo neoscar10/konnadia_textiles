@@ -21,7 +21,7 @@ class CustomerCreditServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new CustomerCreditService();
+        $this->service = resolve(CustomerCreditService::class);
         $this->admin = User::factory()->create();
 
         $level = \App\Models\CustomerLevel::create([

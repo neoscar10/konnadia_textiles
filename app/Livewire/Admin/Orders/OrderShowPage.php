@@ -27,6 +27,10 @@ class OrderShowPage extends Component
 
     public string $adminComment = '';
     public string $rejectionReason = '';
+    public array $selectedItemIds = [];
+    public string $dispatchNote = '';
+    public bool $showBulkDispatchModal = false;
+    public array $bulkDispatchQuantities = [];
 
     public function mount($orderNumber, AdminOrderService $adminOrderService)
     {
@@ -125,6 +129,7 @@ class OrderShowPage extends Component
         if ($item) {
             $this->dispatchQty = $item['quantity'];
         }
+        $this->dispatchNote = '';
         $this->showItemDispatchModal = true;
     }
 
@@ -132,17 +137,63 @@ class OrderShowPage extends Component
     {
         $this->validate([
             'dispatchQty' => 'required|integer|min:1',
+            'dispatchNote' => 'nullable|string|max:1000',
         ]);
 
         try {
             $item = \App\Models\OrderItem::findOrFail($this->selectedItemId);
-            $adminOrderService->dispatchOrderItem($item, (int) $this->dispatchQty, auth()->user());
+            $adminOrderService->dispatchOrderItem($item, (int) $this->dispatchQty, auth()->user(), $this->dispatchNote);
             session()->flash('success', 'Order item dispatched successfully.');
         } catch (ValidationException $e) {
             session()->flash('error', collect($e->errors())->flatten()->first());
         }
 
-        $this->reset(['showItemDispatchModal', 'selectedItemId', 'dispatchQty']);
+        $this->reset(['showItemDispatchModal', 'selectedItemId', 'dispatchQty', 'dispatchNote']);
+        $this->loadOrder($adminOrderService);
+    }
+
+    public function openBulkDispatchModal()
+    {
+        if (empty($this->selectedItemIds)) {
+            session()->flash('error', 'No items selected.');
+            return;
+        }
+
+        $items = collect($this->orderData['items']);
+        $this->bulkDispatchQuantities = [];
+
+        foreach ($this->selectedItemIds as $itemId) {
+            $item = $items->firstWhere('id', $itemId);
+            if ($item) {
+                $this->bulkDispatchQuantities[$itemId] = $item['quantity'];
+            }
+        }
+
+        $this->dispatchNote = '';
+        $this->showBulkDispatchModal = true;
+    }
+
+    public function confirmBulkDispatch(AdminOrderService $adminOrderService)
+    {
+        $this->validate([
+            'bulkDispatchQuantities.*' => 'required|integer|min:1',
+            'dispatchNote' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function() use ($adminOrderService) {
+                foreach ($this->selectedItemIds as $itemId) {
+                    $item = \App\Models\OrderItem::findOrFail($itemId);
+                    $qty = (int) $this->bulkDispatchQuantities[$itemId];
+                    $adminOrderService->dispatchOrderItem($item, $qty, auth()->user(), $this->dispatchNote);
+                }
+            });
+            session()->flash('success', 'Selected items dispatched successfully.');
+        } catch (\Exception $e) {
+            session()->flash('error', $e->getMessage());
+        }
+
+        $this->reset(['showBulkDispatchModal', 'selectedItemIds', 'bulkDispatchQuantities', 'dispatchNote']);
         $this->loadOrder($adminOrderService);
     }
 

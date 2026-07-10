@@ -82,6 +82,14 @@
                 </div>
             </div>
 
+            <!-- Price Warning Notice Banner -->
+            <div class="bg-amber-50 border border-amber-200/60 rounded-xl p-3.5 flex items-start gap-2.5 text-amber-800 shadow-sm select-none">
+                <span class="material-symbols-outlined text-amber-500 text-lg mt-0.5 select-none">info</span>
+                <div class="text-xs font-semibold leading-relaxed">
+                    Prices are subject to change. Please contact the admin for final price confirmation.
+                </div>
+            </div>
+
             <!-- Fabric Info / Description -->
             <div>
                 <h4 class="text-xs font-bold text-[#001229] uppercase tracking-wider mb-2">Description &amp; Specifications</h4>
@@ -284,59 +292,29 @@
 
     </div>
 
-    <!-- Bottom Technical Specs & Trust Badges (Desktop) -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8 border-t border-slate-200">
-        <!-- Specs -->
-        <div class="lg:col-span-2 space-y-4">
-            <h3 class="text-base font-extrabold text-[#001229]">Technical Specifications</h3>
-            <x-customer.card bodyClass="p-0">
-                <table class="w-full text-xs text-slate-700">
-                    <tbody>
-                        <tr class="border-b border-outline-variant/10">
-                            <td class="px-5 py-3 font-bold bg-slate-50/50 text-slate-600 w-1/3">Composition</td>
-                            <td class="px-5 py-3">100% Combed Cotton</td>
-                        </tr>
-                        <tr class="border-b border-outline-variant/10">
-                            <td class="px-5 py-3 font-bold bg-slate-50/50 text-slate-600">Fabric Weight</td>
-                            <td class="px-5 py-3">180 GSM (Heavyweight)</td>
-                        </tr>
-                        <tr class="border-b border-outline-variant/10">
-                            <td class="px-5 py-3 font-bold bg-slate-50/50 text-slate-600">Weave Style</td>
-                            <td class="px-5 py-3">Premium Fine Pique / Twill</td>
-                        </tr>
-                        <tr>
-                            <td class="px-5 py-3 font-bold bg-slate-50/50 text-slate-600">Origin</td>
-                            <td class="px-5 py-3">Manufactured in Surat, Gujarat, India</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </x-customer.card>
-        </div>
-
-        <!-- Trust Badges -->
-        <div class="space-y-4">
-            <h3 class="text-base font-extrabold text-[#001229]">Wholesale Assurance</h3>
-            <div class="space-y-3">
-                <div class="flex items-center gap-3 p-3 bg-white border border-outline-variant/20 rounded-xl">
-                    <span class="material-symbols-outlined text-emerald-600 text-3xl">local_shipping</span>
-                    <div>
-                        <h5 class="text-xs font-bold text-[#001229]">Express Delivery</h5>
-                        <p class="text-[10px] text-slate-400">Dispatch within 48 hours via surface cargo.</p>
-                    </div>
+    <!-- Wholesale Assurance -->
+    <div class="pt-8 border-t border-slate-200 space-y-4">
+        <h3 class="text-base font-extrabold text-[#001229]">Wholesale Assurance</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="flex items-center gap-3.5 p-4 bg-slate-50 border border-outline-variant/20 rounded-xl shadow-xs">
+                <span class="material-symbols-outlined text-emerald-600 text-3xl shrink-0">local_shipping</span>
+                <div>
+                    <h5 class="text-sm font-bold text-[#001229]">Express Delivery</h5>
+                    <p class="text-xs text-slate-500 mt-1">Dispatch within 48 hours via surface cargo.</p>
                 </div>
-                <div class="flex items-center gap-3 p-3 bg-white border border-outline-variant/20 rounded-xl">
-                    <span class="material-symbols-outlined text-emerald-600 text-3xl">verified</span>
-                    <div>
-                        <h5 class="text-xs font-bold text-[#001229]">Quality Inspected</h5>
-                        <p class="text-[10px] text-slate-400">Strict factory defect checks per piece.</p>
-                    </div>
+            </div>
+            <div class="flex items-center gap-3.5 p-4 bg-slate-50 border border-outline-variant/20 rounded-xl shadow-xs">
+                <span class="material-symbols-outlined text-emerald-600 text-3xl shrink-0">verified</span>
+                <div>
+                    <h5 class="text-sm font-bold text-[#001229]">Quality Inspected</h5>
+                    <p class="text-xs text-slate-500 mt-1">Strict factory defect checks per piece.</p>
                 </div>
-                <div class="flex items-center gap-3 p-3 bg-white border border-outline-variant/20 rounded-xl">
-                    <span class="material-symbols-outlined text-emerald-600 text-3xl">currency_rupee</span>
-                    <div>
-                        <h5 class="text-xs font-bold text-[#001229]">Flexible Credit Terms</h5>
-                        <p class="text-[10px] text-slate-400">Authorized B2B billing against credit profiles.</p>
-                    </div>
+            </div>
+            <div class="flex items-center gap-3.5 p-4 bg-slate-50 border border-outline-variant/20 rounded-xl shadow-xs">
+                <span class="material-symbols-outlined text-emerald-600 text-3xl shrink-0">currency_rupee</span>
+                <div>
+                    <h5 class="text-sm font-bold text-[#001229]">Flexible Credit Terms</h5>
+                    <p class="text-xs text-slate-500 mt-1">Authorized B2B billing against credit profiles.</p>
                 </div>
             </div>
         </div>

@@ -169,7 +169,7 @@ class CategoryManagementTest extends TestCase
         ]);
     }
 
-    public function test_category_with_children_cannot_be_deleted()
+    public function test_category_with_children_cascade_deleted()
     {
         $parent = $this->service->create([
             'name' => 'Men\'s Wear',
@@ -185,11 +185,14 @@ class CategoryManagementTest extends TestCase
             ->test(CategoryIndexPage::class)
             ->call('confirmDeleteCategory', $parent->id)
             ->call('deleteCategory')
-            ->assertDispatched('toast', message: 'This category has sub-categories. Delete or move them first.', type: 'error');
+            ->assertHasNoErrors();
 
-        $this->assertDatabaseHas('categories', [
+        $this->assertSoftDeleted('categories', [
             'id' => $parent->id,
-            'deleted_at' => null,
+        ]);
+
+        $this->assertSoftDeleted('categories', [
+            'id' => $child->id,
         ]);
     }
 }

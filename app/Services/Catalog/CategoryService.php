@@ -188,14 +188,30 @@ class CategoryService
     public function delete(Category $category): void
     {
         DB::transaction(function () use ($category) {
-            if (!$this->canDelete($category)) {
-                if ($category->children()->count() > 0) {
-                    throw new \Exception('This category has sub-categories. Delete or move them first.');
-                }
-                throw new \Exception('This leaf category has products. Move or delete them first.');
-            }
-            $category->delete();
+            $this->deleteRecursively($category);
         });
+    }
+
+    /**
+     * Helper to recursively delete categories, detaching/deleting products to prevent orphans.
+     */
+    protected function deleteRecursively(Category $category): void
+    {
+        foreach ($category->children as $child) {
+            $this->deleteRecursively($child);
+        }
+
+        $productIds = $category->products()->pluck('products.id')->toArray();
+        foreach ($productIds as $pid) {
+            $product = \App\Models\Product::find($pid);
+            if (!$product) continue;
+            $product->categories()->detach($category->id);
+            if ($product->categories()->count() === 0) {
+                $product->delete();
+            }
+        }
+
+        $category->delete();
     }
 
     /**

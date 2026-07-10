@@ -45,8 +45,6 @@ class MobileAuthApiTest extends TestCase
             'email' => 'customer@example.com',
             'password' => Hash::make('password123'),
             'is_active' => true,
-            'gst_percentage' => 12.0,
-            'hsn_code' => '6205',
         ]);
         $user->assignRole('customer');
 
@@ -103,8 +101,6 @@ class MobileAuthApiTest extends TestCase
             'mobile_number' => '9876543210',
             'password' => Hash::make('password123'),
             'is_active' => true,
-            'gst_percentage' => 12.0,
-            'hsn_code' => '6205',
         ]);
         $user->assignRole('customer');
 
@@ -155,8 +151,6 @@ class MobileAuthApiTest extends TestCase
             'email' => 'admin@kannodia.com',
             'password' => Hash::make('password123'),
             'is_active' => true,
-            'gst_percentage' => 12.0,
-            'hsn_code' => '6205',
         ]);
         $user->assignRole('super_admin');
 
@@ -215,8 +209,6 @@ class MobileAuthApiTest extends TestCase
             'email' => 'noprofile@example.com',
             'password' => Hash::make('password123'),
             'is_active' => true,
-            'gst_percentage' => 12.0,
-            'hsn_code' => '6205',
         ]);
         $user->assignRole('customer');
 
@@ -239,8 +231,6 @@ class MobileAuthApiTest extends TestCase
             'email' => 'me@example.com',
             'password' => Hash::make('password123'),
             'is_active' => true,
-            'gst_percentage' => 12.0,
-            'hsn_code' => '6205',
         ]);
         $user->assignRole('customer');
 
@@ -291,8 +281,6 @@ class MobileAuthApiTest extends TestCase
             'email' => 'refresh@example.com',
             'password' => Hash::make('password123'),
             'is_active' => true,
-            'gst_percentage' => 12.0,
-            'hsn_code' => '6205',
         ]);
         $user->assignRole('customer');
 
@@ -337,8 +325,6 @@ class MobileAuthApiTest extends TestCase
             'email' => 'logout@example.com',
             'password' => Hash::make('password123'),
             'is_active' => true,
-            'gst_percentage' => 12.0,
-            'hsn_code' => '6205',
         ]);
         $user->assignRole('customer');
 
@@ -383,8 +369,6 @@ class MobileAuthApiTest extends TestCase
             'email' => 'pwd@example.com',
             'password' => Hash::make('oldpassword'),
             'is_active' => true,
-            'gst_percentage' => 12.0,
-            'hsn_code' => '6205',
         ]);
         $user->assignRole('customer');
 

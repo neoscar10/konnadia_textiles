@@ -40,11 +40,12 @@ class AdminDashboardServiceTest extends TestCase
     /** @test */
     public function it_calculates_kpi_metrics_correctly()
     {
-        Customer::factory()->count(10)->create(['is_active' => true]);
+        $customer = Customer::factory()->create(['is_active' => true]);
+        Customer::factory()->count(9)->create(['is_active' => true]);
         Customer::factory()->count(5)->create(['is_active' => false]);
         Product::factory()->count(15)->create(['is_active' => true]);
-        Order::factory()->count(5)->create(['status' => 'pending_approval']);
-        Order::factory()->count(3)->create(['status' => 'approved']);
+        Order::factory()->count(5)->create(['status' => 'pending_approval', 'customer_id' => $customer->id]);
+        Order::factory()->count(3)->create(['status' => 'approved', 'customer_id' => $customer->id]);
 
         $kpis = $this->service->getKpiMetrics();
 
@@ -65,11 +66,13 @@ class AdminDashboardServiceTest extends TestCase
             'customer_id' => $customer->id,
             'status' => 'submitted',
             'total_amount' => 50000,
+            'created_at' => now(),
         ]);
         Order::factory()->create([
             'customer_id' => $customer->id,
             'status' => 'under_review',
             'total_amount' => 75000,
+            'created_at' => now()->subMinutes(10),
         ]);
         Order::factory()->create(['status' => 'approved']);
 

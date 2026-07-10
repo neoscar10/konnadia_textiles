@@ -302,4 +302,63 @@ class OrderManagementTest extends TestCase
         // Order total should be recalculated to exclude the cancelled item: only 250.0 is active
         $this->assertEquals(250.0, (float) $this->order->fresh()->total_amount);
     }
+
+    public function test_admin_can_dispatch_order_item_with_dispatch_note(): void
+    {
+        $this->order->update(['status' => 'approved']);
+        $item = $this->order->items->first();
+
+        Livewire::actingAs($this->adminUser)
+            ->test(OrderShowPage::class, ['orderNumber' => $this->order->order_number])
+            ->set('selectedItemId', $item->id)
+            ->set('dispatchQty', 5)
+            ->set('dispatchNote', 'Disp note 1')
+            ->call('confirmDispatchItem')
+            ->assertHasNoErrors();
+
+        $dispatchedItem = $this->order->fresh()->items->where('status', 'dispatched')->first();
+        $this->assertNotNull($dispatchedItem);
+        $this->assertEquals('Disp note 1', $dispatchedItem->dispatch_note);
+    }
+
+    public function test_admin_can_bulk_dispatch_manufactured_items(): void
+    {
+        $this->order->update(['status' => 'approved']);
+        
+        $item1 = $this->order->items->first();
+        
+        $item2 = OrderItem::create([
+            'order_id' => $this->order->id,
+            'product_id' => $this->product->id,
+            'product_title' => $this->product->title,
+            'product_sku' => $this->product->sku,
+            'unit_name' => 'Meter',
+            'unit_short_code' => 'Mtr',
+            'unit_conversion_quantity' => 1.0,
+            'quantity' => 10,
+            'base_unit_price' => 50.0,
+            'customer_unit_price' => 50.0,
+            'line_subtotal' => 500.0,
+            'line_total' => 500.0,
+            'status' => 'pending_dispatch',
+        ]);
+
+        Livewire::actingAs($this->adminUser)
+            ->test(OrderShowPage::class, ['orderNumber' => $this->order->order_number])
+            ->set('selectedItemIds', [$item1->id, $item2->id])
+            ->call('openBulkDispatchModal')
+            ->set('bulkDispatchQuantities.' . $item1->id, 5)
+            ->set('bulkDispatchQuantities.' . $item2->id, 4)
+            ->set('dispatchNote', 'Bulk dispatch note')
+            ->call('confirmBulkDispatch')
+            ->assertHasNoErrors();
+
+        $items = $this->order->fresh()->items;
+        
+        $dispatchedItems = $items->where('status', 'dispatched');
+        $this->assertCount(2, $dispatchedItems);
+        foreach ($dispatchedItems as $dispItem) {
+            $this->assertEquals('Bulk dispatch note', $dispItem->dispatch_note);
+        }
+    }
 }

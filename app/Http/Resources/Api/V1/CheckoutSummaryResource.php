@@ -15,10 +15,16 @@ class CheckoutSummaryResource extends JsonResource
 
         $checkoutMethods = [
             [
-                'value' => 'regular',
-                'label' => 'Standard Checkout',
+                'value' => 'manual_payment',
+                'label' => 'Manual Payment',
                 'enabled' => true,
-                'description' => 'Place your order and proceed to admin review.',
+                'description' => 'Upload a copy of your bank transfer or deposit slip.',
+            ],
+            [
+                'value' => 'credit',
+                'label' => 'Credit Purchase',
+                'enabled' => (bool) $eligibility['can_use_credit'],
+                'description' => $eligibility['message'],
             ]
         ];
 
@@ -33,6 +39,18 @@ class CheckoutSummaryResource extends JsonResource
                     'total' => (float) $cartData['totals']['total'],
                     'formatted_total' => '₹' . number_format($cartData['totals']['total'], 2),
                 ]
+            ],
+            'customer_credit' => [
+                'credit_limit' => (float) $customer->credit_limit,
+                'available_credit' => (float) $customer->available_credit,
+                'outstanding_amount' => (float) $customer->outstanding_amount,
+                'allow_credit_beyond_limit' => (bool) $customer->allow_credit_beyond_limit,
+            ],
+            'credit_eligibility' => [
+                'can_use_credit' => (bool) $eligibility['can_use_credit'],
+                'message' => $eligibility['message'],
+                'is_within_limit' => (bool) $eligibility['is_within_limit'],
+                'is_privileged_override' => (bool) $eligibility['is_privileged_override'],
             ],
             'checkout_methods' => $checkoutMethods
         ];

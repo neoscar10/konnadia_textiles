@@ -73,8 +73,8 @@ class CategoryIndexPage extends Component
     public ?int  $selectedProductId       = null;
     public ?int  $deleteProductId         = null;
     public int   $currentStep             = 1;
-    public bool  $isEditMode              = false;
     public bool  $isPreviewMode           = false;
+    public bool  $isPreviewModeDefaults   = false;
     public array $selectedTagIds          = [];
 
     // Step 1: Basic Info
@@ -126,6 +126,7 @@ class CategoryIndexPage extends Component
         'minimum_order_quantity' => 1,
         'product_type' => 'retail',
         'base_price' => '',
+        'description' => '',
         'pricingOverrides' => [],
         'units' => [
             'level1_name' => 'Piece',
@@ -361,6 +362,9 @@ class CategoryIndexPage extends Component
             if (!isset($defaults['base_price'])) {
                 $defaults['base_price'] = '';
             }
+            if (!isset($defaults['description'])) {
+                $defaults['description'] = '';
+            }
             $this->categoryDefaults = $defaults;
         } else {
             $customerLevels = CustomerLevel::active()->ordered()->get();
@@ -375,6 +379,7 @@ class CategoryIndexPage extends Component
                 'minimum_order_quantity' => 1,
                 'product_type' => 'retail',
                 'base_price' => '',
+                'description' => '',
                 'pricingOverrides' => $pricing,
                 'units' => [
                     'level1_name' => 'Piece',
@@ -393,6 +398,7 @@ class CategoryIndexPage extends Component
     {
         $this->validate([
             'categoryDefaults.base_price' => ['required', 'numeric', 'min:0'],
+            'categoryDefaults.description' => ['nullable', 'string'],
             'categoryDefaults.gst_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'categoryDefaults.minimum_order_quantity' => ['required', 'integer', 'min:1'],
             'categoryDefaults.product_type' => ['required', 'string', 'in:retail,manufactured'],
@@ -504,15 +510,25 @@ class CategoryIndexPage extends Component
 
         if ($this->currentCategoryId) {
             $category = Category::find($this->currentCategoryId);
-            if ($category && !empty($category->default_product_config['units'])) {
-                $catUnits = $category->default_product_config['units'];
-                $this->units = [
-                    'level1_name'       => $catUnits['level1_name'] ?? 'Piece',
-                    'level1_code'       => $catUnits['level1_code'] ?? 'pcs',
-                    'level2_name'       => $catUnits['level2_name'] ?? '',
-                    'level2_code'       => $catUnits['level2_code'] ?? '',
-                    'level2_conversion' => $catUnits['level2_conversion'] ?? '',
-                ];
+            $defaults = $category->default_product_config ?? [];
+            if ($category) {
+                $this->basicInfo['base_price'] = $defaults['base_price'] ?? '';
+                $this->basicInfo['description'] = $defaults['description'] ?? '';
+                $this->basicInfo['hsn_code'] = $defaults['hsn_code'] ?? '';
+                $this->basicInfo['gst_percentage'] = $defaults['gst_percentage'] ?? '';
+                $this->basicInfo['minimum_order_quantity'] = $defaults['minimum_order_quantity'] ?? 1;
+                $this->basicInfo['product_type'] = $defaults['product_type'] ?? 'retail';
+                
+                if (!empty($defaults['units'])) {
+                    $catUnits = $defaults['units'];
+                    $this->units = [
+                        'level1_name'       => $catUnits['level1_name'] ?? 'Piece',
+                        'level1_code'       => $catUnits['level1_code'] ?? 'pcs',
+                        'level2_name'       => $catUnits['level2_name'] ?? '',
+                        'level2_code'       => $catUnits['level2_code'] ?? '',
+                        'level2_conversion' => $catUnits['level2_conversion'] ?? '',
+                    ];
+                }
             }
         }
 
@@ -672,6 +688,7 @@ class CategoryIndexPage extends Component
     {
         $rules = [
             'basicInfo.title'       => ['required', 'string', 'max:200'],
+            'basicInfo.base_price'  => ['required', 'numeric', 'min:0'],
             'basicInfo.description' => ['required', 'string'],
             'nonVariantStock'       => ['nullable', 'integer', 'min:0'],
             'units.level1_name'     => ['required', 'string', 'max:50'],
@@ -703,15 +720,15 @@ class CategoryIndexPage extends Component
 
                 $payload = [
                     'title'                  => trim($this->basicInfo['title']),
-                    'base_price'             => isset($defaults['base_price']) && $defaults['base_price'] !== '' ? (float) $defaults['base_price'] : 0.00,
+                    'base_price'             => $this->basicInfo['base_price'] !== '' ? (float) $this->basicInfo['base_price'] : 0.00,
                     'description'            => trim($this->basicInfo['description']),
                     'is_active'              => isset($this->basicInfo['is_active']) ? (bool) $this->basicInfo['is_active'] : true,
                     'category_ids'           => [$category->id],
                     // Merged defaults
-                    'hsn_code'               => isset($defaults['hsn_code']) && $defaults['hsn_code'] !== '' ? trim($defaults['hsn_code']) : null,
-                    'gst_percentage'         => isset($defaults['gst_percentage']) && $defaults['gst_percentage'] !== '' ? (float) $defaults['gst_percentage'] : null,
-                    'minimum_order_quantity' => isset($defaults['minimum_order_quantity']) ? (int) $defaults['minimum_order_quantity'] : 1,
-                    'product_type'           => isset($defaults['product_type']) ? $defaults['product_type'] : 'retail',
+                    'hsn_code'               => $this->basicInfo['hsn_code'] !== '' ? trim($this->basicInfo['hsn_code']) : null,
+                    'gst_percentage'         => $this->basicInfo['gst_percentage'] !== '' ? (float) $this->basicInfo['gst_percentage'] : null,
+                    'minimum_order_quantity' => (int) $this->basicInfo['minimum_order_quantity'],
+                    'product_type'           => $this->basicInfo['product_type'],
                     'stock_quantity'         => $this->nonVariantStock !== '' ? (int)$this->nonVariantStock : null,
                 ];
 
@@ -1124,7 +1141,13 @@ class CategoryIndexPage extends Component
             $children = $categoryService->getChildren($this->currentCategoryId, ['search' => $this->search]);
         }
 
-        $availableTags = \App\Models\Tag::orderBy('name')->get();
+        if ($this->currentCategoryId) {
+            $availableTags = \App\Models\Tag::whereHas('categories', function($q) {
+                $q->where('categories.id', $this->currentCategoryId);
+            })->orderBy('name')->get();
+        } else {
+            $availableTags = collect();
+        }
 
         return view('livewire.admin.categories.category-index-page', compact(
             'currentCategory', 'isLeafMode', 'tree', 'breadcrumbs', 'openFolderIds',

@@ -68,6 +68,15 @@
                 </div>
 
                 <div class="flex items-center gap-sm">
+                    @if($currentCategoryId)
+                        <x-admin.button variant="outline" icon="edit" wire:click="editCategory({{ $currentCategoryId }})" class="whitespace-nowrap">
+                            Edit
+                        </x-admin.button>
+                        <x-admin.button variant="outline" icon="delete" wire:click="confirmDeleteCategory({{ $currentCategoryId }})" class="!border-error !text-error hover:!bg-error/10 whitespace-nowrap">
+                            Delete
+                        </x-admin.button>
+                    @endif
+
                     @if($isLeafMode)
                         @php
                             $defaultsConfigured = $currentCategory && !empty($currentCategory->default_product_config) && !empty($currentCategory->default_product_config['units']['level1_name']);
@@ -97,7 +106,7 @@
                         @endif
                     @else
                         {{-- Folder mode: New Sub-Category button --}}
-                        <x-admin.button variant="primary" icon="create_new_folder" wire:click="createCategory">
+                        <x-admin.button variant="primary" icon="create_new_folder" wire:click="createCategory" class="whitespace-nowrap">
                             {{ $currentCategoryId ? 'New Sub-Category' : 'New Category' }}
                         </x-admin.button>
                     @endif
@@ -426,7 +435,7 @@
             </div>
             <h3 class="text-center font-title-lg text-on-surface">Are you sure?</h3>
             <p class="text-center font-body-md text-on-surface-variant">
-                This category will be permanently deleted. Products assigned to it will not be deleted but may become uncategorized.
+                This category (and all its sub-categories) will be permanently deleted. Any products exclusively belonging to these categories will also be deleted to prevent orphaned products. This action cannot be undone.
             </p>
         </div>
         <x-slot name="footer">
@@ -591,6 +600,46 @@
                     </div>
                     @error('categoryDefaults.base_price') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>
+
+                <!-- Default Description -->
+                <div class="space-y-xs md:col-span-2">
+                    <label class="font-label-md text-on-surface-variant select-none">Default Product Description</label>
+                    <div class="border border-outline-variant/60 rounded-lg overflow-hidden bg-white shadow-sm">
+                        <!-- Quick Markup toolbar -->
+                        <div class="px-md py-xs border-b border-outline-variant/30 bg-surface-container-low/40 flex items-center gap-md select-none flex-wrap">
+                            <div class="flex items-center gap-xs">
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-cat', '**', '**')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-extrabold text-sm text-primary" title="Bold">B</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-cat', '*', '*')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container italic font-bold text-sm text-primary" title="Italic">I</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-cat', '# ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container font-bold text-sm text-primary" title="Heading">H</button>
+                            </div>
+                            <div class="w-px h-5 bg-outline-variant/40"></div>
+                            <div class="flex items-center gap-xs">
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-cat', '> ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary text-base font-bold" title="Quote">"</button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-cat', '- ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary flex items-center justify-center" title="Bullet List">
+                                    <span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+                                </button>
+                                <button type="button" onmousedown="event.preventDefault();" onclick="insertMarkdown('desc-editor-defaults-cat', '1. ', '')" class="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container text-primary flex items-center justify-center" title="Numbered List">
+                                    <span class="material-symbols-outlined text-[20px]">format_list_numbered</span>
+                                </button>
+                            </div>
+                            <div class="w-px h-5 bg-outline-variant/40"></div>
+                            <div class="flex items-center gap-xs">
+                                <button type="button" wire:click="$toggle('isPreviewModeDefaults')" class="w-8 h-8 rounded flex items-center justify-center {{ $isPreviewModeDefaults ? 'bg-secondary/15 text-secondary' : 'text-primary hover:bg-surface-container' }} flex items-center justify-center" title="Toggle Preview">
+                                    <span class="material-symbols-outlined text-[20px]">visibility</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        @if(!$isPreviewModeDefaults)
+                            <textarea id="desc-editor-defaults-cat" rows="6" wire:model="categoryDefaults.description" placeholder="Enter default product description..." class="w-full px-md py-md bg-transparent border-0 outline-none focus:ring-0 font-body-md text-on-surface resize-none min-h-[160px]"></textarea>
+                        @else
+                            <div class="prose max-w-none p-md min-h-[160px] bg-surface-container-low/20 text-on-surface text-sm overflow-y-auto">
+                                {!! Illuminate\Support\Str::markdown($categoryDefaults['description'] ?? '*Enter default product description...*') !!}
+                            </div>
+                        @endif
+                    </div>
+                    @error('categoryDefaults.description') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
             </div>
 
             <!-- Customer Level Discounts -->
@@ -722,4 +771,26 @@
         </x-slot>
     </x-admin.modal>
 
+    <script>
+        if (typeof insertMarkdown !== 'function') {
+            window.insertMarkdown = function(textareaId, tagOpen, tagClose = '') {
+                const ta = document.getElementById(textareaId);
+                if (!ta) return;
+                const start = ta.selectionStart;
+                const end = ta.selectionEnd;
+                const text = ta.value;
+                const selected = text.substring(start, end);
+                const replacement = tagOpen + selected + tagClose;
+                ta.value = text.substring(0, start) + replacement + text.substring(end);
+                ta.focus();
+                if (start === end) {
+                    const newCursorPos = start + tagOpen.length;
+                    ta.setSelectionRange(newCursorPos, newCursorPos);
+                } else {
+                    ta.setSelectionRange(start + tagOpen.length, start + tagOpen.length + selected.length);
+                }
+                ta.dispatchEvent(new Event('input'));
+            }
+        }
+    </script>
 </div>

@@ -17,11 +17,15 @@ class TagIndexPage extends Component
     #[Url(history: true)]
     public string $search = '';
 
+    public string $categorySearch = '';
+
     public ?int $editingId = null;
 
     public array $form = [
         'name' => '',
     ];
+
+    public array $selectedCategoryIds = [];
 
     public ?int $deleteId = null;
 
@@ -34,6 +38,15 @@ class TagIndexPage extends Component
                 'max:100',
                 Rule::unique('tags', 'name')->ignore($this->editingId)
             ],
+            'selectedCategoryIds' => ['required', 'array', 'min:1'],
+            'selectedCategoryIds.*' => ['exists:categories,id'],
+        ];
+    }
+
+    protected function validationAttributes(): array
+    {
+        return [
+            'selectedCategoryIds' => 'categories',
         ];
     }
 
@@ -51,11 +64,12 @@ class TagIndexPage extends Component
     public function edit(int $id): void
     {
         $this->resetValidation();
-        $tag = Tag::findOrFail($id);
+        $tag = Tag::with('categories')->findOrFail($id);
         $this->editingId = $tag->id;
         $this->form = [
             'name' => $tag->name,
         ];
+        $this->selectedCategoryIds = $tag->categories->pluck('id')->toArray();
         $this->dispatch('open-modal', 'add-tag');
     }
 
@@ -71,12 +85,14 @@ class TagIndexPage extends Component
                 'name' => trim($this->form['name']),
                 'slug' => $slug,
             ]);
+            $tag->categories()->sync($this->selectedCategoryIds);
             $this->dispatch('toast', message: 'Tag updated successfully.', type: 'success');
         } else {
-            Tag::create([
+            $tag = Tag::create([
                 'name' => trim($this->form['name']),
                 'slug' => $slug,
             ]);
+            $tag->categories()->sync($this->selectedCategoryIds);
             $this->dispatch('toast', message: 'Tag created successfully.', type: 'success');
         }
 
@@ -95,6 +111,7 @@ class TagIndexPage extends Component
         if ($this->deleteId) {
             $tag = Tag::findOrFail($this->deleteId);
             $tag->products()->detach(); // detach from all products first
+            $tag->categories()->detach(); // detach from categories
             $tag->delete();
 
             $this->dispatch('toast', message: 'Tag deleted successfully.', type: 'success');
@@ -110,6 +127,8 @@ class TagIndexPage extends Component
         $this->form = [
             'name' => '',
         ];
+        $this->selectedCategoryIds = [];
+        $this->categorySearch = '';
     }
 
     public function render()
@@ -121,10 +140,20 @@ class TagIndexPage extends Component
                   ->orWhere('slug', 'like', "%{$this->search}%");
         }
 
-        $tags = $query->orderBy('name')->paginate(10);
+        $tags = $query->with('categories')->orderBy('name')->paginate(10);
+        $leafCategories = app(\App\Services\Catalog\CategoryService::class)->getLeafCategories();
+
+        if (!empty($this->categorySearch)) {
+            $searchTerm = strtolower(trim($this->categorySearch));
+            $leafCategories = $leafCategories->filter(function ($leaf) use ($searchTerm) {
+                return str_contains(strtolower($leaf->name), $searchTerm) || 
+                       str_contains(strtolower($leaf->full_path), $searchTerm);
+            });
+        }
 
         return view('livewire.admin.tags.tag-index-page', [
-            'tags' => $tags
+            'tags' => $tags,
+            'leafCategories' => $leafCategories,
         ])->title('Tags Management');
     }
 }

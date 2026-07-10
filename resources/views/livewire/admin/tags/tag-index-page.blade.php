@@ -27,6 +27,7 @@
                     <tr class="whitespace-nowrap text-xs">
                         <th class="px-lg py-md">Tag Name</th>
                         <th class="px-lg py-md">Slug</th>
+                        <th class="px-lg py-md">Associated Categories</th>
                         <th class="px-lg py-md text-center">Products Count</th>
                         <th class="px-lg py-md text-right">Actions</th>
                     </tr>
@@ -36,6 +37,9 @@
                     <tr class="hover:bg-primary/[0.02] transition-colors group">
                         <td class="px-lg py-lg font-bold text-primary">{{ $tag->name }}</td>
                         <td class="px-lg py-lg text-on-surface-variant font-mono text-sm">{{ $tag->slug }}</td>
+                        <td class="px-lg py-lg text-on-surface-variant text-sm max-w-[250px] truncate" title="{{ $tag->categories->pluck('name')->implode(', ') }}">
+                            {{ $tag->categories->pluck('name')->implode(', ') ?: 'None' }}
+                        </td>
                         <td class="px-lg py-lg text-center">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
                                 {{ $tag->products()->count() }} products
@@ -50,7 +54,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="4" class="px-lg py-xl text-center text-on-surface-variant font-body-md">
+                        <td colspan="5" class="px-lg py-xl text-center text-on-surface-variant font-body-md">
                             No tags found.
                         </td>
                     </tr>
@@ -68,9 +72,9 @@
 
     <!-- Add/Edit Modal -->
     <x-admin.modal id="add-tag" title="{{ $editingId ? 'Edit Tag' : 'Add Tag' }}" maxWidth="2xl">
-        <form wire:submit="save" class="space-y-md">
+        <form wire:submit.prevent="save" class="space-y-md">
             <div class="space-y-xs">
-                <label class="font-label-md text-on-surface-variant">Tag Name *</label>
+                <label class="font-label-md text-on-surface-variant font-semibold">Tag Name *</label>
                 <input type="text" wire:model.live="form.name" placeholder="e.g. Eco-Friendly, Premium Linen" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
                 @error('form.name') <span class="text-error text-xs">{{ $message }}</span> @enderror
             </div>
@@ -83,6 +87,30 @@
                 <span class="text-xs text-on-surface-variant/60 ml-auto italic">Auto-generated</span>
             </div>
             @endif
+
+            <!-- Categories Checklist -->
+            <div class="space-y-xs pt-sm border-t border-outline-variant/10">
+                <div class="flex justify-between items-center">
+                    <label class="font-label-md text-on-surface-variant font-semibold">Associate with Categories *</label>
+                    <div class="relative w-48">
+                        <input type="text" wire:model.live.debounce.150ms="categorySearch" placeholder="Search categories..." class="w-full px-xs py-0.5 text-xs bg-surface-container border border-outline-variant/30 rounded focus:ring-1 focus:ring-secondary outline-none transition-all text-on-surface">
+                    </div>
+                </div>
+                <div class="border border-outline-variant/30 rounded-lg p-md max-h-[220px] overflow-y-auto bg-surface-container-low divide-y divide-outline-variant/10 mt-1">
+                    @forelse($leafCategories as $leaf)
+                        <div class="flex items-center gap-md py-sm select-none">
+                            <input type="checkbox" id="modal_cat_{{ $leaf->id }}" value="{{ $leaf->id }}" wire:model="selectedCategoryIds" class="w-4 h-4 rounded border-outline-variant text-[#5c44c4] focus:ring-[#5c44c4] cursor-pointer">
+                            <label for="modal_cat_{{ $leaf->id }}" class="text-sm text-on-surface cursor-pointer select-none">
+                                <span class="font-bold text-primary">{{ $leaf->name }}</span>
+                                <span class="text-xs text-on-surface-variant block">{{ $leaf->full_path }}</span>
+                            </label>
+                        </div>
+                    @empty
+                        <p class="text-xs text-on-surface-variant text-center py-md">No leaf categories configured yet.</p>
+                    @endforelse
+                </div>
+                @error('selectedCategoryIds') <span class="text-error text-xs">{{ $message }}</span> @enderror
+            </div>
             
             <div class="flex justify-end gap-md mt-xl pt-md border-t border-outline-variant/20">
                 <x-admin.button type="button" variant="ghost" @click="show = false">Cancel</x-admin.button>

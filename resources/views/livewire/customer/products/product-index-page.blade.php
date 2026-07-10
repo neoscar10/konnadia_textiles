@@ -1,4 +1,4 @@
-<div>
+<div x-data="{ mobileFiltersOpen: false }">
     <!-- Page title -->
     <x-customer.page-title 
         title="Products Catalog" 
@@ -141,12 +141,22 @@
         <div class="lg:col-span-3 space-y-6">
             <!-- Search & Sorting Header -->
             <div class="bg-white border border-outline-variant/30 rounded-xl shadow-ambient p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <!-- Search Input -->
-                <div class="relative flex-1 max-w-md">
-                    <span class="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                        <span class="material-symbols-outlined text-xl">search</span>
-                    </span>
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search catalog..." class="w-full bg-slate-50 text-[#001229] placeholder-slate-400 pl-10 pr-4 py-2 rounded-lg text-sm border border-outline-variant/20 focus:outline-none focus:ring-2 focus:ring-gold">
+                <!-- Search Input & Mobile Filters Trigger -->
+                <div class="flex items-center gap-2 w-full md:max-w-md">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-3 flex items-center text-slate-400">
+                            <span class="material-symbols-outlined text-xl">search</span>
+                        </span>
+                        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search catalog..." class="w-full bg-slate-50 text-[#001229] placeholder-slate-400 pl-10 pr-4 py-2 rounded-lg text-sm border border-outline-variant/20 focus:outline-none focus:ring-2 focus:ring-gold">
+                    </div>
+                    <!-- Mobile Filters Trigger Button -->
+                    <button type="button" @click="mobileFiltersOpen = true" class="lg:hidden flex items-center gap-1.5 px-3.5 py-2 bg-white border border-outline-variant/30 rounded-lg text-sm text-slate-700 hover:bg-slate-50 cursor-pointer h-[38px] select-none whitespace-nowrap">
+                        <span class="material-symbols-outlined text-lg">filter_list</span>
+                        <span>Filters</span>
+                        @if($activeFiltersCount > 0)
+                            <span class="w-5 h-5 bg-[#001229] text-white text-[10px] font-bold rounded-full flex items-center justify-center">{{ $activeFiltersCount }}</span>
+                        @endif
+                    </button>
                 </div>
 
                 <!-- Sorting & Items count -->
@@ -162,6 +172,14 @@
                             <option value="availability">Availability</option>
                         </select>
                     </div>
+                </div>
+            </div>
+
+            <!-- Price Warning Notice Banner -->
+            <div class="bg-amber-50 border border-amber-200/60 rounded-xl p-3.5 flex items-start gap-2.5 text-amber-800 shadow-sm select-none">
+                <span class="material-symbols-outlined text-amber-500 text-lg mt-0.5 select-none">info</span>
+                <div class="text-xs font-semibold leading-relaxed">
+                    Prices are subject to change. Please contact the admin for final price confirmation.
                 </div>
             </div>
 
@@ -432,4 +450,131 @@
             </div>
         </div>
     @endif
+
+    <!-- Mobile Filters Drawer -->
+    <div x-show="mobileFiltersOpen" 
+         class="fixed inset-0 z-50 lg:hidden" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/60" @click="mobileFiltersOpen = false"></div>
+        
+        <!-- Drawer content -->
+        <div class="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl shadow-xl max-h-[85vh] flex flex-col"
+             x-transition:enter="transition ease-out duration-300 transform"
+             x-transition:enter-start="translate-y-full"
+             x-transition:enter-end="translate-y-0"
+             x-transition:leave="transition ease-in duration-200 transform"
+             x-transition:leave-start="translate-y-0"
+             x-transition:leave-end="translate-y-full">
+            
+            <!-- Drawer Header -->
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between select-none bg-slate-50 rounded-t-2xl">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-[#001229] text-base">Filters</span>
+                    @if($activeFiltersCount > 0)
+                        <span class="px-2 py-0.5 bg-[#001229]/10 text-[#001229] text-xs font-bold rounded-full">{{ $activeFiltersCount }} active</span>
+                    @endif
+                </div>
+                <div class="flex items-center gap-4">
+                    <button wire:click="clearFilters" class="text-xs text-gold font-bold hover:underline cursor-pointer">Clear All</button>
+                    <button type="button" @click="mobileFiltersOpen = false" class="text-slate-400 hover:text-slate-600">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Drawer Body -->
+            <div class="p-5 overflow-y-auto space-y-6 flex-1 pb-12">
+                <!-- Category Tree (Full recursive tree!) -->
+                <div>
+                    <h5 class="text-xs font-bold text-[#001229] uppercase tracking-wider mb-3 select-none">Categories</h5>
+                    <div class="space-y-1">
+                        <!-- All Categories -->
+                        <div class="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-colors {{ $category === '' ? 'bg-slate-50 font-bold' : '' }}">
+                            <button wire:click="selectCategory('')" class="flex-1 text-left text-sm text-slate-700 hover:text-slate-900 cursor-pointer">
+                                All Categories
+                            </button>
+                            @if($category === '')
+                                <span class="material-symbols-outlined text-xs text-gold">check</span>
+                            @endif
+                        </div>
+
+                        @foreach($categoriesList as $cat)
+                            @if(!$cat['parent_id'])
+                                @include('partials.customer.category-tree-item', ['cat' => $cat, 'level' => 0])
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Availability filter -->
+                <div>
+                    <h5 class="text-xs font-bold text-[#001229] uppercase tracking-wider mb-3 select-none">Availability</h5>
+                    <div class="space-y-2.5">
+                        <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer">
+                            <input type="radio" wire:model.live="availability" value="all" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">
+                            <span>All Products</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer">
+                            <input type="radio" wire:model.live="availability" value="in_stock" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">
+                            <span>In Stock Only</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer">
+                            <input type="radio" wire:model.live="availability" value="out_of_stock" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">
+                            <span>Out of Stock Only</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Tags Filter -->
+                <div>
+                    <h5 class="text-xs font-bold text-[#001229] uppercase tracking-wider mb-3 select-none">Filter by Tags</h5>
+                    <div class="flex flex-wrap gap-1.5 select-none">
+                        @forelse($tagsList as $tag)
+                            @php $isSel = in_array($tag->id, $selectedTags); @endphp
+                            <button type="button" wire:click="toggleTagFilter({{ $tag->id }})" 
+                                    class="px-3 py-1 rounded-full text-xs font-medium border transition-all flex items-center gap-1 cursor-pointer
+                                    {{ $isSel 
+                                        ? 'bg-gold/15 text-gold border-gold font-semibold' 
+                                        : 'bg-slate-50 border-[#cbd5e1] text-slate-600 hover:border-slate-400' }}">
+                                @if($isSel)
+                                    <span class="material-symbols-outlined text-[12px] font-bold">close</span>
+                                @endif
+                                <span>{{ $tag->name }}</span>
+                            </button>
+                        @empty
+                            <p class="text-xs text-slate-400 italic">No tags available.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Price Range -->
+                @auth
+                <div>
+                    <h5 class="text-xs font-bold text-[#001229] uppercase tracking-wider mb-3 select-none">Max Price: ₹{{ number_format($max_price) }}</h5>
+                    <div class="space-y-2">
+                        <input type="range" min="100" max="10000" step="100" wire:model.live.debounce.150ms="max_price" class="w-full accent-gold bg-slate-100 rounded-lg appearance-none h-1.5 cursor-pointer">
+                        <div class="flex justify-between text-xs text-slate-500 font-bold select-none">
+                            <span>₹100</span>
+                            <span>₹10,000</span>
+                        </div>
+                    </div>
+                </div>
+                @endauth
+            </div>
+            
+            <!-- Drawer Footer (Sticky Apply Button) -->
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-4">
+                <button type="button" @click="mobileFiltersOpen = false" class="w-full bg-[#001229] text-white py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-slate-800 transition-colors">
+                    Apply Filters
+                </button>
+            </div>
+        </div>
+    </div>
 </div>

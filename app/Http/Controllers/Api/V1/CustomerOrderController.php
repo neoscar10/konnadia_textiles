@@ -102,9 +102,14 @@ class CustomerOrderController extends Controller
     {
         $this->ensureCustomerProfile($request);
 
-        $orderDetail = $this->orderService->getOrderForCustomer($request->user(), $orderIdentifier);
+        $order = \App\Models\Order::where('user_id', $request->user()->id)
+            ->where(function ($q) use ($orderIdentifier) {
+                $q->where('order_number', $orderIdentifier)
+                  ->orWhere('id', $orderIdentifier);
+            })
+            ->first();
 
-        if (!$orderDetail) {
+        if (!$order) {
             return response()->json([
                 'success' => false,
                 'message' => 'Order not found.',
@@ -112,11 +117,12 @@ class CustomerOrderController extends Controller
             ], 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Order retrieved successfully.',
-            'data' => $orderDetail,
-        ]);
+        return (new \App\Http\Resources\Api\V1\OrderDetailResource($order))
+            ->additional([
+                'success' => true,
+                'message' => 'Order retrieved successfully.',
+            ])
+            ->response();
     }
 
     public function timeline(Request $request, string $orderIdentifier)
