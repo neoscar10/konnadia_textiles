@@ -137,12 +137,31 @@
                             @foreach($orderData['items'] as $item)
                                 <tr class="hover:bg-primary/[0.02] transition-colors">
                                     <td class="px-lg py-md">
-                                        <div class="flex items-start gap-sm">
+                                        <div class="flex items-start gap-md">
                                             @if(in_array($orderData['status'], ['approved', 'partially_dispatched']) && $item['status'] === 'pending_dispatch' && $item['product_type'] === 'retail')
                                                 <input type="checkbox" wire:model.live="selectedItemIds" value="{{ $item['id'] }}" class="w-4.5 h-4.5 rounded border-outline-variant text-[#5c44c4] focus:ring-[#5c44c4] cursor-pointer mt-0.5">
                                             @endif
-                                            <div class="flex-1">
-                                                <p class="font-title-md text-primary">{{ $item['product_title'] }}</p>
+                                            
+                                            <!-- Product Image and Catalog Link -->
+                                            <div class="flex flex-col items-center gap-xs">
+                                                @if(!empty($item['primary_media_file_path']))
+                                                    <div class="w-20 h-20 rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs bg-slate-50">
+                                                        <img src="{{ Storage::url($item['primary_media_file_path']) }}" class="w-full h-full object-cover">
+                                                    </div>
+                                                @else
+                                                    <div class="w-20 h-20 rounded-lg border border-dashed border-outline-variant/30 flex items-center justify-center bg-slate-50 text-on-surface-variant/40">
+                                                        <span class="material-symbols-outlined text-[32px]">image</span>
+                                                    </div>
+                                                @endif
+                                                <a href="{{ route('admin.design-catalog.index', ['search' => $item['product_sku']]) }}" 
+                                                   class="inline-flex items-center gap-0.5 text-[10px] font-bold text-secondary hover:text-secondary-hover bg-secondary/10 px-2 py-0.5 rounded transition-all hover:scale-105 whitespace-nowrap mt-1 cursor-pointer">
+                                                    <span class="material-symbols-outlined text-[12px] font-bold">visibility</span>
+                                                    View in Catalog
+                                                </a>
+                                            </div>
+
+                                            <div class="flex-1 min-w-0">
+                                                <p class="font-title-md text-primary font-bold">{{ $item['product_title'] }}</p>
                                                 <p class="font-body-md text-on-surface-variant text-xs font-mono mt-1">{{ $item['product_sku'] }}</p>
                                             </div>
                                         </div>

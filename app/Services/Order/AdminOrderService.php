@@ -171,6 +171,16 @@ class AdminOrderService
         $items = $filteredItems->map(function ($item) {
             $product = $item->product;
             $lvl2Unit = $product ? $product->units->where('level', 2)->first() : null;
+
+            // Get product primary media file path (fallback to first media if primary not set)
+            $primaryMediaFilePath = null;
+            if ($product) {
+                $primaryMedia = $product->primaryMedia ?: $product->media()->first();
+                if ($primaryMedia) {
+                    $primaryMediaFilePath = $primaryMedia->file_path;
+                }
+            }
+
             return [
                 'id' => $item->id,
                 'product_title' => $item->product_title,
@@ -194,6 +204,7 @@ class AdminOrderService
                 'status' => $item->status ?: 'pending_dispatch',
                 'product_type' => $product ? $product->product_type : 'retail',
                 'dispatch_note' => $item->dispatch_note,
+                'primary_media_file_path' => $primaryMediaFilePath,
             ];
         })->toArray();
 
