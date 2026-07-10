@@ -113,7 +113,7 @@
                     </div>
                 </x-slot:header>
 
-                <div class="flex flex-wrap items-center gap-xl py-xs">
+                <div class="flex flex-wrap items-center gap-y-md gap-x-[120px] py-xs">
                     <div class="flex flex-col">
                         <span class="font-label-md text-on-surface-variant uppercase tracking-wider text-[10px] mb-1">Subtotal</span>
                         <span class="font-title-lg text-primary font-bold">{{ $orderData['formatted_subtotal'] }}</span>
