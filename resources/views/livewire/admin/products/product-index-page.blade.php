@@ -92,9 +92,9 @@
                             <td class="px-lg py-md text-on-surface-variant font-mono text-sm whitespace-nowrap">{{ $prod->sku }}</td>
                             <td class="px-lg py-md text-center">
                                 @if(($prod->product_type ?? '') === 'retail')
-                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold font-mono shadow-sm cursor-help" title="Manufactured">M</span>
+                                    <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold shadow-sm select-none" title="Manufactured">Manufactured</span>
                                 @else
-                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-teal-50 text-teal-700 border border-teal-200 text-xs font-bold font-mono shadow-sm cursor-help" title="Retail / Bought">R</span>
+                                    <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 text-[11px] font-bold shadow-sm select-none" title="Retail">Retail</span>
                                 @endif
                             </td>
                             <td class="px-lg py-md text-on-surface-variant max-w-[200px] truncate">
