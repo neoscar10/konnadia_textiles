@@ -103,8 +103,35 @@
 
     <!-- Main Content Split -->
     <div class="grid grid-cols-12 gap-xl pb-xl">
-        <!-- Order Items List -->
-        <div class="col-span-12 lg:col-span-8 space-y-xl">
+        <!-- Order Summary Row (Full Width) -->
+        <div class="col-span-12">
+            <x-admin.card>
+                <x-slot:header class="bg-surface-container-low/30">
+                    <div class="flex items-center gap-sm">
+                        <span class="material-symbols-outlined text-primary-fixed-dim">receipt_long</span>
+                        <h3 class="font-title-md text-primary">Order Summary</h3>
+                    </div>
+                </x-slot:header>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-xl divide-y md:divide-y-0 md:divide-x divide-outline-variant/30">
+                    <div class="flex flex-col justify-center items-center py-sm md:py-0">
+                        <span class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-1">Subtotal</span>
+                        <span class="font-headline-sm text-primary font-semibold">{{ $orderData['formatted_subtotal'] }}</span>
+                    </div>
+                    <div class="flex flex-col justify-center items-center py-sm md:py-0 pt-md md:pt-0">
+                        <span class="font-label-md text-on-surface-variant uppercase tracking-wider text-[11px] mb-1">GST</span>
+                        <span class="font-headline-sm text-primary font-semibold">{{ $orderData['formatted_gst'] }}</span>
+                    </div>
+                    <div class="flex flex-col justify-center items-center py-sm md:py-0 pt-md md:pt-0">
+                        <span class="font-label-md text-secondary uppercase tracking-wider text-[11px] mb-1 font-bold">Grand Total</span>
+                        <span class="font-headline-md text-[#5c44c4] font-black">{{ $orderData['formatted_total'] }}</span>
+                    </div>
+                </div>
+            </x-admin.card>
+        </div>
+
+        <!-- Order Items List (Full Width) -->
+        <div class="col-span-12">
             <x-admin.card>
                 <x-slot:header class="flex items-center justify-between bg-surface-container-low/30 w-full">
                     <div class="flex items-center gap-sm">
@@ -219,7 +246,10 @@
                     </table>
                 </div>
             </x-admin.card>
+        </div>
 
+        <!-- Left Column: Status History Timeline -->
+        <div class="col-span-12 lg:col-span-8 space-y-xl">
             <!-- Status History Timeline -->
             <x-admin.card>
                 <x-slot:header class="flex items-center gap-sm bg-surface-container-low/30">
@@ -242,33 +272,10 @@
                     @endforeach
                 </div>
             </x-admin.card>
-
-
         </div>
 
+        <!-- Right Column: Remarks & Dispatches -->
         <div class="col-span-12 lg:col-span-4 space-y-xl">
-            <!-- Order Summary -->
-            <x-admin.card>
-                <x-slot:header class="bg-surface-container-low/30">
-                    <h3 class="font-title-md text-primary">Order Summary</h3>
-                </x-slot:header>
-
-                <div class="space-y-md">
-                    <div class="flex justify-between">
-                        <span class="font-body-md text-on-surface-variant">Subtotal</span>
-                        <span class="font-body-md font-medium text-primary">{{ $orderData['formatted_subtotal'] }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-body-md text-on-surface-variant">GST</span>
-                        <span class="font-body-md font-medium text-primary">{{ $orderData['formatted_gst'] }}</span>
-                    </div>
-                    <div class="pt-md mt-md border-t-2 border-primary/10 flex justify-between items-center">
-                        <span class="font-title-md text-primary">Grand Total</span>
-                        <span class="font-headline-md text-primary font-bold">{{ $orderData['formatted_total'] }}</span>
-                    </div>
-                </div>
-            </x-admin.card>
-
             <!-- Remarks -->
             <x-admin.card>
                 <div class="mb-lg">
