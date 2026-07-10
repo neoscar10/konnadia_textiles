@@ -292,34 +292,6 @@
 
     </div>
 
-    <!-- Wholesale Assurance -->
-    <div class="pt-8 border-t border-slate-200 space-y-4">
-        <h3 class="text-base font-extrabold text-[#001229]">Wholesale Assurance</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="flex items-center gap-3.5 p-4 bg-slate-50 border border-outline-variant/20 rounded-xl shadow-xs">
-                <span class="material-symbols-outlined text-emerald-600 text-3xl shrink-0">local_shipping</span>
-                <div>
-                    <h5 class="text-sm font-bold text-[#001229]">Express Delivery</h5>
-                    <p class="text-xs text-slate-500 mt-1">Dispatch within 48 hours via surface cargo.</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3.5 p-4 bg-slate-50 border border-outline-variant/20 rounded-xl shadow-xs">
-                <span class="material-symbols-outlined text-emerald-600 text-3xl shrink-0">verified</span>
-                <div>
-                    <h5 class="text-sm font-bold text-[#001229]">Quality Inspected</h5>
-                    <p class="text-xs text-slate-500 mt-1">Strict factory defect checks per piece.</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3.5 p-4 bg-slate-50 border border-outline-variant/20 rounded-xl shadow-xs">
-                <span class="material-symbols-outlined text-emerald-600 text-3xl shrink-0">currency_rupee</span>
-                <div>
-                    <h5 class="text-sm font-bold text-[#001229]">Flexible Credit Terms</h5>
-                    <p class="text-xs text-slate-500 mt-1">Authorized B2B billing against credit profiles.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Mobile Sticky Footer Add to Cart Bar -->
     @auth
     <div class="lg:hidden fixed bottom-16 left-0 right-0 bg-white border-t border-outline-variant/30 p-4 z-40 flex items-center justify-between shadow-ambient">
