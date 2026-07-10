@@ -68,7 +68,7 @@
     <!-- Top Info Banner -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-xl">
         <div class="flex items-start gap-md bg-surface-container-lowest p-md border border-outline-variant/30 rounded-lg">
-            <div class="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center flex-shrink-0">
+            <div class="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center flex-shrink-0">
                 <span class="material-symbols-outlined text-[20px]">person</span>
             </div>
             <div>
@@ -90,7 +90,7 @@
         </div>
 
         <div class="flex items-start gap-md bg-surface-container-lowest p-md border border-outline-variant/30 rounded-lg">
-            <div class="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center flex-shrink-0">
+            <div class="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center flex-shrink-0">
                 <span class="material-symbols-outlined text-[20px]">shopping_bag</span>
             </div>
             <div>
