@@ -86,7 +86,7 @@
             <div class="bg-amber-50 border border-amber-200/60 rounded-xl p-3.5 flex items-start gap-2.5 text-amber-800 shadow-sm select-none">
                 <span class="material-symbols-outlined text-amber-500 text-lg mt-0.5 select-none">info</span>
                 <div class="text-xs font-semibold leading-relaxed">
-                    Prices are subject to change. Please contact the admin for final price confirmation.
+                    Prices are subject to change. Please contact the company for final price confirmation.
                 </div>
             </div>
 
