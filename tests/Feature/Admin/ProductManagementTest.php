@@ -335,4 +335,13 @@ class ProductManagementTest extends TestCase
             ->call('openSelectLeafForDefaults')
             ->assertStatus(200);
     }
+
+    public function test_admin_can_paginate_products()
+    {
+        // Create 15 products so we have at least 2 pages
+        Product::factory()->count(15)->create();
+
+        $response = $this->actingAs($this->superAdmin)->get('/admin/products?page=2');
+        $response->assertStatus(200);
+    }
 }

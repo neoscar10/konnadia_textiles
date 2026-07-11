@@ -144,7 +144,7 @@
                 Showing {{ $products->firstItem() ?? 0 }} to {{ $products->lastItem() ?? 0 }} of {{ $products->total() }} products
             </span>
             <div>
-                {{ $products->links('pagination::tailwind') }}
+                {{ $products->links(data: ['scrollTo' => false]) }}
             </div>
         </x-slot:footer>
     </x-admin.card>

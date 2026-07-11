@@ -191,7 +191,7 @@
         <x-slot:footer class="flex justify-between items-center">
             <span class="font-label-md text-on-surface-variant">Showing {{ $products->firstItem() ?? 0 }} to {{ $products->lastItem() ?? 0 }} of {{ $products->total() }} items</span>
             <div class="flex items-center gap-xs">
-                {{ $products->links('pagination::tailwind') }}
+                {{ $products->links(data: ['scrollTo' => false]) }}
             </div>
         </x-slot:footer>
         @endif
