@@ -13,6 +13,7 @@ use Livewire\Livewire;
 use App\Livewire\Admin\Products\ProductIndexPage;
 use App\Livewire\Admin\Products\ProductShowPage;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class ProductManagementTest extends TestCase
@@ -301,5 +302,37 @@ class ProductManagementTest extends TestCase
             ->assertSee('Polo Details Test')
             ->assertSee('KT-P-0007')
             ->assertSee('₹800.00');
+    }
+
+    public function test_admin_without_categories_permission_cannot_configure_defaults()
+    {
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $accessProducts = Permission::firstOrCreate(['name' => 'access products', 'guard_name' => 'web']);
+        
+        $adminUser = User::factory()->create();
+        $adminUser->assignRole($adminRole);
+        $adminUser->givePermissionTo($accessProducts);
+
+        Livewire::actingAs($adminUser)
+            ->test(ProductIndexPage::class)
+            ->call('openSelectLeafForDefaults')
+            ->assertStatus(403);
+    }
+
+    public function test_admin_with_categories_permission_can_configure_defaults()
+    {
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $accessProducts = Permission::firstOrCreate(['name' => 'access products', 'guard_name' => 'web']);
+        $accessCategories = Permission::firstOrCreate(['name' => 'access categories', 'guard_name' => 'web']);
+        
+        $adminUser = User::factory()->create();
+        $adminUser->assignRole($adminRole);
+        $adminUser->givePermissionTo($accessProducts);
+        $adminUser->givePermissionTo($accessCategories);
+
+        Livewire::actingAs($adminUser)
+            ->test(ProductIndexPage::class)
+            ->call('openSelectLeafForDefaults')
+            ->assertStatus(200);
     }
 }

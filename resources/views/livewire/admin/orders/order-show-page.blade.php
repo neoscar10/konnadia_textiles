@@ -313,6 +313,9 @@
 
                 @php
                     $dispatchedItems = collect($orderData['items'])->filter(fn($i) => ($i['status'] ?? '') === 'dispatched');
+                    $dispatchGroups = $dispatchedItems->groupBy(function($item) {
+                        return $item['dispatch_number'] ?: 'Legacy Dispatch';
+                    });
                 @endphp
 
                 @if($dispatchedItems->isEmpty())
@@ -322,32 +325,55 @@
                     </div>
                 @else
                     <div class="space-y-md">
-                        @foreach($dispatchedItems as $dispItem)
-                            <div class="p-md bg-surface-container-low rounded-lg border border-outline-variant/20 space-y-xs">
-                                <div class="flex items-start justify-between gap-sm">
+                        @foreach($dispatchGroups as $dispatchNumber => $items)
+                            @php
+                                $firstItem = $items->first();
+                                $dispatchedAt = $firstItem['dispatched_at'] ?? 'N/A';
+                                $dispatchedBy = $firstItem['dispatched_by_name'] ?? 'System';
+                            @endphp
+                            <div class="p-md bg-surface-container-low rounded-lg border border-outline-variant/20 space-y-md">
+                                <div class="flex items-start justify-between gap-sm pb-sm border-b border-outline-variant/10">
                                     <div>
-                                        <p class="font-title-sm text-primary font-bold">{{ $dispItem['product_title'] }}</p>
-                                        <p class="text-xs text-on-surface-variant font-mono">{{ $dispItem['product_sku'] }}</p>
+                                        <p class="font-title-sm text-primary font-bold">{{ $dispatchNumber }}</p>
+                                        <p class="text-[10px] text-on-surface-variant mt-0.5">
+                                            Dispatched on {{ $dispatchedAt }} by {{ $dispatchedBy }}
+                                        </p>
                                     </div>
-                                    <div class="text-right shrink-0">
-                                        <span class="text-xs bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full border border-purple-200">
-                                            @if(!empty($dispItem['has_lvl2_unit']))
-                                                @if($dispItem['quantity_lvl2'] > 0)
-                                                    {{ $dispItem['quantity_lvl2'] }} {{ $dispItem['lvl2_unit_name'] }}{{ $dispItem['quantity_lvl2'] != 1 ? 's' : '' }}
-                                                @endif
-                                                @if($dispItem['quantity_lvl1'] > 0)
-                                                    @if($dispItem['quantity_lvl2'] > 0), @endif
-                                                    {{ $dispItem['quantity_lvl1'] }} {{ $dispItem['lvl1_unit_name'] }}{{ $dispItem['quantity_lvl1'] != 1 ? 's' : '' }}
-                                                @endif
-                                            @else
-                                                {{ $dispItem['quantity'] }} {{ $dispItem['unit_short_code'] ?: 'Pcs' }}
-                                            @endif
-                                        </span>
-                                    </div>
+                                    @if($dispatchNumber !== 'Legacy Dispatch')
+                                        <a href="{{ route('admin.order-dispatches.pdf', ['dispatchNumber' => $dispatchNumber]) }}" 
+                                           target="_blank"
+                                           class="inline-flex items-center gap-xxs px-2 py-1 bg-secondary text-on-secondary rounded text-xs font-bold hover:bg-secondary-hover transition-colors shadow-xs cursor-pointer">
+                                            <span class="material-symbols-outlined text-[14px]">download</span> PDF
+                                        </a>
+                                    @endif
                                 </div>
-                                <div class="pt-xs border-t border-outline-variant/10 text-xs text-on-surface-variant">
-                                    <strong>Dispatch Note:</strong>
-                                    <p class="mt-0.5 italic text-on-surface-variant/80">{{ $dispItem['dispatch_note'] ?: 'No dispatch note entered.' }}</p>
+                                <div class="space-y-sm">
+                                    @foreach($items as $dispItem)
+                                        <div class="flex items-start justify-between gap-sm text-xs">
+                                            <div class="min-w-0">
+                                                <p class="font-bold text-on-surface truncate">{{ $dispItem['product_title'] }}</p>
+                                                <p class="text-[10px] text-on-surface-variant font-mono">{{ $dispItem['product_sku'] }}</p>
+                                                @if($dispItem['dispatch_note'])
+                                                    <p class="mt-0.5 italic text-on-surface-variant/80">Note: {{ $dispItem['dispatch_note'] }}</p>
+                                                @endif
+                                            </div>
+                                            <div class="text-right shrink-0">
+                                                <span class="font-bold font-mono text-purple-700">
+                                                    @if(!empty($dispItem['has_lvl2_unit']))
+                                                        @if($dispItem['quantity_lvl2'] > 0)
+                                                            {{ $dispItem['quantity_lvl2'] }} {{ $dispItem['lvl2_unit_name'] }}{{ $dispItem['quantity_lvl2'] != 1 ? 's' : '' }}
+                                                        @endif
+                                                        @if($dispItem['quantity_lvl1'] > 0)
+                                                            @if($dispItem['quantity_lvl2'] > 0), @endif
+                                                            {{ $dispItem['quantity_lvl1'] }} {{ $dispItem['lvl1_unit_name'] }}{{ $dispItem['quantity_lvl1'] != 1 ? 's' : '' }}
+                                                        @endif
+                                                    @else
+                                                        {{ $dispItem['quantity'] }} {{ $dispItem['unit_short_code'] ?: 'Pcs' }}
+                                                    @endif
+                                                </span>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
                         @endforeach
@@ -473,13 +499,11 @@
                     @error('dispatchQty') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>
 
-                @if($selItem && $selItem['product_type'] === 'retail')
-                    <div class="space-y-sm mb-md">
-                        <label class="font-label-md text-on-surface-variant font-semibold">Dispatch Note</label>
-                        <textarea wire:model="dispatchNote" rows="3" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface" placeholder="Enter dispatch note..."></textarea>
-                        @error('dispatchNote') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                    </div>
-                @endif
+                <div class="space-y-sm mb-md">
+                    <label class="font-label-md text-on-surface-variant font-semibold">Dispatch Note</label>
+                    <textarea wire:model="dispatchNote" rows="3" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface" placeholder="Enter dispatch note..."></textarea>
+                    @error('dispatchNote') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                </div>
 
                 <div class="flex justify-end gap-sm">
                     <x-admin.button variant="outline" wire:click="$set('showItemDispatchModal', false)">Cancel</x-admin.button>
@@ -540,6 +564,30 @@
                 <div class="flex justify-end gap-sm">
                     <x-admin.button variant="outline" wire:click="$set('showItemCancelModal', false)">Go Back</x-admin.button>
                     <x-admin.button variant="danger" wire:click="confirmCancelItem">Confirm Cancellation</x-admin.button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Dispatch Success / Print Prompt Modal -->
+    @if($showDispatchSuccessModal)
+        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+            <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md text-center">
+                <div class="w-16 h-16 bg-[#5c44c4]/10 text-[#5c44c4] rounded-full flex items-center justify-center mx-auto mb-md border border-[#5c44c4]/20">
+                    <span class="material-symbols-outlined text-[36px] font-bold">local_shipping</span>
+                </div>
+                <h3 class="font-headline-md text-primary mb-sm">Dispatch Logged Successfully</h3>
+                <p class="font-body-md text-on-surface-variant mb-lg">
+                    The dispatch has been logged under reference number <strong class="text-primary font-mono">{{ $newlyDispatchedNumber }}</strong>.
+                </p>
+                <div class="flex flex-col gap-sm">
+                    <a href="{{ route('admin.order-dispatches.pdf', ['dispatchNumber' => $newlyDispatchedNumber]) }}" 
+                       target="_blank" 
+                       @click="$wire.set('showDispatchSuccessModal', false)"
+                       class="w-full inline-flex items-center justify-center gap-xs px-md py-sm bg-[#5c44c4] hover:bg-[#4d37a8] text-white rounded-lg font-bold text-sm transition-all shadow-sm cursor-pointer select-none">
+                        <span class="material-symbols-outlined text-[18px]">download</span> Download Dispatch Document
+                    </a>
+                    <x-admin.button variant="outline" wire:click="$set('showDispatchSuccessModal', false)">Close</x-admin.button>
                 </div>
             </div>
         </div>

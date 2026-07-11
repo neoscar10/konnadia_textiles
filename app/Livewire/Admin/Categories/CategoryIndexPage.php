@@ -343,6 +343,7 @@ class CategoryIndexPage extends Component
 
     public function openCategoryDefaults(): void
     {
+        abort_if(!auth()->user()->hasRole('super_admin') && !auth()->user()->can('access categories'), 403, 'Unauthorized action.');
         $this->resetValidation();
         if (!$this->currentCategoryId) return;
 
@@ -396,6 +397,7 @@ class CategoryIndexPage extends Component
 
     public function saveCategoryDefaults(): void
     {
+        abort_if(!auth()->user()->hasRole('super_admin') && !auth()->user()->can('access categories'), 403, 'Unauthorized action.');
         $this->validate([
             'categoryDefaults.base_price' => ['required', 'numeric', 'min:0'],
             'categoryDefaults.description' => ['nullable', 'string'],
@@ -1142,8 +1144,15 @@ class CategoryIndexPage extends Component
         }
 
         if ($this->currentCategoryId) {
-            $availableTags = \App\Models\Tag::whereHas('categories', function($q) {
-                $q->where('categories.id', $this->currentCategoryId);
+            $category = \App\Models\Category::find($this->currentCategoryId);
+            $categoryIds = [];
+            $current = $category;
+            while ($current) {
+                $categoryIds[] = $current->id;
+                $current = $current->parent;
+            }
+            $availableTags = \App\Models\Tag::whereHas('categories', function($q) use ($categoryIds) {
+                $q->whereIn('categories.id', $categoryIds);
             })->orderBy('name')->get();
         } else {
             $availableTags = collect();

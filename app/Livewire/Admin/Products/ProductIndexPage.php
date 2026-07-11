@@ -338,6 +338,7 @@ class ProductIndexPage extends Component
 
     public function openSelectLeafForDefaults(): void
     {
+        abort_if(!auth()->user()->hasRole('super_admin') && !auth()->user()->can('access categories'), 403, 'Unauthorized action.');
         $this->resetValidation();
         $this->currentCategoryId = null;
         $this->dispatch('open-modal', 'select-leaf-for-defaults');
@@ -345,6 +346,7 @@ class ProductIndexPage extends Component
 
     public function selectLeafForDefaults(int $categoryId): void
     {
+        abort_if(!auth()->user()->hasRole('super_admin') && !auth()->user()->can('access categories'), 403, 'Unauthorized action.');
         $this->currentCategoryId = $categoryId;
         $this->dispatch('close-modal', 'select-leaf-for-defaults');
         $this->openCategoryDefaults();
@@ -352,6 +354,7 @@ class ProductIndexPage extends Component
 
     public function openCategoryDefaults(): void
     {
+        abort_if(!auth()->user()->hasRole('super_admin') && !auth()->user()->can('access categories'), 403, 'Unauthorized action.');
         $this->resetValidation();
         if (!$this->currentCategoryId) return;
 
@@ -404,6 +407,7 @@ class ProductIndexPage extends Component
 
     public function saveCategoryDefaults(): void
     {
+        abort_if(!auth()->user()->hasRole('super_admin') && !auth()->user()->can('access categories'), 403, 'Unauthorized action.');
         $this->validate([
             'categoryDefaults.base_price' => ['required', 'numeric', 'min:0'],
             'categoryDefaults.description' => ['nullable', 'string'],
@@ -988,8 +992,15 @@ class ProductIndexPage extends Component
         $leafCategories = $categoryService->getLeafCategories();
 
         if ($this->currentCategoryId) {
-            $availableTags = \App\Models\Tag::whereHas('categories', function($q) {
-                $q->where('categories.id', $this->currentCategoryId);
+            $category = \App\Models\Category::find($this->currentCategoryId);
+            $categoryIds = [];
+            $current = $category;
+            while ($current) {
+                $categoryIds[] = $current->id;
+                $current = $current->parent;
+            }
+            $availableTags = \App\Models\Tag::whereHas('categories', function($q) use ($categoryIds) {
+                $q->whereIn('categories.id', $categoryIds);
             })->orderBy('name')->get();
         } else {
             $availableTags = collect();

@@ -72,16 +72,87 @@ class TagManagementTest extends TestCase
         Livewire::actingAs($this->superAdmin)
             ->test(TagIndexPage::class)
             ->set('categorySearch', 'Cotton')
-            ->assertViewHas('leafCategories', function ($leafCategories) {
-                return $leafCategories->count() === 1 && $leafCategories->first()->id === $this->category1->id;
+            ->assertViewHas('categoryTree', function ($categoryTree) {
+                return $categoryTree->count() === 1 && $categoryTree->first()->id === $this->category1->id;
             })
             ->set('categorySearch', 'Silk')
-            ->assertViewHas('leafCategories', function ($leafCategories) {
-                return $leafCategories->count() === 1 && $leafCategories->first()->id === $this->category2->id;
+            ->assertViewHas('categoryTree', function ($categoryTree) {
+                return $categoryTree->count() === 1 && $categoryTree->first()->id === $this->category2->id;
             })
             ->set('categorySearch', 'Nonexistent')
-            ->assertViewHas('leafCategories', function ($leafCategories) {
-                return $leafCategories->isEmpty();
+            ->assertViewHas('categoryTree', function ($categoryTree) {
+                return $categoryTree->isEmpty();
+            });
+    }
+
+    public function test_toggling_parent_category_selects_all_descendants()
+    {
+        // Create parent category and child category
+        $parentCategory = Category::create([
+            'name' => 'Clothing',
+            'slug' => 'clothing',
+            'is_active' => true,
+            'is_leaf' => false,
+        ]);
+
+        $childCategory1 = Category::create([
+            'name' => 'Pants',
+            'slug' => 'pants',
+            'parent_id' => $parentCategory->id,
+            'is_active' => true,
+            'is_leaf' => true,
+        ]);
+
+        $childCategory2 = Category::create([
+            'name' => 'Shirts',
+            'slug' => 'shirts',
+            'parent_id' => $parentCategory->id,
+            'is_active' => true,
+            'is_leaf' => true,
+        ]);
+
+        Livewire::actingAs($this->superAdmin)
+            ->test(TagIndexPage::class)
+            // Initially empty
+            ->assertSet('selectedCategoryIds', [])
+            // Toggle parent category (should select parent and both child categories)
+            ->call('toggleCategorySelection', $parentCategory->id)
+            ->assertSet('selectedCategoryIds', [$parentCategory->id, $childCategory1->id, $childCategory2->id])
+            // Toggle again (should deselect all of them)
+            ->call('toggleCategorySelection', $parentCategory->id)
+            ->assertSet('selectedCategoryIds', []);
+    }
+
+    public function test_tag_assigned_to_parent_category_is_available_for_descendant_products()
+    {
+        // Create parent category and child category
+        $parentCategory = Category::create([
+            'name' => 'Clothing Parent',
+            'slug' => 'clothing-parent',
+            'is_active' => true,
+            'is_leaf' => false,
+        ]);
+
+        $childCategory = Category::create([
+            'name' => 'Jeans Child',
+            'slug' => 'jeans-child',
+            'parent_id' => $parentCategory->id,
+            'is_active' => true,
+            'is_leaf' => true,
+        ]);
+
+        // Create a tag and associate with parent category
+        $tag = Tag::create([
+            'name' => 'Denim Tag',
+            'slug' => 'denim-tag',
+        ]);
+        $tag->categories()->attach($parentCategory->id);
+
+        // In ProductIndexPage under child category, the tag should be available
+        Livewire::actingAs($this->superAdmin)
+            ->test(\App\Livewire\Admin\Products\ProductIndexPage::class, ['currentCategoryId' => $childCategory->id])
+            ->assertViewHas('availableTags', function ($availableTags) use ($tag) {
+                return $availableTags->contains('id', $tag->id);
             });
     }
 }

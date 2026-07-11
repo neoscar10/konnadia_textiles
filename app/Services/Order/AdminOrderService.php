@@ -204,6 +204,9 @@ class AdminOrderService
                 'status' => $item->status ?: 'pending_dispatch',
                 'product_type' => $product ? $product->product_type : 'retail',
                 'dispatch_note' => $item->dispatch_note,
+                'dispatch_number' => $item->dispatch_number,
+                'dispatched_at' => $item->dispatched_at ? $item->dispatched_at->format('d-M-Y H:i') : null,
+                'dispatched_by_name' => $item->dispatchedBy->name ?? 'System',
                 'primary_media_file_path' => $primaryMediaFilePath,
             ];
         })->toArray();
@@ -515,7 +518,7 @@ class AdminOrderService
     /**
      * Dispatch a specific quantity of an order item.
      */
-    public function dispatchOrderItem(\App\Models\OrderItem $item, int $qtyToDispatch, User $admin, ?string $note = null): Order
+    public function dispatchOrderItem(\App\Models\OrderItem $item, int $qtyToDispatch, User $admin, ?string $note = null, ?string $dispatchNumber = null, ?string $dispatchedAt = null): Order
     {
         if ($qtyToDispatch <= 0) {
             throw ValidationException::withMessages(['quantity' => 'Dispatch quantity must be greater than zero.']);
@@ -529,7 +532,7 @@ class AdminOrderService
 
         $order = $item->order;
 
-        return DB::transaction(function () use ($item, $qtyToDispatch, $order, $admin, $note) {
+        return DB::transaction(function () use ($item, $qtyToDispatch, $order, $admin, $note, $dispatchNumber, $dispatchedAt) {
             $item->load('unit');
 
             // Deduct stock for this item
@@ -575,9 +578,10 @@ class AdminOrderService
 
             // Mark original item as dispatched
             $item->status = 'dispatched';
-            if ($item->product && $item->product->product_type === 'retail') {
-                $item->dispatch_note = $note;
-            }
+            $item->dispatch_note = $note;
+            $item->dispatch_number = $dispatchNumber;
+            $item->dispatched_at = $dispatchedAt ? \Carbon\Carbon::parse($dispatchedAt) : now();
+            $item->dispatched_by_id = $admin->id;
             $item->save();
 
             // Refresh items list for correct calculations

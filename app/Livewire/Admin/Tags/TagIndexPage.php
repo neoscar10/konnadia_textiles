@@ -3,11 +3,13 @@
 namespace App\Livewire\Admin\Tags;
 
 use App\Models\Tag;
+use App\Models\Category;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Collection;
 
 #[Layout('components.admin.layout')]
 class TagIndexPage extends Component
@@ -131,6 +133,79 @@ class TagIndexPage extends Component
         $this->categorySearch = '';
     }
 
+    public function toggleCategorySelection(int $categoryId): void
+    {
+        $descendants = $this->getCategoryDescendants($categoryId);
+        $allIds = array_merge([$categoryId], $descendants);
+
+        $isCurrentlySelected = in_array($categoryId, $this->selectedCategoryIds);
+
+        if ($isCurrentlySelected) {
+            // Remove the category and all its descendants
+            $this->selectedCategoryIds = array_values(array_diff($this->selectedCategoryIds, $allIds));
+        } else {
+            // Add the category and all its descendants
+            $this->selectedCategoryIds = array_values(array_unique(array_merge($this->selectedCategoryIds, $allIds)));
+        }
+    }
+
+    protected function getCategoryDescendants(int $categoryId): array
+    {
+        $category = Category::with('children')->find($categoryId);
+        if (!$category) return [];
+        return $this->getDescendantIds($category);
+    }
+
+    protected function getDescendantIds(Category $category): array
+    {
+        $ids = [];
+        foreach ($category->children as $child) {
+            $ids[] = $child->id;
+            $ids = array_merge($ids, $this->getDescendantIds($child));
+        }
+        return $ids;
+    }
+
+    protected function getCategoryTree(): Collection
+    {
+        $categories = Category::ordered()->get();
+        
+        // If there's a search term, find matching categories and all their ancestors
+        if (!empty($this->categorySearch)) {
+            $searchTerm = strtolower(trim($this->categorySearch));
+            $matchingIds = [];
+            
+            foreach ($categories as $cat) {
+                if (str_contains(strtolower($cat->name), $searchTerm)) {
+                    $matchingIds[] = $cat->id;
+                    $parent = $cat->parent;
+                    while ($parent) {
+                        $matchingIds[] = $parent->id;
+                        $parent = $parent->parent;
+                    }
+                }
+            }
+            
+            $matchingIds = array_unique($matchingIds);
+            $categories = $categories->filter(fn($cat) => in_array($cat->id, $matchingIds));
+        }
+
+        return $this->buildInMemoryTree($categories);
+    }
+
+    protected function buildInMemoryTree(Collection $categories, $parentId = null): Collection
+    {
+        $branch = collect();
+        foreach ($categories as $category) {
+            if ($category->parent_id == $parentId) {
+                $children = $this->buildInMemoryTree($categories, $category->id);
+                $category->setRelation('children', $children);
+                $branch->add($category);
+            }
+        }
+        return $branch;
+    }
+
     public function render()
     {
         $query = Tag::query();
@@ -141,19 +216,11 @@ class TagIndexPage extends Component
         }
 
         $tags = $query->with('categories')->orderBy('name')->paginate(10);
-        $leafCategories = app(\App\Services\Catalog\CategoryService::class)->getLeafCategories();
-
-        if (!empty($this->categorySearch)) {
-            $searchTerm = strtolower(trim($this->categorySearch));
-            $leafCategories = $leafCategories->filter(function ($leaf) use ($searchTerm) {
-                return str_contains(strtolower($leaf->name), $searchTerm) || 
-                       str_contains(strtolower($leaf->full_path), $searchTerm);
-            });
-        }
+        $categoryTree = $this->getCategoryTree();
 
         return view('livewire.admin.tags.tag-index-page', [
             'tags' => $tags,
-            'leafCategories' => $leafCategories,
+            'categoryTree' => $categoryTree,
         ])->title('Tags Management');
     }
 }

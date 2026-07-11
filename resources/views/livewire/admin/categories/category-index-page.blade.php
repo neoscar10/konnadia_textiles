@@ -82,9 +82,11 @@
                             $defaultsConfigured = $currentCategory && !empty($currentCategory->default_product_config) && !empty($currentCategory->default_product_config['units']['level1_name']);
                         @endphp
                         
-                        <x-admin.button variant="primary" icon="settings" wire:click="openCategoryDefaults" class="bg-secondary text-on-secondary hover:bg-secondary/90 whitespace-nowrap">
-                            Configure Defaults
-                        </x-admin.button>
+                        @if(auth()->user()->hasRole('super_admin') || auth()->user()->can('access categories'))
+                            <x-admin.button variant="primary" icon="settings" wire:click="openCategoryDefaults" class="bg-secondary text-on-secondary hover:bg-secondary/90 whitespace-nowrap">
+                                Configure Defaults
+                            </x-admin.button>
+                        @endif
 
                         @if($defaultsConfigured)
                             <x-admin.button variant="primary" icon="add" wire:click="create" class="whitespace-nowrap">
@@ -120,7 +122,11 @@
                         <div>
                             <p class="font-label-md text-on-surface font-bold text-sm">Category Defaults Not Configured</p>
                             <p class="text-xs text-on-surface-variant mt-xxs">
-                                Please click the <strong class="text-secondary">Configure Defaults</strong> button to set HSN, GST, MOQ, and unit configuration. Product creation will be unlocked once defaults are configured.
+                                @if(auth()->user()->hasRole('super_admin') || auth()->user()->can('access categories'))
+                                    Please click the <strong class="text-secondary">Configure Defaults</strong> button to set HSN, GST, MOQ, and unit configuration. Product creation will be unlocked once defaults are configured.
+                                @else
+                                    Please ask a Super Admin or Category Admin to configure category defaults (HSN, GST, MOQ, and units) to unlock product creation.
+                                @endif
                             </p>
                         </div>
                     </div>

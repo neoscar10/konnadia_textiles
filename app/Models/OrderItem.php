@@ -29,6 +29,9 @@ class OrderItem extends Model
         'line_total',
         'status',
         'dispatch_note',
+        'dispatch_number',
+        'dispatched_at',
+        'dispatched_by_id',
     ];
 
     protected $casts = [
@@ -43,11 +46,17 @@ class OrderItem extends Model
         'gst_percentage' => 'decimal:2',
         'gst_amount' => 'decimal:2',
         'line_total' => 'decimal:2',
+        'dispatched_at' => 'datetime',
     ];
 
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function dispatchedBy()
+    {
+        return $this->belongsTo(User::class, 'dispatched_by_id');
     }
 
     public function product()

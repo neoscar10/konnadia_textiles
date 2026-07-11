@@ -361,4 +361,46 @@ class OrderManagementTest extends TestCase
             $this->assertEquals('Bulk dispatch note', $dispItem->dispatch_note);
         }
     }
+
+    public function test_dispatch_assigns_dispatch_number_and_dispatched_at_and_dispatched_by(): void
+    {
+        $this->order->update(['status' => 'approved']);
+        $item = $this->order->items->first();
+
+        Livewire::actingAs($this->adminUser)
+            ->test(OrderShowPage::class, ['orderNumber' => $this->order->order_number])
+            ->set('selectedItemId', $item->id)
+            ->set('dispatchQty', 5)
+            ->set('dispatchNote', 'Testing document dispatch note')
+            ->call('confirmDispatchItem')
+            ->assertHasNoErrors()
+            ->assertSet('showDispatchSuccessModal', true)
+            ->assertSet('newlyDispatchedNumber', 'DISP-KT-ORD-ADM001-1');
+
+        $dispatchedItem = $this->order->fresh()->items->where('status', 'dispatched')->first();
+        $this->assertNotNull($dispatchedItem);
+        $this->assertEquals('DISP-KT-ORD-ADM001-1', $dispatchedItem->dispatch_number);
+        $this->assertNotNull($dispatchedItem->dispatched_at);
+        $this->assertEquals($this->adminUser->id, $dispatchedItem->dispatched_by_id);
+    }
+
+    public function test_admin_can_download_dispatch_pdf_document(): void
+    {
+        $this->order->update(['status' => 'approved']);
+        $item = $this->order->items->first();
+        $item->update([
+            'status' => 'dispatched',
+            'dispatch_number' => 'DISP-TEST-123',
+            'dispatched_at' => now(),
+            'dispatched_by_id' => $this->adminUser->id,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get('/admin/order-dispatches/DISP-TEST-123/pdf');
+
+        $response->assertStatus(200)
+            ->assertSee('Goods Dispatch Note')
+            ->assertSee('DISP-TEST-123')
+            ->assertSee($this->order->order_number);
+    }
 }

@@ -10,6 +10,7 @@ use Tests\TestCase;
 use Livewire\Livewire;
 use App\Livewire\Admin\Categories\CategoryIndexPage;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class CategoryManagementTest extends TestCase
 {
@@ -194,5 +195,47 @@ class CategoryManagementTest extends TestCase
         $this->assertSoftDeleted('categories', [
             'id' => $child->id,
         ]);
+    }
+
+    public function test_admin_without_categories_permission_cannot_configure_defaults()
+    {
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $accessProducts = Permission::firstOrCreate(['name' => 'access products', 'guard_name' => 'web']);
+        
+        $adminUser = User::factory()->create();
+        $adminUser->assignRole($adminRole);
+        $adminUser->givePermissionTo($accessProducts);
+
+        $category = Category::create([
+            'name' => "Men's Wear",
+            'slug' => 'mens-wear',
+            'is_active' => true,
+        ]);
+
+        Livewire::actingAs($adminUser)
+            ->test(CategoryIndexPage::class, ['currentCategoryId' => $category->id])
+            ->call('openCategoryDefaults')
+            ->assertStatus(403);
+    }
+
+    public function test_admin_with_categories_permission_can_configure_defaults()
+    {
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $accessCategories = Permission::firstOrCreate(['name' => 'access categories', 'guard_name' => 'web']);
+        
+        $adminUser = User::factory()->create();
+        $adminUser->assignRole($adminRole);
+        $adminUser->givePermissionTo($accessCategories);
+
+        $category = Category::create([
+            'name' => "Men's Wear",
+            'slug' => 'mens-wear',
+            'is_active' => true,
+        ]);
+
+        Livewire::actingAs($adminUser)
+            ->test(CategoryIndexPage::class, ['currentCategoryId' => $category->id])
+            ->call('openCategoryDefaults')
+            ->assertStatus(200);
     }
 }

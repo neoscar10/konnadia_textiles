@@ -59,6 +59,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             $transfer = \App\Models\ProductTransfer::findOrFail($id);
             return app(\App\Services\StockTransfer\TransferDocumentService::class)->download($transfer);
         })->name('product-transfers.pdf');
+        Route::get('order-dispatches/{dispatchNumber}/pdf', function ($dispatchNumber) {
+            return app(\App\Services\Order\DispatchDocumentService::class)->download($dispatchNumber);
+        })->name('order-dispatches.pdf');
     });
 });
 

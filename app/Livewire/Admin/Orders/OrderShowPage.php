@@ -31,6 +31,8 @@ class OrderShowPage extends Component
     public string $dispatchNote = '';
     public bool $showBulkDispatchModal = false;
     public array $bulkDispatchQuantities = [];
+    public bool $showDispatchSuccessModal = false;
+    public string $newlyDispatchedNumber = '';
 
     public function mount($orderNumber, AdminOrderService $adminOrderService)
     {
@@ -142,7 +144,20 @@ class OrderShowPage extends Component
 
         try {
             $item = \App\Models\OrderItem::findOrFail($this->selectedItemId);
-            $adminOrderService->dispatchOrderItem($item, (int) $this->dispatchQty, auth()->user(), $this->dispatchNote);
+            $order = $item->order;
+            $now = now();
+            $dispatchedAt = $now->toDateTimeString();
+
+            $count = \App\Models\OrderItem::where('order_id', $order->id)
+                ->whereNotNull('dispatch_number')
+                ->distinct()
+                ->count('dispatch_number');
+            $dispatchNumber = 'DISP-' . $order->order_number . '-' . ($count + 1);
+
+            $adminOrderService->dispatchOrderItem($item, (int) $this->dispatchQty, auth()->user(), $this->dispatchNote, $dispatchNumber, $dispatchedAt);
+            
+            $this->newlyDispatchedNumber = $dispatchNumber;
+            $this->showDispatchSuccessModal = true;
             session()->flash('success', 'Order item dispatched successfully.');
         } catch (ValidationException $e) {
             session()->flash('error', collect($e->errors())->flatten()->first());
@@ -181,13 +196,26 @@ class OrderShowPage extends Component
         ]);
 
         try {
-            \Illuminate\Support\Facades\DB::transaction(function() use ($adminOrderService) {
+            $order = \App\Models\Order::findOrFail($this->orderData['id']);
+            $now = now();
+            $dispatchedAt = $now->toDateTimeString();
+
+            $count = \App\Models\OrderItem::where('order_id', $order->id)
+                ->whereNotNull('dispatch_number')
+                ->distinct()
+                ->count('dispatch_number');
+            $dispatchNumber = 'DISP-' . $order->order_number . '-' . ($count + 1);
+
+            \Illuminate\Support\Facades\DB::transaction(function() use ($adminOrderService, $dispatchNumber, $dispatchedAt) {
                 foreach ($this->selectedItemIds as $itemId) {
                     $item = \App\Models\OrderItem::findOrFail($itemId);
                     $qty = (int) $this->bulkDispatchQuantities[$itemId];
-                    $adminOrderService->dispatchOrderItem($item, $qty, auth()->user(), $this->dispatchNote);
+                    $adminOrderService->dispatchOrderItem($item, $qty, auth()->user(), $this->dispatchNote, $dispatchNumber, $dispatchedAt);
                 }
             });
+
+            $this->newlyDispatchedNumber = $dispatchNumber;
+            $this->showDispatchSuccessModal = true;
             session()->flash('success', 'Selected items dispatched successfully.');
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());

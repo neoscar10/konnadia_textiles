@@ -96,17 +96,12 @@
                         <input type="text" wire:model.live.debounce.150ms="categorySearch" placeholder="Search categories..." class="w-full px-xs py-0.5 text-xs bg-surface-container border border-outline-variant/30 rounded focus:ring-1 focus:ring-secondary outline-none transition-all text-on-surface">
                     </div>
                 </div>
-                <div class="border border-outline-variant/30 rounded-lg p-md max-h-[220px] overflow-y-auto bg-surface-container-low divide-y divide-outline-variant/10 mt-1">
-                    @forelse($leafCategories as $leaf)
-                        <div class="flex items-center gap-md py-sm select-none">
-                            <input type="checkbox" id="modal_cat_{{ $leaf->id }}" value="{{ $leaf->id }}" wire:model="selectedCategoryIds" class="w-4 h-4 rounded border-outline-variant text-[#5c44c4] focus:ring-[#5c44c4] cursor-pointer">
-                            <label for="modal_cat_{{ $leaf->id }}" class="text-sm text-on-surface cursor-pointer select-none">
-                                <span class="font-bold text-primary">{{ $leaf->name }}</span>
-                                <span class="text-xs text-on-surface-variant block">{{ $leaf->full_path }}</span>
-                            </label>
-                        </div>
+                <div x-data="{ expanded: {}, isSearching: @entangle('categorySearch') }" 
+                     class="border border-outline-variant/30 rounded-lg p-md max-h-[320px] overflow-y-auto bg-surface-container-low mt-1">
+                    @forelse($categoryTree as $item)
+                        @include('admin.tags.category-tree-node', ['item' => $item, 'selectedCategoryIds' => $selectedCategoryIds])
                     @empty
-                        <p class="text-xs text-on-surface-variant text-center py-md">No leaf categories configured yet.</p>
+                        <p class="text-xs text-on-surface-variant text-center py-md">No categories configured yet.</p>
                     @endforelse
                 </div>
                 @error('selectedCategoryIds') <span class="text-error text-xs">{{ $message }}</span> @enderror

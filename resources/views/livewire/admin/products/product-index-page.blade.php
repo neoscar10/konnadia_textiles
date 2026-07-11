@@ -8,7 +8,9 @@
             <p class="font-body-md text-on-surface-variant">Manage your inventory, variants, base pricing, and discount overrides.</p>
         </div>
         <div class="flex gap-md w-full sm:w-auto">
-            <x-admin.button variant="primary" icon="settings" wire:click="openSelectLeafForDefaults" class="bg-secondary text-on-secondary hover:bg-secondary/90 whitespace-nowrap">Configure Defaults</x-admin.button>
+            @if(auth()->user()->hasRole('super_admin') || auth()->user()->can('access categories'))
+                <x-admin.button variant="primary" icon="settings" wire:click="openSelectLeafForDefaults" class="bg-secondary text-on-secondary hover:bg-secondary/90 whitespace-nowrap">Configure Defaults</x-admin.button>
+            @endif
             <x-admin.button variant="primary" icon="add" wire:click="openSelectLeafForAddProduct" class="whitespace-nowrap">Add Product</x-admin.button>
         </div>
     </div>
