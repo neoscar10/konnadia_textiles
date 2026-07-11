@@ -196,14 +196,17 @@
                                     <td class="px-lg py-md">
                                         @if(!empty($item['has_lvl2_unit']))
                                             <p class="font-body-md text-primary">
-                                                {{ $item['quantity_lvl2'] }} {{ $item['lvl2_unit_name'] }}{{ $item['quantity_lvl2'] != 1 ? 's' : '' }}, 
-                                                {{ $item['quantity_lvl1'] }} {{ $item['lvl1_unit_name'] }}{{ $item['quantity_lvl1'] != 1 ? 's' : '' }}
+                                                @if($item['quantity_lvl2'] > 0)
+                                                    {{ $item['quantity_lvl2'] }} {{ \Illuminate\Support\Str::plural($item['lvl2_unit_name'], $item['quantity_lvl2']) }}
+                                                @else
+                                                    {{ $item['quantity_lvl1'] }} {{ \Illuminate\Support\Str::plural($item['lvl1_unit_name'], $item['quantity_lvl1']) }}
+                                                @endif
                                             </p>
-                                            <p class="font-label-md text-on-surface-variant text-xs mt-1">(Total: {{ $item['quantity'] }} Pcs)</p>
+                                            <p class="font-label-md text-on-surface-variant text-xs mt-1">(Total: {{ $item['quantity'] }} {{ \Illuminate\Support\Str::plural('Piece', $item['quantity']) }})</p>
                                         @else
-                                            <p class="font-body-md text-primary">{{ $item['quantity'] }} {{ $item['unit_name'] }}</p>
+                                            <p class="font-body-md text-primary">{{ $item['quantity'] }} {{ \Illuminate\Support\Str::plural($item['unit_name'], $item['quantity']) }}</p>
                                             @if(($item['unit_short_code'] ?? 'Pcs') !== 'Pcs')
-                                                <p class="font-label-md text-on-surface-variant text-xs mt-1">({{ $item['base_quantity'] }} Pcs)</p>
+                                                <p class="font-label-md text-on-surface-variant text-xs mt-1">({{ $item['base_quantity'] }} {{ \Illuminate\Support\Str::plural('Piece', $item['base_quantity']) }})</p>
                                             @endif
                                         @endif
                                     </td>
@@ -361,14 +364,12 @@
                                                 <span class="font-bold font-mono text-purple-700">
                                                     @if(!empty($dispItem['has_lvl2_unit']))
                                                         @if($dispItem['quantity_lvl2'] > 0)
-                                                            {{ $dispItem['quantity_lvl2'] }} {{ $dispItem['lvl2_unit_name'] }}{{ $dispItem['quantity_lvl2'] != 1 ? 's' : '' }}
-                                                        @endif
-                                                        @if($dispItem['quantity_lvl1'] > 0)
-                                                            @if($dispItem['quantity_lvl2'] > 0), @endif
-                                                            {{ $dispItem['quantity_lvl1'] }} {{ $dispItem['lvl1_unit_name'] }}{{ $dispItem['quantity_lvl1'] != 1 ? 's' : '' }}
+                                                            {{ $dispItem['quantity_lvl2'] }} {{ \Illuminate\Support\Str::plural($dispItem['lvl2_unit_name'], $dispItem['quantity_lvl2']) }}
+                                                        @else
+                                                            {{ $dispItem['quantity_lvl1'] }} {{ \Illuminate\Support\Str::plural($dispItem['lvl1_unit_name'], $dispItem['quantity_lvl1']) }}
                                                         @endif
                                                     @else
-                                                        {{ $dispItem['quantity'] }} {{ $dispItem['unit_short_code'] ?: 'Pcs' }}
+                                                        {{ $dispItem['quantity'] }} {{ \Illuminate\Support\Str::plural($dispItem['unit_name'], $dispItem['quantity']) }}
                                                     @endif
                                                 </span>
                                             </div>

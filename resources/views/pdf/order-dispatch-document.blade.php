@@ -275,14 +275,12 @@
                     <td>
                         @if($item->product_unit_id && $item->unit && $item->unit->level === 2)
                             @if($item->quantity_lvl2 > 0)
-                                {{ $item->quantity_lvl2 }} {{ $item->unit_name ?: 'Box' }}s
-                            @endif
-                            @if($item->quantity_lvl1 > 0)
-                                @if($item->quantity_lvl2 > 0), @endif
-                                {{ $item->quantity_lvl1 }} {{ $item->unit->parent->name ?? 'Piece' }}s
+                                {{ $item->quantity_lvl2 }} {{ \Illuminate\Support\Str::plural($item->unit_name ?: 'Box', $item->quantity_lvl2) }}
+                            @else
+                                {{ $item->quantity_lvl1 }} {{ \Illuminate\Support\Str::plural($item->unit->parent->name ?? 'Piece', $item->quantity_lvl1) }}
                             @endif
                         @else
-                            {{ $item->quantity }} {{ $item->unit_name ?: 'Piece' }}
+                            {{ $item->quantity }} {{ \Illuminate\Support\Str::plural($item->unit_name ?: 'Piece', $item->quantity) }}
                         @endif
                     </td>
                     <td class="text-center font-mono font-bold">{{ number_format($item->quantity * $item->unit_conversion_quantity, 2) }}</td>
