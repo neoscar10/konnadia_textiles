@@ -90,7 +90,7 @@ class ProductCardResource extends JsonResource
                 'hsn_code' => $this->hsn_code,
                 'gst_percentage' => $this->gst_percentage !== null ? (float)$this->gst_percentage : null,
             ],
-            'minimum_order_quantity' => 10,
+            'minimum_order_quantity' => (int) ($this->minimum_order_quantity ?? 1),
             'is_active' => (bool)$this->is_active,
             'tags' => $this->tags->map(fn($t) => [
                 'id' => $t->id,
