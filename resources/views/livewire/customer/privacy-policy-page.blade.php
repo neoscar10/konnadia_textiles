@@ -1,4 +1,4 @@
-<div class="max-w-[1000px] mx-auto px-4 md:px-8 py-12">
+<div>
     <!-- Breadcrumb -->
     <nav class="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-6 uppercase tracking-wider">
         <a href="{{ route('home') }}" class="hover:text-gold transition-colors">Home</a>
