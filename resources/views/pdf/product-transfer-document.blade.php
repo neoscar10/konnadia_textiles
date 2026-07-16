@@ -190,6 +190,9 @@
         .btn:hover {
             background-color: #4d37a8;
         }
+        .print-header {
+            display: none;
+        }
         @media print {
             body {
                 padding: 0;
@@ -200,14 +203,40 @@
                 padding: 0;
                 box-shadow: none;
                 max-width: 100%;
+                margin-top: 30px;
             }
             .print-btn-container {
                 display: none;
+            }
+            .print-header {
+                display: block;
+                position: fixed;
+                top: -15px;
+                left: 0;
+                width: 100%;
+                font-size: 10px;
+                font-weight: bold;
+                color: #5c44c4;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 5px;
+                font-family: monospace;
+            }
+            .print-header-left {
+                float: left;
+            }
+            .print-header-right {
+                float: right;
             }
         }
     </style>
 </head>
 <body>
+
+    <div class="print-header">
+        <div class="print-header-left">Stock Transfer - ID: {{ $transfer->transfer_number }}</div>
+        <div class="print-header-right">Destination Shop: {{ $shop->name }} ({{ $shop->shop_code }})</div>
+        <div style="clear: both;"></div>
+    </div>
 
     <div class="print-btn-container">
         <button class="btn" onclick="window.print()">Print Transfer / Save PDF</button>
@@ -216,7 +245,7 @@
     <div class="container">
         <div class="header">
             <div class="brand">
-                <h1>Kannodia Textiles</h1>
+                <h1>Sapnay Lifestyle</h1>
                 <p>Internal Stock Logistics & Operations</p>
             </div>
             <div class="doc-title">

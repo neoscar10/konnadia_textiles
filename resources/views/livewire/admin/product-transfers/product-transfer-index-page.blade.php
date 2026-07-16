@@ -50,10 +50,10 @@
                         <th class="px-lg py-md whitespace-nowrap">Transfer Date</th>
                         <th class="px-lg py-md text-center whitespace-nowrap">Total Items</th>
                         <th class="px-lg py-md text-center whitespace-nowrap">Qty (Base Units)</th>
-                        <th class="px-lg py-md text-center whitespace-nowrap">Stock Deducted</th>
+                        <th class="px-lg py-md text-right whitespace-nowrap">Actions</th>
                         <th class="px-lg py-md text-center whitespace-nowrap">Status</th>
                         <th class="px-lg py-md whitespace-nowrap">Created By</th>
-                        <th class="px-lg py-md text-right whitespace-nowrap">Actions</th>
+                        <th class="px-lg py-md text-center whitespace-nowrap">Stock Deducted</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/10">
@@ -66,10 +66,11 @@
                         </td>
                         <td class="px-lg py-lg text-center whitespace-nowrap">{{ $trf->total_items }}</td>
                         <td class="px-lg py-lg text-center whitespace-nowrap font-bold text-primary">{{ number_format($trf->total_quantity_base_units, 2) }}</td>
-                        <td class="px-lg py-lg text-center whitespace-nowrap">
-                            <span class="material-symbols-outlined text-[18px] {{ $trf->stock_deducted ? 'text-success' : 'text-on-surface-variant/40' }}">
-                                {{ $trf->stock_deducted ? 'check_circle' : 'cancel' }}
-                            </span>
+                        <td class="px-lg py-lg text-right whitespace-nowrap">
+                            <x-admin.action-menu>
+                                <x-admin.action-menu-item wire:click="showDetails({{ $trf->id }})" icon="visibility" label="View Details" />
+                                <x-admin.action-menu-item icon="print" label="Print / Save PDF" href="{{ route('admin.product-transfers.pdf', ['id' => $trf->id]) }}" target="_blank" />
+                            </x-admin.action-menu>
                         </td>
                         <td class="px-lg py-lg text-center whitespace-nowrap">
                             <x-admin.badge type="{{ $trf->status === 'completed' ? 'success' : 'default' }}">
@@ -77,11 +78,10 @@
                             </x-admin.badge>
                         </td>
                         <td class="px-lg py-lg text-on-surface-variant whitespace-nowrap text-xs">{{ $trf->createdBy->name ?? 'N/A' }}</td>
-                        <td class="px-lg py-lg text-right whitespace-nowrap">
-                            <x-admin.action-menu>
-                                <x-admin.action-menu-item wire:click="showDetails({{ $trf->id }})" icon="visibility" label="View Details" />
-                                <x-admin.action-menu-item icon="print" label="Print / Save PDF" href="{{ route('admin.product-transfers.pdf', ['id' => $trf->id]) }}" target="_blank" />
-                            </x-admin.action-menu>
+                        <td class="px-lg py-lg text-center whitespace-nowrap">
+                            <span class="material-symbols-outlined text-[18px] {{ $trf->stock_deducted ? 'text-success' : 'text-on-surface-variant/40' }}">
+                                {{ $trf->stock_deducted ? 'check_circle' : 'cancel' }}
+                            </span>
                         </td>
                     </tr>
                     @empty

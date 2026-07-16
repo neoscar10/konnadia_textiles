@@ -4,10 +4,7 @@
         <!-- Left: Logo / Branding -->
         <div class="flex items-center gap-8 shrink-0">
             <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-gold lg:text-gold text-3xl">storefront</span>
-                <span class="font-bold text-lg tracking-tight text-[#001229] lg:text-white">
-                    Kannodia<span class="text-gold"> Textiles</span>
-                </span>
+                <img src="{{ asset('logo.png') }}" class="h-10 w-auto object-contain bg-white rounded-md p-1" alt="Sapnay Lifestyle Logo">
             </a>
 
             <!-- Desktop Nav Links -->

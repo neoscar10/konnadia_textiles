@@ -33,7 +33,7 @@ class ProductCardResource extends JsonResource
             ? (str_starts_with($primaryImage, 'http') ? $primaryImage : url(Storage::url($primaryImage)))
             : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400';
 
-        $categories = $this->categories->map(function ($cat) {
+        $categories = $this->categories->sortByDesc('is_leaf')->map(function ($cat) {
             // Build simple recursive path
             $path = $cat->name;
             $parent = $cat->parent;
@@ -58,7 +58,7 @@ class ProductCardResource extends JsonResource
             'title' => $this->title,
             'sku' => $this->sku,
             'product_code' => $this->product_code ?? null,
-            'brand' => 'Kannodia Premium Apparel',
+            'brand' => 'Sapnay Premium Apparel',
             'primary_image_url' => $primaryImageUrl,
             'categories' => $categories,
             'pricing' => [
@@ -85,6 +85,11 @@ class ProductCardResource extends JsonResource
                     'label' => $baseUnit->name,
                 ] : null,
                 'available_units_count' => $this->units->count(),
+            ],
+            'purchase_defaults' => [
+                'selected_unit_id' => $baseUnit ? $baseUnit->id : null,
+                'quantity' => (int) ($this->minimum_order_quantity ?? 1),
+                'minimum_order_quantity' => (int) ($this->minimum_order_quantity ?? 1),
             ],
             'tax' => [
                 'hsn_code' => $this->hsn_code,

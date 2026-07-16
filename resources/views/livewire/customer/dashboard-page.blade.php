@@ -8,8 +8,8 @@
             <p class="text-sm text-slate-500">Manage your wholesale orders and check order statuses.</p>
         </div>
         <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 text-xs font-bold text-slate-600 bg-white border border-outline-variant/30 px-3 py-1.5 rounded-lg shadow-ambient">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Active Account ({{ $customer['level'] ?? 'Standard Partner' }} - {{ $customer['customer_number'] ?? '' }})
+            <div class="text-sm font-bold text-slate-700 bg-white border border-outline-variant/30 px-3 py-1.5 rounded-lg shadow-ambient">
+                {{ auth()->user()->name }}
             </div>
             <button wire:click="refreshDashboard" class="flex items-center justify-center p-2 rounded-lg bg-white border border-outline-variant/30 text-slate-600 hover:text-[#001229] hover:border-[#001229] shadow-ambient transition-all" title="Refresh Dashboard">
                 <span class="material-symbols-outlined text-lg">refresh</span>
@@ -18,7 +18,7 @@
         @else
         <div>
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">B2B Wholesale Portal</span>
-            <h1 class="text-2xl md:text-3xl font-extrabold text-[#001229] tracking-tight mt-0.5">Kannodia Textiles B2B Portal</h1>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-[#001229] tracking-tight mt-0.5">Sapnay Lifestyle B2B Portal</h1>
             <p class="text-sm text-slate-500">Browse our collections and premium apparel. Sign in to view wholesale prices.</p>
         </div>
         <div class="flex items-center gap-3">

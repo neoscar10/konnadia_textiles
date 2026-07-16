@@ -21,7 +21,7 @@
         $currentIndex = 2;
     } elseif ($statusLower === 'approved') {
         $currentIndex = 3;
-    } elseif ($statusLower === 'partially dispatched' || $statusLower === 'partially_dispatched') {
+    } elseif (in_array($statusLower, ['partially dispatched', 'partially_dispatched', 'partially dispatched balance cancelled', 'partially_dispatched_balance_cancelled'], true)) {
         $steps[4] = ['key' => 'partially_dispatched', 'label' => 'Partially Dispatched', 'icon' => 'local_shipping'];
         $currentIndex = 4;
     } elseif ($statusLower === 'dispatched' || $statusLower === 'shipped') {

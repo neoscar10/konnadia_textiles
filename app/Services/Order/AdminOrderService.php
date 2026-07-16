@@ -590,10 +590,17 @@ class AdminOrderService
             // Determine correct order status transition
             $hasPending = $order->items->where('status', 'pending_dispatch')->isNotEmpty();
             $hasDispatched = $order->items->where('status', 'dispatched')->isNotEmpty();
+            $hasCancelled = $order->items->where('status', 'cancelled')->isNotEmpty();
 
             if (!$hasPending) {
-                if ($order->status !== 'dispatched') {
-                    $this->statusService->transition($order, 'dispatched', $admin, 'All items have been dispatched.');
+                if ($hasDispatched && $hasCancelled) {
+                    if ($order->status !== 'partially_dispatched_balance_cancelled') {
+                        $this->statusService->transition($order, 'partially_dispatched_balance_cancelled', $admin, 'Some items dispatched, balance cancelled.');
+                    }
+                } else {
+                    if ($order->status !== 'dispatched') {
+                        $this->statusService->transition($order, 'dispatched', $admin, 'All items have been dispatched.');
+                    }
                 }
             } else {
                 if ($order->status !== 'partially_dispatched') {
@@ -636,11 +643,18 @@ class AdminOrderService
             // Determine correct order status transition
             $hasPending = $order->items()->where('status', 'pending_dispatch')->exists();
             $hasDispatched = $order->items()->where('status', 'dispatched')->exists();
+            $hasCancelled = $order->items()->where('status', 'cancelled')->exists();
 
             if (!$hasPending) {
                 if ($hasDispatched) {
-                    if ($order->status !== 'dispatched') {
-                        $this->statusService->transition($order, 'dispatched', $admin, 'All items dispatched or cancelled.');
+                    if ($hasCancelled) {
+                        if ($order->status !== 'partially_dispatched_balance_cancelled') {
+                            $this->statusService->transition($order, 'partially_dispatched_balance_cancelled', $admin, 'Some items dispatched, balance cancelled.');
+                        }
+                    } else {
+                        if ($order->status !== 'dispatched') {
+                            $this->statusService->transition($order, 'dispatched', $admin, 'All items dispatched or cancelled.');
+                        }
                     }
                 } else {
                     if ($order->status !== 'cancelled') {

@@ -12,6 +12,7 @@ enum OrderStatus: string
     case APPROVED = 'approved';
     case REJECTED = 'rejected';
     case PARTIALLY_DISPATCHED = 'partially_dispatched';
+    case PARTIALLY_DISPATCHED_BALANCE_CANCELLED = 'partially_dispatched_balance_cancelled';
     case DISPATCHED = 'dispatched';
     case CANCELLED = 'cancelled';
 
@@ -26,6 +27,7 @@ enum OrderStatus: string
             self::APPROVED => 'Approved',
             self::REJECTED => 'Rejected',
             self::PARTIALLY_DISPATCHED => 'Partially Dispatched',
+            self::PARTIALLY_DISPATCHED_BALANCE_CANCELLED => 'Partially Dispatched, Balance Cancelled',
             self::DISPATCHED => 'Dispatched',
             self::CANCELLED => 'Cancelled',
         };

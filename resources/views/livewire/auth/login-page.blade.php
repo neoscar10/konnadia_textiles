@@ -1,5 +1,5 @@
 <div>
-    <x-slot:title>Login | Kannodia Textiles Portal</x-slot:title>
+    <x-slot:title>Login | Sapnay Lifestyle Portal</x-slot:title>
     <div class="flex-1 flex flex-col md:flex-row min-h-screen">
         <!-- Left Panel: Brand / Image Section (55%) -->
         <section class="hidden md:flex w-[55%] bg-primary relative flex-col justify-between p-xl overflow-hidden">
@@ -9,11 +9,8 @@
                 <div class="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] rounded-full border-[80px] border-secondary"></div>
             </div>
 
-            <div class="relative z-10 flex items-center gap-md">
-                <div class="w-12 h-12 bg-surface-container-lowest flex items-center justify-center rounded-lg shadow-md">
-                    <span class="material-symbols-outlined text-primary text-[28px]" style="font-variation-settings: 'FILL' 1;">texture</span>
-                </div>
-                <h1 class="font-display-lg text-on-primary tracking-tight text-3xl">Kannodia Textiles</h1>
+            <div class="relative z-10 flex items-center gap-md bg-white p-2 rounded-lg max-w-[200px] shadow-md">
+                <img src="{{ asset('logo.png') }}" class="h-10 w-auto object-contain" alt="Sapnay Lifestyle Logo">
             </div>
 
             <div class="relative z-10 max-w-lg mb-xl">
@@ -39,11 +36,8 @@
         <section class="w-full md:w-[45%] h-full min-h-screen flex items-center justify-center bg-surface p-xl relative">
             <div class="w-full max-w-md">
                 <!-- Mobile Branding (Hidden on Desktop) -->
-                <div class="md:hidden flex flex-col items-center mb-xl text-center">
-                    <div class="w-16 h-16 bg-primary flex items-center justify-center rounded-xl mb-md">
-                        <span class="material-symbols-outlined text-secondary text-[36px]" style="font-variation-settings: 'FILL' 1;">texture</span>
-                    </div>
-                    <h2 class="font-headline-md text-primary">KANNODIA TEXTILES</h2>
+                <div class="md:hidden flex flex-col items-center mb-xl text-center bg-white p-3 rounded-lg shadow-sm">
+                    <img src="{{ asset('logo.png') }}" class="h-14 w-auto object-contain" alt="Sapnay Lifestyle Logo">
                 </div>
 
                 <!-- Login Card -->
@@ -229,7 +223,7 @@
                         <span class="text-outline-variant">•</span>
                         <a href="#" class="text-label-md text-outline hover:text-secondary transition-colors">Terms of Service</a>
                     </div>
-                    <p class="text-label-md text-outline/60">Version 1.0 | © {{ date('Y') }} Kannodia Textiles</p>
+                    <p class="text-label-md text-outline/60">Version 1.0 | © {{ date('Y') }} Sapnay Lifestyle</p>
                 </footer>
             </div>
         </section>

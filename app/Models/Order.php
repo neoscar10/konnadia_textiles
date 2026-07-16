@@ -95,6 +95,7 @@ class Order extends Model
             'approved' => 'Approved',
             'rejected' => 'Rejected',
             'partially_dispatched' => 'Partially Dispatched',
+            'partially_dispatched_balance_cancelled' => 'Partially Dispatched, Balance Cancelled',
             'dispatched' => 'Dispatched',
             'cancelled' => 'Cancelled',
             default => ucfirst(str_replace('_', ' ', $this->status)),

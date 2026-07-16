@@ -117,15 +117,25 @@
             </div>
 
             @if(($form['password_mode'] ?? 'auto') === 'manual')
-            <div class="space-y-xs">
+            <div class="space-y-xs" x-data="{ showPassword: false }">
                 <label class="font-label-md text-on-surface-variant">Password *</label>
-                <input type="password" wire:model="form.password" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all">
+                <div class="relative">
+                    <input :type="showPassword ? 'text' : 'password'" wire:model="form.password" class="w-full pl-md pr-10 py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all">
+                    <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 hover:text-on-surface select-none">
+                        <span class="material-symbols-outlined text-[20px]" x-text="showPassword ? 'visibility_off' : 'visibility'"></span>
+                    </button>
+                </div>
                 @error('form.password') <span class="text-error text-xs">{{ $message }}</span> @enderror
             </div>
 
-            <div class="space-y-xs">
+            <div class="space-y-xs" x-data="{ showConfirmPassword: false }">
                 <label class="font-label-md text-on-surface-variant">Confirm Password *</label>
-                <input type="password" wire:model="form.password_confirmation" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all">
+                <div class="relative">
+                    <input :type="showConfirmPassword ? 'text' : 'password'" wire:model="form.password_confirmation" class="w-full pl-md pr-10 py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all">
+                    <button type="button" @click="showConfirmPassword = !showConfirmPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 hover:text-on-surface select-none">
+                        <span class="material-symbols-outlined text-[20px]" x-text="showConfirmPassword ? 'visibility_off' : 'visibility'"></span>
+                    </button>
+                </div>
                 @error('form.password_confirmation') <span class="text-error text-xs">{{ $message }}</span> @enderror
             </div>
             @endif

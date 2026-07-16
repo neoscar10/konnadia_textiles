@@ -24,6 +24,21 @@
                     <span class="material-symbols-outlined shrink-0" data-icon="dashboard">dashboard</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Dashboard</span>
                 </a>
+                <a href="{{ route('admin.contact-messages.index') }}" wire:navigate class="flex items-center justify-between rounded-lg transition-all duration-200 {{ request()->routeIs('admin.contact-messages.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs relative'">
+                    <div class="flex items-center gap-md">
+                        <span class="material-symbols-outlined shrink-0" data-icon="mail">mail</span>
+                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Contact Messages</span>
+                    </div>
+                    @php
+                        $unreadMessagesCount = \App\Models\ContactMessage::where('is_read', false)->count();
+                    @endphp
+                    @if($unreadMessagesCount > 0)
+                        <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" x-show="sidebarOpen">
+                            {{ $unreadMessagesCount }}
+                        </span>
+                        <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-primary" x-show="!sidebarOpen"></span>
+                    @endif
+                </a>
             </nav>
         @endcan
 

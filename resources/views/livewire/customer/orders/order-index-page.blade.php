@@ -83,7 +83,6 @@
                         <th class="px-6 py-4">Placed Date</th>
                         <th class="px-6 py-4">Products</th>
                         <th class="px-6 py-4">Est. Total Amount</th>
-                        <th class="px-6 py-4">Billing Method</th>
                         <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
@@ -97,7 +96,6 @@
                                 {{ $order['items_count'] }} {{ $order['items_count'] === 1 ? 'Style' : 'Styles' }}
                             </td>
                             <td class="px-6 py-4 font-bold">{{ $order['summary']['formatted_total'] }}</td>
-                            <td class="px-6 py-4 capitalize">{{ $order['checkout_method']['label'] ?? 'N/A' }}</td>
                             <td class="px-6 py-4">
                                 <x-customer.badge :status="$order['status']['value'] ?? 'pending'" />
                             </td>

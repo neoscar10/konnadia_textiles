@@ -330,7 +330,7 @@ class ProductCatalogService
             'id' => $product->id,
             'title' => $product->title,
             'sku' => $product->sku,
-            'brand' => 'Kannodia Premium Apparel',
+            'brand' => 'Sapnay Premium Apparel',
             'description_markdown' => $product->description,
             'description_html' => $descriptionHtml,
             'media' => $media,

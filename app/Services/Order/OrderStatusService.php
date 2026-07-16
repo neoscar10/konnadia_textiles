@@ -18,8 +18,9 @@ class OrderStatusService
         'pending_payment_verification' => ['under_review', 'rejected'],
         'under_review' => ['pending_approval', 'approved', 'rejected'],
         'pending_approval' => ['approved', 'rejected'],
-        'approved' => ['partially_dispatched', 'dispatched', 'cancelled'],
-        'partially_dispatched' => ['dispatched', 'cancelled'],
+        'approved' => ['partially_dispatched', 'dispatched', 'cancelled', 'partially_dispatched_balance_cancelled'],
+        'partially_dispatched' => ['dispatched', 'cancelled', 'partially_dispatched_balance_cancelled'],
+        'partially_dispatched_balance_cancelled' => [],
         'rejected' => [],
         'dispatched' => [],
         'cancelled' => [],
@@ -194,6 +195,12 @@ class OrderStatusService
                 'text' => 'text-indigo-700',
                 'label' => 'Partially Dispatched',
                 'type' => 'primary'
+            ],
+            'partially_dispatched_balance_cancelled' => [
+                'bg' => 'bg-amber-50 border border-amber-200',
+                'text' => 'text-amber-700',
+                'label' => 'Partially Dispatched, Balance Cancelled',
+                'type' => 'warning'
             ],
             'dispatched' => [
                 'bg' => 'bg-purple-50 border border-purple-200',

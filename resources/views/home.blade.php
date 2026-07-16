@@ -1,16 +1,10 @@
-<x-layouts.public title="Home | Kannodia Textiles">
+<x-layouts.public title="Home | Sapnay Lifestyle">
     <!-- Navbar -->
     <header class="w-full bg-[#001229]/95 backdrop-blur-md sticky top-0 z-50 border-b border-slate-800">
         <div class="max-w-[1440px] mx-auto px-6 py-4 flex justify-between items-center h-20">
             <!-- Logo -->
-            <a href="#" class="flex items-center gap-3 group">
-                <div class="w-12 h-12 bg-gold flex items-center justify-center rounded-lg transition-transform group-hover:scale-105">
-                    <span class="material-symbols-outlined text-[#001229] text-[26px] font-bold" style="font-variation-settings: 'FILL' 1;">texture</span>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg tracking-tight text-white leading-none">Kannodia<span class="text-gold"> Textiles</span></h1>
-                    <span class="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">B2B Wholesale Portal</span>
-                </div>
+            <a href="#" class="flex items-center gap-3 group bg-white p-1 rounded-md shadow-sm">
+                <img src="{{ asset('logo.png') }}" class="h-10 w-auto object-contain" alt="Sapnay Lifestyle Logo">
             </a>
 
             <!-- Desktop Nav -->
@@ -314,10 +308,10 @@
                     <span class="text-xs font-bold text-gold uppercase tracking-widest">Trade Application</span>
                     <h3 class="text-3xl lg:text-4xl font-extrabold tracking-tight">Become an Authorized Dealer</h3>
                     <p class="text-slate-300 text-sm max-w-xl mx-auto leading-relaxed">
-                        Interested in stocking materials from Kannodia Textiles? Reach out to our account acquisition desk to set up your corporate account, register your GST numbers, and get approved for a dedicated B2B credit line.
+                        Interested in stocking materials from Sapnay Lifestyle? Reach out to our account acquisition desk to set up your corporate account, register your GST numbers, and get approved for a dedicated B2B credit line.
                     </p>
                     <div class="pt-4 flex flex-col sm:flex-row justify-center gap-4">
-                        <a href="mailto:partners@kannodiatextiles.com" class="px-8 py-3.5 bg-gold text-[#001229] font-bold text-sm rounded-lg hover:bg-gold-accent hover:scale-[1.02] transition-all">
+                        <a href="mailto:sapnayfurnishings@gmail.com" class="px-8 py-3.5 bg-gold text-[#001229] font-bold text-sm rounded-lg hover:bg-gold-accent hover:scale-[1.02] transition-all">
                             Contact Trade Desk
                         </a>
                         <a href="{{ route('login') }}" class="px-8 py-3.5 bg-slate-800/80 border border-slate-700 text-slate-200 font-bold text-sm rounded-lg hover:bg-slate-850 hover:text-white transition-all">
@@ -333,13 +327,10 @@
     <!-- Footer -->
     <footer class="bg-[#001229] py-12 border-t border-slate-800 text-slate-400">
         <div class="max-w-[1440px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-gold flex items-center justify-center rounded">
-                    <span class="material-symbols-outlined text-[#001229] text-[16px] font-bold" style="font-variation-settings: 'FILL' 1;">texture</span>
-                </div>
-                <span class="font-bold text-white text-base">Kannodia Textiles</span>
+            <div class="flex items-center gap-3 bg-white p-1 rounded-md shadow-sm">
+                <img src="{{ asset('logo.png') }}" class="h-8 w-auto object-contain" alt="Sapnay Lifestyle Logo">
             </div>
-            <p class="text-xs">&copy; {{ date('Y') }} Kannodia Textiles Enterprise. All rights reserved.</p>
+            <p class="text-xs">&copy; {{ date('Y') }} Sapnay Lifestyle. All rights reserved.</p>
         </div>
     </footer>
 </x-layouts.public>

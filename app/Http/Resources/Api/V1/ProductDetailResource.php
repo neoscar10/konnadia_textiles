@@ -72,7 +72,7 @@ class ProductDetailResource extends JsonResource
             ['label' => 'Products', 'type' => 'products'],
         ];
         if (!empty($categories)) {
-            $cat = $this->categories->first();
+            $cat = $this->categories->sortByDesc('is_leaf')->first();
             if ($cat->parent) {
                 $breadcrumb[] = [
                     'id' => $cat->parent->id,
@@ -164,7 +164,7 @@ class ProductDetailResource extends JsonResource
             'title' => $this->title,
             'sku' => $this->sku,
             'product_code' => $this->product_code ?? null,
-            'brand' => 'Kannodia Premium Apparel',
+            'brand' => 'Sapnay Premium Apparel',
             'status' => $this->is_active ? 'active' : 'inactive',
             'description' => [
                 'markdown' => $this->description,
@@ -197,6 +197,7 @@ class ProductDetailResource extends JsonResource
                 'quantity' => (int) ($this->minimum_order_quantity ?? 1),
                 'minimum_order_quantity' => (int) ($this->minimum_order_quantity ?? 1),
             ],
+            'minimum_order_quantity' => (int) ($this->minimum_order_quantity ?? 1),
             'tax' => [
                 'hsn_code' => $this->hsn_code,
                 'gst_percentage' => $this->gst_percentage !== null ? (float)$this->gst_percentage : null,

@@ -56,6 +56,12 @@ class CustomerIndexPage extends Component
 
     public $singleCreatedPassword = null; // Display generated password on success
 
+    public $resetPasswordCustomerId = null;
+    public $resetForm = [
+        'password' => '',
+        'password_confirmation' => '',
+    ];
+
     // Bulk Upload State
     public $bulkFile;
     public $bulkStep = 1; // 1 = Upload, 2 = Review, 3 = Report
@@ -396,6 +402,38 @@ class CustomerIndexPage extends Component
     {
         $this->dispatch('close-modal', 'single-creation-success');
         $this->resetForm();
+    }
+
+    public function startResetPassword($customerId)
+    {
+        $this->resetPasswordCustomerId = $customerId;
+        $this->resetForm = [
+            'password' => '',
+            'password_confirmation' => '',
+        ];
+        $this->resetValidation();
+        $this->dispatch('open-modal', 'reset-password-modal');
+    }
+
+    public function resetPassword()
+    {
+        $this->validate([
+            'resetForm.password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $customer = Customer::findOrFail($this->resetPasswordCustomerId);
+        $user = $customer->user;
+        if ($user) {
+            $user->update([
+                'password' => \Illuminate\Support\Facades\Hash::make($this->resetForm['password'])
+            ]);
+            $this->dispatch('toast', message: 'Password updated successfully.', type: 'success');
+        } else {
+            $this->dispatch('toast', message: 'User account not found for this customer.', type: 'error');
+        }
+
+        $this->dispatch('close-modal', 'reset-password-modal');
+        $this->reset(['resetPasswordCustomerId', 'resetForm']);
     }
 
     public function confirmDelete($id)

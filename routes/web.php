@@ -51,6 +51,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('settings', \App\Livewire\Admin\Settings\SettingsPage::class)->name('settings.index');
         Route::get('admins', \App\Livewire\Admin\Admins\AdminIndexPage::class)->name('admins.index');
         Route::get('support', \App\Livewire\Admin\Support\SupportPage::class)->name('support.index');
+        Route::get('contact-messages', \App\Livewire\Admin\Support\ContactMessagesPage::class)->name('contact-messages.index');
         
         // Retail Transfers System
         Route::get('retail-shops', \App\Livewire\Admin\RetailShops\RetailShopIndexPage::class)->name('retail-shops.index');
@@ -67,7 +68,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 // Optional Customer Route Group (available to guests and logged-in customers)
 Route::middleware(['optional_customer'])->group(function () {
-    Route::get('/', \App\Livewire\Customer\DashboardPage::class)->name('home');
+    Route::get('/', function() {
+        if (auth()->check()) {
+            $authService = app(\App\Services\Auth\AuthService::class);
+            if ($authService->isAdmin(auth()->user())) {
+                return redirect()->route('admin.dashboard');
+            }
+            return redirect()->route('customer.dashboard');
+        }
+        return redirect()->route('login');
+    })->name('home');
+    
     Route::redirect('/home', '/');
 
     Route::prefix('portal')->group(function () {
@@ -98,6 +109,7 @@ Route::middleware(['optional_customer'])->group(function () {
             return response()->json($results);
         })->name('customer.products.suggestions');
 
+        Route::get('contact-us', \App\Livewire\Customer\ContactUsPage::class)->name('customer.contact-us');
         Route::get('categories', \App\Livewire\Customer\Categories\CategoryIndexPage::class)->name('customer.categories.index');
         Route::get('categories/{slug}', \App\Livewire\Customer\Categories\CategoryShowPage::class)->name('customer.categories.show');
         Route::get('products', \App\Livewire\Customer\Products\ProductIndexPage::class)->name('customer.products.index');

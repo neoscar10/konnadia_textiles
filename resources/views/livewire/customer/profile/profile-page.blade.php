@@ -201,7 +201,7 @@
                     </div>
                     <div class="flex items-center gap-2 text-slate-600">
                         <span class="material-symbols-outlined text-slate-400 text-base">mail</span>
-                        <span>sid@kannodiatextiles.com</span>
+                        <span>sid@sapnaylifestyle.com</span>
                     </div>
                 </div>
             </x-customer.card>

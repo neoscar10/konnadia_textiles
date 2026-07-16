@@ -216,7 +216,7 @@
     <div class="container">
         <div class="header">
             <div class="brand">
-                <h1>Kannodia Textiles</h1>
+                <h1>Sapnay Lifestyle</h1>
                 <p>Order Fulfillment & Logistical Dispatches</p>
             </div>
             <div class="doc-title">

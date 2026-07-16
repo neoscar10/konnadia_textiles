@@ -39,6 +39,11 @@
             'dot' => 'bg-indigo-500',
             'label' => 'Partially Dispatched'
         ],
+        'partially dispatched balance cancelled', 'partially_dispatched_balance_cancelled' => [
+            'class' => 'bg-amber-50 text-amber-700 border-amber-200/50',
+            'dot' => 'bg-amber-500',
+            'label' => 'Partially Dispatched, Balance Cancelled'
+        ],
         'dispatched', 'shipped' => [
             'class' => 'bg-cyan-50 text-cyan-700 border-cyan-200/50',
             'dot' => 'bg-cyan-500',

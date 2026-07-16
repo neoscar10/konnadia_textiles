@@ -73,6 +73,7 @@
                             <x-admin.action-menu>
                                 <x-admin.action-menu-item wire:click="showDetails({{ $customer->id }})" icon="visibility" label="View Details" />
                                 <x-admin.action-menu-item wire:click="edit({{ $customer->id }})" icon="edit" label="Edit" />
+                                <x-admin.action-menu-item wire:click="startResetPassword({{ $customer->id }})" icon="lock_reset" label="Reset Password" />
                                 <x-admin.action-menu-item wire:click="toggleStatus({{ $customer->id }})" icon="{{ $customer->is_active ? 'block' : 'check_circle' }}" label="{{ $customer->is_active ? 'Deactivate' : 'Activate' }}" />
                                 <x-admin.action-menu-item wire:click="confirmDelete({{ $customer->id }})" icon="delete" label="Delete" class="text-error hover:text-error hover:bg-error/10" />
                             </x-admin.action-menu>
@@ -125,5 +126,36 @@
             <x-admin.button variant="ghost" @click="show = false">Cancel</x-admin.button>
             <x-admin.button wire:click="delete" variant="primary" class="bg-error hover:bg-error/90 text-white border-error">Delete Customer</x-admin.button>
         </x-slot>
+    </x-admin.modal>
+
+    <x-admin.modal id="reset-password-modal" title="Reset Customer Password" maxWidth="md">
+        <form wire:submit="resetPassword" class="space-y-lg">
+            <div class="space-y-xs" x-data="{ showPassword: false }">
+                <label class="font-label-md text-on-surface-variant font-bold">New Password *</label>
+                <div class="relative">
+                    <input :type="showPassword ? 'text' : 'password'" wire:model="resetForm.password" class="w-full pl-md pr-10 py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all text-on-surface">
+                    <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 hover:text-on-surface select-none">
+                        <span class="material-symbols-outlined text-[20px]" x-text="showPassword ? 'visibility_off' : 'visibility'"></span>
+                    </button>
+                </div>
+                @error('resetForm.password') <span class="text-error text-xs">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="space-y-xs" x-data="{ showConfirmPassword: false }">
+                <label class="font-label-md text-on-surface-variant font-bold">Confirm New Password *</label>
+                <div class="relative">
+                    <input :type="showConfirmPassword ? 'text' : 'password'" wire:model="resetForm.password_confirmation" class="w-full pl-md pr-10 py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all text-on-surface">
+                    <button type="button" @click="showConfirmPassword = !showConfirmPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 hover:text-on-surface select-none">
+                        <span class="material-symbols-outlined text-[20px]" x-text="showConfirmPassword ? 'visibility_off' : 'visibility'"></span>
+                    </button>
+                </div>
+                @error('resetForm.password_confirmation') <span class="text-error text-xs">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="flex justify-end gap-md pt-md border-t border-outline-variant/20">
+                <x-admin.button type="button" variant="ghost" @click="show = false">Cancel</x-admin.button>
+                <x-admin.button type="submit" variant="primary">Reset Password</x-admin.button>
+            </div>
+        </form>
     </x-admin.modal>
 </div>
