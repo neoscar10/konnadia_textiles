@@ -3,8 +3,8 @@
         
         <!-- Left: Logo / Branding -->
         <div class="flex items-center gap-8 shrink-0">
-            <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
-                <img src="{{ asset('logo.png') }}" class="h-10 w-auto object-contain bg-white rounded-md p-1" alt="Sapnay Lifestyle Logo">
+            <a href="{{ route('home') }}" wire:navigate class="flex items-center bg-white p-1.5 rounded-xl shadow-sm hover:scale-105 transition-transform duration-300 w-fit">
+                <img src="{{ asset('logo.png') }}" class="h-10 w-auto object-contain" alt="Sapnay Lifestyle Logo">
             </a>
 
             <!-- Desktop Nav Links -->

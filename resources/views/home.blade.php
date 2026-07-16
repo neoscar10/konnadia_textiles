@@ -3,8 +3,8 @@
     <header class="w-full bg-[#001229]/95 backdrop-blur-md sticky top-0 z-50 border-b border-slate-800">
         <div class="max-w-[1440px] mx-auto px-6 py-4 flex justify-between items-center h-20">
             <!-- Logo -->
-            <a href="#" class="flex items-center gap-3 group bg-white p-1 rounded-md shadow-sm">
-                <img src="{{ asset('logo.png') }}" class="h-10 w-auto object-contain" alt="Sapnay Lifestyle Logo">
+            <a href="#" class="flex items-center bg-white p-2 rounded-xl shadow-md transition-transform hover:scale-105 duration-300 w-fit">
+                <img src="{{ asset('logo.png') }}" class="h-16 w-auto object-contain" alt="Sapnay Lifestyle Logo">
             </a>
 
             <!-- Desktop Nav -->
@@ -327,8 +327,8 @@
     <!-- Footer -->
     <footer class="bg-[#001229] py-12 border-t border-slate-800 text-slate-400">
         <div class="max-w-[1440px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-            <div class="flex items-center gap-3 bg-white p-1 rounded-md shadow-sm">
-                <img src="{{ asset('logo.png') }}" class="h-8 w-auto object-contain" alt="Sapnay Lifestyle Logo">
+            <div class="flex items-center bg-white p-1.5 rounded-lg shadow-sm hover:scale-105 transition-transform duration-300 w-fit">
+                <img src="{{ asset('logo.png') }}" class="h-10 w-auto object-contain" alt="Sapnay Lifestyle Logo">
             </div>
             <p class="text-xs">&copy; {{ date('Y') }} Sapnay Lifestyle. All rights reserved.</p>
         </div>

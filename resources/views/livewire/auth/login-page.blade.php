@@ -1,5 +1,14 @@
 <div>
     <x-slot:title>Login | Sapnay Lifestyle Portal</x-slot:title>
+    <style>
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(2deg); }
+        }
+        .animate-logo-float {
+            animation: logoFloat 5s ease-in-out infinite;
+        }
+    </style>
     <div class="flex-1 flex flex-col md:flex-row min-h-screen">
         <!-- Left Panel: Brand / Image Section (55%) -->
         <section class="hidden md:flex w-[55%] bg-primary relative flex-col justify-between p-xl overflow-hidden">
@@ -9,8 +18,8 @@
                 <div class="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] rounded-full border-[80px] border-secondary"></div>
             </div>
 
-            <div class="relative z-10 flex items-center gap-md bg-white p-2 rounded-lg max-w-[200px] shadow-md">
-                <img src="{{ asset('logo.png') }}" class="h-10 w-auto object-contain" alt="Sapnay Lifestyle Logo">
+            <div class="relative z-10 flex items-center bg-white p-4 rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.18)] border border-white/20 transition-all duration-500 hover:scale-110 hover:shadow-[0_20px_45px_rgba(252,202,102,0.45)] w-fit mx-auto animate-logo-float">
+                <img src="{{ asset('logo.png') }}" class="h-36 w-auto object-contain" alt="Sapnay Lifestyle Logo">
             </div>
 
             <div class="relative z-10 max-w-lg mb-xl">
@@ -36,8 +45,8 @@
         <section class="w-full md:w-[45%] h-full min-h-screen flex items-center justify-center bg-surface p-xl relative">
             <div class="w-full max-w-md">
                 <!-- Mobile Branding (Hidden on Desktop) -->
-                <div class="md:hidden flex flex-col items-center mb-xl text-center bg-white p-3 rounded-lg shadow-sm">
-                    <img src="{{ asset('logo.png') }}" class="h-14 w-auto object-contain" alt="Sapnay Lifestyle Logo">
+                <div class="md:hidden flex flex-col items-center mb-xl text-center bg-white p-4 rounded-xl shadow-md border border-slate-100 w-fit mx-auto transition-transform hover:scale-105">
+                    <img src="{{ asset('logo.png') }}" class="h-24 w-auto object-contain" alt="Sapnay Lifestyle Logo">
                 </div>
 
                 <!-- Login Card -->
@@ -219,7 +228,7 @@
                 <!-- Footer -->
                 <footer class="mt-xl flex flex-col items-center gap-sm">
                     <div class="flex gap-md">
-                        <a href="#" class="text-label-md text-outline hover:text-secondary transition-colors">Privacy Policy</a>
+                        <a href="{{ route('customer.privacy-policy') }}" class="text-label-md text-outline hover:text-secondary transition-colors">Privacy Policy</a>
                         <span class="text-outline-variant">•</span>
                         <a href="#" class="text-label-md text-outline hover:text-secondary transition-colors">Terms of Service</a>
                     </div>

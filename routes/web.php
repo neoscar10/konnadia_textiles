@@ -110,6 +110,7 @@ Route::middleware(['optional_customer'])->group(function () {
         })->name('customer.products.suggestions');
 
         Route::get('contact-us', \App\Livewire\Customer\ContactUsPage::class)->name('customer.contact-us');
+        Route::get('privacy-policy', \App\Livewire\Customer\PrivacyPolicyPage::class)->name('customer.privacy-policy');
         Route::get('categories', \App\Livewire\Customer\Categories\CategoryIndexPage::class)->name('customer.categories.index');
         Route::get('categories/{slug}', \App\Livewire\Customer\Categories\CategoryShowPage::class)->name('customer.categories.show');
         Route::get('products', \App\Livewire\Customer\Products\ProductIndexPage::class)->name('customer.products.index');
