@@ -290,9 +290,9 @@ class ProductCatalogService
         if (!empty($categories)) {
             $cat = $product->categories->first();
             if ($cat->parent) {
-                $breadcrumb[$cat->parent->name] = route('customer.categories.show', Str::slug($cat->parent->name));
+                $breadcrumb[$cat->parent->name] = route('customer.products.index', ['category' => $cat->parent->id]);
             }
-            $breadcrumb[$cat->name] = route('customer.categories.show', Str::slug($cat->name));
+            $breadcrumb[$cat->name] = route('customer.products.index', ['category' => $cat->id]);
         }
         $breadcrumb[$product->title] = '#';
 

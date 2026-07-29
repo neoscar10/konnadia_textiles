@@ -5,6 +5,7 @@ namespace App\Livewire\Customer\Products;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use App\Services\Portal\ProductCatalogService;
 
 #[Layout('components.customer.layout')]
@@ -12,11 +13,22 @@ class ProductIndexPage extends Component
 {
     use WithPagination;
 
+    #[Url(history: true)]
     public $search = '';
+
+    #[Url(history: true)]
     public $category = '';
+
+    #[Url(history: true)]
     public $availability = 'all';
+
+    #[Url(history: true)]
     public $min_price = 0;
+
+    #[Url(history: true)]
     public $max_price = 10000;
+
+    #[Url(history: true)]
     public $sort = 'newest';
 
     public $expandedCategories = [];
