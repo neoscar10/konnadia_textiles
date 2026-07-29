@@ -127,7 +127,7 @@ class OrderInventoryService
     /**
      * Restore stock for a specific quantity of an order item.
      */
-    public function restoreStockForOrderItem(OrderItem $item, int $quantityToRestore): void
+    public function restoreStockForOrderItem(OrderItem $item, float|int $quantityToRestore): void
     {
         // If stock has not been deducted for the order yet, nothing to restore
         if ($item->order->stock_deducted_at === null) {
@@ -139,7 +139,7 @@ class OrderInventoryService
             return;
         }
 
-        $baseQty = (int) ($quantityToRestore * $item->unit_conversion_quantity);
+        $baseQty = (int) round($quantityToRestore * $item->unit_conversion_quantity);
 
         DB::transaction(function () use ($item, $baseQty) {
             if ($item->product_combination_id && $item->combination) {
@@ -155,14 +155,14 @@ class OrderInventoryService
     /**
      * Deduct stock for a specific quantity of an order item.
      */
-    public function deductStockForOrderItem(OrderItem $item, int $quantityToDeduct): void
+    public function deductStockForOrderItem(OrderItem $item, float|int $quantityToDeduct): void
     {
         // Skip manufactured products (unlimited) and null-stock (N/A) products
         if ($item->product && $item->product->product_type === 'manufactured') {
             return;
         }
 
-        $baseQty = (int) ($quantityToDeduct * $item->unit_conversion_quantity);
+        $baseQty = (int) round($quantityToDeduct * $item->unit_conversion_quantity);
 
         DB::transaction(function () use ($item, $baseQty) {
             $available = 0;
@@ -176,7 +176,7 @@ class OrderInventoryService
 
             if ($baseQty > $available) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'quantity' => "Unable to dispatch. Insufficient stock for product '{$item->product_title}'. Available: " . (int)($available / $item->unit_conversion_quantity) . " units."
+                    'quantity' => "Unable to dispatch. Insufficient stock for product '{$item->product_title}'."
                 ]);
             }
 

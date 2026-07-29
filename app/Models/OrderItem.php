@@ -36,9 +36,9 @@ class OrderItem extends Model
 
     protected $casts = [
         'selected_options' => 'array',
-        'quantity' => 'integer',
-        'quantity_lvl1' => 'integer',
-        'quantity_lvl2' => 'integer',
+        'quantity' => 'float',
+        'quantity_lvl1' => 'float',
+        'quantity_lvl2' => 'float',
         'unit_conversion_quantity' => 'decimal:4',
         'base_unit_price' => 'decimal:2',
         'customer_unit_price' => 'decimal:2',

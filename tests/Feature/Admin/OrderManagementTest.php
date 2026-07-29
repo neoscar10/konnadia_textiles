@@ -292,8 +292,8 @@ class OrderManagementTest extends TestCase
             ->call('confirmCancelItem')
             ->assertHasNoErrors();
 
-        // Status should become dispatched as there are no pending items
-        $this->assertEquals('dispatched', $this->order->fresh()->status);
+        // Status should become partially_dispatched_balance_cancelled as there are no pending items and some were dispatched & some cancelled
+        $this->assertEquals('partially_dispatched_balance_cancelled', $this->order->fresh()->status);
         $this->assertEquals('cancelled', $pendingItem->fresh()->status);
 
         // Stock should remain 95 (no stock restore needed since the pending 15 units were never deducted)
@@ -402,5 +402,51 @@ class OrderManagementTest extends TestCase
             ->assertSee('Goods Dispatch Note')
             ->assertSee('DISP-TEST-123')
             ->assertSee($this->order->order_number);
+    }
+
+    public function test_admin_can_dispatch_fraction_order_item(): void
+    {
+        $this->order->update(['status' => 'approved']);
+        $this->product->update(['stock_quantity' => 100]);
+
+        $setItem = OrderItem::create([
+            'order_id' => $this->order->id,
+            'product_id' => $this->product->id,
+            'product_title' => 'Set Product',
+            'product_sku' => 'SET-001',
+            'unit_name' => 'SET',
+            'unit_short_code' => 'SET',
+            'unit_conversion_quantity' => 4.0,
+            'quantity' => 1.0,
+            'quantity_lvl1' => 4,
+            'quantity_lvl2' => 1,
+            'base_unit_price' => 200.0,
+            'customer_unit_price' => 200.0,
+            'line_subtotal' => 200.0,
+            'line_total' => 200.0,
+            'status' => 'pending_dispatch',
+        ]);
+
+        // Dispatch 0.5 SET (2 Pieces)
+        Livewire::actingAs($this->adminUser)
+            ->test(OrderShowPage::class, ['orderNumber' => $this->order->order_number])
+            ->set('selectedItemId', $setItem->id)
+            ->set('dispatchQty', 0.5)
+            ->call('confirmDispatchItem')
+            ->assertHasNoErrors();
+
+        $items = $this->order->fresh()->items;
+        $dispatchedItem = $items->where('id', $setItem->id)->first();
+        $pendingItem = $items->where('status', 'pending_dispatch')->where('product_sku', 'SET-001')->first();
+
+        $this->assertNotNull($dispatchedItem);
+        $this->assertNotNull($pendingItem);
+        $this->assertEquals(0.5, (float) $dispatchedItem->quantity);
+        $this->assertEquals(0.5, (float) $pendingItem->quantity);
+        $this->assertEquals(2, $dispatchedItem->quantity_lvl1);
+        $this->assertEquals(2, $pendingItem->quantity_lvl1);
+
+        // 2 pieces deducted from stock (100 - 2 = 98)
+        $this->assertEquals(98, $this->product->fresh()->stock_quantity);
     }
 }

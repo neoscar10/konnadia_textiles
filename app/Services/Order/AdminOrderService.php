@@ -189,13 +189,13 @@ class AdminOrderService
                 'unit_name' => $item->unit_name,
                 'unit_short_code' => $item->unit_short_code,
                 'unit_conversion_quantity' => (float) $item->unit_conversion_quantity,
-                'quantity' => (int) $item->quantity,
-                'quantity_lvl1' => (int) $item->quantity_lvl1,
-                'quantity_lvl2' => (int) $item->quantity_lvl2,
+                'quantity' => (float) $item->quantity,
+                'quantity_lvl1' => (float) $item->quantity_lvl1,
+                'quantity_lvl2' => (float) $item->quantity_lvl2,
                 'has_lvl2_unit' => !empty($lvl2Unit),
                 'lvl1_unit_name' => $item->unit_name,
                 'lvl2_unit_name' => $lvl2Unit ? $lvl2Unit->name : 'Box',
-                'base_quantity' => (int) ($item->quantity * $item->unit_conversion_quantity),
+                'base_quantity' => (float) round($item->quantity * $item->unit_conversion_quantity, 4),
                 'customer_unit_price' => (float) $item->customer_unit_price,
                 'gst_percentage' => (float) $item->gst_percentage,
                 'gst_amount' => (float) $item->gst_amount,
@@ -518,7 +518,7 @@ class AdminOrderService
     /**
      * Dispatch a specific quantity of an order item.
      */
-    public function dispatchOrderItem(\App\Models\OrderItem $item, int $qtyToDispatch, User $admin, ?string $note = null, ?string $dispatchNumber = null, ?string $dispatchedAt = null): Order
+    public function dispatchOrderItem(\App\Models\OrderItem $item, float|int $qtyToDispatch, User $admin, ?string $note = null, ?string $dispatchNumber = null, ?string $dispatchedAt = null): Order
     {
         if ($qtyToDispatch <= 0) {
             throw ValidationException::withMessages(['quantity' => 'Dispatch quantity must be greater than zero.']);
@@ -547,32 +547,32 @@ class AdminOrderService
                 $newItem->quantity = $remainingQty;
                 
                 // Adjust level-specific quantities
-                if ($item->product_unit_id && $item->unit && $item->unit->level === 2) {
+                if ($item->unit_conversion_quantity > 1 || ($item->product_unit_id && $item->unit && $item->unit->level === 2)) {
                     $newItem->quantity_lvl2 = $remainingQty;
-                    $newItem->quantity_lvl1 = 0;
+                    $newItem->quantity_lvl1 = (int) round($remainingQty * $item->unit_conversion_quantity);
                 } else {
                     $newItem->quantity_lvl1 = $remainingQty;
                     $newItem->quantity_lvl2 = 0;
                 }
 
                 // Recalculate line totals for the new item
-                $newItem->line_subtotal = $newItem->customer_unit_price * $remainingQty;
-                $newItem->gst_amount = $newItem->line_subtotal * ($newItem->gst_percentage / 100);
+                $newItem->line_subtotal = round($newItem->customer_unit_price * $remainingQty, 2);
+                $newItem->gst_amount = round($newItem->line_subtotal * ($newItem->gst_percentage / 100), 2);
                 $newItem->line_total = $newItem->line_subtotal + $newItem->gst_amount;
                 $newItem->status = 'pending_dispatch';
                 $newItem->save();
 
                 // Adjust original item
                 $item->quantity = $qtyToDispatch;
-                if ($item->product_unit_id && $item->unit && $item->unit->level === 2) {
+                if ($item->unit_conversion_quantity > 1 || ($item->product_unit_id && $item->unit && $item->unit->level === 2)) {
                     $item->quantity_lvl2 = $qtyToDispatch;
-                    $item->quantity_lvl1 = 0;
+                    $item->quantity_lvl1 = (int) round($qtyToDispatch * $item->unit_conversion_quantity);
                 } else {
                     $item->quantity_lvl1 = $qtyToDispatch;
                     $item->quantity_lvl2 = 0;
                 }
-                $item->line_subtotal = $item->customer_unit_price * $qtyToDispatch;
-                $item->gst_amount = $item->line_subtotal * ($item->gst_percentage / 100);
+                $item->line_subtotal = round($item->customer_unit_price * $qtyToDispatch, 2);
+                $item->gst_amount = round($item->line_subtotal * ($item->gst_percentage / 100), 2);
                 $item->line_total = $item->line_subtotal + $item->gst_amount;
             }
 

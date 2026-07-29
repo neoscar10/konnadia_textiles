@@ -481,24 +481,96 @@
     <!-- Dispatch Item Modal -->
     @if($showItemDispatchModal)
         <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
-            <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
-                <h3 class="font-headline-md text-primary mb-md">Dispatch Item</h3>
-                <p class="font-body-md text-on-surface-variant mb-md">Confirm the quantity getting dispatched in the unit the order was placed.</p>
+            @php
+                $selItem = collect($orderData['items'])->firstWhere('id', $selectedItemId);
+                $unitName = $selItem ? ($selItem['unit_short_code'] ?: 'Pcs') : 'qty';
+                $conversion = $selItem ? (float)($selItem['unit_conversion_quantity'] ?: 1) : 1;
+                $maxQty = $selItem ? (float)$selItem['quantity'] : 1;
+                $maxPcs = $maxQty * $conversion;
+            @endphp
+            <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md"
+                 x-data="{
+                     conversion: {{ $conversion }},
+                     maxUnits: {{ $maxQty }},
+                     maxPcs: {{ $maxPcs }},
+                     unitQty: @entangle('dispatchQty'),
+                     pcsQty: {{ $maxPcs }},
+                     init() {
+                         if (!this.unitQty || this.unitQty <= 0) {
+                             this.unitQty = this.maxUnits;
+                         }
+                         this.syncFromUnits(this.unitQty);
+                         $watch('unitQty', val => {
+                             this.syncFromUnits(val);
+                         });
+                     },
+                     syncFromUnits(val) {
+                         let u = parseFloat(val);
+                         if (!isNaN(u)) {
+                             this.pcsQty = parseFloat((u * this.conversion).toFixed(2));
+                         }
+                     },
+                     syncFromPcs(val) {
+                         let p = parseFloat(val);
+                         if (!isNaN(p) && this.conversion > 0) {
+                             let calcUnits = parseFloat((p / this.conversion).toFixed(4));
+                             this.unitQty = calcUnits;
+                         }
+                     }
+                 }">
+                <h3 class="font-headline-md text-primary mb-xs">Dispatch Item</h3>
+                <p class="font-body-md text-on-surface-variant mb-md">Confirm the quantity getting dispatched. You can adjust either {{ $unitName }}s or total Pieces.</p>
                 
-                @php
-                    $selItem = collect($orderData['items'])->firstWhere('id', $selectedItemId);
-                    $unitName = $selItem ? ($selItem['unit_short_code'] ?: 'Pcs') : 'qty';
-                    $maxQty = $selItem ? $selItem['quantity'] : 1;
-                @endphp
-
-                <div class="space-y-sm mb-md">
-                    <label class="font-label-md text-on-surface-variant font-semibold">Quantity to Dispatch (Max {{ $maxQty }} {{ $unitName }})</label>
-                    <div class="relative">
-                        <input type="number" wire:model="dispatchQty" min="1" max="{{ $maxQty }}" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface" placeholder="Enter quantity to dispatch">
-                        <span class="absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-sm">{{ $unitName }}</span>
+                @if($conversion > 1)
+                    <div class="p-xs px-sm bg-purple-50 border border-purple-200/60 rounded-lg text-purple-900 text-xs font-semibold flex items-center justify-between mb-md">
+                        <span>1 {{ $unitName }} = {{ (int)$conversion }} Pieces</span>
+                        <span class="text-[11px] text-purple-700 font-normal">Max: {{ $maxQty }} {{ $unitName }} ({{ (int)$maxPcs }} Pcs)</span>
                     </div>
-                    @error('dispatchQty') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                @endif
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-md mb-md">
+                    <!-- Primary Unit Input -->
+                    <div class="space-y-xs">
+                        <label class="font-label-md text-on-surface-variant font-semibold text-xs">Quantity in {{ $unitName }}s</label>
+                        <div class="relative">
+                            <input type="number" 
+                                   step="any" 
+                                   min="0.0001" 
+                                   max="{{ $maxQty }}" 
+                                   x-model="unitQty" 
+                                   class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface font-bold" 
+                                   placeholder="0">
+                            <span class="absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-xs">{{ $unitName }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Live Calculated Pieces Input -->
+                    @if($conversion > 1)
+                        <div class="space-y-xs">
+                            <label class="font-label-md text-on-surface-variant font-semibold text-xs">Pieces Count</label>
+                            <div class="relative">
+                                <input type="number" 
+                                       step="any" 
+                                       min="1" 
+                                       max="{{ $maxPcs }}" 
+                                       x-model="pcsQty" 
+                                       @input="syncFromPcs($event.target.value)" 
+                                       class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface font-bold text-purple-700" 
+                                       placeholder="0">
+                                <span class="absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-xs">Pcs</span>
+                            </div>
+                        </div>
+                    @endif
                 </div>
+
+                @error('dispatchQty') <span class="text-error text-xs block mb-md">{{ $message }}</span> @enderror
+
+                @if($conversion > 1)
+                    <div class="mb-md text-[11px] font-semibold text-on-surface-variant bg-surface-container-low p-xs rounded border border-outline-variant/20 flex items-center justify-between">
+                        <span>Fraction Equivalent:</span>
+                        <span class="text-purple-700 font-bold" x-text="`${pcsQty} Pcs = ${unitQty} ${ '{{ $unitName }}' }`"></span>
+                    </div>
+                @endif
 
                 <div class="space-y-sm mb-md">
                     <label class="font-label-md text-on-surface-variant font-semibold">Dispatch Note</label>
@@ -521,23 +593,79 @@
                 <h3 class="font-headline-md text-primary mb-md">Bulk Dispatch Items</h3>
                 <p class="font-body-md text-on-surface-variant mb-md">Confirm quantities and enter a dispatch note for the selected manufactured items.</p>
                 
-                <div class="space-y-md max-h-[220px] overflow-y-auto pr-xs mb-md">
+                <div class="space-y-md max-h-[300px] overflow-y-auto pr-xs mb-md">
                     @foreach($selectedItemIds as $itemId)
                         @php
                             $selItem = collect($orderData['items'])->firstWhere('id', $itemId);
+                            $unitName = $selItem ? ($selItem['unit_short_code'] ?: 'Pcs') : 'qty';
+                            $conversion = $selItem ? (float)($selItem['unit_conversion_quantity'] ?: 1) : 1;
+                            $maxQty = $selItem ? (float)$selItem['quantity'] : 1;
+                            $maxPcs = $maxQty * $conversion;
                         @endphp
                         @if($selItem)
-                            <div class="flex items-center justify-between gap-md p-sm bg-surface-container-low rounded-lg border border-outline-variant/20">
-                                <div class="flex-1">
-                                    <p class="font-title-sm text-primary text-sm font-bold">{{ $selItem['product_title'] }}</p>
-                                    <p class="text-xs text-on-surface-variant font-mono">{{ $selItem['product_sku'] }}</p>
+                            <div class="p-sm bg-surface-container-low rounded-lg border border-outline-variant/20 space-y-xs"
+                                 x-data="{
+                                     conversion: {{ $conversion }},
+                                     unitQty: @entangle('bulkDispatchQuantities.' . $itemId),
+                                     pcsQty: {{ $maxPcs }},
+                                     init() {
+                                         if (!this.unitQty || this.unitQty <= 0) {
+                                             this.unitQty = {{ $maxQty }};
+                                         }
+                                         this.syncFromUnits(this.unitQty);
+                                         $watch('unitQty', val => {
+                                             this.syncFromUnits(val);
+                                         });
+                                     },
+                                     syncFromUnits(val) {
+                                         let u = parseFloat(val);
+                                         if (!isNaN(u)) {
+                                             this.pcsQty = parseFloat((u * this.conversion).toFixed(2));
+                                         }
+                                     },
+                                     syncFromPcs(val) {
+                                         let p = parseFloat(val);
+                                         if (!isNaN(p) && this.conversion > 0) {
+                                             this.unitQty = parseFloat((p / this.conversion).toFixed(4));
+                                         }
+                                     }
+                                 }">
+                                <div class="flex items-center justify-between gap-md">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-title-sm text-primary text-sm font-bold truncate">{{ $selItem['product_title'] }}</p>
+                                        <p class="text-xs text-on-surface-variant font-mono">{{ $selItem['product_sku'] }}</p>
+                                        @if($conversion > 1)
+                                            <p class="text-[10px] text-purple-700 font-semibold mt-0.5">1 {{ $unitName }} = {{ (int)$conversion }} Pcs (Max: {{ $maxQty }} {{ $unitName }})</p>
+                                        @endif
+                                    </div>
+                                    <div class="flex items-center gap-xs">
+                                        <div class="w-24">
+                                            <input type="number" 
+                                                   step="any" 
+                                                   min="0.0001" 
+                                                   max="{{ $maxQty }}" 
+                                                   x-model="unitQty" 
+                                                   class="w-full px-xs py-xs bg-white border border-outline-variant/50 rounded text-xs text-right font-bold focus:ring-1 focus:ring-secondary outline-none" 
+                                                   placeholder="{{ $unitName }}">
+                                            <span class="text-[9px] text-on-surface-variant block text-right font-bold">{{ $unitName }}</span>
+                                        </div>
+                                        @if($conversion > 1)
+                                            <div class="w-24">
+                                                <input type="number" 
+                                                       step="any" 
+                                                       min="1" 
+                                                       max="{{ $maxPcs }}" 
+                                                       x-model="pcsQty" 
+                                                       @input="syncFromPcs($event.target.value)" 
+                                                       class="w-full px-xs py-xs bg-white border border-outline-variant/50 rounded text-xs text-right font-bold text-purple-700 focus:ring-1 focus:ring-secondary outline-none" 
+                                                       placeholder="Pcs">
+                                                <span class="text-[9px] text-purple-700 block text-right font-bold">Pcs</span>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
-                                <div class="w-36 flex items-center gap-xs">
-                                    <input type="number" wire:model="bulkDispatchQuantities.{{ $itemId }}" min="1" max="{{ $selItem['quantity'] }}" class="w-full px-sm py-xs bg-white border border-outline-variant/50 rounded text-sm text-right focus:ring-1 focus:ring-secondary outline-none">
-                                    <span class="text-xs text-on-surface-variant font-bold">{{ $selItem['unit_short_code'] ?: 'Pcs' }}</span>
-                                </div>
+                                @error("bulkDispatchQuantities.{$itemId}") <span class="text-error text-xs block text-right mt-xxs">{{ $message }}</span> @enderror
                             </div>
-                            @error("bulkDispatchQuantities.{$itemId}") <span class="text-error text-xs block text-right mt-xxs">{{ $message }}</span> @enderror
                         @endif
                     @endforeach
                 </div>

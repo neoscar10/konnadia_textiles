@@ -138,7 +138,7 @@ class OrderShowPage extends Component
     public function confirmDispatchItem(AdminOrderService $adminOrderService)
     {
         $this->validate([
-            'dispatchQty' => 'required|integer|min:1',
+            'dispatchQty' => 'required|numeric|min:0.0001',
             'dispatchNote' => 'nullable|string|max:1000',
         ]);
 
@@ -154,7 +154,7 @@ class OrderShowPage extends Component
                 ->count('dispatch_number');
             $dispatchNumber = 'DISP-' . $order->order_number . '-' . ($count + 1);
 
-            $adminOrderService->dispatchOrderItem($item, (int) $this->dispatchQty, auth()->user(), $this->dispatchNote, $dispatchNumber, $dispatchedAt);
+            $adminOrderService->dispatchOrderItem($item, (float) $this->dispatchQty, auth()->user(), $this->dispatchNote, $dispatchNumber, $dispatchedAt);
             
             $this->newlyDispatchedNumber = $dispatchNumber;
             $this->showDispatchSuccessModal = true;
@@ -191,7 +191,7 @@ class OrderShowPage extends Component
     public function confirmBulkDispatch(AdminOrderService $adminOrderService)
     {
         $this->validate([
-            'bulkDispatchQuantities.*' => 'required|integer|min:1',
+            'bulkDispatchQuantities.*' => 'required|numeric|min:0.0001',
             'dispatchNote' => 'nullable|string|max:1000',
         ]);
 
@@ -209,7 +209,7 @@ class OrderShowPage extends Component
             \Illuminate\Support\Facades\DB::transaction(function() use ($adminOrderService, $dispatchNumber, $dispatchedAt) {
                 foreach ($this->selectedItemIds as $itemId) {
                     $item = \App\Models\OrderItem::findOrFail($itemId);
-                    $qty = (int) $this->bulkDispatchQuantities[$itemId];
+                    $qty = (float) $this->bulkDispatchQuantities[$itemId];
                     $adminOrderService->dispatchOrderItem($item, $qty, auth()->user(), $this->dispatchNote, $dispatchNumber, $dispatchedAt);
                 }
             });
