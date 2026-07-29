@@ -115,6 +115,24 @@ Route::prefix('v1')->group(function () {
                 Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminDesignCatalogController::class, 'options']);
                 Route::post('/share', [\App\Http\Controllers\Api\V1\Admin\AdminDesignCatalogController::class, 'share']);
             });
+
+            // Category Management (Requires 'access categories' permission)
+            Route::middleware('api.permission:access categories')->prefix('categories')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'index']);
+                Route::get('/tree', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'tree']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'update']);
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'update']);
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'toggleStatus']);
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'destroy']);
+
+                // Category Defaults & Product Management
+                Route::get('/{id}/defaults', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'getDefaults']);
+                Route::post('/{id}/defaults', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'saveDefaults']);
+                Route::post('/{id}/move-products', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'moveProducts']);
+                Route::get('/{id}/products', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'getProducts']);
+            });
         });
     });
 });
