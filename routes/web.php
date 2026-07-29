@@ -53,6 +53,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('support', \App\Livewire\Admin\Support\SupportPage::class)->name('support.index');
         Route::get('contact-messages', \App\Livewire\Admin\Support\ContactMessagesPage::class)->name('contact-messages.index');
         
+        // Production & Labor Management System
+        Route::get('labor', \App\Livewire\Admin\Labor\LaborList::class)->name('labor.index');
+        Route::get('production/products', \App\Livewire\Admin\Production\ManufacturingProductIndexPage::class)->name('production.products.index');
+        Route::get('production/product-categories', \App\Livewire\Admin\Production\ManufacturingProductCategoryPage::class)->name('production.product-categories.index');
+        Route::get('production/batches/create', \App\Livewire\Admin\Production\CreateProductionBatch::class)->name('production.batches.create');
+        Route::get('production/batches/{id}/ledger', \App\Livewire\Admin\Production\ProductionBatchLedger::class)->name('production.batches.ledger');
+        Route::get('production/workbench', \App\Livewire\Admin\Production\SupervisorWorkbench::class)->name('production.workbench');
+        Route::get('production/jobs', \App\Livewire\Admin\Production\JobIndexPage::class)->name('production.jobs.index');
+        Route::get('production/jobs/{id}', \App\Livewire\Admin\Production\JobDetailPage::class)->name('production.jobs.show');
+        Route::get('production/tracking-history', \App\Livewire\Admin\Production\TrackingHistory::class)->name('production.tracking-history');
+
         // Retail Transfers System
         Route::get('retail-shops', \App\Livewire\Admin\RetailShops\RetailShopIndexPage::class)->name('retail-shops.index');
         Route::get('product-transfers', \App\Livewire\Admin\ProductTransfers\ProductTransferIndexPage::class)->name('product-transfers.index');

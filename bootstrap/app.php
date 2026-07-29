@@ -25,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer' => \App\Http\Middleware\CustomerMiddleware::class,
             'optional_customer' => \App\Http\Middleware\OptionalCustomerMiddleware::class,
             'api.customer' => \App\Http\Middleware\ApiCustomerMiddleware::class,
+            'api.admin' => \App\Http\Middleware\ApiAdminMiddleware::class,
+            'api.permission' => \App\Http\Middleware\ApiPermissionMiddleware::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,

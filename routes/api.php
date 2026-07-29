@@ -42,4 +42,32 @@ Route::prefix('v1')->group(function () {
             Route::get('/orders/{order}/receipt', [\App\Http\Controllers\Api\V1\CustomerOrderController::class, 'receipt']);
         });
     });
+
+    // ==========================================
+    // ADMIN DASHBOARD & MANAGEMENT API ENDPOINTS
+    // ==========================================
+    Route::prefix('admin')->group(function () {
+        // Unauthenticated Admin Auth
+        Route::post('/auth/login', [\App\Http\Controllers\Api\V1\Admin\AdminAuthController::class, 'login']);
+
+        // Authenticated Admin Endpoints
+        Route::middleware(['auth:api', 'api.admin'])->group(function () {
+            // Auth profile & token management
+            Route::get('/auth/me', [\App\Http\Controllers\Api\V1\Admin\AdminAuthController::class, 'me']);
+            Route::post('/auth/refresh', [\App\Http\Controllers\Api\V1\Admin\AdminAuthController::class, 'refresh']);
+            Route::post('/auth/logout', [\App\Http\Controllers\Api\V1\Admin\AdminAuthController::class, 'logout']);
+
+            // Admins Management (Restricted to Super Admin)
+            Route::middleware('role:super_admin')->prefix('admins')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'index']);
+                Route::get('/permissions', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'permissions']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'update']);
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'update']);
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'toggleStatus']);
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'destroy']);
+            });
+        });
+    });
 });

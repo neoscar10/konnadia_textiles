@@ -13,7 +13,19 @@
     </div>
 
     <!-- Navigation Menu -->
-    <div class="flex-1 overflow-y-auto py-lg flex flex-col gap-sm admin-sidebar-scroll">
+    <div class="flex-1 overflow-y-auto py-lg flex flex-col gap-sm admin-sidebar-scroll"
+         x-data="{
+             scrollToActive() {
+                 setTimeout(() => {
+                     const activeLink = this.$el.querySelector('a.bg-primary-container');
+                     if (activeLink) {
+                         activeLink.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                     }
+                 }, 50);
+             }
+         }"
+         x-init="scrollToActive()"
+         x-on:livewire:navigated.window="scrollToActive()">
         <!-- Overview Group -->
         @can('access dashboard')
             <div class="px-md mb-xs" x-show="sidebarOpen">
@@ -136,6 +148,43 @@
                 <a href="{{ route('admin.home-content.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.home-content.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                     <span class="material-symbols-outlined shrink-0" data-icon="dashboard_customize">dashboard_customize</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Home Content</span>
+                </a>
+            </nav>
+        @endcan
+
+        <!-- Factory Group -->
+        @can('manage_labor')
+            <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
+                <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Factory</p>
+            </div>
+            <nav class="flex flex-col gap-xs px-sm">
+                <a href="{{ route('admin.production.product-categories.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.product-categories.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="category">category</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Product Categories</span>
+                </a>
+                <a href="{{ route('admin.production.products.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.products.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="inventory_2">inventory_2</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Manufacturing Products</span>
+                </a>
+                <a href="{{ route('admin.production.workbench') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.workbench') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="factory">factory</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Supervisor Workbench</span>
+                </a>
+                <a href="{{ route('admin.production.batches.create') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.batches.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="add_circle">add_circle</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Create Production Batch</span>
+                </a>
+                <a href="{{ route('admin.production.jobs.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.jobs.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="precision_manufacturing">precision_manufacturing</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Production Jobs</span>
+                </a>
+                <a href="{{ route('admin.labor.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.labor.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="engineering">engineering</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Labor Management</span>
+                </a>
+                <a href="{{ route('admin.production.tracking-history') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.tracking-history') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="history">history</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Labor Tracking History</span>
                 </a>
             </nav>
         @endcan
