@@ -68,6 +68,29 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'toggleStatus']);
                 Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManagementController::class, 'destroy']);
             });
+
+            // Customer Management (Requires 'access customers' permission)
+            Route::middleware('api.permission:access customers')->prefix('customers')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'update']);
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'update']);
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'toggleStatus']);
+                Route::post('/{id}/reset-password', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'resetPassword']);
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'destroy']);
+            });
+
+            // Customer Levels & Discount Tiers (Requires 'access customer-levels' permission)
+            Route::middleware('api.permission:access customer-levels')->prefix('customer-levels')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerLevelController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerLevelController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerLevelController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerLevelController::class, 'update']);
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerLevelController::class, 'update']);
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerLevelController::class, 'toggleStatus']);
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerLevelController::class, 'destroy']);
+            });
         });
     });
 });
