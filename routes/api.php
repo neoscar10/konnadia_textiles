@@ -91,6 +91,27 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerLevelController::class, 'toggleStatus']);
                 Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerLevelController::class, 'destroy']);
             });
+
+            // Product Management (Requires 'access products' permission)
+            Route::middleware('api.permission:access products')->prefix('products')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'update']);
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'update']);
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'toggleStatus']);
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'destroy']);
+
+                // Media Management
+                Route::post('/{id}/media', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'uploadMedia']);
+                Route::patch('/{id}/media/{media_id}/primary', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'setPrimaryMedia']);
+                Route::delete('/{id}/media/{media_id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'deleteMedia']);
+
+                // Manufacturing Task Routing Management
+                Route::get('/{id}/routing', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'getRouting']);
+                Route::post('/{id}/routing', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'saveRouting']);
+            });
         });
     });
 });
