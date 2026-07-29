@@ -26,15 +26,13 @@ Content-Type: application/json
 | **Upload Product Media** | `POST /api/v1/admin/products/{id}/media` | `access products` |
 | **Set Cover Image** | `PATCH /api/v1/admin/products/{id}/media/{media_id}/primary` | `access products` |
 | **Delete Media** | `DELETE /api/v1/admin/products/{id}/media/{media_id}` | `access products` |
-| **View Task Routing** | `GET /api/v1/admin/products/{id}/routing` | `access products` |
-| **Configure Task Routing** | `POST /api/v1/admin/products/{id}/routing` | `access products` |
 
 ---
 
 ## 2. API Endpoints Specification
 
 ### 2.1 Fetch Form Options & Reference Data
-Retrieve categories tree, customer discount levels, available tags, and manufacturing tasks required to populate mobile creation/edit form dropdowns.
+Retrieve categories tree, customer discount levels, available tags, and default unit templates required to populate mobile creation/edit form dropdowns.
 
 - **HTTP Method**: `GET`
 - **Full URL**: `https://konnadia.empoweredtechinnovations.org/api/v1/admin/products/options`
@@ -70,18 +68,6 @@ Retrieve categories tree, customer discount levels, available tags, and manufact
         "id": 1,
         "name": "Cotton",
         "slug": "cotton"
-      }
-    ],
-    "manufacturing_tasks": [
-      {
-        "id": 1,
-        "name": "Cutting",
-        "code": "CUT-01"
-      },
-      {
-        "id": 2,
-        "name": "Stitching",
-        "code": "STITCH-01"
       }
     ],
     "product_types": [
@@ -241,7 +227,6 @@ Retrieve complete detailed information for a single product.
         "is_active": true
       }
     ],
-    "routing_tasks": [],
     "created_at": "30-Jul-2026 00:00",
     "updated_at": "30-Jul-2026 00:00"
   }
@@ -388,96 +373,3 @@ Delete a single image from the product gallery.
 - **HTTP Method**: `DELETE`
 - **Full URL**: `https://konnadia.empoweredtechinnovations.org/api/v1/admin/products/{id}/media/{media_id}`
 - **Response `200 OK`**: Returns updated product detail object.
-
----
-
-### 2.11 View Manufacturing Task Routing
-Get the production workflow tasks configured for a manufactured product.
-
-- **HTTP Method**: `GET`
-- **Full URL**: `https://konnadia.empoweredtechinnovations.org/api/v1/admin/products/{id}/routing`
-- **Response `200 OK`**:
-```json
-{
-  "success": true,
-  "data": {
-    "product_id": 1,
-    "sku": "KT-MP-001",
-    "product_title": "Manufactured Bed Sheet",
-    "routing_tasks": [
-      {
-        "task_id": 1,
-        "task_name": "Cutting",
-        "sequence_number": 1,
-        "standard_labor_rate": 20.0,
-        "is_final_step": false
-      },
-      {
-        "task_id": 2,
-        "task_name": "Stitching",
-        "sequence_number": 2,
-        "standard_labor_rate": 25.0,
-        "is_final_step": true
-      }
-    ]
-  }
-}
-```
-
----
-
-### 2.12 Configure Manufacturing Task Routing
-Configure/save production workflow tasks, labor rates, sequence, and final step for a manufactured product.
-
-- **HTTP Method**: `POST`
-- **Full URL**: `https://konnadia.empoweredtechinnovations.org/api/v1/admin/products/{id}/routing`
-- **Request Body (JSON)**:
-```json
-{
-  "routing_tasks": [
-    {
-      "task_id": 1,
-      "sequence_number": 1,
-      "standard_labor_rate": 20.00,
-      "is_final_step": false
-    },
-    {
-      "task_id": 2,
-      "sequence_number": 2,
-      "standard_labor_rate": 25.00,
-      "is_final_step": true
-    }
-  ]
-}
-```
-
-- **Validation Rules**:
-  - `routing_tasks`: Required array with at least 1 task step.
-  - Exactly **ONE** task must have `"is_final_step": true`.
-  - Task IDs must be unique per product routing.
-
-- **Response `200 OK`**:
-```json
-{
-  "success": true,
-  "message": "Task routing configured successfully.",
-  "data": {
-    "product_id": 1,
-    "sku": "KT-MP-001",
-    "routing_tasks": [
-      {
-        "task_id": 1,
-        "sequence_number": 1,
-        "standard_labor_rate": 20.0,
-        "is_final_step": false
-      },
-      {
-        "task_id": 2,
-        "sequence_number": 2,
-        "standard_labor_rate": 25.0,
-        "is_final_step": true
-      }
-    ]
-  }
-}
-```

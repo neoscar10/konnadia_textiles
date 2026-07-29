@@ -23,21 +23,6 @@ class AdminProductDetailResource extends JsonResource
         $lvl1Unit = $this->units->where('level', 1)->first();
         $lvl2Unit = $this->units->where('level', 2)->first();
 
-        // Check if there is a matching ManufacturingProduct for task routing
-        $mProduct = \App\Models\ManufacturingProduct::with('tasks')->where('code', $this->sku)->first();
-        $routingTasks = [];
-        if ($mProduct) {
-            foreach ($mProduct->tasks as $task) {
-                $routingTasks[] = [
-                    'task_id' => $task->id,
-                    'task_name' => $task->name,
-                    'sequence_number' => (int) $task->pivot->sequence_number,
-                    'standard_labor_rate' => (float) $task->pivot->standard_labor_rate,
-                    'is_final_step' => (bool) $task->pivot->is_final_step,
-                ];
-            }
-        }
-
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -126,7 +111,6 @@ class AdminProductDetailResource extends JsonResource
                     'is_active' => (bool) $comb->is_active,
                 ];
             }),
-            'routing_tasks' => $routingTasks,
             'created_at' => $this->created_at ? $this->created_at->format('d-M-Y H:i') : null,
             'updated_at' => $this->updated_at ? $this->updated_at->format('d-M-Y H:i') : null,
         ];

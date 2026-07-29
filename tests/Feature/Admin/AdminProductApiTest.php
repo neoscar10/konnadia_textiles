@@ -109,7 +109,7 @@ class AdminProductApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonStructure([
                 'data' => [
-                    'categories', 'customer_levels', 'tags', 'manufacturing_tasks', 'product_types', 'default_units'
+                    'categories', 'customer_levels', 'tags', 'product_types', 'default_units'
                 ]
             ]);
     }
@@ -238,49 +238,6 @@ class AdminProductApiTest extends TestCase
 
         $deleteResp->assertStatus(200);
         $this->assertDatabaseMissing('product_media', ['id' => $firstMedia->id]);
-    }
-
-    public function test_super_admin_can_configure_manufacturing_task_routing(): void
-    {
-        $product = Product::create([
-            'title' => 'Manufactured Bed Sheet',
-            'sku' => 'KT-MP-001',
-            'base_price' => 1200.0,
-            'description' => 'Manufactured item',
-            'is_active' => true,
-            'product_type' => 'manufactured',
-        ]);
-
-        $routingPayload = [
-            'routing_tasks' => [
-                [
-                    'task_id' => $this->task1->id,
-                    'sequence_number' => 1,
-                    'standard_labor_rate' => 20.00,
-                    'is_final_step' => false,
-                ],
-                [
-                    'task_id' => $this->task2->id,
-                    'sequence_number' => 2,
-                    'standard_labor_rate' => 25.00,
-                    'is_final_step' => true,
-                ],
-            ]
-        ];
-
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
-            ->postJson("/api/v1/admin/products/{$product->id}/routing", $routingPayload);
-
-        $response->assertStatus(200)
-            ->assertJsonPath('success', true);
-
-        // Verify GET routing
-        $getRouting = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
-            ->getJson("/api/v1/admin/products/{$product->id}/routing");
-
-        $getRouting->assertStatus(200)
-            ->assertJsonCount(2, 'data.routing_tasks')
-            ->assertJsonPath('data.routing_tasks.1.is_final_step', true);
     }
 
     public function test_super_admin_can_delete_product(): void

@@ -107,10 +107,6 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/media', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'uploadMedia']);
                 Route::patch('/{id}/media/{media_id}/primary', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'setPrimaryMedia']);
                 Route::delete('/{id}/media/{media_id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'deleteMedia']);
-
-                // Manufacturing Task Routing Management
-                Route::get('/{id}/routing', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'getRouting']);
-                Route::post('/{id}/routing', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'saveRouting']);
             });
         });
     });

@@ -8,14 +8,11 @@ use App\Models\Category;
 use App\Models\CustomerLevel;
 use App\Models\Tag;
 use App\Models\ProductMedia;
-use App\Models\ManufacturingProduct;
-use App\Models\Task;
 use App\Services\Catalog\ProductService;
 use App\Services\Catalog\ProductVariationService;
 use App\Services\Catalog\ProductMediaService;
 use App\Http\Requests\Api\V1\Admin\StoreAdminProductRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateAdminProductRequest;
-use App\Http\Requests\Api\V1\Admin\SaveProductRoutingRequest;
 use App\Http\Resources\Api\V1\AdminProductResource;
 use App\Http\Resources\Api\V1\AdminProductDetailResource;
 use Illuminate\Http\Request;
@@ -79,19 +76,12 @@ class AdminProductController extends Controller
             'slug' => $t->slug,
         ]);
 
-        $tasks = Task::where('status', true)->get()->map(fn($t) => [
-            'id' => $t->id,
-            'name' => $t->name,
-            'code' => $t->code,
-        ]);
-
         return response()->json([
             'success' => true,
             'data' => [
                 'categories' => $categories,
                 'customer_levels' => $customerLevels,
                 'tags' => $tags,
-                'manufacturing_tasks' => $tasks,
                 'product_types' => [
                     ['key' => 'retail', 'label' => 'Retail Product'],
                     ['key' => 'manufactured', 'label' => 'Manufactured Product'],
@@ -170,16 +160,6 @@ class AdminProductController extends Controller
             // Upload media files if provided
             if ($request->hasFile('images')) {
                 $mediaService->storeProductMedia($product, $request->file('images'));
-            }
-
-            // If manufactured product, auto-sync or ensure ManufacturingProduct record exists
-            if ($product->product_type === 'manufactured') {
-                ManufacturingProduct::firstOrCreate([
-                    'code' => $product->sku,
-                ], [
-                    'name' => $product->title,
-                    'standard_labor_rate' => 15.00,
-                ]);
             }
 
             return $product;
@@ -348,75 +328,6 @@ class AdminProductController extends Controller
             'success' => true,
             'message' => 'Media item deleted successfully.',
             'data' => new AdminProductDetailResource($product->fresh()),
-        ]);
-    }
-
-    /**
-     * Get manufacturing task routing steps for a product.
-     */
-    public function getRouting(int $id): JsonResponse
-    {
-        $product = Product::findOrFail($id);
-        $mProduct = ManufacturingProduct::with('tasks')->where('code', $product->sku)->first();
-
-        $tasks = [];
-        if ($mProduct) {
-            foreach ($mProduct->tasks as $task) {
-                $tasks[] = [
-                    'task_id' => $task->id,
-                    'task_name' => $task->name,
-                    'sequence_number' => (int) $task->pivot->sequence_number,
-                    'standard_labor_rate' => (float) $task->pivot->standard_labor_rate,
-                    'is_final_step' => (bool) $task->pivot->is_final_step,
-                ];
-            }
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'product_id' => $product->id,
-                'sku' => $product->sku,
-                'product_title' => $product->title,
-                'routing_tasks' => $tasks,
-            ]
-        ]);
-    }
-
-    /**
-     * Configure task routing steps for a manufactured product.
-     */
-    public function saveRouting(SaveProductRoutingRequest $request, int $id): JsonResponse
-    {
-        $product = Product::findOrFail($id);
-        $validated = $request->validated();
-
-        $mProduct = ManufacturingProduct::firstOrCreate([
-            'code' => $product->sku,
-        ], [
-            'name' => $product->title,
-            'standard_labor_rate' => 15.00,
-        ]);
-
-        $syncData = [];
-        foreach ($validated['routing_tasks'] as $row) {
-            $syncData[$row['task_id']] = [
-                'sequence_number' => (int) $row['sequence_number'],
-                'standard_labor_rate' => (float) $row['standard_labor_rate'],
-                'is_final_step' => !empty($row['is_final_step']),
-            ];
-        }
-
-        $mProduct->tasks()->sync($syncData);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Task routing configured successfully.',
-            'data' => [
-                'product_id' => $product->id,
-                'sku' => $product->sku,
-                'routing_tasks' => $validated['routing_tasks'],
-            ]
         ]);
     }
 }
