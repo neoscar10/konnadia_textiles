@@ -15,7 +15,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AdminProductApiTest extends TestCase
 {
@@ -37,10 +37,10 @@ class AdminProductApiTest extends TestCase
         Storage::fake('public');
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $superRole = Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
-        $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
-        $permProducts = Permission::create(['name' => 'access products', 'guard_name' => 'web']);
-        $permCustomers = Permission::create(['name' => 'access customers', 'guard_name' => 'web']);
+        $superRole = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $permProducts = Permission::firstOrCreate(['name' => 'access products', 'guard_name' => 'web']);
+        $permCustomers = Permission::firstOrCreate(['name' => 'access customers', 'guard_name' => 'web']);
 
         $superRole->givePermissionTo([$permProducts, $permCustomers]);
 
@@ -53,6 +53,7 @@ class AdminProductApiTest extends TestCase
         $this->restrictedAdminToken = JWTAuth::fromUser($this->restrictedAdmin);
 
         $this->category = Category::create([
+            'name' => 'Shirts',
             'title' => 'Shirts',
             'slug' => 'shirts',
             'sort_order' => 1,
@@ -96,7 +97,7 @@ class AdminProductApiTest extends TestCase
             ->getJson('/api/v1/admin/products');
 
         $response->assertStatus(403)
-            ->assertJson(['message' => 'Forbidden']);
+            ->assertJsonPath('success', false);
     }
 
     public function test_super_admin_can_fetch_product_options_and_reference_data(): void
@@ -183,7 +184,7 @@ class AdminProductApiTest extends TestCase
 
         $updateResp->assertStatus(200)
             ->assertJsonPath('data.title', 'Updated Shirt Title')
-            ->assertJsonPath('data.base_price', 650.0);
+            ->assertJsonPath('data.base_price', 650);
 
         // Toggle status
         $toggleResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)

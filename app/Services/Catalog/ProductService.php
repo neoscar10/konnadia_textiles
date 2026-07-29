@@ -64,7 +64,7 @@ class ProductService
     public function create(array $payload): Product
     {
         return DB::transaction(function () use ($payload) {
-            $sku = $this->generateSku();
+            $sku = !empty($payload['sku']) ? trim($payload['sku']) : $this->generateSku();
 
             $product = Product::create([
                 'title'          => trim($payload['title']),
