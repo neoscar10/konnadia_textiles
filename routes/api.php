@@ -108,6 +108,13 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}/media/{media_id}/primary', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'setPrimaryMedia']);
                 Route::delete('/{id}/media/{media_id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductController::class, 'deleteMedia']);
             });
+
+            // Design Catalog (Requires 'access design-catalog' permission)
+            Route::middleware('api.permission:access design-catalog')->prefix('design-catalog')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminDesignCatalogController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminDesignCatalogController::class, 'options']);
+                Route::post('/share', [\App\Http\Controllers\Api\V1\Admin\AdminDesignCatalogController::class, 'share']);
+            });
         });
     });
 });
