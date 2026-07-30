@@ -133,6 +133,17 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/move-products', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'moveProducts']);
                 Route::get('/{id}/products', [\App\Http\Controllers\Api\V1\Admin\AdminCategoryController::class, 'getProducts']);
             });
+
+            // Tag Management (Requires 'access tags' permission)
+            Route::middleware('api.permission:access tags')->prefix('tags')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminTagController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminTagController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTagController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminTagController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTagController::class, 'update']);
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTagController::class, 'update']);
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTagController::class, 'destroy']);
+            });
         });
     });
 });
