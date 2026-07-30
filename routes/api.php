@@ -144,6 +144,56 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTagController::class, 'update']);
                 Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTagController::class, 'destroy']);
             });
+
+            // Inventory Management (Requires 'access inventory' permission)
+            Route::middleware('api.permission:access inventory')->prefix('inventory')->group(function () {
+                Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryController::class, 'stats']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryController::class, 'show']);
+                Route::post('/adjust', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryController::class, 'adjustStock']);
+                Route::post('/products/{id}/variants-stock', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryController::class, 'updateVariantStocks']);
+            });
+
+            // Retail Shops Management (Requires 'access retail-shops' permission)
+            Route::middleware('api.permission:access retail-shops')->prefix('retail-shops')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'update']);
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'update']);
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'toggleStatus']);
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'destroy']);
+            });
+
+            // Product Transfers Management (Requires 'access product-transfers' permission)
+            Route::middleware('api.permission:access product-transfers')->prefix('product-transfers')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'options']);
+                Route::get('/products/{id}/transfer-info', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'productTransferInfo']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'store']);
+            });
+
+            // Order Management & Fractional Dispatch (Requires 'access orders' permission)
+            Route::middleware('api.permission:access orders')->prefix('orders')->group(function () {
+                Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'stats']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'index']);
+                Route::get('/{idOrNumber}', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'show']);
+
+                // Order Status Transitions
+                Route::post('/{id}/mark-under-review', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'markUnderReview']);
+                Route::post('/{id}/verify-receipt', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'verifyReceipt']);
+                Route::post('/{id}/reject-receipt', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'rejectReceipt']);
+                Route::post('/{id}/approve', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'approve']);
+                Route::post('/{id}/reject', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'reject']);
+                Route::post('/{id}/cancel', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'cancel']);
+
+                // Item & Fractional Dispatch Actions
+                Route::post('/items/{itemId}/dispatch', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'dispatchItem']);
+                Route::post('/{id}/bulk-dispatch', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'bulkDispatch']);
+                Route::post('/items/{itemId}/cancel', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'cancelItem']);
+            });
         });
     });
 });
