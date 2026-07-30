@@ -134,6 +134,15 @@ class AdminCustomerController extends Controller
     }
 
     /**
+     * Export customer records to CSV file.
+     */
+    public function export(Request $request)
+    {
+        $filters = $request->only(['search', 'level_id', 'status']);
+        return $this->customerService->exportCsv($filters);
+    }
+
+    /**
      * Delete Customer (soft delete).
      */
     public function destroy(int $id): JsonResponse

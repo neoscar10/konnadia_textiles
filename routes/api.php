@@ -72,6 +72,7 @@ Route::prefix('v1')->group(function () {
             // Customer Management (Requires 'access customers' permission)
             Route::middleware('api.permission:access customers')->prefix('customers')->group(function () {
                 Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'index']);
+                Route::get('/export', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'export']);
                 Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'show']);
                 Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'store']);
                 Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomerController::class, 'update']);
