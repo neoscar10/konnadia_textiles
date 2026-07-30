@@ -198,35 +198,6 @@ Retrieve complete detailed information for a single product.
         "discount_percentage": 20.0
       }
     ],
-    "variation_groups": [
-      {
-        "id": 1,
-        "name": "Color",
-        "display_type": "text",
-        "has_images": false,
-        "sort_order": 0,
-        "values": [
-          {
-            "id": 1,
-            "value": "White",
-            "color_hex": "#ffffff",
-            "is_default": true,
-            "sort_order": 0,
-            "media": []
-          }
-        ]
-      }
-    ],
-    "combinations": [
-      {
-        "id": 1,
-        "sku": "KT-OXF-001-WHITE",
-        "combination_values": { "Color": "White" },
-        "price": 799.0,
-        "stock_quantity": 100,
-        "is_active": true
-      }
-    ],
     "created_at": "30-Jul-2026 00:00",
     "updated_at": "30-Jul-2026 00:00"
   }
@@ -236,7 +207,7 @@ Retrieve complete detailed information for a single product.
 ---
 
 ### 2.4 Create Product
-Create a new product with basic info, categories, tags, units, variation groups, combinations, and customer level discount overrides.
+Create a new product with basic info, categories, tags, units, stock quantity, and customer level discount overrides.
 
 - **HTTP Method**: `POST`
 - **Full URL**: `https://konnadia.empoweredtechinnovations.org/api/v1/admin/products`
@@ -266,32 +237,6 @@ Create a new product with basic info, categories, tags, units, variation groups,
     {
       "customer_level_id": 1,
       "discount_percentage": 20.0
-    }
-  ],
-  "variation_groups": [
-    {
-      "name": "Color",
-      "display_type": "text",
-      "values": [
-        { "value": "White", "color_hex": "#FFFFFF", "is_default": true },
-        { "value": "Blue", "color_hex": "#0000FF", "is_default": false }
-      ]
-    }
-  ],
-  "combinations": [
-    {
-      "combination_values": { "Color": "White" },
-      "sku": "KT-OXF-001-WHITE",
-      "price": 799.00,
-      "stock_quantity": 50,
-      "is_active": true
-    },
-    {
-      "combination_values": { "Color": "Blue" },
-      "sku": "KT-OXF-001-BLUE",
-      "price": 799.00,
-      "stock_quantity": 50,
-      "is_active": true
     }
   ]
 }

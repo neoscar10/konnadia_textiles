@@ -51,7 +51,7 @@ Retrieve summary dashboard cards (total items, total stock value in INR, low sto
 ---
 
 ### 1.2.2 List Inventory Items (Paginated with Filters)
-Retrieve paginated list of products with active combinations, stock quantities, and inventory valuations.
+Retrieve paginated list of products with stock quantities and inventory valuations.
 
 - **HTTP Method**: `GET`
 - **Full URL**: `https://konnadia.empoweredtechinnovations.org/api/v1/admin/inventory`
@@ -82,29 +82,8 @@ Retrieve paginated list of products with active combinations, stock quantities, 
       "stock_label": "25 In Stock",
       "inventory_value": 37500.00,
       "formatted_inventory_value": "₹37,500.00",
-      "has_variants": true,
       "categories": [
         { "id": 5, "title": "Trousers", "slug": "trousers" }
-      ],
-      "combinations": [
-        {
-          "id": 101,
-          "sku": "KT-TROUSER-01-L-BLUE",
-          "combination_values": { "Size": "L", "Color": "Blue" },
-          "price": 1500.00,
-          "stock_quantity": 15,
-          "stock_status": "in_stock",
-          "is_active": true
-        },
-        {
-          "id": 102,
-          "sku": "KT-TROUSER-01-M-BLACK",
-          "combination_values": { "Size": "M", "Color": "Black" },
-          "price": 1500.00,
-          "stock_quantity": 10,
-          "stock_status": "low_stock",
-          "is_active": true
-        }
       ]
     }
   ],
@@ -120,8 +99,8 @@ Retrieve paginated list of products with active combinations, stock quantities, 
 
 ---
 
-### 1.2.3 Adjust Single Product or Variant Stock
-Adjust stock quantity for a single product or specific variant (`combination_id`).
+### 1.2.3 Adjust Single Product Stock
+Adjust stock quantity for a single product.
 
 - **HTTP Method**: `POST`
 - **Full URL**: `https://konnadia.empoweredtechinnovations.org/api/v1/admin/inventory/adjust`
@@ -129,7 +108,6 @@ Adjust stock quantity for a single product or specific variant (`combination_id`
 ```json
 {
   "product_id": 10,
-  "combination_id": 101,
   "adjustment_type": "add",
   "quantity": 10,
   "reason": "Restock shipment arrival"
@@ -138,7 +116,6 @@ Adjust stock quantity for a single product or specific variant (`combination_id`
 
 - **Parameters**:
   - `product_id` *(required int)*: Target product ID.
-  - `combination_id` *(optional int)*: Specific variant combination ID if adjusting a variant.
   - `adjustment_type` *(required string)*: `'set'` (overwrite stock value), `'add'` (increment stock), or `'deduct'` (decrement stock).
   - `quantity` *(required int, min 0)*: Quantity to adjust.
   - `reason` *(optional string)*: Reason description.
@@ -150,31 +127,11 @@ Adjust stock quantity for a single product or specific variant (`combination_id`
   "message": "Stock adjusted successfully.",
   "data": {
     "product_id": 10,
-    "combination_id": 101,
-    "new_stock_quantity": 25,
+    "new_stock_quantity": 35,
     "product_total_stock": 35
   }
 }
 ```
-
----
-
-### 1.2.4 Bulk Update Variant Stocks
-Bulk update stock quantities for all variants of a product in one request.
-
-- **HTTP Method**: `POST`
-- **Full URL**: `https://konnadia.empoweredtechinnovations.org/api/v1/admin/inventory/products/{product_id}/variants-stock`
-- **Request Body (JSON)**:
-```json
-{
-  "variant_stocks": [
-    { "combination_id": 101, "stock_quantity": 30 },
-    { "combination_id": 102, "stock_quantity": 20 }
-  ]
-}
-```
-
-- **Response `200 OK`**: Returns updated product resource with re-calculated total stock sum (50).
 
 ---
 
@@ -341,7 +298,7 @@ Retrieve available active retail shops and product categories for wizard setup.
 ---
 
 ### 3.2.3 Fetch Product Unit & Stock Details for Transfer
-Get active combinations, dual unit configuration (`level 1` and `level 2` units with conversion factors), and current stock availability before adding an item to a transfer list.
+Get dual unit configuration (`level 1` and `level 2` units with conversion factors) and current stock availability before adding an item to a transfer list.
 
 - **HTTP Method**: `GET`
 - **Full URL**: `https://konnadia.empoweredtechinnovations.org/api/v1/admin/product-transfers/products/{id}/transfer-info`
@@ -354,8 +311,6 @@ Get active combinations, dual unit configuration (`level 1` and `level 2` units 
     "product_title": "Silk Saree Set",
     "product_sku": "KT-SAREE-SET-01",
     "available_stock": 100,
-    "has_variants": false,
-    "combinations": [],
     "units": [
       {
         "id": 4,
@@ -400,7 +355,6 @@ Submit and execute a stock transfer to a retail shop. Automatically validates av
   "items": [
     {
       "product_id": 12,
-      "product_combination_id": null,
       "product_unit_id": 5,
       "quantity": 10,
       "note": "First batch"
