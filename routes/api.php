@@ -227,6 +227,41 @@ Route::prefix('v1')->group(function () {
                 Route::post('/change-password', [\App\Http\Controllers\Api\V1\Admin\AdminSettingsController::class, 'changePassword']);
             });
 
+            // Dashboard Analytics (Authenticated Admin)
+            Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Admin\AdminDashboardAnalyticsController::class, 'show']);
+
+            // Units Configuration
+            Route::prefix('units')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'index']);
+            });
+
+            // Credit Management (Requires 'access customers' or 'access orders' permission)
+            Route::prefix('credit-management')->group(function () {
+                Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'stats']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'index']);
+                Route::get('/customers/{id}/ledger', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'ledger']);
+                Route::post('/customers/{id}/limit', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'updateLimit']);
+                Route::post('/customers/{id}/payment', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'recordPayment']);
+                Route::post('/customers/{id}/adjust', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'adjustOutstanding']);
+                Route::patch('/customers/{id}/toggle-beyond-limit', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'toggleBeyondLimit']);
+                Route::post('/customers/{id}/hold', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'hold']);
+                Route::post('/customers/{id}/release-hold', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'releaseHold']);
+            });
+
+            // Reports & Business Analytics
+            Route::prefix('reports')->group(function () {
+                Route::get('/sales', [\App\Http\Controllers\Api\V1\Admin\AdminReportsController::class, 'sales']);
+                Route::get('/customers', [\App\Http\Controllers\Api\V1\Admin\AdminReportsController::class, 'customers']);
+                Route::get('/inventory', [\App\Http\Controllers\Api\V1\Admin\AdminReportsController::class, 'inventory']);
+            });
+
+            // Notifications System
+            Route::prefix('notifications')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminNotificationController::class, 'index']);
+                Route::post('/mark-read', [\App\Http\Controllers\Api\V1\Admin\AdminNotificationController::class, 'markRead']);
+                Route::post('/mark-all-read', [\App\Http\Controllers\Api\V1\Admin\AdminNotificationController::class, 'markAllRead']);
+            });
+
             // Support & Contact Messages (Requires 'access contact-messages' permission)
             Route::middleware('api.permission:access contact-messages')->prefix('contact-messages')->group(function () {
                 Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminContactMessageController::class, 'stats']);

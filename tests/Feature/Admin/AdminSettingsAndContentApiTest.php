@@ -219,4 +219,48 @@ class AdminSettingsAndContentApiTest extends TestCase
             ->deleteJson('/api/v1/admin/contact-messages/' . $msg->id);
         $deleteResp->assertStatus(200)->assertJsonPath('success', true);
     }
+
+    /* -------------------------------------------------------------------------- */
+    /* DASHBOARD, UNITS, CREDIT, & REPORTS TESTS                                  */
+    /* -------------------------------------------------------------------------- */
+
+    public function test_super_admin_can_fetch_dashboard_analytics(): void
+    {
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/dashboard?date_range=30_days');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.metadata.currency', 'INR');
+    }
+
+    public function test_super_admin_can_fetch_units_and_reports(): void
+    {
+        $unitsResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/units');
+        $unitsResp->assertStatus(200)->assertJsonPath('success', true);
+
+        $salesResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/reports/sales');
+        $salesResp->assertStatus(200)->assertJsonPath('success', true);
+
+        $custReportResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/reports/customers');
+        $custReportResp->assertStatus(200)->assertJsonPath('success', true);
+
+        $invReportResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/reports/inventory');
+        $invReportResp->assertStatus(200)->assertJsonPath('success', true);
+    }
+
+    public function test_super_admin_can_manage_credit_accounts(): void
+    {
+        $statsResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/credit-management/stats');
+        $statsResp->assertStatus(200)->assertJsonPath('success', true);
+
+        $listResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/credit-management');
+        $listResp->assertStatus(200)->assertJsonPath('success', true);
+    }
 }
