@@ -194,6 +194,47 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/bulk-dispatch', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'bulkDispatch']);
                 Route::post('/items/{itemId}/cancel', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'cancelItem']);
             });
+
+            // Home Content CMS (Requires 'access home-content' permission)
+            Route::middleware('api.permission:access home-content')->prefix('home-content')->group(function () {
+                Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'stats']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'update']);
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'update']);
+                Route::post('/reorder', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'reorder']);
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'toggleStatus']);
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'destroy']);
+            });
+
+            // Admin Users Management (Requires 'access admins' permission)
+            Route::middleware('api.permission:access admins')->prefix('admins')->group(function () {
+                Route::get('/permissions-list', [\App\Http\Controllers\Api\V1\Admin\AdminUserManagementController::class, 'permissionsList']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminUserManagementController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUserManagementController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminUserManagementController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUserManagementController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUserManagementController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminUserManagementController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUserManagementController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // System Settings & Password (Authenticated Admin)
+            Route::prefix('settings')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminSettingsController::class, 'index']);
+                Route::post('/change-password', [\App\Http\Controllers\Api\V1\Admin\AdminSettingsController::class, 'changePassword']);
+            });
+
+            // Support & Contact Messages (Requires 'access contact-messages' permission)
+            Route::middleware('api.permission:access contact-messages')->prefix('contact-messages')->group(function () {
+                Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminContactMessageController::class, 'stats']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminContactMessageController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminContactMessageController::class, 'show']);
+                Route::patch('/{id}/mark-unread', [\App\Http\Controllers\Api\V1\Admin\AdminContactMessageController::class, 'markUnread']);
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminContactMessageController::class, 'destroy']);
+            });
         });
     });
 });
