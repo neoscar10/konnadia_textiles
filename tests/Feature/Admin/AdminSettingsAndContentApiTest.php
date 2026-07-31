@@ -220,6 +220,25 @@ class AdminSettingsAndContentApiTest extends TestCase
         $deleteResp->assertStatus(200)->assertJsonPath('success', true);
     }
 
+    public function test_guest_or_user_can_submit_contact_form_message(): void
+    {
+        $response = $this->postJson('/api/v1/contact', [
+            'name' => 'Karan Sharma',
+            'email' => 'karan@gmail.com',
+            'phone' => '+91 9876543210',
+            'subject' => 'Bulk Purchase Query',
+            'message' => 'We would like to request catalog prices for bulk orders.',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('contact_messages', [
+            'email' => 'karan@gmail.com',
+            'subject' => 'Bulk Purchase Query',
+        ]);
+    }
+
     /* -------------------------------------------------------------------------- */
     /* DASHBOARD, UNITS, CREDIT, & REPORTS TESTS                                  */
     /* -------------------------------------------------------------------------- */
