@@ -94,7 +94,15 @@ class AdminHomeContentController extends Controller
      */
     public function options(Request $request): JsonResponse
     {
-        $categories = Category::orderBy('name')->get(['id', 'title', 'slug', 'parent_id']);
+        $categories = Category::orderBy('name')->get(['id', 'name', 'slug', 'parent_id'])->map(function ($cat) {
+            return [
+                'id' => $cat->id,
+                'name' => $cat->name,
+                'title' => $cat->name,
+                'slug' => $cat->slug,
+                'parent_id' => $cat->parent_id,
+            ];
+        });
 
         $productQuery = Product::where('is_active', true)->with('primaryMedia');
         if ($search = $request->query('product_search')) {
