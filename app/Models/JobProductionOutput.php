@@ -15,11 +15,33 @@ class JobProductionOutput extends Model
         'manufacturing_product_id',
         'task_id',
         'quantity_produced',
+        'inventory_batch_id',
+        'fabric_width',
+        'fabric_length',
+        'fabric_width_unit',
+        'fabric_length_unit',
+        'calculated_base_cost',
+        'allocated_wastage_cost',
+        'total_fabric_cost',
     ];
 
     protected $casts = [
         'quantity_produced' => 'integer',
+        'inventory_batch_id' => 'integer',
+        'fabric_width' => 'decimal:4',
+        'fabric_length' => 'decimal:4',
+        'calculated_base_cost' => 'decimal:2',
+        'allocated_wastage_cost' => 'decimal:2',
+        'total_fabric_cost' => 'decimal:2',
     ];
+
+    /**
+     * Get the fabric inventory batch consumed for this output.
+     */
+    public function inventoryBatch()
+    {
+        return $this->belongsTo(InventoryBatch::class);
+    }
 
     /**
      * Get the manufacturing product outputted.

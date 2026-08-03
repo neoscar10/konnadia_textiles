@@ -18,8 +18,12 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             CategorySeeder::class,
             ProductSeeder::class,
+            CustomerLevelSeeder::class,
+            CustomerSeeder::class,
             FactoryRolesSeeder::class,
+            TaskSeeder::class,
             ManufacturingProductSeeder::class,
+            RawMaterialInventorySeeder::class,
         ]);
     }
 }

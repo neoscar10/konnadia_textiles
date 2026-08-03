@@ -18,13 +18,28 @@ class ProductionBatch extends Model
         'planned_quantity',
         'priority',
         'status',
+        'completed_at',
+        'is_converted',
         'remarks',
     ];
 
     protected $casts = [
         'batch_date' => 'date',
+        'completed_at' => 'datetime',
+        'is_converted' => 'boolean',
         'planned_quantity' => 'integer',
     ];
+
+    /**
+     * Check if the production batch is completed and ready for finished goods conversion.
+     */
+    public function isReadyForConversion(): bool
+    {
+        return $this->status === 'Completed' 
+            && !$this->is_converted 
+            && $this->jobs()->count() > 0 
+            && !$this->jobs()->where('status', '!=', 'completed')->exists();
+    }
 
     protected static function boot()
     {
@@ -39,6 +54,24 @@ class ProductionBatch extends Model
 
             if (empty($batch->batch_date)) {
                 $batch->batch_date = now()->format('Y-m-d');
+            }
+        });
+
+        static::updating(function ($batch) {
+            if ($batch->isDirty('status') && $batch->status === 'Completed') {
+                $product = $batch->manufacturingProduct;
+                if ($product) {
+                    $finalTask = $product->getFinalTask();
+                    if ($finalTask) {
+                        $finalJobCompleted = $batch->jobs()
+                            ->where('task_id', $finalTask->id)
+                            ->where('status', 'completed')
+                            ->exists();
+                        if (!$finalJobCompleted) {
+                            throw new \Exception("Cannot set batch status to Completed before the designated Final Production Step [{$finalTask->name}] is completed.");
+                        }
+                    }
+                }
             }
         });
     }

@@ -154,4 +154,46 @@ class ProductionJob extends Model
         $completed = $this->completed_quantity;
         return (float) min(100, round(($completed / $this->target_quantity) * 100, 1));
     }
+
+    /**
+     * Get sequence number of this job's task in the manufacturing product's routing.
+     */
+    public function getSequenceNumberAttribute(): int
+    {
+        if (!$this->manufacturingProduct || !$this->task_id) {
+            return 1;
+        }
+
+        $task = $this->manufacturingProduct->tasks->firstWhere('id', $this->task_id);
+        return $task?->pivot?->sequence_number ?? 1;
+    }
+
+    /**
+     * Check if this job's task is designated as the final step in the product's routing.
+     */
+    public function getIsFinalStepAttribute(): bool
+    {
+        if (!$this->manufacturingProduct || !$this->task_id) {
+            return false;
+        }
+
+        $task = $this->manufacturingProduct->tasks->firstWhere('id', $this->task_id);
+        return (bool) ($task?->pivot?->is_final_step ?? false);
+    }
+
+    /**
+     * Get virtual input_quantity mapping to target_quantity.
+     */
+    public function getInputQuantityAttribute()
+    {
+        return $this->target_quantity;
+    }
+
+    /**
+     * Set virtual input_quantity mapping to target_quantity.
+     */
+    public function setInputQuantityAttribute($value)
+    {
+        $this->target_quantity = $value;
+    }
 }

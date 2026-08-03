@@ -202,13 +202,14 @@ Route::prefix('v1')->group(function () {
                 Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'stats']);
                 Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'index']);
                 Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'options']);
-                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'show']);
-                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'store']);
-                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'update']);
-                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'update']);
+                Route::post('/upload-media', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'uploadMedia']);
                 Route::post('/reorder', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'reorder']);
-                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'toggleStatus']);
-                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'destroy']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'store']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'show'])->where('id', '[0-9]+');
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminHomeContentController::class, 'destroy'])->where('id', '[0-9]+');
             });
 
             // Admin Users Management (Requires 'access admins' permission)

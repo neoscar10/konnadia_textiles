@@ -7,11 +7,26 @@
             <h1 class="text-2xl md:text-3xl font-extrabold text-[#001229] tracking-tight mt-0.5">Welcome back, {{ $customer['company_name'] ?? 'Valued Customer' }}</h1>
             <p class="text-sm text-slate-500">Manage your wholesale orders and check order statuses.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-col items-end gap-1.5">
             <div class="text-sm font-bold text-slate-700 bg-white border border-outline-variant/30 px-3 py-1.5 rounded-lg shadow-ambient">
                 {{ auth()->user()->name }}
             </div>
-            <button wire:click="refreshDashboard" class="flex items-center justify-center p-2 rounded-lg bg-white border border-outline-variant/30 text-slate-600 hover:text-[#001229] hover:border-[#001229] shadow-ambient transition-all" title="Refresh Dashboard">
+            @if(!empty($customer['customer_number']) || !empty($customer['level']))
+                <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-white/60 px-2.5 py-1 rounded-md border border-outline-variant/20">
+                    @if(!empty($customer['customer_number']))
+                        <span>{{ $customer['customer_number'] }}</span>
+                    @endif
+                    
+                    @if(!empty($customer['customer_number']) && !empty($customer['level']))
+                        <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                    @endif
+                    
+                    @if(!empty($customer['level']))
+                        <span class="text-gold font-bold">{{ $customer['level'] }}</span>
+                    @endif
+                </div>
+            @endif
+            <button wire:click="refreshDashboard" class="hidden flex items-center justify-center p-2 rounded-lg bg-white border border-outline-variant/30 text-slate-600 hover:text-[#001229] hover:border-[#001229] shadow-ambient transition-all" title="Refresh Dashboard">
                 <span class="material-symbols-outlined text-lg">refresh</span>
             </button>
         </div>

@@ -59,6 +59,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('production/product-categories', \App\Livewire\Admin\Production\ManufacturingProductCategoryPage::class)->name('production.product-categories.index');
         Route::get('production/batches/create', \App\Livewire\Admin\Production\CreateProductionBatch::class)->name('production.batches.create');
         Route::get('production/batches/{id}/ledger', \App\Livewire\Admin\Production\ProductionBatchLedger::class)->name('production.batches.ledger');
+        Route::get('production/batches/{id}/convert', \App\Livewire\Admin\Production\FinishedGoodsConversion::class)->name('production.batches.convert');
         Route::get('production/workbench', \App\Livewire\Admin\Production\SupervisorWorkbench::class)->name('production.workbench');
         Route::get('production/jobs', \App\Livewire\Admin\Production\JobIndexPage::class)->name('production.jobs.index');
         Route::get('production/jobs/{id}', \App\Livewire\Admin\Production\JobDetailPage::class)->name('production.jobs.show');
@@ -75,6 +76,27 @@ Route::prefix('admin')->name('admin.')->group(function () {
             return app(\App\Services\Order\DispatchDocumentService::class)->download($dispatchNumber);
         })->name('order-dispatches.pdf');
     });
+});
+
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/factory/products/create', \App\Livewire\Factory\AddManufacturingProductForm::class)->name('factory.products.create');
+    Route::get('/factory/products/{id}/edit', \App\Livewire\Factory\AddManufacturingProductForm::class)->name('factory.products.edit');
+    Route::get('/factory/products', \App\Livewire\Factory\ManufacturingProductList::class)->name('factory.products.index');
+    Route::get('/factory/batches/{id}/convert', \App\Livewire\Admin\Production\FinishedGoodsConversion::class)->name('factory.batches.convert');
+
+    // Task Master Management
+    Route::get('/factory/tasks', \App\Livewire\Factory\TaskList::class)->name('factory.tasks.index');
+    Route::get('/factory/tasks/create', function() {
+        return redirect()->route('factory.tasks.index', ['action' => 'create']);
+    })->name('factory.tasks.create');
+    Route::get('/factory/tasks/{id}/edit', function($id) {
+        return redirect()->route('factory.tasks.index', ['edit' => $id]);
+    })->name('factory.tasks.edit');
+
+    // Raw Material Master Management
+    Route::get('/factory/raw-materials', \App\Livewire\Factory\RawMaterialList::class)->name('factory.raw-materials.index');
+    Route::get('/factory/raw-materials/purchase', \App\Livewire\Factory\RawMaterialPurchaseEntry::class)->name('factory.raw-materials.purchase');
+    Route::get('/factory/raw-materials/batches', \App\Livewire\Factory\InventoryBatchList::class)->name('factory.raw-materials.batches');
 });
 
 // Optional Customer Route Group (available to guests and logged-in customers)

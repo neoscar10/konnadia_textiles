@@ -2,219 +2,198 @@
 
 namespace App\Services\Manufacturing;
 
-use App\Models\ProductionBatch;
-use App\Models\ProductionJob;
+use App\Models\InventoryBatch;
 use App\Models\JobMaterialConsumption;
-use App\Models\JobLaborAllocation;
-use App\Models\JobWastage;
-use App\Models\JobProductionOutput;
-use App\Traits\ApiResponseTrait;
+use App\Models\StitchingCostPool;
+use App\Models\ProductionBatch;
+use App\Models\RawMaterial;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Exception;
-use Illuminate\Http\JsonResponse;
 
+/**
+ * ProductionCostingService
+ *
+ * Handles period-level production costing that cannot be attributed
+ * to individual job executions — specifically, stitching cost pool
+ * accumulation (SRS Module 1, Section 6C), overhead/consumables costing,
+ * and batch-level 360 cost rollup consolidation.
+ */
 class ProductionCostingService
 {
-    use ApiResponseTrait;
-
     /**
-     * Calculate Raw Material Costs categorized by Fabric, Subsidiary, and Packaging materials.
-     * Cost = Actual Quantity Consumed x Batch Purchase Rate (unit_cost).
-     *
-     * @param mixed $batchId
-     * @return array
+     * Accumulate all stitching material consumption costs within a date range
+     * into a StitchingCostPool record.
      */
-    public function calculateMaterialCosts($batchId): array
+    public function accumulateStitchingCostPool($startDate, $endDate, string $periodName = ''): StitchingCostPool
     {
-        $consumptions = JobMaterialConsumption::whereHas('job', function ($q) use ($batchId) {
-            $q->where('production_batch_db_id', $batchId);
-        })
-        ->with(['inventoryBatch.rawMaterial.category'])
-        ->get();
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end   = Carbon::parse($endDate)->endOfDay();
 
-        $fabricCost = 0.0;
-        $subsidiaryCost = 0.0;
-        $packagingCost = 0.0;
-        $otherMaterialCost = 0.0;
-        $fabricConsumedQty = 0.0;
-
-        foreach ($consumptions as $item) {
-            $cost = (float) $item->total_cost;
-            if ($cost <= 0 && $item->inventoryBatch) {
-                $cost = (float) $item->quantity_consumed * (float) $item->inventoryBatch->unit_cost;
-            }
-
-            $categoryName = strtolower($item->inventoryBatch?->rawMaterial?->category?->name ?? '');
-
-            if (str_contains($categoryName, 'fabric') || str_contains($categoryName, 'textile')) {
-                $fabricCost += $cost;
-                $fabricConsumedQty += (float) $item->quantity_consumed;
-            } elseif (str_contains($categoryName, 'subsidiary') || str_contains($categoryName, 'trimming') || str_contains($categoryName, 'thread') || str_contains($categoryName, 'button')) {
-                $subsidiaryCost += $cost;
-            } elseif (str_contains($categoryName, 'pack') || str_contains($categoryName, 'box') || str_contains($categoryName, 'bag')) {
-                $packagingCost += $cost;
-            } else {
-                $otherMaterialCost += $cost;
-            }
+        if (empty($periodName)) {
+            $periodName = $start->format('F Y');
         }
 
-        $totalMaterialCost = $fabricCost + $subsidiaryCost + $packagingCost + $otherMaterialCost;
+        // Sum all job-level stitching consumption costs in the period
+        $jobConsumptionTotal = JobMaterialConsumption::whereBetween('created_at', [$start, $end])
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-STITCH'))
+            ->sum('total_cost');
 
-        return [
-            'fabric_cost' => round($fabricCost, 2),
-            'fabric_consumed_qty' => round($fabricConsumedQty, 2),
-            'subsidiary_cost' => round($subsidiaryCost, 2),
-            'packaging_cost' => round($packagingCost, 2),
-            'other_material_cost' => round($otherMaterialCost, 2),
-            'total_material_cost' => round($totalMaterialCost, 2),
-            'items' => $consumptions,
-        ];
+        // Additionally sum any purchase lot costs received into stock for CAT-STITCH
+        $purchaseLotTotal = InventoryBatch::whereBetween('created_at', [$start, $end])
+            ->whereHas('rawMaterial.category', fn($q) => $q->where('code', 'CAT-STITCH'))
+            ->selectRaw('SUM(quantity_received * purchase_rate) as total')
+            ->value('total') ?? 0;
+
+        $totalStitchingCost = round((float) $jobConsumptionTotal + (float) $purchaseLotTotal, 2);
+
+        $pool = StitchingCostPool::create([
+            'period_name'         => $periodName,
+            'start_date'          => $start->toDateString(),
+            'end_date'            => $end->toDateString(),
+            'total_stitching_cost' => $totalStitchingCost,
+            'status'              => 'open',
+        ]);
+
+        return $pool;
     }
 
     /**
-     * Calculate Labor Costs (Sum of all calculated_wage values from Piece-rate/Job Work labor allocations).
-     *
-     * @param mixed $batchId
-     * @return array
+     * Close a stitching cost pool and mark it as allocated.
      */
-    public function calculateLaborCosts($batchId): array
+    public function closeStitchingCostPool(StitchingCostPool $pool): StitchingCostPool
     {
-        $allocations = JobLaborAllocation::whereHas('job', function ($q) use ($batchId) {
-            $q->where('production_batch_db_id', $batchId);
-        })
-        ->with(['labor', 'task'])
-        ->get();
-
-        $totalLaborCost = (float) $allocations->sum('calculated_wage');
-
-        return [
-            'total_labor_cost' => round($totalLaborCost, 2),
-            'allocations' => $allocations,
-        ];
+        $pool->update(['status' => 'allocated']);
+        return $pool;
     }
 
     /**
-     * Calculate Production Loss & Wastage Costs.
-     * Unused fabric from cutting is treated as Fabric Wastage and its cost is distributed
-     * among the cut pieces using a Weighted Average Distribution.
-     *
-     * @param mixed $batchId
-     * @return array
+     * Get the total open stitching cost for all open pools.
      */
-    public function calculateWastageCosts($batchId): array
+    public function totalOpenStitchingCost(): float
     {
-        $materialData = $this->calculateMaterialCosts($batchId);
-        $avgFabricRate = $materialData['fabric_consumed_qty'] > 0
-            ? ($materialData['fabric_cost'] / $materialData['fabric_consumed_qty'])
-            : 0.0;
-
-        $wastages = JobWastage::whereHas('job', function ($q) use ($batchId) {
-            $q->where('production_batch_db_id', $batchId);
-        })
-        ->with(['manufacturingProduct', 'task'])
-        ->get();
-
-        $totalWastageCost = 0.0;
-        $wastageLog = [];
-
-        foreach ($wastages as $w) {
-            $qty = (float) $w->quantity_wasted;
-            // Cost calculation: If fabric scrap, use average fabric purchase rate
-            $cost = $qty * ($avgFabricRate > 0 ? $avgFabricRate : 50.0);
-            $totalWastageCost += $cost;
-
-            $wastageLog[] = [
-                'id' => $w->id,
-                'task_name' => $w->task?->name ?? 'General',
-                'product_name' => $w->manufacturingProduct?->name ?? 'Fabric Scraps',
-                'quantity_wasted' => $qty,
-                'unit_cost' => round($avgFabricRate > 0 ? $avgFabricRate : 50.0, 2),
-                'total_cost' => round($cost, 2),
-                'reason' => $w->reason,
-            ];
-        }
-
-        return [
-            'total_wastage_cost' => round($totalWastageCost, 2),
-            'avg_fabric_rate' => round($avgFabricRate, 2),
-            'wastage_log' => $wastageLog,
-        ];
+        return (float) StitchingCostPool::where('status', 'open')->sum('total_stitching_cost');
     }
 
     /**
-     * Get Complete Batch Cost Summary DTO / Array containing:
-     * - total_material_cost (fabric, subsidiary, packaging)
-     * - total_labor_cost
-     * - total_wastage_cost
-     * - total_manufacturing_cost
-     * - average_cost_per_unit
-     *
-     * @param mixed $batchId
-     * @return array
+     * Fetch a 360-degree cost rollup breakdown for a given production batch.
      */
-    public function getBatchCostSummary($batchId): array
+    public function getBatchCostSummary(int $batchId): array
     {
         $batch = ProductionBatch::findOrFail($batchId);
 
-        $material = $this->calculateMaterialCosts($batchId);
-        $labor = $this->calculateLaborCosts($batchId);
-        $wastage = $this->calculateWastageCosts($batchId);
+        // 1. Fabric cost
+        $fabricCost = (float) $batch->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
+            ->sum('total_cost');
 
-        $totalMaterialCost = $material['total_material_cost'];
-        $totalLaborCost = $labor['total_labor_cost'];
-        $totalWastageCost = $wastage['total_wastage_cost'];
+        // 2. Subsidiary cost
+        $subsidiaryCost = (float) $batch->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-SUB'))
+            ->sum('total_cost');
 
-        // Total Manufacturing Cost = Material Cost + Labor Cost + Wastage Cost
-        $totalManufacturingCost = round($totalMaterialCost + $totalLaborCost + $totalWastageCost, 2);
+        // 3. Packaging cost
+        $packagingCost = (float) $batch->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-PKG'))
+            ->sum('total_cost');
 
-        // Total Finished Quantity produced
-        $totalFinishedUnits = (int) JobProductionOutput::whereHas('job', function ($q) use ($batchId) {
-            $q->where('production_batch_db_id', $batchId);
-        })->sum('quantity_produced');
+        // 4. General Overheads cost (CAT-OHD)
+        $overheadDirectCost = (float) $batch->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-OHD'))
+            ->sum('total_cost');
+        $overheadAllocatedCost = (float) DB::table('overhead_cost_allocations')
+            ->where('production_batch_id', $batch->id)
+            ->sum('allocated_cost');
+        $overheadCost = $overheadDirectCost + $overheadAllocatedCost;
 
-        if ($totalFinishedUnits <= 0) {
-            // Fallback to latest stage processed quantity if output yields not explicitly logged
-            $lastJob = ProductionJob::where('production_batch_db_id', $batchId)->latest('id')->first();
-            if ($lastJob) {
-                $totalFinishedUnits = (int) JobLaborAllocation::where('job_id', $lastJob->job_code)->sum('quantity_processed');
+        // 5. Stitching cost (allocates pro-rata from pool if no direct consumptions)
+        $stitchingCost = (float) $batch->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-STITCH'))
+            ->sum('total_cost');
+        if ($stitchingCost === 0.0) {
+            $batchDate = $batch->batch_date ?: now();
+            $pool = StitchingCostPool::where('start_date', '<=', $batchDate)
+                ->where('end_date', '>=', $batchDate)
+                ->first();
+            if ($pool) {
+                $totalFinishedInPeriod = ProductionBatch::whereBetween('batch_date', [$pool->start_date, $pool->end_date])
+                    ->get()
+                    ->sum(fn($b) => (int) ($b->total_finished_quantity ?: $b->planned_quantity));
+                if ($totalFinishedInPeriod > 0) {
+                    $batchQty = (int) ($batch->total_finished_quantity ?: $batch->planned_quantity);
+                    $stitchingCost = round(($batchQty / $totalFinishedInPeriod) * (float) $pool->total_stitching_cost, 2);
+                }
             }
         }
-        if ($totalFinishedUnits <= 0) {
-            $totalFinishedUnits = (int) $batch->planned_quantity;
+
+        // Total Material Cost
+        $totalMaterialCost = $fabricCost + $subsidiaryCost + $stitchingCost + $packagingCost + $overheadCost;
+
+        // Labor Wages
+        $totalLaborCost = (float) $batch->laborAllocations()->sum('calculated_wage');
+
+        // Wastage Log and Costs
+        $wastageLog = [];
+        $totalCuttingWastageCost = (float) $batch->materialConsumptions()->sum('allocated_wastage_cost');
+        if ($totalCuttingWastageCost > 0) {
+            $wastageLog[] = [
+                'product_name' => 'Cutting Fabric Wastage',
+                'task_name' => 'Cutting',
+                'quantity_wasted' => (float) $batch->wastageRecords()->sum('quantity_wasted') ?: 1.0,
+                'total_cost' => $totalCuttingWastageCost,
+            ];
         }
 
-        $averageCostPerUnit = round($totalManufacturingCost / max(1, $totalFinishedUnits), 2);
+        $wastages = $batch->wastageRecords()->with(['manufacturingProduct', 'task'])->get();
+        foreach ($wastages as $w) {
+            $unitCost = 150.00; // fallback estimation per wasted piece
+            $wCost = (float) $w->quantity_wasted * $unitCost;
+            $wastageLog[] = [
+                'product_name' => $w->manufacturingProduct?->name ?? 'Damaged Item',
+                'task_name' => $w->task?->name ?? 'Production',
+                'quantity_wasted' => (float) $w->quantity_wasted,
+                'total_cost' => $wCost,
+            ];
+        }
+
+        $totalWastageCost = array_sum(array_column($wastageLog, 'total_cost'));
+
+        // Grand total
+        $totalManufacturingCost = $totalMaterialCost + $totalLaborCost;
+
+        $finishedUnits = (int) ($batch->total_finished_quantity ?: $batch->planned_quantity);
+        $averageCostPerUnit = $finishedUnits > 0 ? round($totalManufacturingCost / $finishedUnits, 2) : 0.00;
+
+        // Labor Details
+        $laborAllocations = $batch->laborAllocations()->with(['labor', 'task'])->get();
 
         return [
-            'batch_id' => $batch->id,
-            'batch_code' => $batch->batch_code,
-            'planned_quantity' => $batch->planned_quantity,
-            'finished_units' => $totalFinishedUnits,
-            'fabric_cost' => $material['fabric_cost'],
-            'subsidiary_cost' => $material['subsidiary_cost'],
-            'packaging_cost' => $material['packaging_cost'],
-            'other_material_cost' => $material['other_material_cost'],
             'total_material_cost' => $totalMaterialCost,
+            'fabric_cost' => $fabricCost,
+            'subsidiary_cost' => $subsidiaryCost,
+            'stitching_cost' => $stitchingCost,
+            'packaging_cost' => $packagingCost,
+            'overhead_cost' => $overheadCost,
             'total_labor_cost' => $totalLaborCost,
             'total_wastage_cost' => $totalWastageCost,
             'total_manufacturing_cost' => $totalManufacturingCost,
             'average_cost_per_unit' => $averageCostPerUnit,
-            'material_details' => $material,
-            'labor_details' => $labor,
-            'wastage_details' => $wastage,
+            'finished_units' => $finishedUnits,
+            'labor_details' => [
+                'allocations' => $laborAllocations,
+            ],
+            'wastage_details' => [
+                'wastage_log' => $wastageLog,
+            ],
         ];
     }
 
     /**
-     * Database Caching: Lock/update cost summary columns in production_batches table.
-     *
-     * @param mixed $batchId
-     * @return ProductionBatch
+     * Cache batch costing metrics directly in production_batches columns.
      */
-    public function cacheBatchCostSummary($batchId): ProductionBatch
+    public function cacheBatchCostSummary(int $batchId): void
     {
-        $summary = $this->getBatchCostSummary($batchId);
         $batch = ProductionBatch::findOrFail($batchId);
+        $summary = $this->getBatchCostSummary($batchId);
 
         $batch->update([
             'total_material_cost' => $summary['total_material_cost'],
@@ -223,7 +202,63 @@ class ProductionCostingService
             'total_manufacturing_cost' => $summary['total_manufacturing_cost'],
             'average_unit_cost' => $summary['average_cost_per_unit'],
         ]);
+    }
 
-        return $batch;
+    /**
+     * Allocate General Overheads/Consumables (CAT-OHD) to a batch.
+     */
+    public function allocateOverheadCost(ProductionBatch $batch, array $overheadItems): void
+    {
+        DB::transaction(function () use ($batch, $overheadItems) {
+            foreach ($overheadItems as $item) {
+                $rawMaterialId = $item['raw_material_id'];
+                $qtyToAllocate = (float) $item['allocated_quantity'];
+                $method = $item['allocation_method'] ?? 'direct_batch';
+
+                if ($qtyToAllocate <= 0) {
+                    continue;
+                }
+
+                // Find active batches for the overhead material using FIFO
+                $batches = InventoryBatch::active()
+                    ->byMaterial($rawMaterialId)
+                    ->orderBy('purchase_date', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                $remaining = $qtyToAllocate;
+                foreach ($batches as $invBatch) {
+                    if ($remaining <= 0) {
+                        break;
+                    }
+
+                    $deduct = min($remaining, (float) $invBatch->balance_quantity);
+                    $invBatch->deductQuantity($deduct);
+
+                    $allocatedCost = $deduct * (float) ($invBatch->purchase_rate ?: $invBatch->unit_cost);
+
+                    // Create overhead cost allocation log
+                    DB::table('overhead_cost_allocations')->insert([
+                        'production_batch_id' => $batch->id,
+                        'raw_material_id' => $rawMaterialId,
+                        'inventory_batch_id' => $invBatch->id,
+                        'allocated_quantity' => $deduct,
+                        'allocated_cost' => $allocatedCost,
+                        'allocation_method' => $method,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    $remaining -= $deduct;
+                }
+
+                if ($remaining > 0) {
+                    throw new \Exception("Insufficient inventory to allocate overhead for raw material ID: {$rawMaterialId}. Shortage: {$remaining}");
+                }
+            }
+
+            // Recalculate batch cost summary
+            $this->cacheBatchCostSummary($batch->id);
+        });
     }
 }

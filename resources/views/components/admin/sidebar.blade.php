@@ -162,7 +162,23 @@
                     <span class="material-symbols-outlined shrink-0" data-icon="category">category</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Product Categories</span>
                 </a>
-                <a href="{{ route('admin.production.products.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.products.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                <a href="{{ route('factory.tasks.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.tasks.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="account_tree">account_tree</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Task Master</span>
+                </a>
+                <a href="{{ route('factory.raw-materials.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.raw-materials.index') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="deployed_code">deployed_code</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Raw Materials</span>
+                </a>
+                <a href="{{ route('factory.raw-materials.purchase') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.raw-materials.purchase') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="shopping_cart">shopping_cart</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Purchase Entry</span>
+                </a>
+                <a href="{{ route('factory.raw-materials.batches') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.raw-materials.batches') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="reorder">reorder</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Inventory Batches</span>
+                </a>
+                <a href="{{ route('factory.products.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.products.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                     <span class="material-symbols-outlined shrink-0" data-icon="inventory_2">inventory_2</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Manufacturing Products</span>
                 </a>

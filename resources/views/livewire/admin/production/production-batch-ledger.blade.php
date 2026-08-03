@@ -30,6 +30,39 @@
         </div>
     </div>
 
+    <!-- Conversion Readiness Banner -->
+    @if($batch->isReadyForConversion())
+        <div class="bg-secondary-container/20 border border-secondary/40 rounded-2xl p-6 mb-6 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-full bg-secondary/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-secondary text-2xl">verified</span>
+                </div>
+                <div>
+                    <h4 class="font-extrabold text-secondary text-sm">Manufacturing Complete — Ready for Conversion</h4>
+                    <p class="text-xs text-on-surface-variant font-medium mt-0.5">
+                        All routing stages have completed successfully. Convert these completed WIP items to finished goods storefront stock.
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('factory.batches.convert', $batch->id) }}" wire:navigate class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary-container text-on-secondary px-6 py-3 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95">
+                <span class="material-symbols-outlined text-[18px]">autofps_select</span>
+                Convert to Finished Goods
+            </a>
+        </div>
+    @elseif($batch->is_converted)
+        <div class="bg-primary/5 border border-primary/20 rounded-2xl p-5 mb-6 shadow-xs flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-primary text-2xl">check_circle</span>
+            </div>
+            <div>
+                <h4 class="font-extrabold text-primary text-sm">Converted to Storefront Stock</h4>
+                <p class="text-xs text-on-surface-variant font-medium mt-0.5">
+                    This production batch has been successfully finalized and converted into finished goods.
+                </p>
+            </div>
+        </div>
+    @endif
+
     <!-- TOP FINANCIAL METRIC SUMMARY CARDS (STITCH DESIGN) -->
     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <!-- Card 1: Total Manufacturing Cost -->
@@ -148,7 +181,37 @@
                     </div>
                     <span class="font-black text-on-surface text-sm">₹{{ number_format($costSummary['packaging_cost'], 2) }}</span>
                 </div>
+
+                <div class="p-3 rounded-xl bg-surface border border-outline-variant/40 flex justify-between items-center text-xs">
+                    <div>
+                        <p class="font-bold text-primary">General Overheads / Consumables</p>
+                        <p class="text-[10px] text-outline">Machine oil, cleaners, factory consumables</p>
+                    </div>
+                    <span class="font-black text-on-surface text-sm">₹{{ number_format($costSummary['overhead_cost'], 2) }}</span>
+                </div>
             </div>
+
+            <!-- Itemized Overhead Breakdown -->
+            @php
+                $overheadAllocations = DB::table('overhead_cost_allocations')
+                    ->where('production_batch_id', $batch->id)
+                    ->join('raw_materials', 'overhead_cost_allocations.raw_material_id', '=', 'raw_materials.id')
+                    ->select('raw_materials.name', 'overhead_cost_allocations.allocated_quantity', 'overhead_cost_allocations.allocated_cost')
+                    ->get();
+            @endphp
+            @if($overheadAllocations->isNotEmpty())
+                <div class="mt-4 pt-4 border-t border-outline-variant/30">
+                    <h5 class="text-[11px] font-extrabold text-primary uppercase tracking-wider mb-2">Overhead Itemization</h5>
+                    <div class="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                        @foreach($overheadAllocations as $alloc)
+                            <div class="flex justify-between items-center text-[10px] text-on-surface-variant">
+                                <span>{{ $alloc->name }} ({{ number_format($alloc->allocated_quantity, 2) }})</span>
+                                <span class="font-bold">₹{{ number_format($alloc->allocated_cost, 2) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- 2. STAGE PIECE-RATE LABOR WAGES -->

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RawMaterialUnitType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,6 +13,14 @@ class RawMaterialCategory extends Model
     protected $fillable = [
         'name',
         'code',
+        'unit_type',
+        'description',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'unit_type' => RawMaterialUnitType::class,
+        'is_active' => 'boolean',
     ];
 
     /**
@@ -28,5 +37,37 @@ class RawMaterialCategory extends Model
     public function tasks()
     {
         return $this->belongsToMany(Task::class, 'task_raw_material_category');
+    }
+
+    /**
+     * Get valid units for this category's unit type.
+     */
+    public function getValidUnitsAttribute(): array
+    {
+        return $this->unit_type->validUnits();
+    }
+
+    /**
+     * Get the default unit for this category.
+     */
+    public function getDefaultUnitAttribute(): string
+    {
+        return $this->unit_type->defaultUnit();
+    }
+
+    /**
+     * Scope: only active categories.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Check if this category represents General Overheads/Consumables.
+     */
+    public function isOverhead(): bool
+    {
+        return $this->code === 'CAT-OHD';
     }
 }

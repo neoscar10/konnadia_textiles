@@ -47,14 +47,14 @@ class ProductionWorkflowService
                     'remarks' => $remarks,
                 ]);
 
-                // Identify the first task in product's routing sequence
-                $firstTask = $product->tasks()->first();
+                // Identify the first task in product's routing sequence (sequence_number = 1)
+                $firstTask = $product->getFirstTask();
                 if (!$firstTask) {
                     $firstTask = Task::where('status', true)->first();
                 }
 
                 if (!$firstTask) {
-                    throw new Exception("No production task routing found. Please configure tasks in Task Master first.");
+                    throw new Exception("No production task routing found for {$product->name}. Please configure tasks in Product Master or Task Master first.");
                 }
 
                 // Automatically create the first linked Job record
@@ -163,7 +163,11 @@ class ProductionWorkflowService
                     // Final Task Handling: Mark batch workflow as completed
                     $isFinalStep = true;
                     if ($job->batch) {
-                        $job->batch->update(['status' => 'Completed']);
+                        $job->batch->update([
+                            'status' => 'Completed',
+                            'completed_at' => now(),
+                        ]);
+                        event(new \App\Events\ProductionBatchCompleted($job->batch->id));
                     }
                 }
 
@@ -186,4 +190,28 @@ class ProductionWorkflowService
             return $this->errorResponse($e->getMessage(), ['error' => $e->getMessage()], 400);
         }
     }
+
+    /**
+     * SRS Wrapper: Initialize Production Batch and auto-spawn first job.
+     */
+    public function initializeProductionBatch(array $batchData, int $manufacturingProductId): JsonResponse
+    {
+        return $this->initiateBatch(
+            $manufacturingProductId,
+            $batchData['supervisor_id'] ?? auth()->id(),
+            $batchData['planned_quantity'] ?? 500,
+            $batchData['priority'] ?? 'Normal',
+            $batchData['remarks'] ?? '',
+            $batchData['batch_date'] ?? now()->format('Y-m-d')
+        );
+    }
+
+    /**
+     * SRS Wrapper: Complete a job and advance workflow progression.
+     */
+    public function completeJobAndProgress(ProductionJob $job, array $completionData = []): JsonResponse
+    {
+        return $this->completeJob($job->id);
+    }
 }
+

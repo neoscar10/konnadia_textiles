@@ -20,6 +20,11 @@ class Labor extends Model
         return $this->belongsToMany(Task::class);
     }
 
+    public function authorizedTasks()
+    {
+        return $this->belongsToMany(Task::class)->where('is_labor_required', true);
+    }
+
     public function allocations()
     {
         return $this->hasMany(JobLaborAllocation::class);

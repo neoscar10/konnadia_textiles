@@ -9,7 +9,7 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h2 class="font-headline-lg text-headline-lg text-primary font-extrabold tracking-tight">Supervisor Workbench</h2>
-                <p class="font-body-md text-body-md text-on-surface-variant mt-1">Manage and dispatch production batches across all manufacturing stages.</p>
+                <p class="font-body-md text-body-md text-on-surface-variant mt-1">Manage and dispatch production batches across all manufacturing stage routings.</p>
             </div>
             <a href="{{ route('admin.production.batches.create') }}" wire:navigate class="inline-flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-primary-container shadow-md transition-all active:scale-95">
                 <span class="material-symbols-outlined text-[18px]">add</span>
@@ -91,7 +91,7 @@
                             <thead>
                                 <tr class="bg-surface-container-low text-xs text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/60">
                                     <th class="px-5 py-4 font-bold">Batch Code</th>
-                                    <th class="px-5 py-4 font-bold">Product</th>
+                                    <th class="px-5 py-4 font-bold">Product & Active Stage</th>
                                     <th class="px-5 py-4 font-bold text-right">Planned Qty</th>
                                     <th class="px-5 py-4 font-bold">Status</th>
                                     <th class="px-5 py-4 font-bold">Priority</th>
@@ -102,7 +102,9 @@
                                 @forelse($batches as $batch)
                                     @php
                                         $isRowSelected = ($selectedBatchId == $batch->id);
-                                        $firstJob = $batch->jobs->first();
+                                        $activeJob = $batch->jobs->where('status', '!=', 'completed')->first() ?? $batch->jobs->last();
+                                        $totalRoutingSteps = $batch->manufacturingProduct?->tasks->count() ?? 1;
+                                        $currentStep = $activeJob ? $activeJob->sequence_number : 1;
                                     @endphp
                                     <tr wire:click="selectBatch({{ $batch->id }})" class="cursor-pointer transition-colors {{ $isRowSelected ? 'bg-primary/5 font-bold' : 'hover:bg-surface-container-low/50' }}">
                                         <td class="px-5 py-4">
@@ -111,13 +113,30 @@
                                         </td>
                                         <td class="px-5 py-4">
                                             <p class="font-bold text-on-surface text-sm">{{ $batch->manufacturingProduct?->name ?? 'Unassigned' }}</p>
-                                            <span class="text-xs text-outline font-mono">{{ $batch->manufacturingProduct?->code }}</span>
+                                            <div class="flex items-center gap-1.5 mt-1">
+                                                <span class="px-2 py-0.5 rounded bg-primary/10 text-primary font-mono text-[10px] font-bold">
+                                                    Step {{ $currentStep }} of {{ $totalRoutingSteps }}
+                                                </span>
+                                                @if($activeJob)
+                                                    <span class="text-xs font-semibold text-on-surface-variant">
+                                                        • {{ $activeJob->task?->name }}
+                                                    </span>
+                                                @endif
+                                            </div>
                                         </td>
                                         <td class="px-5 py-4 text-right font-extrabold text-on-surface">
                                             {{ number_format($batch->planned_quantity) }} <span class="text-xs font-normal text-outline">Pcs</span>
                                         </td>
                                         <td class="px-5 py-4">
-                                            @if($batch->status === 'Completed')
+                                            @if($batch->isReadyForConversion())
+                                                <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                                    <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> Ready for Conversion
+                                                </span>
+                                            @elseif($batch->is_converted)
+                                                <span class="bg-primary-container/20 text-primary px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                                    <span class="w-2 h-2 rounded-full bg-primary"></span> Converted
+                                                </span>
+                                            @elseif($batch->status === 'Completed')
                                                 <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
                                                     <span class="w-2 h-2 rounded-full bg-secondary"></span> Completed
                                                 </span>
@@ -137,9 +156,19 @@
                                             </span>
                                         </td>
                                         <td class="px-5 py-4 text-center">
-                                            @if($firstJob)
-                                                <a href="{{ route('admin.production.jobs.show', $firstJob->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary text-on-primary px-3.5 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-container transition-all active:scale-95 shadow-xs">
-                                                    <span>Execute Job</span>
+                                            @if($batch->isReadyForConversion())
+                                                <a href="{{ route('factory.batches.convert', $batch->id) }}" wire:navigate class="inline-flex items-center gap-1.5 bg-secondary text-on-secondary px-3.5 py-1.5 rounded-xl text-xs font-bold hover:bg-secondary-container transition-all active:scale-95 shadow-xs">
+                                                    <span class="material-symbols-outlined text-[16px]">autofps_select</span>
+                                                    <span>Convert</span>
+                                                </a>
+                                            @elseif($batch->is_converted)
+                                                <a href="{{ route('admin.production.batches.ledger', $batch->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-surface-container-high text-primary px-3.5 py-1.5 rounded-xl text-xs font-bold hover:bg-surface-container-highest transition-all active:scale-95 shadow-xs">
+                                                    <span>Ledger</span>
+                                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                                </a>
+                                            @elseif($activeJob)
+                                                <a href="{{ route('admin.production.jobs.show', $activeJob->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary text-on-primary px-3.5 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-container transition-all active:scale-95 shadow-xs">
+                                                    <span>{{ $activeJob->status === 'completed' ? 'View Job' : 'Execute Job' }}</span>
                                                     <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                                                 </a>
                                             @else
@@ -181,7 +210,31 @@
                     </div>
 
                     @if($selectedBatch)
+                        @php
+                            $productRoutingTasks = $selectedBatch->manufacturingProduct?->tasks ?? collect();
+                            $totalSteps = $productRoutingTasks->count();
+                        @endphp
                         <div class="p-5 space-y-4 text-sm">
+                            @if($selectedBatch->isReadyForConversion())
+                                <div class="p-4 bg-secondary-container/20 border border-secondary/30 rounded-xl text-center shadow-xs">
+                                    <span class="px-2 py-0.5 bg-secondary text-on-secondary text-[10px] font-black uppercase tracking-wider rounded">Batch Ready</span>
+                                    <h4 class="font-bold text-xs text-secondary mt-1">Ready for Finished Goods Conversion</h4>
+                                    <a href="{{ route('factory.batches.convert', $selectedBatch->id) }}" wire:navigate class="mt-3 w-full inline-flex items-center justify-center gap-1.5 bg-secondary hover:bg-secondary-container text-on-secondary font-bold py-2 rounded-lg text-xs transition-all shadow-xs">
+                                        <span class="material-symbols-outlined text-sm">autofps_select</span>
+                                        Convert to Finished Goods
+                                    </a>
+                                </div>
+                            @elseif($selectedBatch->is_converted)
+                                <div class="p-4 bg-primary-container/10 border border-primary/20 rounded-xl text-center shadow-xs">
+                                    <span class="px-2 py-0.5 bg-primary text-on-primary text-[10px] font-black uppercase tracking-wider rounded">Stocked In</span>
+                                    <h4 class="font-bold text-xs text-primary mt-1">Converted to Finished Goods</h4>
+                                    <a href="{{ route('admin.production.batches.ledger', $selectedBatch->id) }}" wire:navigate class="mt-3 w-full inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary font-bold py-2 rounded-lg text-xs transition-all shadow-xs">
+                                        <span class="material-symbols-outlined text-sm">description</span>
+                                        View 360 Cost Ledger
+                                    </a>
+                                </div>
+                            @endif
+
                             <div class="flex justify-between items-center">
                                 <span class="text-on-surface-variant font-semibold">Product</span>
                                 <span class="font-bold text-on-surface text-right">{{ $selectedBatch->manufacturingProduct?->name }}</span>
@@ -195,21 +248,43 @@
                                 <span class="font-bold text-on-surface">{{ $selectedBatch->supervisor?->name ?? 'System' }}</span>
                             </div>
 
+                            <!-- Sequential Workflow Routing Steps -->
                             <div class="border-t border-outline-variant/40 pt-3">
-                                <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2">Linked Stage Jobs</span>
-                                @forelse($selectedBatch->jobs as $j)
-                                    <div class="p-3 bg-surface rounded-xl border border-outline-variant/40 mb-2 flex justify-between items-center">
-                                        <div>
-                                            <p class="font-bold text-xs text-primary">{{ $j->job_code }}</p>
-                                            <p class="text-[11px] text-on-surface-variant font-semibold">Stage: {{ $j->task?->name }}</p>
+                                <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2">Sequential Routing Progress</span>
+                                <div class="space-y-2">
+                                    @forelse($selectedBatch->jobs as $j)
+                                        @php
+                                            $isDone = ($j->status === 'completed');
+                                            $isCurrent = ($j->status !== 'completed');
+                                            $seqNo = $j->sequence_number;
+                                        @endphp
+                                        <div class="p-3 rounded-xl border flex justify-between items-center {{ $isDone ? 'bg-secondary-container/20 border-secondary/30' : ($isCurrent ? 'bg-primary/5 border-primary/40' : 'bg-surface border-outline-variant/40') }}">
+                                            <div class="flex items-center gap-2.5">
+                                                <span class="w-6 h-6 rounded-full text-[11px] font-mono font-bold flex items-center justify-center shrink-0 {{ $isDone ? 'bg-secondary text-on-secondary' : 'bg-primary text-on-primary' }}">
+                                                    {{ $seqNo }}
+                                                </span>
+                                                <div>
+                                                    <p class="font-bold text-xs text-primary">{{ $j->job_code }}</p>
+                                                    <p class="text-[11px] text-on-surface-variant font-semibold">
+                                                        Stage: {{ $j->task?->name }} ({{ number_format($j->target_quantity) }} Pcs)
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                @if($isDone)
+                                                    <span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold">Completed</span>
+                                                @else
+                                                    <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold animate-pulse">Active</span>
+                                                @endif
+                                                <a href="{{ route('admin.production.jobs.show', $j->id) }}" wire:navigate class="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all">
+                                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                                </a>
+                                            </div>
                                         </div>
-                                        <a href="{{ route('admin.production.jobs.show', $j->id) }}" wire:navigate class="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all">
-                                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                                        </a>
-                                    </div>
-                                @empty
-                                    <p class="text-xs text-outline italic">No jobs linked to this batch.</p>
-                                @endforelse
+                                    @empty
+                                        <p class="text-xs text-outline italic">No jobs linked to this batch.</p>
+                                    @endforelse
+                                </div>
                             </div>
                         </div>
                     @else

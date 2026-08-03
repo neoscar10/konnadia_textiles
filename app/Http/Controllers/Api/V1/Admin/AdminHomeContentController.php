@@ -161,6 +161,22 @@ class AdminHomeContentController extends Controller
     public function store(StoreHomeContentSectionRequest $request, AdminHomeContentService $adminService, HomeContentMediaService $mediaService): JsonResponse
     {
         $validated = $request->validated();
+        $items = $validated['items'] ?? [];
+
+        foreach ($items as $index => &$item) {
+            if ($request->hasFile("items.{$index}.image")) {
+                $file = $request->file("items.{$index}.image");
+                $subDir = match ($validated['type']) {
+                    'banner', 'banner_slider' => 'banners',
+                    'image_text_card' => 'cards',
+                    'image_slider' => 'slides',
+                    default => 'banners',
+                };
+                $item['image_path'] = $mediaService->storeImage($file, $subDir);
+            }
+            unset($item['image']);
+        }
+        unset($item);
 
         $sectionData = [
             'type' => $validated['type'],
@@ -173,7 +189,7 @@ class AdminHomeContentController extends Controller
             'starts_at' => $validated['starts_at'] ?? null,
             'ends_at' => $validated['ends_at'] ?? null,
             'settings' => $validated['settings'] ?? [],
-            'items' => $validated['items'] ?? [],
+            'items' => $items,
         ];
 
         $section = $adminService->createSection($sectionData);
@@ -188,10 +204,26 @@ class AdminHomeContentController extends Controller
     /**
      * Update section.
      */
-    public function update(StoreHomeContentSectionRequest $request, int $id, AdminHomeContentService $adminService): JsonResponse
+    public function update(StoreHomeContentSectionRequest $request, int $id, AdminHomeContentService $adminService, HomeContentMediaService $mediaService): JsonResponse
     {
         $section = HomeContentSection::findOrFail($id);
         $validated = $request->validated();
+        $items = $validated['items'] ?? [];
+
+        foreach ($items as $index => &$item) {
+            if ($request->hasFile("items.{$index}.image")) {
+                $file = $request->file("items.{$index}.image");
+                $subDir = match ($validated['type']) {
+                    'banner', 'banner_slider' => 'banners',
+                    'image_text_card' => 'cards',
+                    'image_slider' => 'slides',
+                    default => 'banners',
+                };
+                $item['image_path'] = $mediaService->storeImage($file, $subDir);
+            }
+            unset($item['image']);
+        }
+        unset($item);
 
         $sectionData = [
             'type' => $validated['type'],
@@ -204,7 +236,7 @@ class AdminHomeContentController extends Controller
             'starts_at' => $validated['starts_at'] ?? null,
             'ends_at' => $validated['ends_at'] ?? null,
             'settings' => $validated['settings'] ?? [],
-            'items' => $validated['items'] ?? [],
+            'items' => $items,
         ];
 
         $updated = $adminService->updateSection($section, $sectionData);
@@ -214,6 +246,30 @@ class AdminHomeContentController extends Controller
             'message' => 'Home content section updated successfully.',
             'data' => HomeContentSection::with('items')->find($updated->id),
         ]);
+    }
+
+    /**
+     * Upload standalone media file for home content items.
+     */
+    public function uploadMedia(Request $request, HomeContentMediaService $mediaService): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|image|mimes:jpg,jpeg,png,webp|max:15360',
+            'folder' => 'nullable|string|in:banners,cards,slides',
+        ]);
+
+        $subDir = $request->input('folder', 'banners');
+        $path = $mediaService->storeImage($request->file('file'), $subDir);
+        $url = $mediaService->getUrl($path);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Media file uploaded successfully.',
+            'data' => [
+                'image_path' => $path,
+                'image_url' => $url,
+            ]
+        ], 201);
     }
 
     /**
