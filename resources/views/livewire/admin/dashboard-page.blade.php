@@ -35,6 +35,7 @@
     @if(!empty($dashboard['kpis']))
         <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter mb-xl">
             @foreach($dashboard['kpis'] as $kpi)
+                @if (strpos(strtolower($kpi['label']), 'credit') === false)
                 <x-admin.card class="hover:shadow-md transition-shadow cursor-pointer" onclick="window.location.href='{{ $kpi['route'] }}'">
                     <div class="p-lg">
                         <div class="flex items-start justify-between mb-lg">
@@ -61,6 +62,7 @@
                         @endif
                     </div>
                 </x-admin.card>
+                            @endif
             @endforeach
         </section>
     @endif
@@ -292,10 +294,12 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-md">
                 @foreach($dashboard['quick_actions'] as $action)
+                @if (strpos(strtolower($action['label']), 'credit') === false)
                     <a href="{{ $action['route'] }}" class="flex flex-col items-center gap-sm p-md rounded-lg bg-surface-container-low hover:bg-surface-container-highest transition-colors text-center">
                         <span class="material-symbols-outlined text-secondary text-[28px]">{{ $action['icon'] }}</span>
                         <span class="font-label-md text-on-surface-variant text-xs">{{ $action['label'] }}</span>
                     </a>
+                @endif
                 @endforeach
             </div>
         </x-admin.card>
