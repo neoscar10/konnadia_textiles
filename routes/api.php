@@ -165,6 +165,7 @@ Route::prefix('v1')->group(function () {
                 Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'update']);
                 Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'update']);
                 Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'toggleStatus']);
+                Route::post('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'toggleStatus']);
                 Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRetailShopController::class, 'destroy']);
             });
 
