@@ -13,15 +13,21 @@ class ProductService
     /**
      * List products with filters.
      */
-    public function list(array $filters = [])
+    public function list(array $filters = [], int $perPage = 10)
     {
-        $query = Product::with(['categories', 'media', 'primaryMedia', 'combinations', 'units']);
+        $perPage = (int) ($filters['per_page'] ?? $perPage);
+        if ($perPage <= 0) {
+            $perPage = 10;
+        }
+
+        $query = Product::with(['categories', 'media', 'primaryMedia', 'combinations', 'units', 'tags']);
 
         if (!empty($filters['search'])) {
             $search = trim($filters['search']);
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%");
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -32,30 +38,83 @@ class ProductService
             });
         }
 
-        if (isset($filters['status']) && $filters['status'] !== '') {
-            $isActive = $filters['status'] === 'active';
-            $query->where('is_active', $isActive);
+        if (!empty($filters['tag_id'])) {
+            $tagId = (int) $filters['tag_id'];
+            $query->whereHas('tags', function ($q) use ($tagId) {
+                $q->where('tags.id', $tagId);
+            });
         }
 
-        if (!empty($filters['stock_status'])) {
-            if ($filters['stock_status'] === 'instock') {
+        if (isset($filters['status']) && $filters['status'] !== '' && $filters['status'] !== 'all') {
+            $statusVal = strtolower((string)$filters['status']);
+            if (in_array($statusVal, ['active', '1', 'true'], true)) {
+                $query->where('is_active', true);
+            } elseif (in_array($statusVal, ['inactive', '0', 'false'], true)) {
+                $query->where('is_active', false);
+            }
+        }
+
+        if (!empty($filters['product_type']) && $filters['product_type'] !== 'all') {
+            $query->where('product_type', $filters['product_type']);
+        }
+
+        if (!empty($filters['stock_status']) && $filters['stock_status'] !== 'all') {
+            $stockStatus = strtolower(str_replace('_', '', $filters['stock_status'])); // instock, lowstock, outofstock
+            if ($stockStatus === 'instock') {
                 $query->where(function ($q) {
                     $q->where('stock_quantity', '>', 0)
                       ->orWhereHas('combinations', function ($sq) {
                           $sq->where('stock_quantity', '>', 0);
                       });
                 });
-            } elseif ($filters['stock_status'] === 'outofstock') {
+            } elseif ($stockStatus === 'lowstock') {
                 $query->where(function ($q) {
-                    $q->where('stock_quantity', 0)
-                      ->whereDoesntHave('combinations', function ($sq) {
-                          $sq->where('stock_quantity', '>', 0);
-                      });
+                    $q->where(function ($sq1) {
+                        $sq1->where('stock_quantity', '>', 0)->where('stock_quantity', '<=', 10);
+                    })
+                    ->orWhereHas('combinations', function ($sq2) {
+                        $sq2->where('stock_quantity', '>', 0)->where('stock_quantity', '<=', 10);
+                    });
+                });
+            } elseif ($stockStatus === 'outofstock') {
+                $query->where(function ($q) {
+                    $q->where(function ($sq1) {
+                        $sq1->whereNull('stock_quantity')->orWhere('stock_quantity', '<=', 0);
+                    })
+                    ->whereDoesntHave('combinations', function ($sq2) {
+                        $sq2->where('stock_quantity', '>', 0);
+                    });
                 });
             }
         }
 
-        return $query->orderBy('id', 'desc')->paginate(10);
+        // Sorting
+        $sort = $filters['sort'] ?? 'newest';
+        switch ($sort) {
+            case 'price_low':
+            case 'price_asc':
+                $query->orderBy('base_price', 'asc');
+                break;
+            case 'price_high':
+            case 'price_desc':
+                $query->orderBy('base_price', 'desc');
+                break;
+            case 'name_asc':
+                $query->orderBy('title', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('title', 'desc');
+                break;
+            case 'oldest':
+                $query->orderBy('id', 'asc');
+                break;
+            case 'newest':
+            default:
+                $query->orderBy('id', 'desc');
+                break;
+        }
+
+        return $query->paginate($perPage);
     }
 
     /**

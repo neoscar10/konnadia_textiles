@@ -17,7 +17,16 @@ class StoreAdminUserRequest extends FormRequest
             'name' => 'required|string|max:150',
             'email' => 'required|email|max:150|unique:users,email',
             'mobile_number' => 'nullable|string|max:20',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:6',
+                function ($attribute, $value, $fail) {
+                    if (request()->has('password_confirmation') && request()->input('password_confirmation') !== $value) {
+                        $fail('The password field confirmation does not match.');
+                    }
+                },
+            ],
             'is_active' => 'boolean',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string',

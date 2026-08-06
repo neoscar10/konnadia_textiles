@@ -41,7 +41,17 @@ class StoreCustomerRequest extends FormRequest
             'pincode' => ['nullable', 'string', 'max:20'],
             'is_active' => ['boolean'],
             'password_mode' => ['nullable', 'string', Rule::in(['auto', 'manual'])],
-            'password' => ['required_if:password_mode,manual', 'nullable', 'string', 'min:8', 'confirmed'],
+            'password' => [
+                'required_if:password_mode,manual',
+                'nullable',
+                'string',
+                'min:8',
+                function ($attribute, $value, $fail) {
+                    if (!empty($value) && request()->has('password_confirmation') && request()->input('password_confirmation') !== $value) {
+                        $fail('The password field confirmation does not match.');
+                    }
+                },
+            ],
         ];
     }
 }

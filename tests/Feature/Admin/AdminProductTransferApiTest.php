@@ -135,5 +135,19 @@ class AdminProductTransferApiTest extends TestCase
             'id' => $this->product->id,
             'stock_quantity' => 90,
         ]);
+
+        // Verify index listing returns non-null reference_number, retail_shop, and creator
+        $listResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/product-transfers');
+
+        $listResp->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.0.retail_shop.id', $this->shop->id)
+            ->assertJsonPath('data.0.retail_shop.name', 'Surat Central Shop')
+            ->assertJsonPath('data.0.creator.id', $this->superAdmin->id)
+            ->assertJsonPath('data.0.creator.email', 'super_trans@konnadia.com');
+
+        $refNumber = $listResp->json('data.0.reference_number');
+        $this->assertNotNull($refNumber, 'reference_number should not be null');
     }
 }

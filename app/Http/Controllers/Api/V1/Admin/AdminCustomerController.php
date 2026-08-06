@@ -118,7 +118,16 @@ class AdminCustomerController extends Controller
     public function resetPassword(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                function ($attribute, $value, $fail) {
+                    if (request()->has('password_confirmation') && request()->input('password_confirmation') !== $value) {
+                        $fail('The password field confirmation does not match.');
+                    }
+                },
+            ],
         ]);
 
         $customer = Customer::findOrFail($id);

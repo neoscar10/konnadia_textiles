@@ -46,11 +46,35 @@ class ProductTransfer extends Model
     }
 
     /**
+     * Alias for shop relationship.
+     */
+    public function retailShop()
+    {
+        return $this->shop();
+    }
+
+    /**
      * Created by user relationship.
      */
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Alias for createdBy relationship.
+     */
+    public function creator()
+    {
+        return $this->createdBy();
+    }
+
+    /**
+     * Virtual attribute for reference_number.
+     */
+    public function getReferenceNumberAttribute(): ?string
+    {
+        return $this->attributes['transfer_number'] ?? null;
     }
 
     /**

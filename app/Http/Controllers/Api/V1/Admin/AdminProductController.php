@@ -30,13 +30,16 @@ class AdminProductController extends Controller
         $filters = [
             'search' => $request->query('search'),
             'category_id' => $request->query('category_id'),
+            'tag_id' => $request->query('tag_id'),
             'status' => $request->query('status'),
             'product_type' => $request->query('product_type'),
             'stock_status' => $request->query('stock_status'),
+            'sort' => $request->query('sort'),
+            'per_page' => $request->query('per_page'),
         ];
 
         $perPage = (int) $request->query('per_page', 10);
-        $paginator = $productService->list($filters);
+        $paginator = $productService->list($filters, $perPage);
 
         return response()->json([
             'success' => true,

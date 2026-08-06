@@ -20,7 +20,16 @@ class UpdateAdminRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:150'],
             'email' => ['sometimes', 'required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($adminId)],
             'mobile_number' => ['nullable', 'string', 'max:20'],
-            'password' => ['nullable', 'string', 'min:6', 'confirmed'],
+            'password' => [
+                'nullable',
+                'string',
+                'min:6',
+                function ($attribute, $value, $fail) {
+                    if (!empty($value) && request()->has('password_confirmation') && request()->input('password_confirmation') !== $value) {
+                        $fail('The password field confirmation does not match.');
+                    }
+                },
+            ],
             'is_active' => ['boolean'],
             'permissions' => ['array'],
             'permissions.*' => ['string'],

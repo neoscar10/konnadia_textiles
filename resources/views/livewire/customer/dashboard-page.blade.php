@@ -543,21 +543,21 @@
 
     <!-- Variant Selection Modal Overlay -->
     @if($showQuickAddModal && $quickAddProduct)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
-            <div class="bg-white border border-outline-variant/30 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-2 sm:p-4 z-[60] overflow-y-auto">
+            <div class="bg-white border border-outline-variant/30 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)]">
                 <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="px-5 py-3.5 sm:px-6 sm:py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
                     <div>
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">{{ $quickAddProduct->brand }}</span>
                         <h3 class="text-base font-extrabold text-[#001229]">{{ $quickAddProduct->title }}</h3>
                     </div>
-                    <button type="button" wire:click="$set('showQuickAddModal', false)" class="text-slate-400 hover:text-slate-600">
+                    <button type="button" wire:click="$set('showQuickAddModal', false)" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
                 <!-- Content -->
-                <div class="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+                <div class="p-4 sm:p-6 space-y-5 sm:space-y-6 overflow-y-auto flex-1 min-h-0">
                     <!-- Price and stock status -->
                     <div class="bg-slate-50 rounded-xl p-4 border border-outline-variant/10 flex justify-between items-center">
                         <div>
@@ -721,12 +721,12 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50">
-                    <button type="button" wire:click="$set('showQuickAddModal', false)" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-700 border border-outline-variant/30 hover:bg-slate-50 transition-colors bg-white shadow-xs">Cancel</button>
+                <div class="px-5 py-3.5 sm:px-6 sm:py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50 shrink-0">
+                    <button type="button" wire:click="$set('showQuickAddModal', false)" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-700 border border-outline-variant/30 hover:bg-slate-100 transition-colors bg-white shadow-xs">Cancel</button>
                     <button type="button" 
                             wire:click="addVariantToCart"
                             @if(!$quickAddIsPurchasable) disabled @endif
-                            class="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white transition-colors shadow-sm {{ $quickAddIsPurchasable ? 'bg-[#001229] hover:bg-slate-800' : 'bg-slate-300 cursor-not-allowed' }}">
+                            class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white transition-colors shadow-sm {{ $quickAddIsPurchasable ? 'bg-[#001229] hover:bg-slate-800' : 'bg-slate-300 cursor-not-allowed' }}">
                         <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Cart
                     </button>
                 </div>

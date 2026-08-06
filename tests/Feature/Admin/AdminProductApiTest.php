@@ -259,4 +259,78 @@ class AdminProductApiTest extends TestCase
 
         $this->assertSoftDeleted('products', ['id' => $product->id]);
     }
+
+    public function test_admin_products_index_filters_work_correctly(): void
+    {
+        // Product 1: Retail, in_stock
+        $p1 = Product::create([
+            'title' => 'Retail Active Product',
+            'sku' => 'KT-RET-01',
+            'base_price' => 200.0,
+            'description' => 'Retail item',
+            'is_active' => true,
+            'product_type' => 'retail',
+            'stock_quantity' => 50,
+        ]);
+        $p1->tags()->attach($this->tag->id);
+
+        // Product 2: Manufactured, out_of_stock
+        $p2 = Product::create([
+            'title' => 'Manufactured OutOfStock Product',
+            'sku' => 'KT-MFG-01',
+            'base_price' => 1200.0,
+            'description' => 'Manufactured item',
+            'is_active' => true,
+            'product_type' => 'manufactured',
+            'stock_quantity' => 0,
+        ]);
+
+        // Product 3: Inactive product
+        $p3 = Product::create([
+            'title' => 'Inactive Product',
+            'sku' => 'KT-INACT-01',
+            'base_price' => 300.0,
+            'description' => 'Disabled item',
+            'is_active' => false,
+            'product_type' => 'retail',
+            'stock_quantity' => 10,
+        ]);
+
+        // Filter by product_type=manufactured
+        $responseMfg = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/products?product_type=manufactured');
+        $responseMfg->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('pagination.total', 1)
+            ->assertJsonPath('data.0.sku', 'KT-MFG-01');
+
+        // Filter by stock_status=in_stock
+        $responseInStock = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/products?stock_status=in_stock');
+        $responseInStock->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('pagination.total', 2);
+
+        // Filter by status=inactive
+        $responseInactive = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/products?status=inactive');
+        $responseInactive->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('pagination.total', 1)
+            ->assertJsonPath('data.0.sku', 'KT-INACT-01');
+
+        // Filter by tag_id
+        $responseTag = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson("/api/v1/admin/products?tag_id={$this->tag->id}");
+        $responseTag->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('pagination.total', 1)
+            ->assertJsonPath('data.0.sku', 'KT-RET-01');
+
+        // Verify per_page works
+        $responsePerPage = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/products?per_page=1');
+        $responsePerPage->assertStatus(200)
+            ->assertJsonPath('pagination.per_page', 1);
+    }
 }

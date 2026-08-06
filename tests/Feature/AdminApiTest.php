@@ -94,13 +94,12 @@ class AdminApiTest extends TestCase
 
         $permResponse->assertStatus(200);
 
-        // 2. Create new Admin
+        // 2. Create new Admin (without password_confirmation field, as sent by mobile apps)
         $createResponse = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/admin/admins', [
                 'name' => 'Manager Admin',
                 'email' => 'manager@kanodia.com',
                 'password' => 'password123',
-                'password_confirmation' => 'password123',
                 'is_active' => true,
                 'permissions' => ['access products'],
             ]);

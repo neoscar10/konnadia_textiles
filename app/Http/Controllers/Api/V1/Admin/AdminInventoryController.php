@@ -77,15 +77,54 @@ class AdminInventoryController extends Controller
             });
         }
 
-        if ($request->filled('stock_status')) {
-            $status = $request->query('stock_status');
+        if ($request->filled('tag_id')) {
+            $tagId = (int) $request->query('tag_id');
+            $query->whereHas('tags', function ($q) use ($tagId) {
+                $q->where('tags.id', $tagId);
+            });
+        }
+
+        if ($request->filled('status') && $request->query('status') !== 'all') {
+            $statusVal = strtolower((string)$request->query('status'));
+            if (in_array($statusVal, ['active', '1', 'true'], true)) {
+                $query->where('is_active', true);
+            } elseif (in_array($statusVal, ['inactive', '0', 'false'], true)) {
+                $query->where('is_active', false);
+            }
+        }
+
+        if ($request->filled('product_type') && $request->query('product_type') !== 'all') {
+            $query->where('product_type', $request->query('product_type'));
+        }
+
+        if ($request->filled('stock_status') && $request->query('stock_status') !== 'all') {
+            $rawStatus = $request->query('stock_status');
+            $status = strtolower(str_replace('_', '', $rawStatus)); // instock, lowstock, outofstock
+
             if ($status === 'instock') {
-                $query->where('stock_quantity', '>', 10);
+                $query->where(function ($q) {
+                    $q->where('stock_quantity', '>', 10)
+                      ->orWhereHas('combinations', function ($sq) {
+                          $sq->where('stock_quantity', '>', 10);
+                      });
+                });
             } elseif ($status === 'lowstock') {
-                $query->where('stock_quantity', '>', 0)->where('stock_quantity', '<=', 10);
+                $query->where(function ($q) {
+                    $q->where(function ($sq1) {
+                        $sq1->where('stock_quantity', '>', 0)->where('stock_quantity', '<=', 10);
+                    })
+                    ->orWhereHas('combinations', function ($sq2) {
+                        $sq2->where('stock_quantity', '>', 0)->where('stock_quantity', '<=', 10);
+                    });
+                });
             } elseif ($status === 'outofstock') {
                 $query->where(function ($q) {
-                    $q->whereNull('stock_quantity')->orWhere('stock_quantity', 0);
+                    $q->where(function ($sq1) {
+                        $sq1->whereNull('stock_quantity')->orWhere('stock_quantity', '<=', 0);
+                    })
+                    ->whereDoesntHave('combinations', function ($sq2) {
+                        $sq2->where('stock_quantity', '>', 0);
+                    });
                 });
             }
         }

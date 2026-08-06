@@ -179,7 +179,7 @@
 
     <!-- Clear Cart Confirmation Modal -->
     @if($showClearCartConfirmModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[60]">
             <div class="bg-white border border-outline-variant/30 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
                 <!-- Header -->
                 <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
