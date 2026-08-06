@@ -15,8 +15,8 @@ class UpdateCustomerRequest extends FormRequest
 
     public function rules(): array
     {
-        $customerParam = $this->route('customer');
-        $customerId = is_object($customerParam) ? $customerParam->id : $customerParam;
+        $customerId = $this->route('id');
+        // Retrieve the existing customer to get related user ID for validation
         $customer = Customer::find($customerId);
         $userId = $customer?->user_id;
 
