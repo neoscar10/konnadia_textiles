@@ -18,6 +18,7 @@ use App\Services\Manufacturing\ProductionWorkflowService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use App\Services\InventoryBatchLogger;
 
 #[Layout('components.admin.layout')]
 class JobDetailPage extends Component
