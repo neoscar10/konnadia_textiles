@@ -50,7 +50,7 @@ class AdminProductTransferController extends Controller
     public function options(): JsonResponse
     {
         $shops = RetailShop::active()->orderBy('name')->get(['id', 'shop_code', 'name', 'city']);
-        $categories = Category::ordered()->get(['id', 'name', 'title', 'is_leaf']);
+        $categories = Category::ordered()->get(['id', 'name', 'is_leaf']);
 
         return response()->json([
             'success' => true,
