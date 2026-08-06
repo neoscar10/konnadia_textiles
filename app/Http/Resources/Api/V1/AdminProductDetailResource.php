@@ -55,7 +55,7 @@ class AdminProductDetailResource extends JsonResource
                 return [
                     'id' => $m->id,
                     'file_path' => $m->file_path,
-                    'file_url' => Storage::url($m->file_path),
+                    'file_url' => url(Storage::url($m->file_path)),
                     'file_type' => $m->file_type,
                     'mime_type' => $m->mime_type,
                     'size' => $m->size,
@@ -95,7 +95,7 @@ class AdminProductDetailResource extends JsonResource
                             'media' => $val->media->map(fn($m) => [
                                 'id' => $m->id,
                                 'file_path' => $m->file_path,
-                                'file_url' => Storage::url($m->file_path),
+                                'file_url' => url(Storage::url($m->file_path)),
                             ]),
                         ];
                     }),

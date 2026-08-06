@@ -19,7 +19,7 @@
 
     <!-- Filters & Search Bar -->
     <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/60 mb-6 flex flex-wrap items-center gap-4 shadow-xs">
-        <div class="flex-1 min-w-[240px]">
+        <div class="w-full max-w-md">
             <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-on-surface-variant">search</span>
                 <input wire:model.live.debounce.300ms="search" class="w-full px-4 py-2.5 bg-surface rounded-xl border border-outline-variant/60 focus:ring-2 focus:ring-primary/20 focus:border-primary font-body-sm text-body-sm" placeholder="Search Job Code, Batch ID, Product Name..." type="text"/>
@@ -65,11 +65,11 @@
                         </td>
                         <td class="px-6 py-4 text-center">
                             <div class="w-48 mx-auto">
-                                <div class="flex justify-between items-center text-xs font-bold mb-1">
-                                    <span class="text-primary">{{ $job->completed_quantity }} / {{ $job->target_quantity }} Units</span>
-                                    <span class="text-secondary">{{ $job->progress_percentage }}%</span>
+                                <div class="flex justify-between items-center text-xs font-extrabold mb-1">
+                                    <span class="text-on-surface-variant uppercase tracking-wider text-[10px]">Overall Progress</span>
+                                    <span class="text-secondary font-black">{{ $job->progress_percentage }}%</span>
                                 </div>
-                                <div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+                                <div class="w-full bg-surface-container-high h-2.5 rounded-full overflow-hidden border border-outline-variant/30">
                                     <div class="bg-primary h-full transition-all duration-500 rounded-full" style="width: {{ $job->progress_percentage }}%"></div>
                                 </div>
                             </div>

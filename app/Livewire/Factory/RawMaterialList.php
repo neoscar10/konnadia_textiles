@@ -17,6 +17,10 @@ class RawMaterialList extends Component
     public string $search = '';
     public string $categoryFilter = '';
 
+    // Delete Modal State
+    public ?int $deleteId = null;
+    public string $deletingMaterialName = '';
+
     protected $queryString = [
         'search' => ['except' => ''],
         'categoryFilter' => ['except' => ''],
@@ -41,7 +45,7 @@ class RawMaterialList extends Component
         $this->dispatch('toast', message: "Raw Material [{$material->code}] status set to {$statusText}.", type: 'success');
     }
 
-    public function delete($id)
+    public function confirmDelete(int $id)
     {
         $material = RawMaterial::findOrFail($id);
 
@@ -51,9 +55,32 @@ class RawMaterialList extends Component
             return;
         }
 
-        $name = $material->name;
-        $material->delete();
-        $this->dispatch('toast', message: "Raw Material [{$name}] deleted successfully.", type: 'success');
+        $this->deleteId = $id;
+        $this->deletingMaterialName = $material->name;
+        $this->dispatch('open-modal', 'delete-raw-material-modal');
+    }
+
+    public function delete($id = null)
+    {
+        $targetId = $id ?: $this->deleteId;
+
+        if ($targetId) {
+            $material = RawMaterial::findOrFail($targetId);
+
+            // Prevent deletion if linked to inventory batches
+            if ($material->batches()->count() > 0) {
+                $this->dispatch('toast', message: "Cannot delete [{$material->name}] because it has linked inventory batches.", type: 'error');
+                $this->dispatch('close-modal', 'delete-raw-material-modal');
+                $this->deleteId = null;
+                return;
+            }
+
+            $name = $material->name;
+            $material->delete();
+            $this->dispatch('toast', message: "Raw Material [{$name}] deleted successfully.", type: 'success');
+            $this->dispatch('close-modal', 'delete-raw-material-modal');
+            $this->deleteId = null;
+        }
     }
 
     #[On('raw-material-saved')]

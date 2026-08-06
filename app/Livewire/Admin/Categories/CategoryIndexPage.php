@@ -70,6 +70,7 @@ class CategoryIndexPage extends Component
 
     public ?int  $productLockedCategoryId = null; // When set, category step is locked
     public bool  $showWizardModal         = false;
+    public bool  $isEditMode              = false;
     public ?int  $selectedProductId       = null;
     public ?int  $deleteProductId         = null;
     public int   $currentStep             = 1;

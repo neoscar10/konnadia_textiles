@@ -39,7 +39,7 @@ class SupervisorWorkbench extends Component
 
     public function render()
     {
-        $query = ProductionBatch::with(['manufacturingProduct', 'jobs.task', 'supervisor']);
+        $query = ProductionBatch::with(['manufacturingProduct', 'job.stageExecutions.task', 'supervisor']);
 
         if (!empty($this->search)) {
             $query->where(function ($q) {
@@ -53,7 +53,7 @@ class SupervisorWorkbench extends Component
         }
 
         $batches = $query->orderBy('created_at', 'desc')->paginate(10);
-        $selectedBatch = ProductionBatch::with(['manufacturingProduct', 'jobs.task', 'jobs.allocations.labor', 'supervisor'])->find($this->selectedBatchId);
+        $selectedBatch = ProductionBatch::with(['manufacturingProduct', 'job.stageExecutions.task', 'job.allocations.labor', 'supervisor'])->find($this->selectedBatchId);
 
         // KPI Counts
         $totalWaiting = ProductionBatch::where('status', 'Created')->count();

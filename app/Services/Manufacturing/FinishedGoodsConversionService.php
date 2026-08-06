@@ -50,7 +50,7 @@ class FinishedGoodsConversionService
 
             if ($product->is_packaging_used) {
                 $finalTask = $product->getFinalTask();
-                $finalJob = $batch->jobs()->where('task_id', $finalTask?->id)->first() ?? $batch->jobs()->first();
+                $finalJob = $batch->job;
 
                 foreach ($product->packagingMaterials as $pkgMat) {
                     $requiredQty = $goodUnits * (float) $pkgMat->pivot->required_quantity;

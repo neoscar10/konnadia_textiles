@@ -118,9 +118,11 @@ class TaskSequenceAndWorkflowProgressionTest extends TestCase
         $batch = ProductionBatch::find($data['batch']['id']);
         $jobs = $batch->jobs;
 
-        $this->assertCount(1, $jobs, 'ONLY the first task job should be created on batch initiation.');
-        $this->assertEquals($this->taskCutting->id, $jobs->first()->task_id);
-        $this->assertEquals(500, $jobs->first()->target_quantity);
+        $this->assertCount(1, $jobs, 'ONLY a single master job should be created on batch initiation.');
+        $masterJob = $jobs->first();
+        $this->assertCount(3, $masterJob->stageExecutions, 'All 3 routing stage executions should be created under master job.');
+        $this->assertEquals($this->taskCutting->id, $masterJob->stageExecutions->first()->task_id);
+        $this->assertEquals(500, $masterJob->target_quantity);
     }
 
     /** @test */
@@ -178,21 +180,19 @@ class TaskSequenceAndWorkflowProgressionTest extends TestCase
             'child_production_batch_id' => $childBatch->id,
         ]);
 
-        // Complete Job 1
-        $compResponse = $workflowService->completeJob($job1->id);
+        // Complete Cutting stage on Job 1
+        $compResponse = $workflowService->completeJob($job1->id, $this->taskCutting->id);
         $compData = $compResponse->getData(true)['data'];
 
         $job1->refresh();
-        $this->assertEquals('completed', $job1->status);
+        $cuttingExec = $job1->stageExecutions->firstWhere('task_id', $this->taskCutting->id);
+        $this->assertEquals('completed', $cuttingExec->status);
 
-        // Verify downstream Job 2 auto-generated
-        $batch->refresh();
-        $jobs = $batch->jobs;
-
-        $this->assertCount(2, $jobs, 'Downstream Job 2 should be auto-created upon completing Job 1.');
-        $job2 = $jobs->where('task_id', $this->taskPacking->id)->first();
-        $this->assertNotNull($job2);
-        $this->assertEquals(92, $job2->target_quantity, 'Target quantity for Job 2 must equal (100 Produced - 5 Wasted - 3 Altered) = 92.');
+        // Verify next stage execution (Packing) unlocked with forward quantity 92
+        $packingExec = $job1->stageExecutions->firstWhere('task_id', $this->taskPacking->id);
+        $this->assertNotNull($packingExec);
+        $this->assertEquals('in_progress', $packingExec->status);
+        $this->assertEquals(92, $packingExec->target_quantity, 'Target quantity for Packing stage must equal (100 Produced - 5 Wasted - 3 Altered) = 92.');
     }
 
     /** @test */
@@ -210,8 +210,8 @@ class TaskSequenceAndWorkflowProgressionTest extends TestCase
         $batch = ProductionBatch::find($initData['batch']['id']);
         $job1 = $batch->jobs->first();
 
-        // Complete final step job
-        $compResponse = $workflowService->completeJob($job1->id);
+        // Complete final step stage execution
+        $compResponse = $workflowService->completeJob($job1->id, $this->taskPacking->id);
         $compData = $compResponse->getData(true)['data'];
 
         $this->assertTrue((bool)$compData['isFinalStep']);

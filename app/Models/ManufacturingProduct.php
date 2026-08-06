@@ -15,6 +15,7 @@ class ManufacturingProduct extends Model
         'standard_labor_rate',
         'manufacturing_product_category_id',
         'status',
+        'image_path',
         'is_fabric_used',
         'standard_fabric_width',
         'standard_fabric_length',

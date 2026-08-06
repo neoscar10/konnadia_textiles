@@ -103,18 +103,18 @@
     <div class="mb-6">
         <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider shrink-0 mr-2">Production Stage:</span>
-            @foreach($allTasks as $idx => $task)
+            @foreach($job->stageExecutions as $idx => $stageExec)
                 @php
-                    $stageOutputSum = (int) $job->allocations()->where('task_id', $task->id)->sum('quantity_processed');
-                    $precedingTaskOutput = ($idx === 0) ? (int)$job->target_quantity : (int)$job->allocations()->where('task_id', $allTasks[$idx - 1]->id)->sum('quantity_processed');
-                    $stageMax = $precedingTaskOutput;
-                    $stagePending = max(0, $stageMax - $stageOutputSum);
-                    $isSelected = ($selectedTaskId == $task->id);
+                    $task = $stageExec->task;
+                    $stageOutputSum = $stageExec->completed_quantity;
+                    $stageMax = $stageExec->target_quantity > 0 ? $stageExec->target_quantity : (int)$job->target_quantity;
+                    $stagePending = $stageExec->pending_quantity;
+                    $isSelected = ($selectedTaskId == $task?->id);
                 @endphp
-                <button type="button" wire:click="selectTask({{ $task->id }})" class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 border {{ $isSelected ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant/60 hover:bg-surface-container-high' }}">
-                    <span>P{{ $idx + 1 }}: {{ $task->name }}</span>
+                <button type="button" wire:click="selectTask({{ $task?->id }})" class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 border {{ $isSelected ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant/60 hover:bg-surface-container-high' }}">
+                    <span>P{{ $idx + 1 }}: {{ $task?->name }}</span>
                     <span class="px-2.5 py-0.5 rounded-full text-[10px] {{ $isSelected ? 'bg-white text-primary font-black' : ($stagePending > 0 ? 'bg-amber-500/10 text-amber-700 font-bold' : 'bg-secondary/10 text-secondary font-bold') }}">
-                        {{ number_format($stageOutputSum) }} / {{ number_format($job->target_quantity) }} Pcs
+                        {{ number_format($stageOutputSum) }} / {{ number_format($stageMax) }} Pcs
                         @if($stagePending > 0)
                             • {{ number_format($stagePending) }} Ready
                         @else
@@ -123,6 +123,7 @@
                     </span>
                 </button>
             @endforeach
+
         </div>
       @if($selectedTask && ($selectedTask->name === 'Cutting' || $selectedTask->code === 'TSK-001'))
         <!-- CUSTOM CUTTING SESSION TERMINAL UI -->
@@ -355,7 +356,7 @@
         </form>
     @else
         <!-- STANDARD STAGE FORMS -->
-        @if($selectedTask && $selectedTask->consumes_raw_material)
+        @if($selectedTask && $selectedTask->consumes_raw_material && !$isTaskStitching)
         <!-- SECTION 1: RAW MATERIAL SELECTION & CONSUMPTION -->
         <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
             <div class="bg-surface p-4 rounded-xl border border-outline-variant/60 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -462,6 +463,43 @@
                     </button>
                 </div>
             </form>
+
+            <!-- 1. RECORDED RAW MATERIAL CONSUMPTION LOG -->
+            <div class="mt-8 pt-6 border-t border-outline-variant/40">
+                <h4 class="font-headline-sm text-headline-sm text-primary font-bold mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary">inventory_2</span>
+                    Material Consumption Log
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse font-body-md">
+                        <thead>
+                            <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
+                                <th class="px-4 py-3 font-bold">Material & Batch</th>
+                                <th class="px-4 py-3 font-bold text-center">Qty</th>
+                                <th class="px-4 py-3 font-bold text-right">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/40">
+                            @forelse($stageConsumptions as $consumption)
+                                <tr class="hover:bg-surface-container/50 transition-colors">
+                                    <td class="px-4 py-3">
+                                        <p class="font-bold text-on-surface text-sm">{{ $consumption->inventoryBatch?->rawMaterial?->name ?? 'Raw Material' }}</p>
+                                        <span class="text-xs text-outline font-mono">Batch: {{ $consumption->inventoryBatch?->batch_number }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-black text-secondary text-sm">
+                                        {{ number_format((float)$consumption->quantity_consumed, 2) }} <span class="text-xs font-normal text-outline">{{ $consumption->inventoryBatch?->unit }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-black text-primary text-sm">
+                                        ₹{{ number_format((float)$consumption->total_cost, 2) }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="3" class="px-4 py-8 text-center text-on-surface-variant text-sm">No raw materials consumed yet for this stage.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         {{-- ═══ SUBSIDIARY BOM CONSUMPTION PANEL (CAT-SUB tasks only) ═══ --}}
@@ -558,22 +596,20 @@
 
         {{-- ═══ STITCHING COST POOL INFO BANNER (CAT-STITCH tasks) ═══ --}}
         @if($isTaskStitching)
-            <div class="bg-tertiary-container/20 border border-tertiary/30 rounded-2xl p-5 mb-8 flex items-start gap-4">
+            <div class="bg-tertiary-container/20 border border-tertiary/30 rounded-2xl p-5 mt-6 mb-8 flex items-start gap-4">
                 <div class="w-10 h-10 rounded-xl bg-tertiary-container text-on-tertiary-container flex items-center justify-center flex-shrink-0">
-                    <span class="material-symbols-outlined text-[22px]">stitch</span>
+                    <span class="material-symbols-outlined text-[22px]">info</span>
                 </div>
                 <div>
                     <h3 class="font-bold text-sm text-on-surface mb-1">Stitching Material — Cost Pool Accumulation</h3>
                     <p class="text-xs text-on-surface-variant leading-relaxed">
-                        This task is classified under <code class="bg-surface-container-high px-1.5 py-0.5 rounded font-mono text-[10px]">CAT-STITCH</code>. Per SRS Module 1 (Section 6C), stitching materials are <strong>not deducted per unit</strong> during job execution. All stitching costs automatically accumulate into the periodic Stitching Cost Pool for period-end allocation.
-                        <br/>
-                        <span class="font-bold text-tertiary">No per-unit inventory deduction or wastage calculation applies here.</span>
+                        Stitching materials are not deducted per-unit during job execution. All stitching costs accumulate into the periodic Stitching Cost Pool for period-end allocation.
                     </p>
                 </div>
             </div>
         @endif
 
-        @if(optional($job->task)->is_labor_required)
+        @if(optional($selectedTask)->is_labor_required)
         <!-- SECTION 2: WORKER ALLOCATION & OUTPUT ENTRY -->
         <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
             @if($precedingInfo)
@@ -610,7 +646,7 @@
                 <div class="flex items-center gap-3 shrink-0">
                     <div class="text-right">
                         <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider block">Stage Progress</span>
-                        <span class="text-base font-black text-primary">{{ number_format($stageCompleted) }} / {{ number_format($job->target_quantity) }} Pcs</span>
+                        <span class="text-base font-black text-primary">{{ number_format($stageCompleted) }} / {{ number_format($stageMaxAllowed) }} Pcs</span>
                     </div>
 
                     @if($stagePending > 0)
@@ -739,6 +775,47 @@
                     </button>
                 </div>
             </form>
+
+            <!-- 2. RECORDED WORKER STAGE OUTPUT LOG -->
+            <div class="mt-8 pt-6 border-t border-outline-variant/40">
+                <h4 class="font-headline-sm text-headline-sm text-primary font-bold mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">verified</span>
+                    Worker Stage Output Log
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse font-body-md">
+                        <thead>
+                            <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
+                                <th class="px-4 py-3 font-bold">Worker</th>
+                                <th class="px-4 py-3 font-bold text-center">Output</th>
+                                <th class="px-4 py-3 font-bold text-right">Wage</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/40">
+                            @forelse($stageAllocations as $allocation)
+                                <tr class="hover:bg-surface-container/50 transition-colors">
+                                    <td class="px-4 py-3">
+                                        <p class="font-bold text-on-surface text-sm">{{ $allocation->labor?->name ?? 'Unknown Worker' }}</p>
+                                        <span class="text-xs text-outline">{{ $allocation->labor?->code }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-bold text-on-surface text-sm">
+                                        {{ number_format($allocation->quantity_processed) }} <span class="text-xs font-normal text-outline">Pcs</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        @if(is_null($allocation->calculated_wage))
+                                            <span class="text-xs text-outline italic">Salaried (Fixed)</span>
+                                        @else
+                                            <span class="font-bold text-secondary text-sm">₹{{ number_format($allocation->calculated_wage, 2) }}</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="3" class="px-4 py-8 text-center text-on-surface-variant text-sm">No worker allocations recorded yet for this stage.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         @endif
 
@@ -825,6 +902,43 @@
                     </button>
                 </div>
             </form>
+
+            <!-- 3. RECORDED PRODUCT OUTPUT LOG -->
+            <div class="mt-8 pt-6 border-t border-outline-variant/40">
+                <h4 class="font-headline-sm text-headline-sm text-primary font-bold mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">precision_manufacturing</span>
+                    Product Output Yield Log
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse font-body-md">
+                        <thead>
+                            <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
+                                <th class="px-4 py-3 font-bold">Product Yield</th>
+                                <th class="px-4 py-3 font-bold text-center">Qty</th>
+                                <th class="px-4 py-3 font-bold text-right">Logged At</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/40">
+                            @forelse($stageOutputs as $output)
+                                <tr class="hover:bg-surface-container/50 transition-colors">
+                                    <td class="px-4 py-3">
+                                        <p class="font-bold text-on-surface text-sm">{{ $output->manufacturingProduct?->name ?? 'Product' }}</p>
+                                        <span class="text-xs text-outline font-mono">{{ $output->manufacturingProduct?->code }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-black text-primary text-sm">
+                                        {{ number_format($output->quantity_produced) }} <span class="text-xs font-normal text-outline">Pcs</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right text-xs font-mono text-outline whitespace-nowrap">
+                                        {{ $output->created_at ? $output->created_at->format('d M, h:i A') : '-' }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="3" class="px-4 py-8 text-center text-on-surface-variant text-sm">No product outputs recorded yet for this stage.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- SECTION 4: WASTAGE & PRODUCTION LOSS RECORDING -->
@@ -912,6 +1026,43 @@
                     </button>
                 </div>
             </form>
+
+            <!-- 4. RECORDED WASTAGE & PRODUCTION LOSS LOG -->
+            <div class="mt-8 pt-6 border-t border-error/20">
+                <h4 class="font-headline-sm text-headline-sm text-error font-bold mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-error">report_problem</span>
+                    Production Loss & Wastage Log
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse font-body-md">
+                        <thead>
+                            <tr class="bg-error-container/20 border-b border-outline-variant/60 text-xs text-error uppercase tracking-wider">
+                                <th class="px-4 py-3 font-bold">Product / Scraps</th>
+                                <th class="px-4 py-3 font-bold text-center">Wasted Qty</th>
+                                <th class="px-4 py-3 font-bold text-right">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/40">
+                            @forelse($stageWastages as $wastage)
+                                <tr class="hover:bg-error-container/10 transition-colors">
+                                    <td class="px-4 py-3">
+                                        <p class="font-bold text-on-surface text-sm">{{ $wastage->manufacturingProduct?->name ?? 'General Fabric Scraps' }}</p>
+                                        <span class="text-xs text-outline font-mono">{{ $wastage->task?->name }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-black text-error text-sm">
+                                        {{ number_format((float)$wastage->quantity_wasted, 2) }} <span class="text-xs font-normal text-outline">Units</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right text-xs font-medium text-on-surface-variant">
+                                        {{ $wastage->reason }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="3" class="px-4 py-8 text-center text-on-surface-variant text-sm">No production loss or wastage logged for this stage.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- SECTION 5: ALTERATION MANAGEMENT & CHILD BATCH GENERATION -->
@@ -1013,211 +1164,56 @@
                     </button>
                 </div>
             </form>
-        </div>
-    @endif    </form>
-    </div>
 
-    <!-- AUDIT TRAIL LOGS GRID (5 TABLES) -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- 1. RECORDED RAW MATERIAL CONSUMPTION LOG -->
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs">
-            <h4 class="font-headline-sm text-headline-sm text-primary font-bold mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-secondary">inventory_2</span>
-                Material Consumption Log
-            </h4>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse font-body-md">
-                    <thead>
-                        <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
-                            <th class="px-4 py-3 font-bold">Material & Batch</th>
-                            <th class="px-4 py-3 font-bold text-center">Qty</th>
-                            <th class="px-4 py-3 font-bold text-right">Cost</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-variant/40">
-                        @forelse($stageConsumptions as $consumption)
-                            <tr class="hover:bg-surface-container/50 transition-colors">
-                                <td class="px-4 py-3">
-                                    <p class="font-bold text-on-surface text-sm">{{ $consumption->inventoryBatch?->rawMaterial?->name ?? 'Raw Material' }}</p>
-                                    <span class="text-xs text-outline font-mono">Batch: {{ $consumption->inventoryBatch?->batch_number }}</span>
-                                </td>
-                                <td class="px-4 py-3 text-center font-black text-secondary text-sm">
-                                    {{ number_format((float)$consumption->quantity_consumed, 2) }} <span class="text-xs font-normal text-outline">{{ $consumption->inventoryBatch?->unit }}</span>
-                                </td>
-                                <td class="px-4 py-3 text-right font-black text-primary text-sm">
-                                    ₹{{ number_format((float)$consumption->total_cost, 2) }}
-                                </td>
+            <!-- 5. RECORDED ALTERATIONS & GENERATED CHILD BATCHES LOG -->
+            <div class="mt-8 pt-6 border-t border-outline-variant/40">
+                <h4 class="font-headline-sm text-headline-sm text-primary font-bold mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-600">alt_route</span>
+                    Alterations & Linked Child Production Batches Log
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse font-body-md">
+                        <thead>
+                            <tr class="bg-amber-500/10 border-b border-outline-variant/60 text-xs text-amber-900 uppercase tracking-wider">
+                                <th class="px-4 py-3 font-bold">Source Product & Qty</th>
+                                <th class="px-4 py-3 font-bold">Target Product Yield</th>
+                                <th class="px-4 py-3 font-bold text-center">Generated Child Batch</th>
+                                <th class="px-4 py-3 font-bold text-right">Logged At</th>
                             </tr>
-                        @empty
-                            <tr><td colspan="3" class="px-4 py-8 text-center text-on-surface-variant text-sm">No raw materials consumed yet for this stage.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/40">
+                            @forelse($jobAlterations as $alt)
+                                <tr class="hover:bg-surface-container/50 transition-colors">
+                                    <td class="px-4 py-3">
+                                        <p class="font-bold text-on-surface text-sm">{{ $alt->sourceProduct?->name ?? 'Source Product' }}</p>
+                                        <span class="text-xs font-black text-amber-800">{{ number_format($alt->source_quantity) }} Pcs</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <p class="font-bold text-primary text-sm">{{ $alt->targetProduct?->name ?? 'Target Product' }}</p>
+                                        <span class="text-xs font-black text-secondary">{{ number_format($alt->target_quantity) }} Pcs</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        @if($alt->childBatch)
+                                            <span class="px-3 py-1 bg-amber-500/20 text-amber-800 font-mono font-black text-xs rounded-xl border border-amber-500/30">
+                                                {{ $alt->childBatch->batch_code }}
+                                            </span>
+                                        @else
+                                            <span class="text-xs text-outline font-mono">N/A</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-right text-xs font-mono text-outline whitespace-nowrap">
+                                        {{ $alt->created_at ? $alt->created_at->format('d M, h:i A') : '-' }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="px-4 py-8 text-center text-on-surface-variant text-sm">No alterations recorded for this job.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-
-        <!-- 2. RECORDED WORKER STAGE OUTPUT LOG -->
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs">
-            <h4 class="font-headline-sm text-headline-sm text-primary font-bold mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">verified</span>
-                Worker Stage Output Log
-            </h4>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse font-body-md">
-                    <thead>
-                        <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
-                            <th class="px-4 py-3 font-bold">Worker</th>
-                            <th class="px-4 py-3 font-bold text-center">Output</th>
-                            <th class="px-4 py-3 font-bold text-right">Wage</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-variant/40">
-                        @forelse($stageAllocations as $allocation)
-                            <tr class="hover:bg-surface-container/50 transition-colors">
-                                <td class="px-4 py-3">
-                                    <p class="font-bold text-on-surface text-sm">{{ $allocation->labor?->name ?? 'Unknown Worker' }}</p>
-                                    <span class="text-xs text-outline">{{ $allocation->labor?->code }}</span>
-                                </td>
-                                <td class="px-4 py-3 text-center font-bold text-on-surface text-sm">
-                                    {{ number_format($allocation->quantity_processed) }} <span class="text-xs font-normal text-outline">Pcs</span>
-                                </td>
-                                <td class="px-4 py-3 text-right">
-                                    @if(is_null($allocation->calculated_wage))
-                                        <span class="text-xs text-outline italic">Salaried (Fixed)</span>
-                                    @else
-                                        <span class="font-bold text-secondary text-sm">₹{{ number_format($allocation->calculated_wage, 2) }}</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="3" class="px-4 py-8 text-center text-on-surface-variant text-sm">No worker allocations recorded yet for this stage.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 3. RECORDED PRODUCT OUTPUT LOG -->
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs">
-            <h4 class="font-headline-sm text-headline-sm text-primary font-bold mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">precision_manufacturing</span>
-                Product Output Yield Log
-            </h4>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse font-body-md">
-                    <thead>
-                        <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
-                            <th class="px-4 py-3 font-bold">Product Yield</th>
-                            <th class="px-4 py-3 font-bold text-center">Qty</th>
-                            <th class="px-4 py-3 font-bold text-right">Logged At</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-variant/40">
-                        @forelse($stageOutputs as $output)
-                            <tr class="hover:bg-surface-container/50 transition-colors">
-                                <td class="px-4 py-3">
-                                    <p class="font-bold text-on-surface text-sm">{{ $output->manufacturingProduct?->name ?? 'Product' }}</p>
-                                    <span class="text-xs text-outline font-mono">{{ $output->manufacturingProduct?->code }}</span>
-                                </td>
-                                <td class="px-4 py-3 text-center font-black text-primary text-sm">
-                                    {{ number_format($output->quantity_produced) }} <span class="text-xs font-normal text-outline">Pcs</span>
-                                </td>
-                                <td class="px-4 py-3 text-right text-xs font-mono text-outline whitespace-nowrap">
-                                    {{ $output->created_at ? $output->created_at->format('d M, h:i A') : '-' }}
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="3" class="px-4 py-8 text-center text-on-surface-variant text-sm">No product outputs recorded yet for this stage.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 4. RECORDED WASTAGE & PRODUCTION LOSS LOG -->
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs">
-            <h4 class="font-headline-sm text-headline-sm text-error font-bold mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-error">report_problem</span>
-                Production Loss & Wastage Log
-            </h4>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse font-body-md">
-                    <thead>
-                        <tr class="bg-error-container/20 border-b border-outline-variant/60 text-xs text-error uppercase tracking-wider">
-                            <th class="px-4 py-3 font-bold">Product / Scraps</th>
-                            <th class="px-4 py-3 font-bold text-center">Wasted Qty</th>
-                            <th class="px-4 py-3 font-bold text-right">Reason</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-variant/40">
-                        @forelse($stageWastages as $wastage)
-                            <tr class="hover:bg-error-container/10 transition-colors">
-                                <td class="px-4 py-3">
-                                    <p class="font-bold text-on-surface text-sm">{{ $wastage->manufacturingProduct?->name ?? 'General Fabric Scraps' }}</p>
-                                    <span class="text-xs text-outline font-mono">{{ $wastage->task?->name }}</span>
-                                </td>
-                                <td class="px-4 py-3 text-center font-black text-error text-sm">
-                                    {{ number_format((float)$wastage->quantity_wasted, 2) }} <span class="text-xs font-normal text-outline">Units</span>
-                                </td>
-                                <td class="px-4 py-3 text-right text-xs font-medium text-on-surface-variant">
-                                    {{ $wastage->reason }}
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="3" class="px-4 py-8 text-center text-on-surface-variant text-sm">No production loss or wastage logged for this stage.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 5. RECORDED ALTERATIONS & GENERATED CHILD BATCHES LOG -->
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs lg:col-span-2">
-            <h4 class="font-headline-sm text-headline-sm text-primary font-bold mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-amber-600">alt_route</span>
-                Alterations & Linked Child Production Batches Log
-            </h4>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse font-body-md">
-                    <thead>
-                        <tr class="bg-amber-500/10 border-b border-outline-variant/60 text-xs text-amber-900 uppercase tracking-wider">
-                            <th class="px-4 py-3 font-bold">Source Product & Qty</th>
-                            <th class="px-4 py-3 font-bold">Target Product Yield</th>
-                            <th class="px-4 py-3 font-bold text-center">Generated Child Batch</th>
-                            <th class="px-4 py-3 font-bold text-right">Logged At</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-variant/40">
-                        @forelse($jobAlterations as $alt)
-                            <tr class="hover:bg-surface-container/50 transition-colors">
-                                <td class="px-4 py-3">
-                                    <p class="font-bold text-on-surface text-sm">{{ $alt->sourceProduct?->name ?? 'Source Product' }}</p>
-                                    <span class="text-xs font-black text-amber-800">{{ number_format($alt->source_quantity) }} Pcs</span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <p class="font-bold text-primary text-sm">{{ $alt->targetProduct?->name ?? 'Target Product' }}</p>
-                                    <span class="text-xs font-black text-secondary">{{ number_format($alt->target_quantity) }} Pcs</span>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    @if($alt->childBatch)
-                                        <span class="px-3 py-1 bg-amber-500/20 text-amber-800 font-mono font-black text-xs rounded-xl border border-amber-500/30">
-                                            {{ $alt->childBatch->batch_code }}
-                                        </span>
-                                    @else
-                                        <span class="text-xs text-outline font-mono">N/A</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3 text-right text-xs font-mono text-outline whitespace-nowrap">
-                                    {{ $alt->created_at ? $alt->created_at->format('d M, h:i A') : '-' }}
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="4" class="px-4 py-8 text-center text-on-surface-variant text-sm">No alterations recorded for this job.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    @endif
     </div>
 
     <!-- Final Task Completion Modal -->

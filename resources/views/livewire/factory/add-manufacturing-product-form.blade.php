@@ -37,116 +37,149 @@
                     </button>
                 </div>
 
-                <div class="p-6 sm:p-8">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-6">
-                            <!-- Product Name -->
+                <div class="p-6 sm:p-8 space-y-6">
+                    <!-- Row 1: Product Name & Internal Code -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Product Name -->
+                        <div>
+                            <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Product Name *</label>
+                            <input wire:model.blur="name" class="w-full rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-4 py-3 bg-surface text-sm" type="text" placeholder="e.g. King Size Bedsheet"/>
+                            @error('name') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Internal Code (Read-only) -->
+                        <div>
+                            <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Internal Code</label>
+                            <input class="w-full rounded-xl border border-outline-variant/60 bg-surface-container-high/60 font-body-md px-4 py-3 text-on-surface-variant font-mono font-bold text-sm" readonly type="text" value="{{ $code }}"/>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Category & Standard Labor Rate -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Category Selection -->
+                        <div>
+                            <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Category *</label>
+                            <select wire:model.blur="manufacturing_product_category_id" class="w-full rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-4 py-3 bg-surface font-bold text-sm">
+                                <option value="">-- Select Category --</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('manufacturing_product_category_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Standard Labor Rate -->
+                        <div>
+                            <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Default Standard Labor Rate (₹) *</label>
+                            <input wire:model.blur="standard_labor_rate" class="w-full rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-4 py-3 bg-surface font-bold text-sm" type="number" step="0.01" placeholder="15.00"/>
+                            @error('standard_labor_rate') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Is Fabric Used? & Product Status Toggles -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Is Fabric Used? Toggle -->
+                        <div class="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/30">
                             <div>
-                                <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Product Name *</label>
-                                <input wire:model.blur="name" class="w-full rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-4 py-3 bg-surface" type="text" placeholder="e.g. King Size Bedsheet"/>
-                                @error('name') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                                <p class="font-body-md font-bold text-sm">Is Fabric Used?</p>
+                                <p class="font-label-sm text-on-surface-variant text-xs">Enable if fabric mapping is required.</p>
                             </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <!-- Internal Code (Read-only) -->
-                                <div>
-                                    <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Internal Code</label>
-                                    <input class="w-full rounded-xl border border-outline-variant/60 bg-surface-container-high/60 font-body-md px-4 py-3 text-on-surface-variant font-mono font-bold" readonly type="text" value="{{ $code }}"/>
-                                </div>
-
-                                <!-- Category Selection -->
-                                <div>
-                                    <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Category *</label>
-                                    <select wire:model.blur="manufacturing_product_category_id" class="w-full rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-4 py-3 bg-surface font-bold text-sm">
-                                        <option value="">-- Select Category --</option>
-                                        @foreach($categories as $cat)
-                                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('manufacturing_product_category_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-
-                            <!-- Standard Labor Rate -->
-                            <div>
-                                <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Default Standard Labor Rate (₹) *</label>
-                                <input wire:model.blur="standard_labor_rate" class="w-full rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-4 py-3 bg-surface font-bold" type="number" step="0.01" placeholder="15.00"/>
-                                @error('standard_labor_rate') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                            </div>
-
-                            <!-- Is Fabric Used? Toggle -->
-                            <div class="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/30">
-                                <div>
-                                    <p class="font-body-md font-bold text-sm">Is Fabric Used?</p>
-                                    <p class="font-label-sm text-on-surface-variant text-xs">Enable if this product requires fabric consumption mapping during cutting.</p>
-                                </div>
-                                <div class="flex items-center">
-                                    <input type="checkbox" wire:model.live="is_fabric_used" class="w-6 h-6 rounded border-outline-variant text-primary focus:ring-primary"/>
-                                </div>
-                            </div>
-
-                            @if($is_fabric_used)
-                                <!-- Fabric Dimensions Bento Card -->
-                                <div class="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/60 space-y-4">
-                                    <h4 class="font-headline-sm text-headline-sm font-bold text-sm text-primary flex items-center gap-2">
-                                        <span class="material-symbols-outlined">straighten</span>
-                                        Standard Fabric Dimensions
-                                    </h4>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <!-- Width & Unit -->
-                                        <div>
-                                            <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Standard Width *</label>
-                                            <div class="flex gap-2">
-                                                <input wire:model.blur="standard_fabric_width" class="flex-1 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-4 py-2.5 bg-surface" type="number" step="0.01" placeholder="60.00"/>
-                                                <select wire:model.live="fabric_width_unit" class="rounded-xl border border-outline-variant/60 font-body-md px-3 py-2.5 bg-surface font-bold text-xs">
-                                                    <option value="inch">Inch</option>
-                                                    <option value="cm">CM</option>
-                                                </select>
-                                            </div>
-                                            @error('standard_fabric_width') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                                        </div>
-                                        <!-- Length & Unit -->
-                                        <div>
-                                            <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Standard Length *</label>
-                                            <div class="flex gap-2">
-                                                <input wire:model.blur="standard_fabric_length" class="flex-1 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-4 py-2.5 bg-surface" type="number" step="0.01" placeholder="2.50"/>
-                                                <select wire:model.live="fabric_length_unit" class="rounded-xl border border-outline-variant/60 font-body-md px-3 py-2.5 bg-surface font-bold text-xs">
-                                                    <option value="meter">Meter</option>
-                                                    <option value="yard">Yard</option>
-                                                </select>
-                                            </div>
-                                            @error('standard_fabric_length') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-
-                            <!-- Product Status Toggle -->
-                            <div class="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/30">
-                                <div>
-                                    <p class="font-body-md font-bold text-sm">Product Status</p>
-                                    <p class="font-label-sm text-on-surface-variant text-xs">
-                                        @if($status === 'active') Available for manufacturing scheduling
-                                        @else Product is inactive and hidden from scheduler @endif
-                                    </p>
-                                </div>
-                                <div class="flex items-center">
-                                    <select wire:model="status" class="bg-surface border border-outline-variant/60 rounded-xl font-label-sm text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold">
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                    </select>
-                                </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" wire:model.live="is_fabric_used" class="w-6 h-6 rounded border-outline-variant text-primary focus:ring-primary"/>
                             </div>
                         </div>
 
-                        <!-- Image Upload Placeholder -->
-                        <div class="flex flex-col items-center justify-center border-2 border-dashed border-outline-variant/60 rounded-2xl p-6 sm:p-8 bg-surface-container-low/20 group cursor-pointer hover:border-primary transition-all">
-                            <div class="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
-                                <span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
+                        <!-- Product Status Toggle -->
+                        <div class="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/30">
+                            <div>
+                                <p class="font-body-md font-bold text-sm">Product Status</p>
+                                <p class="font-label-sm text-on-surface-variant text-xs">
+                                    @if($status === 'active') Active in scheduler
+                                    @else Inactive & hidden @endif
+                                </p>
                             </div>
-                            <p class="font-body-md font-bold text-center text-sm">Upload Product Image</p>
-                            <p class="font-label-sm text-on-surface-variant text-center mt-1 text-xs">PNG, JPG up to 10MB. 1:1 Aspect ratio recommended.</p>
-                            <button type="button" class="mt-4 px-4 py-2 border border-outline-variant rounded-lg font-label-md text-xs hover:bg-surface-container transition-colors font-bold">Browse Files</button>
+                            <div class="flex items-center">
+                                <select wire:model="status" class="bg-surface border border-outline-variant/60 rounded-xl font-label-sm text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if($is_fabric_used)
+                        <!-- Fabric Dimensions Bento Card -->
+                        <div class="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/60 space-y-4">
+                            <h4 class="font-headline-sm text-headline-sm font-bold text-sm text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined">straighten</span>
+                                Standard Fabric Dimensions
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <!-- Width & Unit -->
+                                <div>
+                                    <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Standard Width *</label>
+                                    <div class="flex gap-2 min-w-0">
+                                        <input wire:model.blur="standard_fabric_width" class="w-0 flex-1 min-w-0 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-3.5 py-2.5 bg-surface text-sm font-semibold" type="number" step="0.01" placeholder="60.00"/>
+                                        <select wire:model.live="fabric_width_unit" class="w-24 shrink-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs">
+                                            <option value="inch">Inch</option>
+                                            <option value="cm">CM</option>
+                                        </select>
+                                    </div>
+                                    @error('standard_fabric_width') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                                </div>
+                                <!-- Length & Unit -->
+                                <div>
+                                    <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Standard Length *</label>
+                                    <div class="flex gap-2 min-w-0">
+                                        <input wire:model.blur="standard_fabric_length" class="w-0 flex-1 min-w-0 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-3.5 py-2.5 bg-surface text-sm font-semibold" type="number" step="0.01" placeholder="2.50"/>
+                                        <select wire:model.live="fabric_length_unit" class="w-24 shrink-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs">
+                                            <option value="meter">Meter</option>
+                                            <option value="yard">Yard</option>
+                                        </select>
+                                    </div>
+                                    @error('standard_fabric_length') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Image Upload Container -->
+                    <div class="flex flex-col items-center justify-center border-2 border-dashed border-outline-variant/60 rounded-2xl p-6 sm:p-8 bg-surface-container-low/20 group hover:border-primary transition-all relative overflow-hidden">
+                        <input type="file" id="product-image-upload" wire:model="imageUpload" class="hidden" accept="image/png, image/jpeg, image/jpg, image/webp" />
+
+                        @if($imageUpload)
+                            <div class="relative w-full aspect-video max-w-md rounded-xl overflow-hidden border border-outline-variant/40 shadow-sm group/img">
+                                <img src="{{ $imageUpload->temporaryUrl() }}" class="w-full h-full object-cover" />
+                                <button type="button" wire:click="$set('imageUpload', null)" class="absolute top-2 right-2 bg-error text-white rounded-full p-1 shadow-md hover:bg-error/90 transition-colors cursor-pointer" title="Remove image">
+                                    <span class="material-symbols-outlined text-[16px]">close</span>
+                                </button>
+                            </div>
+                        @elseif(!empty($existing_image_path))
+                            <div class="relative w-full aspect-video max-w-md rounded-xl overflow-hidden border border-outline-variant/40 shadow-sm group/img">
+                                <img src="{{ Storage::url($existing_image_path) }}" class="w-full h-full object-cover" />
+                                <label for="product-image-upload" class="absolute bottom-2 right-2 bg-surface text-primary rounded-lg px-2.5 py-1 text-xs font-bold shadow-md hover:bg-surface-container transition-colors cursor-pointer flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[14px]">edit</span>
+                                    Change Image
+                                </label>
+                            </div>
+                        @else
+                            <label for="product-image-upload" class="cursor-pointer flex flex-col items-center justify-center w-full h-full select-none">
+                                <div class="w-14 h-14 bg-surface-container-high rounded-full flex items-center justify-center text-primary mb-3 group-hover:scale-110 transition-transform shadow-xs">
+                                    <span class="material-symbols-outlined text-2xl">add_photo_alternate</span>
+                                </div>
+                                <p class="font-body-md font-bold text-center text-sm text-on-surface">Upload Product Image</p>
+                                <p class="font-label-sm text-on-surface-variant text-center mt-1 text-xs">PNG, JPG up to 10MB. Recommended resolution 800x800.</p>
+                                <span class="mt-3 px-4 py-2 border border-outline-variant rounded-lg font-label-md text-xs hover:bg-surface-container transition-colors font-bold text-primary bg-surface shadow-xs inline-block">Browse Files</span>
+                            </label>
+                        @endif
+
+                        @error('imageUpload')
+                            <span class="text-error text-xs block mt-2 font-semibold text-center">{{ $message }}</span>
+                        @enderror
+
+                        <div wire:loading wire:target="imageUpload" class="absolute inset-0 bg-surface-container-lowest/80 backdrop-blur-xs flex items-center justify-center gap-2">
+                            <span class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                            <span class="text-xs font-bold text-primary">Uploading...</span>
                         </div>
                     </div>
                 </div>
@@ -283,7 +316,7 @@
                 <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/60 bg-surface-container-low/30">
                     <div class="flex items-center gap-3">
                         <div class="w-9 h-9 rounded-xl bg-tertiary-container flex items-center justify-center">
-                            <span class="material-symbols-outlined text-on-tertiary-container text-lg">stitch</span>
+                            <span class="material-symbols-outlined text-on-tertiary-container text-lg">content_cut</span>
                         </div>
                         <div>
                             <h3 class="font-bold text-sm">Stitching Material Configuration</h3>
@@ -346,7 +379,7 @@
                     </div>
                 @else
                     <div class="px-6 py-8 flex flex-col items-center justify-center text-center">
-                        <span class="material-symbols-outlined text-4xl text-outline mb-2">stitch</span>
+                        <span class="material-symbols-outlined text-4xl text-outline mb-2">content_cut</span>
                         <p class="text-sm text-on-surface-variant">Enable the toggle above to link stitching threads and consumables from the CAT-STITCH category to this product for cost pool tracking.</p>
                     </div>
                 @endif
@@ -616,13 +649,13 @@
                         </div>
                         <div>
                             <h3 class="font-bold text-sm text-secondary">Storefront B2B Product Mapping</h3>
-                            <p class="text-on-surface-variant text-xs">Link this Manufacturing Product to a B2B sales product or specific variant combination.</p>
+                            <p class="text-on-surface-variant text-xs">Link this Manufacturing Product to a B2B sales product.</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="p-6 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
                         <!-- Storefront Parent Product Selector -->
                         <div>
                             <label class="block font-label-md text-xs font-bold text-on-surface-variant mb-2">Storefront Sales Product</label>
@@ -636,26 +669,6 @@
                                 @endforeach
                             </select>
                             @error('mapped_product_id')
-                                <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <!-- Product Variant Combination Selector (Conditional) -->
-                        <div>
-                            <label class="block font-label-md text-xs font-bold text-on-surface-variant mb-2">Product Variant Combination</label>
-                            <select
-                                wire:model.live="mapped_product_combination_id"
-                                {{ empty($mapped_product_id) ? 'disabled' : '' }}
-                                class="w-full rounded-xl border border-outline-variant/60 focus:border-secondary focus:ring-1 focus:ring-secondary font-body-md px-4 py-3 bg-surface text-sm font-semibold disabled:bg-surface-container-high/40 disabled:text-on-surface-variant/40"
-                            >
-                                <option value="">-- All Variants / Base Product --</option>
-                                @foreach($storefrontCombinations as $sc)
-                                    <option value="{{ $sc->id }}">
-                                        {{ is_array($sc->combination_values) ? implode(' / ', $sc->combination_values) : $sc->combination_values }} (SKU: {{ $sc->sku }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('mapped_product_combination_id')
                                 <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span>
                             @enderror
                         </div>
@@ -710,43 +723,60 @@
         <!-- Right Sidebar -->
         <div class="col-span-12 lg:col-span-4 space-y-6">
             <!-- Checklist Card -->
+            @php
+                $reqBasic = !empty($name) && !empty($manufacturing_product_category_id);
+                $reqRouting = count($routingTasksList) > 0;
+                $reqDoneCount = ($reqBasic ? 1 : 0) + ($reqRouting ? 1 : 0);
+            @endphp
             <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 p-6 shadow-xs">
                 <div class="flex items-center justify-between mb-4">
                     <h4 class="font-headline-sm text-headline-sm font-bold text-sm">Form Checklist</h4>
                     <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-md text-[10px] font-bold">
-                        {{ ($name && $manufacturing_product_category_id && count($routingTasksList) > 0) ? '2' : '1' }}/2 Steps Done
+                        {{ $reqDoneCount }}/2 Required Done
                     </span>
                 </div>
                 <ul class="space-y-3">
                     <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ ($name && $manufacturing_product_category_id) ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
-                            {{ ($name && $manufacturing_product_category_id) ? 'check_circle' : 'pending' }}
+                        <span class="material-symbols-outlined text-sm {{ $reqBasic ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
+                            {{ $reqBasic ? 'check_circle' : 'pending' }}
                         </span>
-                        <span class="font-body-md text-sm {{ ($name && $manufacturing_product_category_id) ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Basic Information</span>
+                        <span class="font-body-md text-sm {{ $reqBasic ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Basic Information</span>
                     </li>
                     <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ count($routingTasksList) > 0 ? 'text-primary font-bold' : 'text-outline opacity-40' }}">
-                            {{ count($routingTasksList) > 0 ? 'check_circle' : 'pending' }}
+                        <span class="material-symbols-outlined text-sm {{ $reqRouting ? 'text-primary font-bold' : 'text-outline opacity-40' }}">
+                            {{ $reqRouting ? 'check_circle' : 'pending' }}
                         </span>
-                        <span class="font-body-md text-sm {{ count($routingTasksList) > 0 ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Task Routing Sequence ({{ count($routingTasksList) }} steps)</span>
+                        <span class="font-body-md text-sm {{ $reqRouting ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Task Routing Sequence ({{ count($routingTasksList) }} steps)</span>
                     </li>
                     <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ $is_fabric_used ? 'text-primary' : 'text-outline opacity-40' }}">
+                        <span class="material-symbols-outlined text-sm {{ $is_fabric_used ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
                             {{ $is_fabric_used ? 'check_circle' : 'radio_button_unchecked' }}
                         </span>
-                        <span class="font-body-md text-sm {{ $is_fabric_used ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Fabric Configuration</span>
+                        <span class="font-body-md text-sm {{ $is_fabric_used ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Fabric Dimensions (Optional)</span>
                     </li>
                     <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ $is_subsidiary_used ? 'text-secondary' : 'text-outline opacity-40' }}">
+                        <span class="material-symbols-outlined text-sm {{ $is_subsidiary_used ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
                             {{ $is_subsidiary_used ? 'check_circle' : 'radio_button_unchecked' }}
                         </span>
                         <span class="font-body-md text-sm {{ $is_subsidiary_used ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Subsidiary BOM (Optional)</span>
                     </li>
                     <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ $is_stitching_used ? 'text-tertiary' : 'text-outline opacity-40' }}">
+                        <span class="material-symbols-outlined text-sm {{ $is_stitching_used ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
                             {{ $is_stitching_used ? 'check_circle' : 'radio_button_unchecked' }}
                         </span>
                         <span class="font-body-md text-sm {{ $is_stitching_used ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Stitching Materials (Optional)</span>
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-sm {{ $is_packaging_used ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
+                            {{ $is_packaging_used ? 'check_circle' : 'radio_button_unchecked' }}
+                        </span>
+                        <span class="font-body-md text-sm {{ $is_packaging_used ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Packaging Materials (Optional)</span>
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-sm {{ !empty($mapped_product_id) ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
+                            {{ !empty($mapped_product_id) ? 'check_circle' : 'radio_button_unchecked' }}
+                        </span>
+                        <span class="font-body-md text-sm {{ !empty($mapped_product_id) ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Storefront B2B Mapping (Optional)</span>
                     </li>
                 </ul>
             </div>
@@ -762,16 +792,17 @@
                         @foreach($routingTasksList as $idx => $r)
                             @php
                                 $taskObj = $availableTasks->firstWhere('id', $r['task_id']);
+                                $rateVal = (float)($r['standard_labor_rate'] !== '' ? $r['standard_labor_rate'] : ($standard_labor_rate ?: 15.00));
                             @endphp
                             <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-surface border border-outline-variant/30">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-5 h-5 rounded-full bg-primary/20 text-primary font-mono font-bold text-[10px] flex items-center justify-center">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="w-5 h-5 rounded-full bg-primary/20 text-primary font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
                                         {{ $idx + 1 }}
                                     </span>
-                                    <span class="font-bold text-on-surface">{{ $taskObj?->name ?? 'Select Task' }}</span>
+                                    <span class="font-bold text-on-surface truncate">{{ $taskObj?->name ?? 'Select Task' }}</span>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="font-mono text-on-surface-variant">₹{{ number_format((float)($r['standard_labor_rate'] ?: 15.00), 2) }}</span>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <span class="font-mono text-on-surface-variant font-semibold">₹{{ number_format($rateVal, 2) }}</span>
                                     @if(!empty($r['is_final_step']))
                                         <span class="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container text-[9px] font-bold">Final</span>
                                     @endif
@@ -782,28 +813,79 @@
                 </div>
             @endif
 
-            <!-- Material Summary Card -->
-            @if($is_subsidiary_used && count(array_filter(array_column($subsidiaryMaterialsList, 'raw_material_id'))) > 0)
+            <!-- Material & BOM Summary Card -->
+            @php
+                $validSubRows = $is_subsidiary_used ? array_filter($subsidiaryMaterialsList, fn($r) => !empty($r['raw_material_id'])) : [];
+                $validStitchIds = $is_stitching_used ? array_filter($stitchingMaterialsList) : [];
+                $validPkgRows = $is_packaging_used ? array_filter($packagingMaterialsList, fn($r) => !empty($r['raw_material_id'])) : [];
+                $hasMaterialSummary = $is_fabric_used || count($validSubRows) > 0 || count($validStitchIds) > 0 || count($validPkgRows) > 0;
+            @endphp
+            @if($hasMaterialSummary)
                 <div class="bg-secondary-container/30 rounded-2xl border border-secondary/20 p-5 shadow-xs">
                     <h4 class="font-bold text-sm text-secondary flex items-center gap-2 mb-3">
                         <span class="material-symbols-outlined text-[18px]">inventory_2</span>
-                        BOM Summary
+                        BOM & Materials Summary
                     </h4>
-                    <ul class="space-y-2">
-                        @foreach($subsidiaryMaterialsList as $row)
-                            @if(!empty($row['raw_material_id']))
-                                @php
-                                    $matName = $subsidiaryRawMaterials->firstWhere('id', $row['raw_material_id'])?->name ?? '—';
-                                @endphp
-                                <li class="flex items-center justify-between text-xs">
-                                    <span class="font-semibold text-on-surface truncate max-w-[55%]">{{ $matName }}</span>
-                                    <span class="text-on-surface-variant font-mono">
-                                        {{ $row['consumption_quantity'] ?: '—' }} {{ $row['unit'] ?? '' }}
-                                    </span>
-                                </li>
-                            @endif
-                        @endforeach
-                    </ul>
+                    <div class="space-y-3">
+                        @if($is_fabric_used && ($standard_fabric_width || $standard_fabric_length))
+                            <div class="text-xs border-b border-secondary/10 pb-2">
+                                <span class="font-bold text-on-surface block text-[11px] uppercase tracking-wider text-secondary">Fabric Specifications</span>
+                                <div class="flex justify-between text-on-surface-variant font-mono mt-0.5">
+                                    <span>Width: {{ $standard_fabric_width ?: '—' }} {{ $fabric_width_unit }}</span>
+                                    <span>Length: {{ $standard_fabric_length ?: '—' }} {{ $fabric_length_unit }}</span>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($is_subsidiary_used && count($validSubRows) > 0)
+                            <div class="text-xs space-y-1">
+                                <span class="font-bold text-on-surface block text-[11px] uppercase tracking-wider text-secondary">Subsidiaries (BOM)</span>
+                                @foreach($validSubRows as $row)
+                                    @php
+                                        $matName = $subsidiaryRawMaterials->firstWhere('id', $row['raw_material_id'])?->name ?? '—';
+                                    @endphp
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="font-semibold text-on-surface truncate max-w-[60%]">{{ $matName }}</span>
+                                        <span class="text-on-surface-variant font-mono">
+                                            {{ $row['consumption_quantity'] ?: '—' }} {{ $row['unit'] ?? '' }}
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if($is_stitching_used && count($validStitchIds) > 0)
+                            <div class="text-xs space-y-1 border-t border-secondary/10 pt-2">
+                                <span class="font-bold text-on-surface block text-[11px] uppercase tracking-wider text-secondary">Stitching Threads</span>
+                                @foreach($validStitchIds as $sId)
+                                    @php
+                                        $matName = $stitchingRawMaterials->firstWhere('id', $sId)?->name ?? '—';
+                                    @endphp
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="font-semibold text-on-surface truncate">{{ $matName }}</span>
+                                        <span class="text-secondary font-mono font-bold text-[10px] bg-secondary-container px-1.5 py-0.5 rounded">Allocated</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if($is_packaging_used && count($validPkgRows) > 0)
+                            <div class="text-xs space-y-1 border-t border-secondary/10 pt-2">
+                                <span class="font-bold text-on-surface block text-[11px] uppercase tracking-wider text-secondary">Packaging Materials</span>
+                                @foreach($validPkgRows as $row)
+                                    @php
+                                        $matName = $packagingRawMaterials->firstWhere('id', $row['raw_material_id'])?->name ?? '—';
+                                    @endphp
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="font-semibold text-on-surface truncate max-w-[60%]">{{ $matName }}</span>
+                                        <span class="text-on-surface-variant font-mono">
+                                            {{ $row['required_quantity'] ?: '—' }} {{ $row['unit'] ?? '' }}
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
                 </div>
             @endif
 
@@ -812,22 +894,26 @@
                 <div class="absolute -right-4 -top-4 opacity-10">
                     <span class="material-symbols-outlined text-9xl">calculate</span>
                 </div>
-                <h4 class="font-label-md uppercase tracking-wider mb-4 opacity-80 text-xs font-bold">Cost Estimation (Routing Sum)</h4>
+                <h4 class="font-label-md uppercase tracking-wider mb-4 opacity-80 text-xs font-bold">Cost Estimation Summary</h4>
                 @php
-                    $totalRoutingLabor = array_sum(array_map(fn($r) => (float)($r['standard_labor_rate'] ?: 15.00), $routingTasksList));
+                    $totalRoutingLabor = array_sum(array_map(function($r) use ($standard_labor_rate) {
+                        return (float)($r['standard_labor_rate'] !== '' ? $r['standard_labor_rate'] : ($standard_labor_rate ?: 15.00));
+                    }, $routingTasksList));
+
+                    $configuredBomCount = count($validSubRows) + count($validStitchIds) + count($validPkgRows) + ($is_fabric_used ? 1 : 0);
                 @endphp
                 <div class="space-y-3 mb-6 relative z-10 text-sm">
                     <div class="flex justify-between">
                         <span>Total Routing Wages</span>
-                        <span>₹{{ number_format($totalRoutingLabor, 2) }}</span>
+                        <span class="font-mono font-bold">₹{{ number_format($totalRoutingLabor, 2) }}</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span>Materials & Overheads</span>
-                        <span>₹0.00</span>
+                    <div class="flex justify-between text-xs opacity-90">
+                        <span>Configured Material Components</span>
+                        <span class="font-mono font-bold">{{ $configuredBomCount }} Item{{ $configuredBomCount === 1 ? '' : 's' }}</span>
                     </div>
                     <div class="pt-3 border-t border-on-primary/20 flex justify-between font-bold text-base">
                         <span>Total Est. Base Cost</span>
-                        <span>₹{{ number_format($totalRoutingLabor, 2) }}</span>
+                        <span class="font-mono">₹{{ number_format($totalRoutingLabor, 2) }}</span>
                     </div>
                 </div>
                 <div class="bg-on-primary/10 p-3 rounded-xl border border-on-primary/10 text-xs">

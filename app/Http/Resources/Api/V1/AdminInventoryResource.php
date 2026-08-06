@@ -16,7 +16,7 @@ class AdminInventoryResource extends JsonResource
     public function toArray(Request $request): array
     {
         $primaryMedia = $this->primaryMedia ?: $this->media->first();
-        $primaryMediaUrl = $primaryMedia ? Storage::url($primaryMedia->file_path) : null;
+        $primaryMediaUrl = $primaryMedia ? url(Storage::url($primaryMedia->file_path)) : null;
 
         $hasCombinations = $this->combinations && $this->combinations->isNotEmpty();
         $totalStock = $hasCombinations

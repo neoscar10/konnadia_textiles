@@ -12,10 +12,10 @@ class FactoryRolesSeeder extends Seeder
      */
     public function run(): void
     {
-        $manageLabor = \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'manage_labor']);
+        $manageLabor = \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'manage_labor', 'guard_name' => 'web']);
 
-        $factorySupervisor = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Factory Supervisor']);
-        $laborer = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Laborer']);
+        $factorySupervisor = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Factory Supervisor', 'guard_name' => 'web']);
+        $laborer = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Laborer', 'guard_name' => 'web']);
 
         $factorySupervisor->givePermissionTo($manageLabor);
     }

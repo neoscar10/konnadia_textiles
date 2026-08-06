@@ -101,7 +101,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="bg-surface-container-low/50 border-b border-outline-variant/60 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                    <tr class="bg-surface-container-low/50 border-b border-outline-variant/60 text-xs font-bold uppercase tracking-wider text-on-surface-variant whitespace-nowrap select-none">
                         <th class="px-6 py-4">Batch Number</th>
                         <th class="px-6 py-4">Material & Category</th>
                         <th class="px-6 py-4">Purchase Date</th>
@@ -123,41 +123,36 @@
                         @endphp
                         <tr class="hover:bg-surface-container-low/20 transition-colors {{ $batch->status === 'depleted' ? 'opacity-70 bg-surface-container-low/10' : '' }}">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="font-mono font-black text-primary text-xs bg-primary/10 px-2.5 py-1 rounded-lg">
+                                <a href="{{ route('factory.raw-materials.batches.show', ['batch' => $batch->id]) }}" wire:navigate class="font-mono font-black text-primary text-xs bg-primary/10 px-2.5 py-1 rounded-lg hover:underline">
                                     {{ $batch->batch_number }}
-                                </span>
+                                </a>
                             </td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-primary shrink-0">
-                                        <span class="material-symbols-outlined text-[16px] font-bold">texture</span>
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-sm text-on-surface leading-tight">{{ $batch->rawMaterial?->name }}</p>
-                                        @if($batch->rawMaterial?->category)
-                                            <span class="inline-block mt-0.5 text-[9px] font-extrabold bg-secondary-container text-on-secondary-container px-1.5 py-0.5 rounded font-mono">
-                                                {{ $batch->rawMaterial->category->code }}
-                                            </span>
-                                        @endif
-                                    </div>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div>
+                                    <p class="font-bold text-sm text-on-surface leading-tight">{{ $batch->rawMaterial?->name }}</p>
+                                    @if($batch->rawMaterial?->category)
+                                        <span class="inline-block mt-0.5 text-[9px] font-extrabold bg-secondary-container text-on-secondary-container px-1.5 py-0.5 rounded font-mono">
+                                            {{ $batch->rawMaterial->category->code }}
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-on-surface-variant">
                                 {{ $batch->purchase_date ? $batch->purchase_date->format('d M Y') : '—' }}
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 <p class="font-bold text-on-surface leading-tight text-xs">{{ $batch->supplier_name ?: '—' }}</p>
                                 <span class="text-[10px] text-on-surface-variant font-mono mt-0.5 block">{{ $batch->invoice_number ? '#' . $batch->invoice_number : '' }}</span>
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap font-semibold">
-                                {{ number_format($totalQty, 4) }} <span class="text-xs text-on-surface-variant/70">{{ $batch->unit }}</span>
+                                {{ number_format($totalQty, 2) }} <span class="text-xs text-on-surface-variant/70">{{ $batch->unit }}</span>
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap font-semibold text-on-surface-variant/80">
-                                {{ number_format($consumedQty, 4) }} <span class="text-xs text-on-surface-variant/70">{{ $batch->unit }}</span>
+                                {{ number_format($consumedQty, 2) }} <span class="text-xs text-on-surface-variant/70">{{ $batch->unit }}</span>
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap font-bold">
                                 <div>
-                                    <span>{{ number_format($balanceQty, 4) }}</span>
+                                    <span>{{ number_format($balanceQty, 2) }}</span>
                                     <span class="text-xs text-on-surface-variant/70">{{ $batch->unit }}</span>
                                 </div>
                                 @if($batch->status === 'active')

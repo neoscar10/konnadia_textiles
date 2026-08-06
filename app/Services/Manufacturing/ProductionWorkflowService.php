@@ -47,34 +47,47 @@ class ProductionWorkflowService
                     'remarks' => $remarks,
                 ]);
 
-                // Identify the first task in product's routing sequence (sequence_number = 1)
-                $firstTask = $product->getFirstTask();
-                if (!$firstTask) {
-                    $firstTask = Task::where('status', true)->first();
-                }
-
-                if (!$firstTask) {
-                    throw new Exception("No production task routing found for {$product->name}. Please configure tasks in Product Master or Task Master first.");
-                }
-
-                // Automatically create the first linked Job record
+                // Create the single master Production Job record
                 $job = ProductionJob::create([
                     'production_batch_id' => $batch->batch_code,
                     'production_batch_db_id' => $batch->id,
                     'manufacturing_product_id' => $product->id,
-                    'task_id' => $firstTask->id,
                     'supervisor_id' => $supervisorId,
                     'job_date' => $batch->batch_date,
                     'target_quantity' => $plannedQuantity,
-                    'status' => 'pending',
-                    'notes' => "Auto-initiated initial stage: {$firstTask->name}",
+                    'status' => 'in_progress',
+                    'notes' => $remarks ?? "Master Production Job for Batch {$batch->batch_code}",
                 ]);
+
+                // Populate stage executions from Product Routing tasks
+                $routingTasks = $product->tasks;
+                if ($routingTasks->isEmpty()) {
+                    $fallbackTask = Task::where('status', true)->first();
+                    if ($fallbackTask) {
+                        $routingTasks = collect([$fallbackTask]);
+                    }
+                }
+
+                if ($routingTasks->isEmpty()) {
+                    throw new Exception("No production task routing found for {$product->name}. Please configure tasks in Product Master or Task Master first.");
+                }
+
+                foreach ($routingTasks as $idx => $task) {
+                    \App\Models\JobStageExecution::create([
+                        'production_job_id' => $job->id,
+                        'task_id' => $task->id,
+                        'sequence_number' => $idx + 1,
+                        'target_quantity' => $plannedQuantity,
+                        'status' => $idx === 0 ? 'in_progress' : 'pending',
+                        'started_at' => $idx === 0 ? now() : null,
+                    ]);
+                }
 
                 return ['batch' => $batch, 'job' => $job];
             });
 
             return $this->successResponse(
-                "Production Batch {$result['batch']->batch_code} initiated successfully with First Job {$result['job']->job_code}.",
+                "Production Batch {$result['batch']->batch_code} initiated successfully with Master Job {$result['job']->job_code}.",
                 $result,
                 201
             );
@@ -88,80 +101,95 @@ class ProductionWorkflowService
     }
 
     /**
-     * Complete a Production Job, evaluate forward quantities, and automatically
-     * generate the next stage Job ID based on product routing rules.
+     * Complete a stage execution (or current active stage on a job), evaluate forward quantities,
+     * and unlock/progress to the next stage execution within the same job.
      *
      * @param mixed $jobId
+     * @param mixed|null $taskId
      * @return JsonResponse
      */
-    public function completeJob($jobId): JsonResponse
+    public function completeJob($jobId, $taskId = null): JsonResponse
     {
         try {
-            $result = DB::transaction(function () use ($jobId) {
+            $result = DB::transaction(function () use ($jobId, $taskId) {
                 $job = ProductionJob::with([
                     'manufacturingProduct.tasks',
                     'batch',
+                    'stageExecutions.task',
                     'productOutputs',
                     'wastages',
                     'alterations',
                     'allocations',
                 ])->findOrFail($jobId);
 
-                if ($job->status === 'completed') {
+                $job->ensureStageExecutionsExist();
+                $job->unsetRelation('stageExecutions');
+                $job->load('stageExecutions.task');
+
+                // Identify current stage execution to complete
+                $stageExecution = null;
+                if ($taskId) {
+                    $stageExecution = $job->stageExecutions->firstWhere('task_id', $taskId);
+                } else {
+                    $stageExecution = $job->stageExecutions->firstWhere('status', 'in_progress')
+                        ?? $job->stageExecutions->firstWhere('status', 'pending');
+                }
+
+                if (!$stageExecution) {
+                    throw new Exception("No active or pending stage execution found on Job {$job->job_code}.");
+                }
+
+                if ($stageExecution->status === 'completed') {
                     return [
                         'job' => $job,
-                        'nextJob' => null,
+                        'stageExecution' => $stageExecution,
                         'isFinalStep' => false,
                         'alreadyCompleted' => true,
                     ];
                 }
 
-                // 1. Calculate Produced, Wasted, and Altered quantities
-                $producedQty = (int) $job->productOutputs()->sum('quantity_produced');
-                if ($producedQty <= 0) {
-                    // Fallback to total processed quantity in stage allocations if productOutputs were not explicitly recorded
-                    $producedQty = (int) $job->allocations()->where('task_id', $job->task_id)->sum('quantity_processed');
+                $currTaskId = $stageExecution->task_id;
+
+                // 1. Calculate Produced, Wasted, and Altered quantities for this stage
+                $explicitProductOutputSum = (int) $job->productOutputs()->where('task_id', $currTaskId)->sum('quantity_produced');
+                $wastedQty = (float) $job->wastages()->where('task_id', $currTaskId)->sum('quantity_wasted');
+                $alteredQty = (int) $job->alterations()->whereHas('sourceProduct', fn() => true)->sum('source_quantity');
+
+                if ($explicitProductOutputSum > 0) {
+                    $validForwardQuantity = (int) max(0, $explicitProductOutputSum - $wastedQty - $alteredQty);
+                } else {
+                    $workerProcessedQty = (int) $job->allocations()->where('task_id', $currTaskId)->sum('quantity_processed');
+                    if ($workerProcessedQty <= 0) {
+                        $workerProcessedQty = (int) $stageExecution->target_quantity;
+                    }
+
+                    $validForwardQuantity = (int) max(0, $workerProcessedQty - $wastedQty - $alteredQty);
                 }
-                if ($producedQty <= 0) {
-                    $producedQty = (int) $job->target_quantity;
-                }
 
-                $wastedQty = (float) $job->wastages()->where('task_id', $job->task_id)->sum('quantity_wasted');
-                $alteredQty = (int) $job->alterations()->sum('source_quantity');
+                // 2. Mark current stage execution as completed
+                $stageExecution->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                ]);
 
-                // Formula: Next Job Input = (Total Produced Qty) - (Quantity Wasted) - (Quantity Altered)
-                $validForwardQuantity = (int) max(0, $producedQty - $wastedQty - $alteredQty);
+                // 3. Find next stage execution in sequence
+                $nextStage = $job->stageExecutions
+                    ->where('sequence_number', '>', $stageExecution->sequence_number)
+                    ->sortBy('sequence_number')
+                    ->first();
 
-                // 2. Mark current job as completed
-                $job->update(['status' => 'completed']);
-
-                // 3. Consult Product Routing sequence to identify next task
-                $product = $job->manufacturingProduct;
-                $nextTask = $product ? $product->getNextTask($job->task_id) : null;
-
-                $nextJob = null;
                 $isFinalStep = false;
 
-                if ($nextTask) {
-                    // Auto-generate downstream Job ID for the next manufacturing stage
-                    $latestJobId = ProductionJob::max('id') ?? 0;
-                    $nextJobCode = "JOB-" . date('Y') . "-" . str_pad($latestJobId + 1, 4, '0', STR_PAD_LEFT);
-
-                    $nextJob = ProductionJob::create([
-                        'job_code' => $nextJobCode,
-                        'production_batch_id' => $job->production_batch_id,
-                        'production_batch_db_id' => $job->production_batch_db_id,
-                        'manufacturing_product_id' => $job->manufacturing_product_id,
-                        'task_id' => $nextTask->id,
-                        'supervisor_id' => $job->supervisor_id,
-                        'job_date' => now()->format('Y-m-d'),
+                if ($nextStage) {
+                    $nextStage->update([
+                        'status' => 'in_progress',
                         'target_quantity' => $validForwardQuantity,
-                        'status' => 'pending',
-                        'notes' => "Auto-generated downstream stage: {$nextTask->name} (Transferred Input: {$validForwardQuantity} Pcs)",
+                        'started_at' => now(),
                     ]);
                 } else {
-                    // Final Task Handling: Mark batch workflow as completed
+                    // Final Task Handling: Mark master job and batch workflow as completed
                     $isFinalStep = true;
+                    $job->update(['status' => 'completed']);
                     if ($job->batch) {
                         $job->batch->update([
                             'status' => 'Completed',
@@ -173,17 +201,18 @@ class ProductionWorkflowService
 
                 return [
                     'job' => $job,
-                    'nextJob' => $nextJob,
+                    'stageExecution' => $stageExecution,
+                    'nextStage' => $nextStage,
                     'validForwardQuantity' => $validForwardQuantity,
                     'isFinalStep' => $isFinalStep,
                 ];
             });
 
             $message = isset($result['alreadyCompleted'])
-                ? "Job {$result['job']->job_code} is already marked as completed."
+                ? "Stage {$result['stageExecution']->task?->name} is already marked as completed."
                 : ($result['isFinalStep']
-                    ? "Job {$result['job']->job_code} completed! Final production step reached — Batch is ready for Finished Goods conversion."
-                    : "Job {$result['job']->job_code} completed! Auto-generated downstream Job {$result['nextJob']?->job_code} (Target Input: {$result['validForwardQuantity']} Pcs).");
+                    ? "Job {$result['job']->job_code} completed! Final step reached — Batch is ready for Finished Goods conversion."
+                    : "Stage {$result['stageExecution']->task?->name} completed! Transferred {$result['validForwardQuantity']} Pcs to next stage: {$result['nextStage']?->task?->name}.");
 
             return $this->successResponse($message, $result, 200);
         } catch (Exception $e) {

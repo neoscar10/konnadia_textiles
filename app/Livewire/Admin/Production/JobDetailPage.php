@@ -74,6 +74,9 @@ class JobDetailPage extends Component
             'alterations.childBatch',
         ])->findOrFail($id);
 
+        $this->job->ensureStageExecutionsExist();
+        $this->job->unsetRelation('stageExecutions');
+
         $firstTask = $this->routingTasks->first();
         $this->selectedTaskId = $firstTask ? $firstTask->id : null;
 
@@ -176,7 +179,7 @@ class JobDetailPage extends Component
         }
 
         $product = $this->job->manufacturingProduct;
-        if (!$product || !$product->is_subsidiary_used) {
+        if (!$product) {
             return;
         }
 
@@ -190,7 +193,7 @@ class JobDetailPage extends Component
                 'unit'                => $mat->unit,
                 'expected_quantity'   => round($mat->pivot->consumption_quantity * $targetQty, 4),
                 'inventory_batch_id'  => '',
-                'actual_consumed'     => round($mat->pivot->consumption_quantity * $targetQty, 4),
+                'actual_consumed'     => '',
             ];
         }
     }
@@ -305,11 +308,24 @@ class JobDetailPage extends Component
 
     public function getRoutingTasksProperty()
     {
-        $tasks = $this->job->manufacturingProduct?->tasks;
-        if (!$tasks || $tasks->isEmpty()) {
-            return Task::where('status', true)->get();
+        $product = $this->job->manufacturingProduct;
+        if ($product) {
+            $tasks = $product->tasks()->orderBy('manufacturing_product_task.sequence_number', 'asc')->get();
+            if ($tasks->isNotEmpty()) {
+                return $tasks;
+            }
         }
-        return $tasks;
+
+        return Task::where('status', true)->get()->sortBy(function ($t) {
+            $code = strtoupper($t->code ?? '');
+            $name = strtoupper($t->name ?? '');
+            if (str_contains($code, 'CUT') || str_contains($name, 'CUT')) return 1;
+            if (str_contains($code, 'STITCH') || str_contains($name, 'STITCH')) return 2;
+            if (str_contains($code, 'QC') || str_contains($name, 'QC')) return 3;
+            if (str_contains($code, 'IRON') || str_contains($name, 'IRON')) return 4;
+            if (str_contains($code, 'PKG') || str_contains($name, 'PKG')) return 5;
+            return 10 + $t->id;
+        })->values();
     }
 
     /**
@@ -353,26 +369,30 @@ class JobDetailPage extends Component
             return (int) $this->job->target_quantity;
         }
 
-        $routingTasks = $this->routingTasks;
-        $currentIndex = null;
-
-        foreach ($routingTasks as $idx => $t) {
-            if ($t->id == $this->selectedTaskId) {
-                $currentIndex = $idx;
-                break;
-            }
-        }
-
-        if ($currentIndex === null || $currentIndex === 0) {
+        $currentExecution = $this->job->stageExecutions->firstWhere('task_id', $this->selectedTaskId);
+        if (!$currentExecution || $currentExecution->sequence_number === 1) {
             return (int) $this->job->target_quantity;
         }
 
-        $precedingTask = $routingTasks[$currentIndex - 1];
-        $precedingCompleted = (int) $this->job->allocations()
-            ->where('task_id', $precedingTask->id)
-            ->sum('quantity_processed');
+        // Get target quantity assigned to this stage execution from preceding stage output
+        if ($currentExecution->target_quantity > 0) {
+            return (int) $currentExecution->target_quantity;
+        }
 
-        return $precedingCompleted;
+        // Fallback to preceding stage execution's completed quantity
+        $precedingExecution = $this->job->stageExecutions
+            ->where('sequence_number', '<', $currentExecution->sequence_number)
+            ->sortByDesc('sequence_number')
+            ->first();
+
+        if ($precedingExecution) {
+            $precedingCompleted = $precedingExecution->completed_quantity;
+            if ($precedingCompleted > 0) {
+                return $precedingCompleted;
+            }
+        }
+
+        return (int) $this->job->target_quantity;
     }
 
     public function getPrecedingStageInfoProperty(): ?array
@@ -381,30 +401,27 @@ class JobDetailPage extends Component
             return null;
         }
 
-        $routingTasks = $this->routingTasks;
-        $currentIndex = null;
-
-        foreach ($routingTasks as $idx => $t) {
-            if ($t->id == $this->selectedTaskId) {
-                $currentIndex = $idx;
-                break;
-            }
-        }
-
-        if ($currentIndex === null || $currentIndex === 0) {
+        $currentExecution = $this->job->stageExecutions->firstWhere('task_id', $this->selectedTaskId);
+        if (!$currentExecution || $currentExecution->sequence_number === 1) {
             return null;
         }
 
-        $precedingTask = $routingTasks[$currentIndex - 1];
-        $precedingCompleted = (int) $this->job->allocations()
-            ->where('task_id', $precedingTask->id)
-            ->sum('quantity_processed');
+        $precedingExecution = $this->job->stageExecutions
+            ->where('sequence_number', '<', $currentExecution->sequence_number)
+            ->sortByDesc('sequence_number')
+            ->first();
+
+        if (!$precedingExecution) {
+            return null;
+        }
+
+        $precedingCompleted = $precedingExecution->completed_quantity;
 
         return [
-            'task' => $precedingTask,
+            'task'     => $precedingExecution->task,
             'completed' => $precedingCompleted,
-            'target' => (int) $this->job->target_quantity,
-            'pending_in_preceding' => max(0, (int) $this->job->target_quantity - $precedingCompleted),
+            'target'   => (int) $precedingExecution->target_quantity,
+            'pending_in_preceding' => max(0, (int) $precedingExecution->target_quantity - $precedingCompleted),
         ];
     }
 
@@ -413,17 +430,49 @@ class JobDetailPage extends Component
         return max(0, $this->stageMaxAllowedOutput - $this->stageCompletedQuantity);
     }
 
+    public function getStageAlreadyLoggedOutputProperty(): int
+    {
+        if (!$this->selectedTaskId) {
+            return 0;
+        }
+
+        return (int) $this->job->productOutputs()
+            ->where('task_id', $this->selectedTaskId)
+            ->sum('quantity_produced');
+    }
+
+    public function getStageRemainingOutputYieldProperty(): int
+    {
+        if (!$this->selectedTaskId) {
+            return 0;
+        }
+
+        $task = Task::find($this->selectedTaskId);
+        $stageWorkerCompleted = $this->stageCompletedQuantity;
+        $stageMaxAllowed = $this->stageMaxAllowedOutput;
+
+        $effectiveMax = ($task && $task->is_labor_required) ? $stageWorkerCompleted : $stageMaxAllowed;
+
+        return max(0, $effectiveMax - $this->stageAlreadyLoggedOutput);
+    }
+
     public function getAuthorizedLaborsProperty()
     {
         if (!$this->selectedTaskId) {
             return Labor::where('status', true)->get();
         }
 
-        return Labor::where('status', true)
+        $labors = Labor::where('status', true)
             ->whereHas('tasks', function ($q) {
                 $q->where('tasks.id', $this->selectedTaskId);
             })
             ->get();
+
+        if ($labors->isEmpty()) {
+            return Labor::where('status', true)->get();
+        }
+
+        return $labors;
     }
 
     public function getAvailableInventoryBatchesProperty()
@@ -442,6 +491,18 @@ class JobDetailPage extends Component
         // Exclude CAT-STITCH from the general inventory picker — those costs go to the cost pool
         $stitchCatId = \App\Models\RawMaterialCategory::where('code', 'CAT-STITCH')->value('id');
         $allowedCategoryIds = array_diff($allowedCategoryIds, array_filter([$stitchCatId]));
+
+        // Ensure subsidiary category (CAT‑SUB) batches are available when needed
+        $subCatId = \App\Models\RawMaterialCategory::where('code', 'CAT-SUB')->value('id');
+        if ($subCatId && !in_array($subCatId, $allowedCategoryIds)) {
+            $allowedCategoryIds[] = $subCatId;
+        }
+        
+        // Ensure packaging materials (CAT-PKG) are available for all tasks
+        $packagingCatId = \App\Models\RawMaterialCategory::where('code', 'CAT-PKG')->value('id');
+        if ($packagingCatId && !in_array($packagingCatId, $allowedCategoryIds)) {
+            $allowedCategoryIds[] = $packagingCatId;
+        }
 
         if (empty($allowedCategoryIds)) {
             return collect();
@@ -487,6 +548,11 @@ class JobDetailPage extends Component
         $allocatedSum = (int) array_sum(array_column($this->laborAllocations, 'quantity'));
         $pendingQty = $this->stagePendingQuantity;
 
+        if ($pendingQty <= 0) {
+            $this->addError('laborAllocations', 'No pending quantity available for this stage (0 Pcs pending).');
+            return;
+        }
+
         if ($allocatedSum > $pendingQty) {
             $precedingInfo = $this->precedingStageInfo;
             if ($precedingInfo) {
@@ -503,6 +569,14 @@ class JobDetailPage extends Component
                 $this->addError('laborAllocations', "Total allocated quantity ({$allocatedSum} Pcs) exceeds remaining pending quantity ({$pendingQty} Pcs) for this stage.");
             }
             return;
+        }
+
+        foreach ($this->laborAllocations as $idx => $row) {
+            $qty = (int) ($row['quantity'] ?? 0);
+            if ($qty > $pendingQty) {
+                $this->addError("laborAllocations.{$idx}.quantity", "Worker allocation quantity ({$qty} Pcs) exceeds remaining pending quantity ({$pendingQty} Pcs) for this stage.");
+                return;
+            }
         }
 
         $response = $wageService->processAllocations(
@@ -571,6 +645,15 @@ class JobDetailPage extends Component
                 $stitchCatId = \App\Models\RawMaterialCategory::where('code', 'CAT-STITCH')->value('id');
                 $allowedCategoryIds = array_diff($allowedCategoryIds, array_filter([$stitchCatId]));
 
+                // Include packaging category for packaging tasks
+                $isPackagingTask = stripos($task->name ?? '', 'pack') !== false || $task->code === 'TSK-006';
+                if ($isPackagingTask) {
+                    $packagingCatId = \App\Models\RawMaterialCategory::where('code', 'CAT-PKG')->value('id');
+                    if ($packagingCatId && !in_array($packagingCatId, $allowedCategoryIds)) {
+                        $allowedCategoryIds[] = $packagingCatId;
+                    }
+                }
+
                 $matCatId = $batch->rawMaterial->raw_material_category_id;
                 if (!in_array($matCatId, $allowedCategoryIds)) {
                     $categoryName = $batch->rawMaterial->category ? $batch->rawMaterial->category->name : 'Unknown';
@@ -615,6 +698,12 @@ class JobDetailPage extends Component
         });
 
         $this->job->load(['materialConsumptions.inventoryBatch.rawMaterial.category', 'materialConsumptions.task']);
+        // Log each consumption
+        foreach ($this->materialConsumptions as $row) {
+            $batch = InventoryBatch::find($row['inventory_batch_id']);
+            $consumedQty = (float) $row['quantity_consumed'];
+            InventoryBatchLogger::log($batch->id, 'consumed', $consumedQty, $this->job->production_batch_id ?? null, 'Consumed for production task');
+        }
 
         $this->materialConsumptions = [
             ['inventory_batch_id' => '', 'quantity_consumed' => '']
@@ -638,14 +727,34 @@ class JobDetailPage extends Component
         }
 
         $this->validate([
-            'subsidiaryConsumptions'                           => 'required|array|min:1',
-            'subsidiaryConsumptions.*.inventory_batch_id'      => 'required|exists:inventory_batches,id',
-            'subsidiaryConsumptions.*.actual_consumed'         => 'required|numeric|gt:0',
+            // Subsidiary consumptions are optional for many tasks (e.g., Packaging).
+            'subsidiaryConsumptions' => 'array',
+            // Both fields are nullable; we will enforce consistency manually.
+            'subsidiaryConsumptions.*.inventory_batch_id' => 'nullable|exists:inventory_batches,id',
+            'subsidiaryConsumptions.*.actual_consumed' => 'nullable|numeric|gt:0',
         ], [
-            'subsidiaryConsumptions.*.inventory_batch_id.required' => 'Please select an inventory batch for each subsidiary material.',
-            'subsidiaryConsumptions.*.actual_consumed.required'    => 'Actual consumed quantity is required.',
-            'subsidiaryConsumptions.*.actual_consumed.gt'          => 'Actual consumed quantity must be greater than 0.',
+            'subsidiaryConsumptions.*.inventory_batch_id.exists' => 'Selected inventory batch does not exist.',
+            'subsidiaryConsumptions.*.actual_consumed.numeric' => 'Actual consumed must be a number.',
+            'subsidiaryConsumptions.*.actual_consumed.gt' => 'Actual consumed quantity must be greater than 0.',
         ]);
+
+        // Cross‑field consistency: if one of the two fields is present, the other must be present.
+        foreach ($this->subsidiaryConsumptions as $idx => $row) {
+            $hasBatch = !empty($row['inventory_batch_id'] ?? null);
+            $hasConsumed = !empty($row['actual_consumed'] ?? null);
+            if ($hasBatch xor $hasConsumed) {
+                $this->addError(
+                    "subsidiaryConsumptions.{$idx}.inventory_batch_id",
+                    'Both inventory batch and consumed quantity must be provided together.'
+                );
+                return;
+            }
+        }
+
+        // Filter out empty rows that were not filled
+        $this->subsidiaryConsumptions = array_filter($this->subsidiaryConsumptions, function ($row) {
+            return !empty($row['inventory_batch_id']) && !empty($row['actual_consumed']);
+        });
 
         // Validate stock availability
         foreach ($this->subsidiaryConsumptions as $idx => $row) {
@@ -690,6 +799,12 @@ class JobDetailPage extends Component
         });
 
         $this->job->load(['materialConsumptions.inventoryBatch.rawMaterial.category', 'materialConsumptions.task']);
+        // Log each subsidiary consumption
+        foreach ($this->subsidiaryConsumptions as $row) {
+            $batch = InventoryBatch::find($row['inventory_batch_id']);
+            $consumedQty = (float) $row['actual_consumed'];
+            InventoryBatchLogger::log($batch->id, 'consumed', $consumedQty, $this->job->production_batch_id ?? null, 'Subsidiary material consumed for production task');
+        }
 
         // Reload pre-filled BOM rows for next submission
         $this->preloadSubsidiaryConsumptions();
@@ -718,6 +833,42 @@ class JobDetailPage extends Component
         if (count($selectedProductIds) !== count(array_unique($selectedProductIds))) {
             $this->addError('productionOutputs', 'Duplicate manufacturing products selected. Each product should only be added once.');
             return;
+        }
+
+        $producedSum = (int) array_sum(array_column($this->productionOutputs, 'quantity_produced'));
+        $task = Task::find($this->selectedTaskId);
+
+        $alreadyLoggedOutput = $this->stageAlreadyLoggedOutput;
+        $stageWorkerCompleted = $this->stageCompletedQuantity;
+        $remainingAllowed = $this->stageRemainingOutputYield;
+
+        if ($task && $task->is_labor_required && $stageWorkerCompleted <= 0) {
+            $taskName = $task->name;
+            $this->addError('productionOutputs', "Cannot record product output for {$taskName}: Workers must complete labor allocations first (Current worker output: 0 Pcs).");
+            return;
+        }
+
+        if ($remainingAllowed <= 0) {
+            $taskName = $task ? $task->name : 'this stage';
+            $this->addError('productionOutputs', "No remaining unlogged yield available for {$taskName} ({$alreadyLoggedOutput} Pcs already transferred to next stage out of {$stageWorkerCompleted} Pcs worker output).");
+            return;
+        }
+
+        if ($producedSum > $remainingAllowed) {
+            $taskName = $task ? $task->name : 'this stage';
+            $this->addError(
+                'productionOutputs',
+                "Total product output quantity ({$producedSum} Pcs) cannot exceed the remaining unlogged output yield for {$taskName} ({$remainingAllowed} Pcs). {$alreadyLoggedOutput} Pcs have already been recorded and transferred."
+            );
+            return;
+        }
+
+        foreach ($this->productionOutputs as $idx => $row) {
+            $qty = (int) ($row['quantity_produced'] ?? 0);
+            if ($qty > $remainingAllowed) {
+                $this->addError("productionOutputs.{$idx}.quantity_produced", "Product output quantity ({$qty} Pcs) exceeds remaining unlogged yield limit ({$remainingAllowed} Pcs).");
+                return;
+            }
         }
 
         DB::transaction(function () {
@@ -762,6 +913,19 @@ class JobDetailPage extends Component
             'wastageRecords.*.quantity_wasted.required' => 'Wasted quantity is required.',
             'wastageRecords.*.quantity_wasted.gt' => 'Wasted quantity must be greater than 0.',
         ]);
+
+        $wastedSum = (float) array_sum(array_column($this->wastageRecords, 'quantity_wasted'));
+        $maxAllowed = $this->stageMaxAllowedOutput;
+
+        if ($maxAllowed <= 0) {
+            $this->addError('wastageRecords', 'No pending/allowed quantity available for wastage entry for this stage.');
+            return;
+        }
+
+        if ($wastedSum > $maxAllowed) {
+            $this->addError('wastageRecords', "Total wasted quantity ({$wastedSum} Pcs) cannot exceed maximum allowed stage quantity ({$maxAllowed} Pcs).");
+            return;
+        }
 
         DB::transaction(function () {
             foreach ($this->wastageRecords as $row) {
@@ -904,7 +1068,12 @@ class JobDetailPage extends Component
         }
 
         // Validate that if labor is required, all produced/target quantities have been allocated
-        $task = Task::find($this->job->task_id);
+        $task = Task::find($this->selectedTaskId);
+        if (!$task) {
+            $stageExec = $this->job->stageExecutions()->where('status', 'in_progress')->first();
+            $task = $stageExec?->task;
+        }
+
         if ($task && $task->is_labor_required) {
             $allocatedQty = (int) $this->job->allocations()->where('task_id', $task->id)->sum('quantity_processed');
             $producedQty = (int) $this->job->productOutputs()->where('task_id', $task->id)->sum('quantity_produced');
@@ -977,6 +1146,8 @@ class JobDetailPage extends Component
             'stageCompleted' => $this->stageCompletedQuantity,
             'stagePending' => $this->stagePendingQuantity,
             'stageMaxAllowed' => $this->stageMaxAllowedOutput,
+            'stageAlreadyLoggedOutput' => $this->stageAlreadyLoggedOutput,
+            'stageRemainingOutputYield' => $this->stageRemainingOutputYield,
             'precedingInfo' => $this->precedingStageInfo,
         ])->title("Job {$this->job->job_code} — Detail & Stage Management");
     }
@@ -1135,6 +1306,13 @@ class JobDetailPage extends Component
         $batch = InventoryBatch::findOrFail($this->cuttingFabricBatchId);
         if ($this->cuttingConsumedLength > (float)$batch->balance_quantity) {
             $this->addError('cuttingConsumedLength', "Consumed length exceeds available stock ({$batch->balance_quantity} {$batch->unit}).");
+            return;
+        }
+
+        $totalCutOutputQty = (int) array_sum(array_column($this->cuttingOutputs, 'quantity'));
+        $targetQty = (int) $this->job->target_quantity;
+        if ($totalCutOutputQty > $targetQty) {
+            $this->addError('cuttingOutputs', "Total cut piece output ({$totalCutOutputQty} Pcs) cannot exceed the job target quantity ({$targetQty} Pcs).");
             return;
         }
 

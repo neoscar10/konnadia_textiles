@@ -13,7 +13,7 @@
 
     <!-- Filters Bar -->
     <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant mb-6 flex flex-wrap items-center gap-4 shadow-sm">
-        <div class="flex-1 min-w-[240px]">
+        <div class="w-full max-w-md">
             <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-on-surface-variant">search</span>
                 <input wire:model.live.debounce.300ms="search" class="w-full px-4 py-2.5 bg-surface rounded-lg border border-outline-variant focus:ring-1 focus:ring-primary font-body-sm text-body-sm" placeholder="Search Batch, Job ID, Worker Name, Task..." type="text"/>

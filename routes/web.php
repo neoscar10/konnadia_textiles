@@ -97,6 +97,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/factory/raw-materials', \App\Livewire\Factory\RawMaterialList::class)->name('factory.raw-materials.index');
     Route::get('/factory/raw-materials/purchase', \App\Livewire\Factory\RawMaterialPurchaseEntry::class)->name('factory.raw-materials.purchase');
     Route::get('/factory/raw-materials/batches', \App\Livewire\Factory\InventoryBatchList::class)->name('factory.raw-materials.batches');
+    Route::get('/factory/raw-materials/batches/{batch}', \App\Livewire\Factory\InventoryBatchDetail::class)->name('factory.raw-materials.batches.show');
 });
 
 // Optional Customer Route Group (available to guests and logged-in customers)

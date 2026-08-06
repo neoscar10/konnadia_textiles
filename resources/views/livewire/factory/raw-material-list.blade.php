@@ -26,7 +26,7 @@
     </div>
 
     <!-- Search & Filter Bar -->
-    <div class="bg-surface-container-lowest border border-outline-variant/60 p-4 rounded-2xl mb-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="bg-surface-container-lowest border border-outline-variant/60 p-4 rounded-2xl mb-6 shadow-xs flex flex-col sm:flex-row items-center justify-start gap-4">
         <div class="relative w-full max-w-md">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-outline material-symbols-outlined text-[20px]">search</span>
             <input
@@ -157,9 +157,8 @@
                                     </button>
                                     <button
                                         type="button"
-                                        wire:click="delete({{ $material->id }})"
-                                        wire:confirm="Are you sure you want to delete raw material [{{ $material->name }}]?"
-                                        class="w-9 h-9 rounded-xl border border-outline-variant/60 text-error/70 hover:bg-error-container/20 hover:text-error flex items-center justify-center transition-colors"
+                                        wire:click="confirmDelete({{ $material->id }})"
+                                        class="w-9 h-9 rounded-xl border border-outline-variant/60 text-error/70 hover:bg-error-container/20 hover:text-error flex items-center justify-center transition-colors cursor-pointer"
                                         title="Delete Raw Material"
                                     >
                                         <span class="material-symbols-outlined text-[18px]">delete_outline</span>
@@ -192,4 +191,17 @@
 
     <!-- Manager Modal (embedded) -->
     <livewire:factory.raw-material-manager />
+
+    <!-- Delete Confirmation Modal -->
+    <x-admin.modal id="delete-raw-material-modal" title="Delete Raw Material" maxWidth="md">
+        <div class="space-y-4">
+            <p class="font-body-md text-on-surface">Are you sure you want to delete raw material <strong class="text-primary font-bold">[{{ $deletingMaterialName }}]</strong>?</p>
+            <p class="font-body-md text-on-surface-variant text-xs">This action cannot be undone. Historical procurement records and job consumption ledgers will be preserved.</p>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-outline-variant/30">
+                <x-admin.button type="button" variant="ghost" @click="show = false">Cancel</x-admin.button>
+                <x-admin.button type="button" variant="primary" wire:click="delete" class="!bg-error hover:!bg-error/90 !text-white" icon="delete">Confirm Delete</x-admin.button>
+            </div>
+        </div>
+    </x-admin.modal>
 </div>

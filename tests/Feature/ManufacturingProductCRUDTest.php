@@ -29,7 +29,7 @@ class ManufacturingProductCRUDTest extends TestCase
 
         // Create admin user and assign admin role
         $this->admin = User::factory()->create();
-        $this->admin->assignRole('admin');
+        $this->admin->assignRole(\Spatie\Permission\Models\Role::where('name', 'admin')->where('guard_name', 'web')->first() ?? 'admin');
 
         // Create categories
         $this->activeCategory = ManufacturingProductCategory::create([

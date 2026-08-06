@@ -35,10 +35,15 @@ class ProductionBatch extends Model
      */
     public function isReadyForConversion(): bool
     {
+        $job = $this->job;
+        if (!$job) {
+            return false;
+        }
+
         return $this->status === 'Completed' 
             && !$this->is_converted 
-            && $this->jobs()->count() > 0 
-            && !$this->jobs()->where('status', '!=', 'completed')->exists();
+            && $job->stageExecutions()->count() > 0 
+            && !$job->stageExecutions()->where('status', '!=', 'completed')->exists();
     }
 
     protected static function boot()
@@ -62,12 +67,12 @@ class ProductionBatch extends Model
                 $product = $batch->manufacturingProduct;
                 if ($product) {
                     $finalTask = $product->getFinalTask();
-                    if ($finalTask) {
-                        $finalJobCompleted = $batch->jobs()
+                    if ($finalTask && $batch->job) {
+                        $finalStageCompleted = $batch->job->stageExecutions()
                             ->where('task_id', $finalTask->id)
                             ->where('status', 'completed')
                             ->exists();
-                        if (!$finalJobCompleted) {
+                        if (!$finalStageCompleted) {
                             throw new \Exception("Cannot set batch status to Completed before the designated Final Production Step [{$finalTask->name}] is completed.");
                         }
                     }
@@ -106,6 +111,14 @@ class ProductionBatch extends Model
     public function manufacturingProduct()
     {
         return $this->belongsTo(ManufacturingProduct::class);
+    }
+
+    /**
+     * Get the single master production job for this batch.
+     */
+    public function job()
+    {
+        return $this->hasOne(ProductionJob::class, 'production_batch_db_id');
     }
 
     /**

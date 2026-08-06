@@ -16,7 +16,7 @@ class AdminProductResource extends JsonResource
     public function toArray(Request $request): array
     {
         $primaryMedia = $this->primaryMedia ?: $this->media->first();
-        $primaryMediaUrl = $primaryMedia ? Storage::url($primaryMedia->file_path) : null;
+        $primaryMediaUrl = $primaryMedia ? url(Storage::url($primaryMedia->file_path)) : null;
 
         // Calculate total stock across variants or main product stock
         $totalStock = $this->stock_quantity;

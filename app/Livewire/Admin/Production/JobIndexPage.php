@@ -75,7 +75,7 @@ class JobIndexPage extends Component
 
     public function render()
     {
-        $query = ProductionJob::with(['manufacturingProduct', 'allocations']);
+        $query = ProductionJob::with(['manufacturingProduct', 'stageExecutions.task', 'allocations']);
 
         if (!empty($this->search)) {
             $query->where(function ($q) {

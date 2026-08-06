@@ -50,6 +50,14 @@ class JobMaterialConsumption extends Model
     }
 
     /**
+     * Alias for production job used in UI.
+     */
+    public function job()
+    {
+        return $this->belongsTo(ProductionJob::class, 'production_job_id');
+    }
+
+    /**
      * Get the task stage for this consumption.
      */
     public function task()

@@ -218,10 +218,11 @@ class TaskMasterConfigurationTest extends TestCase
         $job = ProductionJob::create([
             'job_code' => 'JOB-TEST-99',
             'manufacturing_product_id' => $mProduct->id,
-            'task_id' => $nonConsumingTask->id,
             'target_quantity' => 50,
             'status' => 'pending',
         ]);
+        \App\Models\JobStageExecution::create(['production_job_id' => $job->id, 'task_id' => $nonConsumingTask->id, 'sequence_number' => 1, 'target_quantity' => 50]);
+        \App\Models\JobStageExecution::create(['production_job_id' => $job->id, 'task_id' => $consumingTask->id, 'sequence_number' => 2, 'target_quantity' => 50]);
 
         // Test JobDetailPage with non-consuming task selected
         $component = Livewire::test(\App\Livewire\Admin\Production\JobDetailPage::class, ['id' => $job->id])
@@ -231,7 +232,6 @@ class TaskMasterConfigurationTest extends TestCase
         $this->assertCount(0, $availableBatches, 'Should return 0 inventory batches for a non-consuming task.');
 
         // Test JobDetailPage with consuming task selected
-        $job->update(['task_id' => $consumingTask->id]);
         $component2 = Livewire::test(\App\Livewire\Admin\Production\JobDetailPage::class, ['id' => $job->id])
             ->set('selectedTaskId', $consumingTask->id);
 
@@ -285,10 +285,10 @@ class TaskMasterConfigurationTest extends TestCase
         $jobNonLabor = ProductionJob::create([
             'job_code' => 'JOB-NL-01',
             'manufacturing_product_id' => $mProduct->id,
-            'task_id' => $nonLaborTask->id,
             'target_quantity' => 100,
             'status' => 'pending',
         ]);
+        \App\Models\JobStageExecution::create(['production_job_id' => $jobNonLabor->id, 'task_id' => $nonLaborTask->id, 'sequence_number' => 1, 'target_quantity' => 100]);
 
         // Should complete successfully without validation errors because task has is_labor_required = false
         Livewire::test(\App\Livewire\Admin\Production\JobDetailPage::class, ['id' => $jobNonLabor->id])
@@ -300,13 +300,14 @@ class TaskMasterConfigurationTest extends TestCase
         $jobLabor = ProductionJob::create([
             'job_code' => 'JOB-L-02',
             'manufacturing_product_id' => $mProduct->id,
-            'task_id' => $laborTask->id,
             'target_quantity' => 100,
             'status' => 'pending',
         ]);
+        \App\Models\JobStageExecution::create(['production_job_id' => $jobLabor->id, 'task_id' => $laborTask->id, 'sequence_number' => 1, 'target_quantity' => 100]);
 
         // Attempting to complete without allocating labor should throw validation error
         Livewire::test(\App\Livewire\Admin\Production\JobDetailPage::class, ['id' => $jobLabor->id])
+            ->set('selectedTaskId', $laborTask->id)
             ->call('completeCurrentJob')
             ->assertHasErrors(['jobStatus']);
     }

@@ -14,7 +14,6 @@ class ProductionJob extends Model
         'production_batch_id',
         'production_batch_db_id',
         'manufacturing_product_id',
-        'task_id',
         'supervisor_id',
         'job_date',
         'target_quantity',
@@ -53,11 +52,47 @@ class ProductionJob extends Model
     }
 
     /**
-     * Get the task stage for this job.
+     * Get all stage executions for this single master job.
      */
-    public function task()
+    public function stageExecutions()
     {
-        return $this->belongsTo(Task::class);
+        return $this->hasMany(JobStageExecution::class, 'production_job_id')->orderBy('sequence_number');
+    }
+
+    /**
+     * Ensure all product routing tasks exist as stage execution records.
+     */
+    public function ensureStageExecutionsExist(): void
+    {
+        $product = $this->manufacturingProduct;
+        if (!$product) {
+            return;
+        }
+
+        $routingTasks = $product->tasks;
+        if ($routingTasks->isEmpty()) {
+            return;
+        }
+
+        $existingExecutions = $this->stageExecutions;
+        $existingTaskIds = $existingExecutions->pluck('task_id')->toArray();
+
+        foreach ($routingTasks as $idx => $task) {
+            if (!in_array($task->id, $existingTaskIds)) {
+                $seq = $task->pivot->sequence_number ?? ($idx + 1);
+                
+                $prevExec = $existingExecutions->where('sequence_number', '<', $seq)->sortByDesc('sequence_number')->first();
+                $targetQty = $prevExec ? ($prevExec->target_quantity > 0 ? $prevExec->target_quantity : $this->target_quantity) : $this->target_quantity;
+
+                JobStageExecution::create([
+                    'production_job_id' => $this->id,
+                    'task_id' => $task->id,
+                    'sequence_number' => $seq,
+                    'target_quantity' => $targetQty,
+                    'status' => 'pending',
+                ]);
+            }
+        }
     }
 
     /**

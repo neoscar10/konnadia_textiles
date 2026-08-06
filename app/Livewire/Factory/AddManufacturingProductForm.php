@@ -8,17 +8,22 @@ use App\Models\RawMaterial;
 use App\Models\RawMaterialCategory;
 use App\Models\Task;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\Attributes\Layout;
 
 #[Layout('components.admin.layout')]
 class AddManufacturingProductForm extends Component
 {
+    use WithFileUploads;
+
     public $productId = null;
     public string $name = '';
     public string $code = '';
     public $manufacturing_product_category_id = '';
     public string $status = 'active';
     public $standard_labor_rate = 15.00;
+    public $imageUpload = null;
+    public $existing_image_path = '';
 
     // Fabric configuration properties
     public bool $is_fabric_used = false;
@@ -62,6 +67,7 @@ class AddManufacturingProductForm extends Component
             'routingTasksList.*.standard_labor_rate' => 'nullable|numeric|min:0',
             'mapped_product_id'                 => 'nullable|exists:products,id',
             'mapped_product_combination_id'     => 'nullable|exists:product_combinations,id',
+            'imageUpload'                       => 'nullable|image|max:10240',
         ];
 
         if ($this->is_fabric_used) {
@@ -231,6 +237,7 @@ class AddManufacturingProductForm extends Component
             $this->productId                         = $product->id;
             $this->name                              = $product->name;
             $this->code                              = $product->code;
+            $this->existing_image_path               = $product->image_path ?? '';
             $this->manufacturing_product_category_id = $product->manufacturing_product_category_id ?? '';
             $this->status                            = $product->status ?? 'active';
             $this->standard_labor_rate               = $product->standard_labor_rate ?? 15.00;
@@ -401,6 +408,13 @@ class AddManufacturingProductForm extends Component
             'product_combination_id' => $this->mapped_product_combination_id ?: null,
         ];
 
+        $imageData = [];
+        if ($this->imageUpload) {
+            $imageData['image_path'] = $this->imageUpload->store('manufacturing_products', 'public');
+        } elseif ($this->existing_image_path) {
+            $imageData['image_path'] = $this->existing_image_path;
+        }
+
         if ($this->productId) {
             $product = ManufacturingProduct::findOrFail($this->productId);
             $product->update(array_merge([
@@ -408,7 +422,7 @@ class AddManufacturingProductForm extends Component
                 'manufacturing_product_category_id' => $this->manufacturing_product_category_id,
                 'status'                            => $this->status,
                 'standard_labor_rate'               => $this->standard_labor_rate ?: 15.00,
-            ], $fabricData, $materialData, $mappingData));
+            ], $fabricData, $materialData, $mappingData, $imageData));
             $message = "Manufacturing Product {$product->name} updated successfully!";
         } else {
             $product = ManufacturingProduct::create(array_merge([
@@ -416,7 +430,7 @@ class AddManufacturingProductForm extends Component
                 'manufacturing_product_category_id' => $this->manufacturing_product_category_id,
                 'status'                            => $this->status,
                 'standard_labor_rate'               => $this->standard_labor_rate ?: 15.00,
-            ], $fabricData, $materialData, $mappingData));
+            ], $fabricData, $materialData, $mappingData, $imageData));
             $message = "Manufacturing Product {$product->name} created successfully!";
         }
 

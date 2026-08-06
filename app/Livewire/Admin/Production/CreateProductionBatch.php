@@ -23,7 +23,15 @@ class CreateProductionBatch extends Component
     public function mount()
     {
         // Spatie RBAC Check
-        if (!auth()->user()->hasAnyRole(['super_admin', 'admin', 'Factory Supervisor']) && !auth()->user()->can('manage_labor')) {
+        $user = auth()->user();
+        $hasRole = false;
+        try {
+            $hasRole = $user->hasAnyRole(['super_admin', 'admin', 'Factory Supervisor']);
+        } catch (\Spatie\Permission\Exceptions\RoleDoesNotExist $e) {
+            $hasRole = $user->hasAnyRole(['super_admin', 'admin']);
+        }
+
+        if (!$hasRole && !$user->can('manage_labor')) {
             abort(403, 'Unauthorized access to initiate production batches.');
         }
 
@@ -85,9 +93,17 @@ class CreateProductionBatch extends Component
         $selectedProduct = ManufacturingProduct::with('tasks')->find($this->manufacturing_product_id);
         $recentBatches = ProductionBatch::with(['manufacturingProduct', 'supervisor', 'childBatches', 'parentBatch'])->latest()->take(10)->get();
 
-        $supervisors = User::role(['super_admin', 'admin', 'Factory Supervisor'])->get();
+        $supervisors = User::where('is_active', true)
+            ->where(function ($query) {
+                $query->whereHas('roles', function ($q) {
+                    $q->whereIn('name', ['super_admin', 'admin', 'Factory Supervisor']);
+                });
+            })
+            ->orderBy('name')
+            ->get();
+
         if ($supervisors->isEmpty()) {
-            $supervisors = User::all();
+            $supervisors = User::where('is_active', true)->orderBy('name')->get();
         }
 
         return view('livewire.admin.production.create-production-batch', [

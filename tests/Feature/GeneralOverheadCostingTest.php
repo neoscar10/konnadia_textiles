@@ -146,8 +146,16 @@ class GeneralOverheadCostingTest extends TestCase
             'manufacturing_product_id' => $this->mProduct->id,
             'target_quantity' => 10,
             'status' => 'pending',
-            'task_id' => $this->finalTask->id,
         ]);
+
+        $this->stageExecution = \App\Models\JobStageExecution::create([
+            'production_job_id' => $this->prodJob->id,
+            'task_id' => $this->finalTask->id,
+            'sequence_number' => 1,
+            'target_quantity' => 10,
+            'status' => 'pending',
+        ]);
+
 
         $this->storefrontProduct = Product::create([
             'title' => 'Luxury Cushion Cover Storefront',
@@ -216,7 +224,8 @@ class GeneralOverheadCostingTest extends TestCase
 
     public function test_conversion_deducts_packaging_materials_via_fifo()
     {
-        // 1. Complete final job
+        // 1. Complete final job & stage execution
+        $this->stageExecution->update(['status' => 'completed']);
         $this->prodJob->update(['status' => 'completed']);
         $this->prodBatch->update(['status' => 'Completed']);
 

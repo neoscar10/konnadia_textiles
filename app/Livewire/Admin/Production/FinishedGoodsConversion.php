@@ -20,7 +20,7 @@ class FinishedGoodsConversion extends Component
     {
         $this->batch = ProductionBatch::with([
             'manufacturingProduct',
-            'jobs.task',
+            'job.stageExecutions.task',
             'productOutputs',
         ])->findOrFail($id);
 

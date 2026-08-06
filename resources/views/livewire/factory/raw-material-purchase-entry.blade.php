@@ -233,7 +233,7 @@
                                             {{ \Illuminate\Support\Carbon::parse($purchase_date)->format('d M Y') }}
                                         </td>
                                         <td class="px-6 py-4 text-right font-bold text-on-surface">
-                                            {{ number_format(floatval($quantity_received), 4) }} {{ $unitName }}
+                                            {{ number_format(floatval($quantity_received), 2) }} {{ $unitName }}
                                         </td>
                                         <td class="px-6 py-4 text-right text-on-surface-variant">
                                             ₹{{ number_format(floatval($purchase_rate), 2) }}
@@ -249,6 +249,20 @@
                         </div>
                     </section>
                 @endif
+                <!-- Action Buttons (In-flow & Left-aligned) -->
+                <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-xs flex flex-col sm:flex-row items-center justify-start gap-4">
+                    <button type="submit" class="w-full sm:w-auto px-8 py-3.5 text-sm font-extrabold text-on-primary bg-primary hover:bg-primary-container rounded-xl flex items-center justify-center gap-2.5 shadow-md transition-all active:scale-95 cursor-pointer">
+                        <span class="material-symbols-outlined text-[20px]">save</span>
+                        Save Purchase Entry
+                    </button>
+                    <a href="{{ route('factory.raw-materials.index') }}" wire:navigate class="w-full sm:w-auto px-7 py-3.5 text-sm font-bold text-on-surface-variant bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/60 rounded-xl text-center transition-all">
+                        Cancel
+                    </a>
+                    <div class="flex items-center gap-2 text-on-surface-variant/70 sm:ml-auto">
+                        <span class="material-symbols-outlined text-[18px]">verified_user</span>
+                        <p class="font-label-sm text-xs font-semibold">Secure Entry Session</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Sidebar (Sticky/Cost Summary) -->
@@ -356,23 +370,5 @@
                 </section>
             </div>
         </div>
-
-        <!-- Sticky Footer Action Bar -->
-        <div class="h-24"></div> <!-- Spacer so content doesn't hide behind footer -->
-        <footer class="fixed bottom-0 right-0 w-[calc(100%-var(--sidebar-width))] bg-surface-container-lowest border-t border-outline-variant/60 px-gutter py-4 flex justify-between items-center z-40">
-            <div class="flex items-center gap-2 text-on-surface-variant opacity-60">
-                <span class="material-symbols-outlined text-[18px]">verified_user</span>
-                <p class="font-label-sm text-xs font-semibold">Secure Entry Session - All changes are logged for auditing.</p>
-            </div>
-            <div class="flex items-center gap-4">
-                <a href="{{ route('factory.raw-materials.index') }}" wire:navigate class="px-6 py-2.5 font-label-md text-xs font-bold text-on-surface bg-surface-container-high hover:bg-surface-container-highest rounded-xl transition-all">
-                    Cancel
-                </a>
-                <button type="submit" class="px-8 py-2.5 font-label-md text-xs font-bold text-on-primary bg-primary hover:bg-primary-container rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95">
-                    <span class="material-symbols-outlined text-[20px]">save</span>
-                    Save Purchase Entry
-                </button>
-            </div>
-        </footer>
     </form>
 </div>

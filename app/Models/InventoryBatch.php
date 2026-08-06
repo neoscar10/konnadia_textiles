@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use App\Models\InventoryBatchLog;
 
 class InventoryBatch extends Model
 {
@@ -101,6 +102,14 @@ class InventoryBatch extends Model
     public function consumptions()
     {
         return $this->hasMany(JobMaterialConsumption::class);
+    }
+
+    /**
+     * Get log entries for this batch.
+     */
+    public function logs()
+    {
+        return $this->hasMany(InventoryBatchLog::class);
     }
 
     /**

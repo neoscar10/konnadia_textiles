@@ -153,7 +153,7 @@
         @endcan
 
         <!-- Factory Group -->
-        @can('manage_labor')
+        @if(auth()->user()->hasAnyRole(['super_admin', 'admin', 'Factory Supervisor']) || auth()->user()->can('manage_labor'))
             <div class="px-md mt-md mb-xs" x-show="sidebarOpen">
                 <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Factory</p>
             </div>
@@ -203,7 +203,7 @@
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Labor Tracking History</span>
                 </a>
             </nav>
-        @endcan
+        @endif
 
         <!-- System Group -->
         @if(auth()->user()->hasRole('super_admin') || auth()->user()->can('access settings'))

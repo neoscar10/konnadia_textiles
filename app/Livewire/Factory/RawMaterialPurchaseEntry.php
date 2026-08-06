@@ -8,6 +8,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Services\InventoryBatchLogger;
 
 #[Layout('components.admin.layout')]
 class RawMaterialPurchaseEntry extends Component
@@ -110,8 +111,9 @@ class RawMaterialPurchaseEntry extends Component
 
         $material = RawMaterial::findOrFail($this->raw_material_id);
 
-        DB::transaction(function () use ($material) {
-            InventoryBatch::create([
+        $batch = null;
+        DB::transaction(function () use ($material, &$batch) {
+            $batch = InventoryBatch::create([
                 'raw_material_id' => $this->raw_material_id,
                 'supplier_name' => $this->supplier_name,
                 'purchase_date' => $this->purchase_date,
@@ -124,6 +126,8 @@ class RawMaterialPurchaseEntry extends Component
                 'unit' => $material->unit,
                 'status' => 'active',
             ]);
+            // Log creation
+            InventoryBatchLogger::log($batch->id, 'created', $batch->quantity_received, null, 'Purchase entry recorded');
         });
 
         session()->flash('toast', [

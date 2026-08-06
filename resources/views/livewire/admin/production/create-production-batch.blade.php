@@ -41,8 +41,8 @@
                     </div>
 
                     <div class="space-y-5">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                            <div class="md:col-span-6">
                                 <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Manufacturing Product *</label>
                                 <select wire:model.live="manufacturing_product_id" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                                     @foreach($allProducts as $product)
@@ -52,8 +52,8 @@
                                 @error('manufacturing_product_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Planned Qty (Units/Pcs) *</label>
+                            <div class="md:col-span-3">
+                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2 whitespace-nowrap">Qty (Units/Pcs) *</label>
                                 <div class="relative">
                                     <input type="number" min="1" wire:model.live="planned_quantity" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl pl-4 pr-12 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="500">
                                     <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-outline font-bold">Pcs</span>
@@ -61,7 +61,7 @@
                                 @error('planned_quantity') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                             </div>
 
-                            <div>
+                            <div class="md:col-span-3">
                                 <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Batch Priority *</label>
                                 <select wire:model.live="priority" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                                     <option value="Normal">Normal Priority</option>
@@ -214,7 +214,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse font-body-md">
                 <thead>
-                    <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
+                    <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider whitespace-nowrap">
                         <th class="px-4 py-3 font-bold">Batch Code</th>
                         <th class="px-4 py-3 font-bold">Manufacturing Product SKU</th>
                         <th class="px-4 py-3 font-bold text-center">Status</th>
