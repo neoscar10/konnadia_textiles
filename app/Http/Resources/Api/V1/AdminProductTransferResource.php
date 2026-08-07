@@ -38,6 +38,8 @@ class AdminProductTransferResource extends JsonResource
                 'name' => $creator->name,
                 'email' => $creator->email,
             ] : null,
+            'document_url' => url("/api/v1/admin/product-transfers/{$this->id}/document"),
+            'download_url' => url("/api/v1/admin/product-transfers/{$this->id}/download"),
             'created_at' => $this->created_at ? $this->created_at->format('d-M-Y H:i') : null,
         ];
     }

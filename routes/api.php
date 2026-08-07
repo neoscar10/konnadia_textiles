@@ -175,6 +175,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'options']);
                 Route::get('/products/{id}/transfer-info', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'productTransferInfo']);
                 Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'show']);
+                Route::get('/{id}/document', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'downloadDocument']);
+                Route::get('/{id}/download', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'downloadDocument']);
                 Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminProductTransferController::class, 'store']);
             });
 

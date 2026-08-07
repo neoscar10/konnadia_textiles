@@ -149,5 +149,15 @@ class AdminProductTransferApiTest extends TestCase
 
         $refNumber = $listResp->json('data.0.reference_number');
         $this->assertNotNull($refNumber, 'reference_number should not be null');
+
+        $docUrl = $listResp->json('data.0.document_url');
+        $this->assertNotNull($docUrl, 'document_url should not be null');
+
+        // Test downloading transfer document via API
+        $transferId = $listResp->json('data.0.id');
+        $docResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson("/api/v1/admin/product-transfers/{$transferId}/document");
+
+        $docResp->assertStatus(200);
     }
 }

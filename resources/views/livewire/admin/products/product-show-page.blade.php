@@ -45,6 +45,10 @@
                             <span class="text-xs text-on-surface-variant block select-none">Product SKU</span>
                             <span class="font-mono text-primary font-bold">{{ $product->sku }}</span>
                         </div>
+                        <div>
+                            <span class="text-xs text-on-surface-variant block select-none">Stock Quantity</span>
+                            <span class="font-bold text-primary font-base">{{ $product->stock_quantity ?? 0 }} items in stock</span>
+                        </div>
                         <div class="md:col-span-2">
                             <span class="text-xs text-on-surface-variant block select-none mb-xs">Description</span>
                             <div class="prose max-w-none p-md border rounded-lg bg-surface-container-low text-on-surface text-sm">
@@ -73,62 +77,6 @@
                             <p class="text-sm text-on-surface-variant select-none">No media uploaded for this product.</p>
                         @endforelse
                     </div>
-                </x-admin.card>
-
-                <!-- Variations & Combinations Matrix -->
-                <x-admin.card>
-                    <x-slot:header class="flex items-center gap-sm bg-surface-container-low/30 select-none">
-                        <span class="material-symbols-outlined text-primary">style</span>
-                        <h3 class="font-title-md text-primary">Variants & Stock Matrix</h3>
-                    </x-slot:header>
-
-                    @if($product->combinations->count() > 0)
-                        <x-slot:bodyClass>p-0</x-slot:bodyClass>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left font-body-md text-sm">
-                                <thead class="bg-surface-container text-on-surface-variant font-bold uppercase text-xs border-b border-outline-variant/20 select-none">
-                                    <tr>
-                                        <th class="px-lg py-sm">Combination Values</th>
-                                        <th class="px-lg py-sm">SKU Override</th>
-                                        <th class="px-lg py-sm text-center">Stock</th>
-                                        <th class="px-lg py-sm text-right">Price (Selling / Override)</th>
-                                        <th class="px-lg py-sm text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-outline-variant/10">
-                                    @foreach($product->combinations as $comb)
-                                        <tr>
-                                            <td class="px-lg py-md font-bold text-primary">
-                                                {{ collect($comb->combination_values)->map(fn($v, $k) => "$k: $v")->implode(', ') }}
-                                            </td>
-                                            <td class="px-lg py-md font-mono text-on-surface-variant text-xs">
-                                                {{ $comb->sku ?: '-' }}
-                                            </td>
-                                            <td class="px-lg py-md text-center font-semibold text-secondary">
-                                                {{ $comb->stock_quantity }}
-                                            </td>
-                                            <td class="px-lg py-md text-right font-bold text-primary">
-                                                ₹{{ number_format($comb->price !== null ? (float)$comb->price : $product->base_price, 2) }}
-                                                @if($comb->price === null)
-                                                    <span class="text-[10px] text-on-surface-variant font-normal block select-none">(Base Price)</span>
-                                                @endif
-                                            </td>
-                                            <td class="px-lg py-md text-center">
-                                                <x-admin.badge type="{{ $comb->is_active ? 'success' : 'default' }}">
-                                                    {{ $comb->is_active ? 'Active' : 'Inactive' }}
-                                                </x-admin.badge>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <div class="select-none">
-                            <span class="text-xs text-on-surface-variant block">Non-Variant Inventory Stock</span>
-                            <span class="font-bold text-lg text-primary">{{ $product->stock_quantity }} items in stock</span>
-                        </div>
-                    @endif
                 </x-admin.card>
             </div>
 

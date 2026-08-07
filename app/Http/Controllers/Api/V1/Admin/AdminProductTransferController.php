@@ -140,4 +140,13 @@ class AdminProductTransferController extends Controller
             ], 422);
         }
     }
+
+    /**
+     * Download or view printable product transfer document.
+     */
+    public function downloadDocument(int $id, \App\Services\StockTransfer\TransferDocumentService $docService)
+    {
+        $transfer = ProductTransfer::findOrFail($id);
+        return $docService->download($transfer);
+    }
 }

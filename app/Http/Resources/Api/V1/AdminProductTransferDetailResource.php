@@ -69,6 +69,8 @@ class AdminProductTransferDetailResource extends JsonResource
                     'note' => $item->note,
                 ];
             }),
+            'document_url' => url("/api/v1/admin/product-transfers/{$this->id}/document"),
+            'download_url' => url("/api/v1/admin/product-transfers/{$this->id}/download"),
             'created_at' => $this->created_at ? $this->created_at->format('d-M-Y H:i') : null,
             'updated_at' => $this->updated_at ? $this->updated_at->format('d-M-Y H:i') : null,
         ];
