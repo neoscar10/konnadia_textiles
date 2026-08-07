@@ -168,7 +168,7 @@ class AdminOrderService
             }
         }
 
-        $items = $filteredItems->map(function ($item) {
+        $items = $filteredItems->map(function ($item) use ($order) {
             $product = $item->product;
             $lvl2Unit = $product ? $product->units->where('level', 2)->first() : null;
 
