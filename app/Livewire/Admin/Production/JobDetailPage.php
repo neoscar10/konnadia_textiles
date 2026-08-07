@@ -1329,6 +1329,7 @@ class JobDetailPage extends Component
 
             // Decrement the inventory batch balance
             $batch->deductQuantity((float) $this->cuttingConsumedLength);
+            InventoryBatchLogger::log($batch->id, 'consumed', (float) $this->cuttingConsumedLength, $this->job->production_batch_id ?? null, 'Cutting session fabric consumption recorded');
 
             if ($this->job->status === 'pending') {
                 $this->job->update(['status' => 'in_progress']);

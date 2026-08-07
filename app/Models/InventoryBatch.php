@@ -127,6 +127,13 @@ class InventoryBatch extends Model
     {
         $this->quantity_consumed = (float) ($this->quantity_consumed ?? 0) + $amount;
         $this->balance_quantity = max(0.0000, (float) ($this->quantity_received ?? 0) - $this->quantity_consumed);
+
+        if ($this->base_quantity !== null) {
+            $unitModel = $this->rawMaterial ? $this->rawMaterial->unitModel : null;
+            $baseConsumed = $unitModel ? $unitModel->toBaseQuantity((float) $this->quantity_consumed) : (float) $this->quantity_consumed;
+            $this->base_current_balance = max(0.0000, (float) $this->base_quantity - $baseConsumed);
+        }
+
         if ($this->balance_quantity <= 0) {
             $this->status = 'depleted';
         }
@@ -140,6 +147,13 @@ class InventoryBatch extends Model
     {
         $this->quantity_consumed = max(0.0000, (float) ($this->quantity_consumed ?? 0) - $amount);
         $this->balance_quantity = min((float) ($this->quantity_received ?? 0), (float) ($this->quantity_received ?? 0) - $this->quantity_consumed);
+
+        if ($this->base_quantity !== null) {
+            $unitModel = $this->rawMaterial ? $this->rawMaterial->unitModel : null;
+            $baseConsumed = $unitModel ? $unitModel->toBaseQuantity((float) $this->quantity_consumed) : (float) $this->quantity_consumed;
+            $this->base_current_balance = min((float) $this->base_quantity, (float) $this->base_quantity - $baseConsumed);
+        }
+
         if ($this->balance_quantity > 0) {
             $this->status = 'active';
         }

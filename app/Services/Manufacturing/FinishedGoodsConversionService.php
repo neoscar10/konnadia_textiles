@@ -84,6 +84,8 @@ class FinishedGoodsConversionService
                             'total_cost' => $allocatedCost,
                         ]);
 
+                        \App\Services\InventoryBatchLogger::log($invBatch->id, 'consumed', $deduct, $batch->id, 'Packaging material auto-consumed during finished goods conversion');
+
                         $remaining -= $deduct;
                     }
 
