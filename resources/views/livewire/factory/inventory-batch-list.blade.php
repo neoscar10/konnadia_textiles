@@ -129,7 +129,13 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div>
-                                    <p class="font-bold text-sm text-on-surface leading-tight">{{ $batch->rawMaterial?->name }}</p>
+                                    @if($batch->raw_material_id)
+                                        <a href="{{ route('factory.raw-materials.show', ['material' => $batch->raw_material_id]) }}" wire:navigate class="font-bold text-sm text-on-surface hover:text-primary transition-colors leading-tight">
+                                            {{ $batch->rawMaterial?->name }}
+                                        </a>
+                                    @else
+                                        <p class="font-bold text-sm text-on-surface leading-tight">{{ $batch->rawMaterial?->name }}</p>
+                                    @endif
                                     @if($batch->rawMaterial?->category)
                                         <span class="inline-block mt-0.5 text-[9px] font-extrabold bg-secondary-container text-on-secondary-container px-1.5 py-0.5 rounded font-mono">
                                             {{ $batch->rawMaterial->category->code }}

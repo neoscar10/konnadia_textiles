@@ -16,20 +16,24 @@ class FabricCostingService
      */
     public function convertToInches(float $value, string $unit): float
     {
-        $unit = strtolower(trim($unit));
-        if ($unit === 'inch' || $unit === 'inches' || $unit === 'in') {
+        $unitLower = strtolower(trim($unit));
+        if ($unitLower === 'inch' || $unitLower === 'inches' || $unitLower === 'in') {
             return $value;
         }
-        if ($unit === 'cm' || $unit === 'cms' || $unit === 'centimeter') {
+        if ($unitLower === 'cm' || $unitLower === 'cms' || $unitLower === 'centimeter' || $unitLower === 'centimeters') {
             return $value * 0.393701;
         }
-        if ($unit === 'meter' || $unit === 'meters' || $unit === 'm') {
+        if ($unitLower === 'meter' || $unitLower === 'meters' || $unitLower === 'm') {
             return $value * 39.3701;
         }
-        if ($unit === 'yard' || $unit === 'yards' || $unit === 'yd') {
+        if ($unitLower === 'yard' || $unitLower === 'yards' || $unitLower === 'yd') {
             return $value * 36.0;
         }
-        return $value;
+        if ($unitLower === 'ft' || $unitLower === 'feet' || $unitLower === 'foot') {
+            return $value * 12.0;
+        }
+
+        return \App\Services\UnitConversionService::convert($value, $unit, 'Inches');
     }
 
     /**

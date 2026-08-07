@@ -12,6 +12,8 @@ class RawMaterial extends Model
 
     protected $fillable = [
         'raw_material_category_id',
+        'unit_group_id',
+        'unit_id',
         'name',
         'code',
         'unit',
@@ -36,6 +38,22 @@ class RawMaterial extends Model
                 $material->code = 'RM-' . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
             }
         });
+    }
+
+    /**
+     * Get the unit group of this raw material.
+     */
+    public function unitGroup()
+    {
+        return $this->belongsTo(UnitGroup::class, 'unit_group_id');
+    }
+
+    /**
+     * Get the unit model of this raw material.
+     */
+    public function unitModel()
+    {
+        return $this->belongsTo(Unit::class, 'unit_id');
     }
 
     /**

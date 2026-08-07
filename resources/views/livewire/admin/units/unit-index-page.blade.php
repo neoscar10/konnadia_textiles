@@ -1,106 +1,206 @@
 <div>
-    <x-slot:title>Units of Measurement</x-slot:title>
-    <!-- Header Actions -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-xl">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-            <h1 class="font-headline-lg text-primary tracking-tight">Units of Measurement</h1>
-            <p class="font-body-md text-on-surface-variant">Define standard units for inventory and pricing (e.g., Meters, Pieces).</p>
+            <h1 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Units Management</h1>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Configure dynamic unit groups, base measurement units, and conversion relationships across the factory system.</p>
         </div>
-        <x-admin.button variant="primary" icon="add" x-data @click="$dispatch('open-modal', 'add-unit')">Add Unit</x-admin.button>
+        <button wire:click="openCreateGroupModal" class="inline-flex items-center gap-2 bg-primary hover:opacity-90 text-on-primary px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer" style="background-color: #0f172a !important; color: #ffffff !important;">
+            <span class="material-symbols-outlined text-[18px]" style="color: #ffffff !important;">add_circle</span>
+            <span style="color: #ffffff !important; font-weight: 700;">Add Unit Group</span>
+        </button>
     </div>
 
-    <!-- Data Table -->
-    <x-admin.card>
-        <x-slot:bodyClass>p-0</x-slot:bodyClass>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-left font-body-md">
-                <thead class="bg-surface-container text-on-surface-variant font-label-md uppercase tracking-wider border-b border-outline-variant/20">
-                    <tr>
-                        <th class="px-lg py-md">Unit Name</th>
-                        <th class="px-lg py-md text-center">Short Code</th>
-                        <th class="px-lg py-md text-center">Allow Decimals</th>
-                        <th class="px-lg py-md text-center">Status</th>
-                        <th class="px-lg py-md text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-outline-variant/10">
-                    <tr class="hover:bg-primary/[0.02] transition-colors group">
-                        <td class="px-lg py-md font-bold text-primary">Pieces</td>
-                        <td class="px-lg py-md text-center font-mono text-on-surface-variant">PCS</td>
-                        <td class="px-lg py-md text-center">
-                            <span class="material-symbols-outlined text-error">close</span>
-                        </td>
-                        <td class="px-lg py-md text-center"><x-admin.badge type="success">Active</x-admin.badge></td>
-                        <td class="px-lg py-md text-right">
-    <x-admin.action-menu>
-        <x-admin.action-menu-item icon="edit" label="Edit" />
-        <x-admin.action-menu-item icon="delete" label="Delete" danger="true" />
-    </x-admin.action-menu>
-</td>
-                    </tr>
-                    <tr class="hover:bg-primary/[0.02] transition-colors group">
-                        <td class="px-lg py-md font-bold text-primary">Meters</td>
-                        <td class="px-lg py-md text-center font-mono text-on-surface-variant">MTR</td>
-                        <td class="px-lg py-md text-center">
-                            <span class="material-symbols-outlined text-success">check</span>
-                        </td>
-                        <td class="px-lg py-md text-center"><x-admin.badge type="success">Active</x-admin.badge></td>
-                        <td class="px-lg py-md text-right">
-    <x-admin.action-menu>
-        <x-admin.action-menu-item icon="edit" label="Edit" />
-        <x-admin.action-menu-item icon="delete" label="Delete" danger="true" />
-    </x-admin.action-menu>
-</td>
-                    </tr>
-                    <tr class="hover:bg-primary/[0.02] transition-colors group">
-                        <td class="px-lg py-md font-bold text-primary">Kilograms</td>
-                        <td class="px-lg py-md text-center font-mono text-on-surface-variant">KG</td>
-                        <td class="px-lg py-md text-center">
-                            <span class="material-symbols-outlined text-success">check</span>
-                        </td>
-                        <td class="px-lg py-md text-center"><x-admin.badge type="success">Active</x-admin.badge></td>
-                        <td class="px-lg py-md text-right">
-    <x-admin.action-menu>
-        <x-admin.action-menu-item icon="edit" label="Edit" />
-        <x-admin.action-menu-item icon="delete" label="Delete" danger="true" />
-    </x-admin.action-menu>
-</td>
-                    </tr>
-                </tbody>
-            </table>
+    <!-- Search Bar -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/60 mb-6">
+        <div class="relative max-w-md">
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search unit groups by name or code..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+            <svg class="w-5 h-5 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
         </div>
-    </x-admin.card>
+    </div>
 
-    <!-- Modals -->
-    <x-admin.modal id="add-unit" title="Add Unit" maxWidth="md">
-        <form class="space-y-md" onsubmit="event.preventDefault();">
-            <div class="space-y-xs">
-                <label class="font-label-md text-on-surface-variant">Unit Name *</label>
-                <input type="text" placeholder="e.g. Boxes" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md">
+    <!-- Unit Groups Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @forelse($groups as $group)
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700/60 hover:shadow-md transition-all duration-200 flex flex-col justify-between relative group">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/40">
+                            {{ $group->code }}
+                        </span>
+                        <div class="flex items-center space-x-1">
+                            <button wire:click="editGroup({{ $group->id }})" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" title="Edit Group">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </button>
+                            <button onclick="confirm('Delete this unit group?') || event.stopImmediatePropagation()" wire:click="deleteGroup({{ $group->id }})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" title="Delete Group">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">{{ $group->name }}</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{{ $group->description ?: 'No description provided.' }}</p>
+
+                    <!-- Base Unit Badge -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">Base Unit:</span>
+                        @if($group->baseUnit)
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                🌟 {{ $group->baseUnit->name }} ({{ $group->baseUnit->short_code }})
+                            </span>
+                        @else
+                            <span class="text-amber-500 font-medium">Not set</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-700/60">
+                    <span class="text-xs text-slate-400 font-medium">{{ $group->units->count() }} Units defined</span>
+                    <button wire:click="manageUnits({{ $group->id }})" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40 hover:bg-indigo-100 rounded-lg transition-colors">
+                        Manage Units &rarr;
+                    </button>
+                </div>
             </div>
-            
-            <div class="space-y-xs">
-                <label class="font-label-md text-on-surface-variant">Short Code *</label>
-                <input type="text" placeholder="e.g. BOX" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md uppercase">
+        @empty
+            <div class="col-span-full bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-100 dark:border-slate-700/60">
+                <p class="text-slate-400 text-sm">No unit groups found. Click "Add Unit Group" to create your first dynamic group.</p>
             </div>
+        @endforelse
+    </div>
 
-            <div class="flex items-center gap-sm mt-md">
-                <input type="checkbox" class="w-4 h-4 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer">
-                <label class="font-body-md text-on-surface">Allow Decimal Quantities</label>
+    <!-- Group Modal -->
+    @if($showGroupModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700 transform transition-all">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">{{ $editingGroupId ? 'Edit Unit Group' : 'Create Unit Group' }}</h3>
+                    <button wire:click="$set('showGroupModal', false)" class="text-slate-400 hover:text-slate-600">&times;</button>
+                </div>
+                
+                <form wire:submit.prevent="saveGroup" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Group Name *</label>
+                        <input type="text" wire:model="groupName" placeholder="e.g. Length Units, Zip Units" class="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+                        @error('groupName') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Group Code *</label>
+                        <input type="text" wire:model="groupCode" placeholder="e.g. LENGTH, ZIP, COUNT" class="w-full px-3 py-2 border rounded-xl text-sm uppercase dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+                        @error('groupCode') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Description</label>
+                        <textarea wire:model="groupDescription" rows="2" placeholder="Brief description of this unit group..." class="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white"></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <button type="button" wire:click="$set('showGroupModal', false)" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 rounded-xl">Cancel</button>
+                        <button type="submit" class="px-5 py-2.5 text-xs bg-primary text-on-primary rounded-xl font-bold hover:opacity-90 shadow-sm transition-all cursor-pointer" style="background-color: #0f172a !important; color: #ffffff !important;">Save Group</button>
+                    </div>
+                </form>
             </div>
+        </div>
+    @endif
 
-            <div class="flex items-center gap-sm mt-sm">
-                <input type="checkbox" checked class="w-4 h-4 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer">
-                <label class="font-body-md text-on-surface">Active Status</label>
+    <!-- Units Drawer / Modal for Selected Group -->
+    @if($selectedGroup)
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 dark:text-white">Units in {{ $selectedGroup->name }}</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Configure base unit and conversion ratios relative to the base unit.</p>
+                    </div>
+                    <button wire:click="closeUnitsDrawer" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                </div>
+
+                <div class="flex justify-between items-center mb-4 pt-2">
+                    <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Defined Units ({{ $selectedGroup->units->count() }})</span>
+                    <button wire:click="openCreateUnitModal" class="inline-flex items-center gap-1.5 bg-primary text-on-primary px-4 py-2 rounded-xl font-bold text-xs shadow-sm transition-all hover:opacity-90 cursor-pointer" style="background-color: #0f172a !important; color: #ffffff !important;">
+                        <span class="material-symbols-outlined text-[16px]" style="color: #ffffff !important;">add</span>
+                        <span style="color: #ffffff !important; font-weight: 700;">Add Unit</span>
+                    </button>
+                </div>
+
+                <div class="divide-y divide-slate-100 dark:divide-slate-700 max-h-96 overflow-y-auto pr-1">
+                    @forelse($selectedGroup->units as $unit)
+                        <div class="py-3 flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-semibold text-slate-800 dark:text-white text-sm">{{ $unit->name }}</span>
+                                    <span class="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded font-mono">{{ $unit->short_code }}</span>
+                                    @if($unit->is_base)
+                                        <span class="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 font-bold rounded-full uppercase">Base Unit (1.0)</span>
+                                    @endif
+                                </div>
+                                <p class="text-xs text-slate-400 mt-0.5">
+                                    1 {{ $unit->name }} = <strong>{{ (float)$unit->ratio_to_base }}</strong> {{ $selectedGroup->baseUnit ? $selectedGroup->baseUnit->name : 'Base Unit' }}
+                                </p>
+                            </div>
+
+                            <div class="flex items-center space-x-2">
+                                @if(!$unit->is_base)
+                                    <button wire:click="setBaseUnit({{ $unit->id }})" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Set as Base</button>
+                                @endif
+                                <button wire:click="editUnit({{ $unit->id }})" class="p-1 text-slate-400 hover:text-indigo-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
+                                @if(!$unit->is_base)
+                                    <button wire:click="deleteUnit({{ $unit->id }})" class="p-1 text-slate-400 hover:text-rose-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="py-6 text-center text-xs text-slate-400">No units defined yet for this group.</div>
+                    @endforelse
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 text-right">
+                    <button wire:click="closeUnitsDrawer" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-xl">Done</button>
+                </div>
             </div>
-        </form>
+        </div>
+    @endif
 
-        <x-slot name="footer">
-            <x-admin.button variant="ghost" @click="show = false">Cancel</x-admin.button>
-            <x-admin.button variant="primary" icon="save">Save Unit</x-admin.button>
-        </x-slot>
-    </x-admin.modal>
+    <!-- Add/Edit Unit Sub-Modal -->
+    @if($showUnitModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700">
+                <h4 class="text-base font-bold text-slate-800 dark:text-white mb-4">{{ $editingUnitId ? 'Edit Unit' : 'Add Unit' }}</h4>
+                <form wire:submit.prevent="saveUnit" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Unit Name *</label>
+                        <input type="text" wire:model="unitName" placeholder="e.g. Centimeters, Boxes" class="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+                        @error('unitName') <span class="text-rose-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
 
-    <x-admin.delete-confirm-modal id="delete-unit" title="Delete Unit" message="Are you sure you want to delete this unit? Ensure no products are currently using it." />
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Short Code / Symbol *</label>
+                        <input type="text" wire:model="unitShortCode" placeholder="e.g. cm, box, pcs" class="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+                        @error('unitShortCode') <span class="text-rose-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="flex items-center space-x-2 py-1">
+                        <input type="checkbox" id="unitIsBase" wire:model="unitIsBase" class="rounded text-indigo-600">
+                        <label for="unitIsBase" class="text-xs font-medium text-slate-700 dark:text-slate-300">Set as Base Unit for Group</label>
+                    </div>
+
+                    @if(!$unitIsBase)
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Ratio to Base Unit *</label>
+                            <input type="number" step="0.000001" wire:model="unitRatio" placeholder="1.0" class="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+                            <span class="text-[10px] text-slate-400 mt-0.5 block">How many base units equal 1 of this unit (e.g. 1 Box = 100 Pieces, 1 cm = 0.01 Meters).</span>
+                            @error('unitRatio') <span class="text-rose-500 text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    @endif
+
+                    <div class="flex justify-end space-x-2 pt-3">
+                        <button type="button" wire:click="$set('showUnitModal', false)" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-xs bg-primary text-on-primary rounded-xl font-bold hover:opacity-90 shadow-sm transition-all cursor-pointer" style="background-color: #0f172a !important; color: #ffffff !important;">Save Unit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 </div>

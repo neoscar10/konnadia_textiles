@@ -158,6 +158,10 @@
                 <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Factory</p>
             </div>
             <nav class="flex flex-col gap-xs px-sm">
+                <a href="{{ route('admin.units.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.units.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="square_foot">square_foot</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Units Management</span>
+                </a>
                 <a href="{{ route('admin.production.product-categories.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.product-categories.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                     <span class="material-symbols-outlined shrink-0" data-icon="category">category</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Product Categories</span>

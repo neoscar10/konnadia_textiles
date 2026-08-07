@@ -109,21 +109,32 @@ class RawMaterialPurchaseEntry extends Component
     {
         $this->validate();
 
-        $material = RawMaterial::findOrFail($this->raw_material_id);
+        $material = RawMaterial::with(['unitGroup', 'unitModel'])->findOrFail($this->raw_material_id);
 
         $batch = null;
         DB::transaction(function () use ($material, &$batch) {
+            $qtyReceived = floatval($this->quantity_received);
+            
+            // Calculate base quantity using Unit conversion if available
+            $baseQty = $qtyReceived;
+            if ($material->unitModel) {
+                $baseQty = $material->unitModel->toBaseQuantity($qtyReceived);
+            }
+
             $batch = InventoryBatch::create([
                 'raw_material_id' => $this->raw_material_id,
                 'supplier_name' => $this->supplier_name,
                 'purchase_date' => $this->purchase_date,
                 'invoice_number' => $this->invoice_number,
-                'quantity_received' => floatval($this->quantity_received),
-                'balance_quantity' => floatval($this->quantity_received),
+                'quantity_received' => $qtyReceived,
+                'balance_quantity' => $qtyReceived,
+                'base_quantity' => $baseQty,
+                'base_current_balance' => $baseQty,
                 'quantity_consumed' => 0.0000,
                 'purchase_rate' => floatval($this->purchase_rate),
                 'total_amount' => $this->total_amount,
                 'unit' => $material->unit,
+                'purchase_unit_id' => $material->unit_id,
                 'status' => 'active',
             ]);
             // Log creation

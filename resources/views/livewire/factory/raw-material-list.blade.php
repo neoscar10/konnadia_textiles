@@ -90,12 +90,14 @@
                     @forelse($materials as $material)
                         <tr class="hover:bg-surface-container-low/20 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="font-mono font-black text-primary text-xs bg-primary/10 px-2.5 py-1 rounded-lg">
+                                <a href="{{ route('factory.raw-materials.show', ['material' => $material->id]) }}" wire:navigate class="font-mono font-black text-primary text-xs bg-primary/10 px-2.5 py-1 rounded-lg hover:underline inline-block">
                                     {{ $material->code }}
-                                </span>
+                                </a>
                             </td>
                             <td class="px-6 py-4">
-                                <p class="font-bold text-sm text-on-surface">{{ $material->name }}</p>
+                                <a href="{{ route('factory.raw-materials.show', ['material' => $material->id]) }}" wire:navigate class="font-bold text-sm text-on-surface hover:text-primary transition-colors">
+                                    {{ $material->name }}
+                                </a>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @if($material->category)
@@ -147,6 +149,14 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex items-center justify-end gap-2">
+                                    <a
+                                        href="{{ route('factory.raw-materials.show', ['material' => $material->id]) }}"
+                                        wire:navigate
+                                        class="w-9 h-9 rounded-xl border border-outline-variant/60 text-secondary hover:bg-secondary-container/25 flex items-center justify-center transition-colors"
+                                        title="Audit Material Stock Ledger"
+                                    >
+                                        <span class="material-symbols-outlined text-[18px]">analytics</span>
+                                    </a>
                                     <button
                                         type="button"
                                         wire:click="$dispatch('open-raw-material-modal', { materialId: {{ $material->id }} })"

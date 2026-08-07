@@ -13,6 +13,7 @@ class RawMaterialCategory extends Model
     protected $fillable = [
         'name',
         'code',
+        'unit_group_id',
         'unit_type',
         'description',
         'is_active',
@@ -22,6 +23,14 @@ class RawMaterialCategory extends Model
         'unit_type' => RawMaterialUnitType::class,
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Get the unit group associated with this category.
+     */
+    public function unitGroup()
+    {
+        return $this->belongsTo(UnitGroup::class, 'unit_group_id');
+    }
 
     /**
      * Get materials belonging to this category.
@@ -40,11 +49,15 @@ class RawMaterialCategory extends Model
     }
 
     /**
-     * Get valid units for this category's unit type.
+     * Get valid units for this category's unit group or fallback unit type.
      */
     public function getValidUnitsAttribute(): array
     {
-        return $this->unit_type->validUnits();
+        if ($this->unitGroup) {
+            return $this->unitGroup->activeUnits()->pluck('name')->toArray();
+        }
+
+        return $this->unit_type ? $this->unit_type->validUnits() : [];
     }
 
     /**
@@ -52,7 +65,11 @@ class RawMaterialCategory extends Model
      */
     public function getDefaultUnitAttribute(): string
     {
-        return $this->unit_type->defaultUnit();
+        if ($this->unitGroup && $this->unitGroup->baseUnit) {
+            return $this->unitGroup->baseUnit->name;
+        }
+
+        return $this->unit_type ? $this->unit_type->defaultUnit() : 'Pieces';
     }
 
     /**

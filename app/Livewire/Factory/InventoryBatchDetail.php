@@ -13,10 +13,12 @@ class InventoryBatchDetail extends Component
 
     public function mount(InventoryBatch $batch)
     {
-        // eager load related data: raw material, consumptions, logs, and the jobs/products linked
+        // Eager load related data: raw material, unit models, consumptions, stage executions, logs, and linked jobs/products
         $this->batch = $batch->load([
             'rawMaterial.category',
-            'consumptions.job',
+            'rawMaterial.unitGroup',
+            'rawMaterial.unitModel',
+            'consumptions.job.manufacturingProduct',
             'logs.user',
         ]);
     }

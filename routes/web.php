@@ -84,6 +84,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/factory/products', \App\Livewire\Factory\ManufacturingProductList::class)->name('factory.products.index');
     Route::get('/factory/batches/{id}/convert', \App\Livewire\Admin\Production\FinishedGoodsConversion::class)->name('factory.batches.convert');
 
+    // Units Management
+    Route::get('/factory/units', \App\Livewire\Admin\Units\UnitIndexPage::class)->name('factory.units.index');
+
     // Task Master Management
     Route::get('/factory/tasks', \App\Livewire\Factory\TaskList::class)->name('factory.tasks.index');
     Route::get('/factory/tasks/create', function() {
@@ -98,6 +101,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/factory/raw-materials/purchase', \App\Livewire\Factory\RawMaterialPurchaseEntry::class)->name('factory.raw-materials.purchase');
     Route::get('/factory/raw-materials/batches', \App\Livewire\Factory\InventoryBatchList::class)->name('factory.raw-materials.batches');
     Route::get('/factory/raw-materials/batches/{batch}', \App\Livewire\Factory\InventoryBatchDetail::class)->name('factory.raw-materials.batches.show');
+    Route::get('/factory/raw-materials/{material}', \App\Livewire\Factory\RawMaterialDetail::class)->name('factory.raw-materials.show');
 });
 
 // Optional Customer Route Group (available to guests and logged-in customers)

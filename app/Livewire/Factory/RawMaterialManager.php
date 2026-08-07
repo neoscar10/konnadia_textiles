@@ -19,16 +19,30 @@ class RawMaterialManager extends Component
     public ?string $width_unit = 'Inch'; // Default to Inch
     public bool $is_active = true;
     public ?int $raw_material_category_id = null;
+    public ?int $unit_group_id = null;
+    public ?int $unit_id = null;
 
-    // Dynamic unit options based on selected category
+    // Dynamic unit options based on selected category / Unit Group
     public array $availableUnits = [];
 
     public function isLengthBased(): bool
     {
+        if ($this->unit_group_id) {
+            $group = \App\Models\UnitGroup::find($this->unit_group_id);
+            if ($group && $group->code === 'LENGTH') {
+                return true;
+            }
+        }
+
         if (!$this->raw_material_category_id) {
             return false;
         }
-        $category = RawMaterialCategory::find($this->raw_material_category_id);
+
+        $category = RawMaterialCategory::with('unitGroup')->find($this->raw_material_category_id);
+        if ($category && $category->unitGroup && $category->unitGroup->code === 'LENGTH') {
+            return true;
+        }
+
         return $category && $category->unit_type === RawMaterialUnitType::LENGTH_BASED;
     }
 
@@ -64,8 +78,8 @@ class RawMaterialManager extends Component
         return [
             'name.required' => 'Raw Material Name is required.',
             'raw_material_category_id.required' => 'Please select a category.',
-            'unit.required' => 'Please select a unit.',
-            'unit.in' => 'The selected unit is not valid for this category type.',
+            'unit.required' => 'Please select a unit of measurement.',
+            'unit.in' => 'The selected unit is not valid for this category.',
             'standard_width.required' => 'Standard Width is required for length-based materials.',
             'standard_width.gt' => 'Standard Width must be greater than zero.',
             'width_unit.required' => 'Width Unit is required for length-based materials.',
@@ -79,11 +93,13 @@ class RawMaterialManager extends Component
         $this->resetForm();
 
         if ($materialId) {
-            $material = RawMaterial::with('category')->findOrFail($materialId);
+            $material = RawMaterial::with(['category.unitGroup', 'unitGroup', 'unitModel'])->findOrFail($materialId);
             $this->materialId = $material->id;
             $this->name = $material->name;
             $this->code = $material->code;
             $this->unit = $material->unit;
+            $this->unit_group_id = $material->unit_group_id;
+            $this->unit_id = $material->unit_id;
             $this->standard_width = $material->standard_width;
             $this->width_unit = $material->width_unit ?? 'Inch';
             $this->is_active = (bool) $material->is_active;
@@ -96,25 +112,21 @@ class RawMaterialManager extends Component
 
     public function updatedRawMaterialCategoryId()
     {
-        $this->updateAvailableUnits();
-
-        // Auto-select default unit when category changes
         if ($this->raw_material_category_id) {
-            $category = RawMaterialCategory::find($this->raw_material_category_id);
+            $category = RawMaterialCategory::with('unitGroup')->find($this->raw_material_category_id);
             if ($category) {
+                if ($category->unit_group_id) {
+                    $this->unit_group_id = $category->unit_group_id;
+                }
+                $this->updateAvailableUnits();
+
                 $defaultUnit = $category->default_unit;
-                // Only auto-set if current unit is not valid for new category
-                if (!in_array($this->unit, $category->valid_units)) {
+                if (!in_array($this->unit, $this->availableUnits)) {
                     $this->unit = $defaultUnit;
                 }
-
-                if ($category->unit_type !== RawMaterialUnitType::LENGTH_BASED) {
-                    $this->standard_width = null;
-                    $this->width_unit = null;
-                } else if (empty($this->width_unit)) {
-                    $this->width_unit = 'Inch';
-                }
             }
+        } else {
+            $this->updateAvailableUnits();
         }
     }
 
@@ -124,9 +136,23 @@ class RawMaterialManager extends Component
 
         $isLengthBased = $this->isLengthBased();
 
+        // Resolve unit_group_id and unit_id
+        $category = RawMaterialCategory::with('unitGroup')->find($this->raw_material_category_id);
+        $groupId = $this->unit_group_id ?: ($category ? $category->unit_group_id : null);
+        
+        $unitModel = null;
+        if ($groupId) {
+            $unitModel = \App\Models\Unit::where('unit_group_id', $groupId)
+                ->where(function ($q) {
+                    $q->where('name', $this->unit)->orWhere('short_code', $this->unit);
+                })->first();
+        }
+
         $data = [
             'name' => $this->name,
             'raw_material_category_id' => $this->raw_material_category_id,
+            'unit_group_id' => $groupId,
+            'unit_id' => $unitModel ? $unitModel->id : null,
             'unit' => $this->unit,
             'standard_width' => $isLengthBased ? $this->standard_width : null,
             'width_unit' => $isLengthBased ? $this->width_unit : null,
@@ -159,6 +185,8 @@ class RawMaterialManager extends Component
         $this->name = '';
         $this->code = '';
         $this->unit = '';
+        $this->unit_group_id = null;
+        $this->unit_id = null;
         $this->standard_width = null;
         $this->width_unit = 'Inch';
         $this->is_active = true;
@@ -169,15 +197,26 @@ class RawMaterialManager extends Component
     protected function updateAvailableUnits()
     {
         if ($this->raw_material_category_id) {
-            $category = RawMaterialCategory::find($this->raw_material_category_id);
-            $this->availableUnits = $category ? $category->valid_units : [];
-        } else {
-            // Show all units when no category is selected
-            $this->availableUnits = array_merge(
-                RawMaterialUnitType::LENGTH_BASED->validUnits(),
-                RawMaterialUnitType::OTHER->validUnits()
-            );
+            $category = RawMaterialCategory::with(['unitGroup.activeUnits'])->find($this->raw_material_category_id);
+            if ($category && $category->unitGroup) {
+                $this->availableUnits = $category->unitGroup->activeUnits->pluck('name')->toArray();
+                return;
+            } else if ($category) {
+                $this->availableUnits = $category->valid_units;
+                return;
+            }
         }
+
+        if ($this->unit_group_id) {
+            $group = \App\Models\UnitGroup::with('activeUnits')->find($this->unit_group_id);
+            if ($group) {
+                $this->availableUnits = $group->activeUnits->pluck('name')->toArray();
+                return;
+            }
+        }
+
+        // Fallback: load units from all active groups
+        $this->availableUnits = \App\Models\Unit::active()->pluck('name')->unique()->toArray();
     }
 
     protected function getValidUnitsForSelectedCategory(): array
