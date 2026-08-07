@@ -195,6 +195,8 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/cancel', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'cancel']);
 
                 // Item & Fractional Dispatch Actions
+                Route::get('/dispatch/{dispatchNumber}/document', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'downloadDispatchDocument']);
+                Route::get('/dispatch/{dispatchNumber}/download', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'downloadDispatchDocument']);
                 Route::post('/items/{itemId}/dispatch', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'dispatchItem']);
                 Route::post('/{id}/bulk-dispatch', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'bulkDispatch']);
                 Route::post('/items/{itemId}/cancel', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'cancelItem']);

@@ -192,6 +192,21 @@ class AdminOrderApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.dispatched_quantity', 0.5);
 
+        $dispatchNum = $response->json('data.dispatch_number');
+        $this->assertNotNull($dispatchNum);
+
+        // Verify downloading dispatch document by dispatch number via API
+        $docResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson("/api/v1/admin/orders/dispatch/{$dispatchNum}/document");
+
+        $docResp->assertStatus(200);
+
+        // Verify downloading dispatch document by order number via API (e.g. KT-ORD-90001)
+        $orderDocResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson("/api/v1/admin/orders/dispatch/{$this->order->order_number}/document");
+
+        $orderDocResp->assertStatus(200);
+
         // Verify original item was updated to 0.5 and marked dispatched
         $this->assertDatabaseHas('order_items', [
             'id' => $this->orderItem->id,

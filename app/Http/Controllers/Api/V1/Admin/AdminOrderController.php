@@ -254,6 +254,8 @@ class AdminOrderController extends Controller
                 'data' => [
                     'dispatch_number' => $dispatchNumber,
                     'dispatched_quantity' => $qtyToDispatch,
+                    'document_url' => url("/api/v1/admin/orders/dispatch/{$dispatchNumber}/document"),
+                    'download_url' => url("/api/v1/admin/orders/dispatch/{$dispatchNumber}/download"),
                     'order' => $service->getOrderDetail($updatedOrder->id),
                 ]
             ]);
@@ -297,6 +299,8 @@ class AdminOrderController extends Controller
                 'message' => 'Bulk items dispatched successfully.',
                 'data' => [
                     'dispatch_number' => $dispatchNumber,
+                    'document_url' => url("/api/v1/admin/orders/dispatch/{$dispatchNumber}/document"),
+                    'download_url' => url("/api/v1/admin/orders/dispatch/{$dispatchNumber}/download"),
                     'order' => $service->getOrderDetail($order->id),
                 ]
             ]);
@@ -329,5 +333,13 @@ class AdminOrderController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * Download or view printable dispatch note document.
+     */
+    public function downloadDispatchDocument(string $dispatchNumber, \App\Services\Order\DispatchDocumentService $docService)
+    {
+        return $docService->download($dispatchNumber);
     }
 }

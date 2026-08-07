@@ -205,11 +205,25 @@ class AdminOrderService
                 'product_type' => $product ? $product->product_type : 'retail',
                 'dispatch_note' => $item->dispatch_note,
                 'dispatch_number' => $item->dispatch_number,
+                'dispatch_document_url' => $item->dispatch_number ? url("/api/v1/admin/orders/dispatch/{$item->dispatch_number}/document") : url("/api/v1/admin/orders/dispatch/{$order->order_number}/document"),
                 'dispatched_at' => $item->dispatched_at ? $item->dispatched_at->format('d-M-Y H:i') : null,
                 'dispatched_by_name' => $item->dispatchedBy->name ?? 'System',
                 'primary_media_file_path' => $primaryMediaFilePath,
             ];
         })->toArray();
+
+        // Compile distinct dispatch runs for this order
+        $dispatches = $filteredItems->whereNotNull('dispatch_number')->groupBy('dispatch_number')->map(function ($group, $dispNum) {
+            $first = $group->first();
+            return [
+                'dispatch_number' => $dispNum,
+                'items_count' => $group->count(),
+                'dispatched_at' => $first->dispatched_at ? $first->dispatched_at->format('d-M-Y H:i') : null,
+                'dispatched_by' => $first->dispatchedBy->name ?? 'System',
+                'document_url' => url("/api/v1/admin/orders/dispatch/{$dispNum}/document"),
+                'download_url' => url("/api/v1/admin/orders/dispatch/{$dispNum}/download"),
+            ];
+        })->values()->toArray();
 
         $receipts = $order->receipts->map(function ($r) {
             return [
@@ -271,6 +285,8 @@ class AdminOrderService
             'rejection_reason' => $order->rejection_reason,
             'submitted_at' => $order->submitted_at ? $order->submitted_at->format('d-M-Y \a\t h:i A') : 'N/A',
             'created_at' => $order->created_at->format('d-M-Y'),
+            'dispatch_document_url' => url("/api/v1/admin/orders/dispatch/{$order->order_number}/document"),
+            'dispatches' => $dispatches,
             'customer' => [
                 'id' => $customer->id ?? null,
                 'company_name' => $customer->company_name ?? 'N/A',

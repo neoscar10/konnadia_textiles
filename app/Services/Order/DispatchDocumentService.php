@@ -18,21 +18,37 @@ class DispatchDocumentService
             ->get();
 
         if ($items->isEmpty()) {
-            abort(404, 'Dispatch document not found.');
+            // Check if parameter is an order number or order ID
+            $order = Order::where('order_number', $dispatchNumber)
+                ->orWhere('id', $dispatchNumber)
+                ->first();
+
+            if ($order) {
+                $items = OrderItem::where('order_id', $order->id)
+                    ->whereNotNull('dispatch_number')
+                    ->with(['product', 'combination', 'unit', 'dispatchedBy'])
+                    ->get();
+            }
+        }
+
+        if ($items->isEmpty()) {
+            abort(404, 'Dispatch document not found or no items dispatched for this order.');
         }
 
         // Get the order of the first item
         $order = $items->first()->order;
         $order->load(['customer.level']);
 
+        $dispNum = $items->first()->dispatch_number ?: $dispatchNumber;
+
         return [
-            'dispatchNumber' => $dispatchNumber,
+            'dispatchNumber' => $dispNum,
             'order' => $order,
             'items' => $items,
             'customer' => $order->customer,
             'dispatchedAt' => $items->first()->dispatched_at,
             'dispatchedBy' => $items->first()->dispatchedBy,
-            'pageTitle' => "Dispatch Document - {$dispatchNumber}",
+            'pageTitle' => "Dispatch Document - {$dispNum}",
         ];
     }
 
