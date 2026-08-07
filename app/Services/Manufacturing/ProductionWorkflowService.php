@@ -221,7 +221,7 @@ class ProductionWorkflowService
     }
 
     /**
-     * SRS Wrapper: Initialize Production Batch and auto-spawn first job.
+     * Initialize Production Batch and auto-spawn first job.
      */
     public function initializeProductionBatch(array $batchData, int $manufacturingProductId): JsonResponse
     {
@@ -236,7 +236,7 @@ class ProductionWorkflowService
     }
 
     /**
-     * SRS Wrapper: Complete a job and advance workflow progression.
+     * Complete a job and advance workflow progression.
      */
     public function completeJobAndProgress(ProductionJob $job, array $completionData = []): JsonResponse
     {

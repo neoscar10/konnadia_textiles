@@ -716,7 +716,7 @@ class JobDetailPage extends Component
     /**
      * Save subsidiary material consumption (CAT-SUB BOM-driven).
      *
-     * SRS Rules:
+     * Rules:
      *  - No wastage calculation.
      *  - Inventory reduces strictly by actual consumed quantity.
      *  - Costs logged as: actual_consumed * batch_purchase_rate.
@@ -780,7 +780,7 @@ class JobDetailPage extends Component
                 $consumedQty = (float) $row['actual_consumed'];
                 $totalCost   = $consumedQty * (float) $batch->unit_cost;
 
-                // Log consumption — NO wastage factor applied (SRS Module 1, Section 6B)
+                // Log consumption — NO wastage factor applied
                 JobMaterialConsumption::create([
                     'job_code'           => $this->job->job_code,
                     'production_job_id'  => $this->job->id,

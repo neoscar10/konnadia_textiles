@@ -366,7 +366,7 @@ class AddManufacturingProductForm extends Component
             return;
         }
 
-        // SRS Rule: Exactly ONE task must be designated as the Final Production Step
+        // Exactly ONE task must be designated as the Final Production Step
         $finalStepCount = 0;
         foreach ($this->routingTasksList as $rRow) {
             if (!empty($rRow['is_final_step'])) {

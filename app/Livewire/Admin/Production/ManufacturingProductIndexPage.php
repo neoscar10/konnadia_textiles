@@ -233,14 +233,14 @@ class ManufacturingProductIndexPage extends Component
             'routingTasks.*.standard_labor_rate' => 'required|numeric|min:0',
         ]);
 
-        // SRS Rule: Exactly ONE task must be designated as the Final Production Step.
+        // Exactly ONE task must be designated as the Final Production Step.
         $finalStepCount = count(array_filter($this->routingTasks, fn($r) => !empty($r['is_final_step'])));
         if ($finalStepCount !== 1) {
             $this->addError('routingTasks', 'Exactly one task must be designated as the Final Production Step.');
             return;
         }
 
-        // SRS Rule: No duplicate task IDs in the same product routing.
+        // No duplicate task IDs in the same product routing.
         $taskIds = array_column($this->routingTasks, 'task_id');
         if (count($taskIds) !== count(array_unique($taskIds))) {
             $this->addError('routingTasks', 'Duplicate tasks detected. Each manufacturing stage task may only appear once per product routing.');

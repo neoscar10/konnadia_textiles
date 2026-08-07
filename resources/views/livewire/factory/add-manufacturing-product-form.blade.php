@@ -299,7 +299,7 @@
                         <div class="bg-tertiary-container/20 border border-tertiary/20 rounded-xl px-4 py-3 flex items-start gap-2">
                             <span class="material-symbols-outlined text-tertiary text-[16px] mt-0.5 flex-shrink-0">info</span>
                             <p class="text-xs text-on-surface-variant">
-                                <strong class="text-on-surface">SRS Rule:</strong> Unit names are auto-inherited from the Raw Material Master and cannot be manually overridden. Consumption is deducted per actual batch executed with no wastage multiplier.
+                                <strong class="text-on-surface">Note:</strong> Unit names are auto-inherited from the Raw Material Master and cannot be manually overridden. Consumption is deducted per actual batch executed with no wastage multiplier.
                             </p>
                         </div>
                     </div>
@@ -372,7 +372,7 @@
                             <div class="bg-tertiary-container/20 border border-tertiary/20 rounded-xl px-4 py-3 flex items-start gap-2">
                                 <span class="material-symbols-outlined text-tertiary text-[16px] mt-0.5 flex-shrink-0">info</span>
                                 <p class="text-xs text-on-surface-variant">
-                                    <strong class="text-on-surface">SRS Rule:</strong> Stitching materials are <em>not</em> directly deducted per unit during job execution. All stitching costs accumulate into a periodic cost pool for period-end costing allocation. No wastage calculation applies.
+                                    <strong class="text-on-surface">Note:</strong> Stitching materials are <em>not</em> directly deducted per unit during job execution. All stitching costs accumulate into a periodic cost pool for period-end costing allocation. No wastage calculation applies.
                                 </p>
                             </div>
                         @endif
@@ -630,11 +630,11 @@
                         Add Manufacturing Task Step
                     </button>
 
-                    <!-- SRS Rule Note -->
-                    <div class="bg-primary/5 border border-primary/20 rounded-xl px-4 py-3 flex items-start gap-2">
+                    <!-- Routing Note -->
+                    <div class="bg-primary-container/20 border border-primary/20 rounded-xl px-4 py-3 flex items-start gap-2">
                         <span class="material-symbols-outlined text-primary text-[16px] mt-0.5 flex-shrink-0">info</span>
                         <p class="text-xs text-on-surface-variant">
-                            <strong class="text-on-surface">SRS Rule:</strong> Exactly one task in the sequence must be designated as the <strong>Final Production Step</strong>. Completing the final step automatically marks the entire Production Batch as completed. Downstream jobs are generated sequentially upon completion of each stage.
+                            <strong class="text-on-surface">Note:</strong> Exactly one task in the sequence must be designated as the <strong>Final Production Step</strong>. Completing the final step automatically marks the entire Production Batch as completed. Downstream jobs are generated sequentially upon completion of each stage.
                         </p>
                     </div>
                 </div>

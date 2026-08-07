@@ -10,7 +10,7 @@ class RawMaterialCategorySeeder extends Seeder
     /**
      * Seed the standard raw material categories.
      *
-     * Categories follow SRS Module 1 conventions:
+     * Categories follow standard factory conventions:
      *  - CAT-FAB: Fabric (length_based units — Meters, Yards)
      *  - CAT-SUB: Subsidiary Materials (other units — Pieces, Rolls, Kgs)
      *  - CAT-STITCH: Stitching Materials (other units — Spools, Cones, Pieces)

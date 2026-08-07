@@ -13,10 +13,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * ProductionCostingService
  *
- * Handles period-level production costing that cannot be attributed
- * to individual job executions — specifically, stitching cost pool
- * accumulation (SRS Module 1, Section 6C), overhead/consumables costing,
- * and batch-level 360 cost rollup consolidation.
+ * Handles granular batch-level costing (fabric, subsidiary, packaging, labor, wastage), periodic stitching cost pool
+ * accumulation, overhead/consumables costing, and per-finished-unit average cost calculation.
  */
 class ProductionCostingService
 {

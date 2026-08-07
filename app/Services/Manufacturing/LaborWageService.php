@@ -15,9 +15,8 @@ class LaborWageService
     use ApiResponseTrait;
 
     /**
-     * Calculate Job Work Wage based on the SRS formula:
-     * Labor Wage = Quantity Completed * Standard Labor Rate.
-     * 
+     * Calculate Job Work Wage based on the formula:
+     * Wage = Quantity * Task Standard Rate * (1 + Efficiency Modifier %)   * 
      * Note: Laborers with a Monthly Salary bypass this calculation, 
      * as they receive a fixed salary rather than a per-piece wage.
      *
