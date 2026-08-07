@@ -17,6 +17,16 @@ class AdminProductTransferResource extends JsonResource
         $shop = $this->shop ?? $this->retailShop;
         $creator = $this->createdBy ?? $this->creator;
 
+        $token = request()->bearerToken() ?? request()->query('token') ?? request()->query('api_token');
+        if (!$token && class_exists(\Tymon\JWTAuth\Facades\JWTAuth::class)) {
+            try {
+                $token = (string) \Tymon\JWTAuth\Facades\JWTAuth::getToken();
+            } catch (\Throwable $e) {
+                $token = null;
+            }
+        }
+        $tokenQuery = !empty($token) ? '?token=' . urlencode($token) : '';
+
         return [
             'id' => $this->id,
             'transfer_number' => $this->transfer_number,
@@ -38,8 +48,8 @@ class AdminProductTransferResource extends JsonResource
                 'name' => $creator->name,
                 'email' => $creator->email,
             ] : null,
-            'document_url' => url("/api/v1/admin/product-transfers/{$this->id}/document"),
-            'download_url' => url("/api/v1/admin/product-transfers/{$this->id}/download"),
+            'document_url' => url("/api/v1/admin/product-transfers/{$this->id}/document{$tokenQuery}"),
+            'download_url' => url("/api/v1/admin/product-transfers/{$this->id}/download{$tokenQuery}"),
             'created_at' => $this->created_at ? $this->created_at->format('d-M-Y H:i') : null,
         ];
     }
