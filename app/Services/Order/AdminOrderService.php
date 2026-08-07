@@ -149,12 +149,22 @@ class AdminOrderService
     {
         $user = auth()->user();
         $isSuperAdmin = $user && $user->hasRole('super_admin');
-        
+
+        $token = request()->bearerToken() ?? request()->query('token') ?? request()->query('api_token');
+        if (!$token && class_exists(\Tymon\JWTAuth\Facades\JWTAuth::class)) {
+            try {
+                $token = (string) \Tymon\JWTAuth\Facades\JWTAuth::getToken();
+            } catch (\Throwable $e) {
+                $token = null;
+            }
+        }
+        $tokenQuery = !empty($token) ? '?token=' . urlencode($token) : '';
+
         $filteredItems = $order->items;
         if (!$isSuperAdmin && $user) {
             $hasManufactured = $user->hasPermissionTo('manage manufactured orders');
             $hasRetail = $user->hasPermissionTo('manage retail orders');
-            
+
             if ($hasManufactured && !$hasRetail) {
                 $filteredItems = $order->items->filter(function ($item) {
                     return $item->product && $item->product->product_type === 'retail';
@@ -168,7 +178,7 @@ class AdminOrderService
             }
         }
 
-        $items = $filteredItems->map(function ($item) use ($order) {
+        $items = $filteredItems->map(function ($item) use ($order, $tokenQuery) {
             $product = $item->product;
             $lvl2Unit = $product ? $product->units->where('level', 2)->first() : null;
 
