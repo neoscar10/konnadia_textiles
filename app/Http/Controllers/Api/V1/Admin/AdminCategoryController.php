@@ -217,18 +217,16 @@ class AdminCategoryController extends Controller
     /**
      * Configure default product template parameters for a category.
      */
-    public function saveDefaults(SaveCategoryDefaultsRequest $request, int $id): JsonResponse
+    public function saveDefaults(SaveCategoryDefaultsRequest $request, int $id, CategoryService $categoryService): JsonResponse
     {
         $category = Category::findOrFail($id);
         $validated = $request->validated();
 
-        $category->update([
-            'default_product_config' => $validated,
-        ]);
+        $category = $categoryService->saveCategoryDefaults($category, $validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Category default configuration saved successfully.',
+            'message' => 'Category default configuration saved and attached product prices updated successfully.',
             'data' => [
                 'category_id' => $category->id,
                 'defaults' => $category->default_product_config,

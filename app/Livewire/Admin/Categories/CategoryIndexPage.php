@@ -396,7 +396,7 @@ class CategoryIndexPage extends Component
         $this->dispatch('open-modal', 'category-defaults');
     }
 
-    public function saveCategoryDefaults(): void
+    public function saveCategoryDefaults(CategoryService $categoryService): void
     {
         abort_if(!auth()->user()->hasRole('super_admin') && !auth()->user()->can('access categories'), 403, 'Unauthorized action.');
         $this->validate([
@@ -411,11 +411,9 @@ class CategoryIndexPage extends Component
 
         if ($this->currentCategoryId) {
             $category = Category::findOrFail($this->currentCategoryId);
-            $category->update([
-                'default_product_config' => $this->categoryDefaults,
-            ]);
+            $categoryService->saveCategoryDefaults($category, $this->categoryDefaults);
 
-            $this->dispatch('toast', message: 'Category default configuration saved.', type: 'success');
+            $this->dispatch('toast', message: 'Category defaults saved and all product prices updated.', type: 'success');
             $this->dispatch('close-modal', 'category-defaults');
         }
     }

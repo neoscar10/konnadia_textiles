@@ -272,6 +272,51 @@ class CategoryService
     }
 
     /**
+     * Update default configuration for a category and cascade price updates to all attached products.
+     */
+    public function saveCategoryDefaults(Category $category, array $defaults): Category
+    {
+        return DB::transaction(function () use ($category, $defaults) {
+            $category->update([
+                'default_product_config' => $defaults,
+            ]);
+
+            // If this is a leaf category, update the base price and pricing overrides for all products under it
+            if ($category->is_leaf) {
+                $basePrice = isset($defaults['base_price']) && $defaults['base_price'] !== '' ? (float) $defaults['base_price'] : null;
+
+                $products = $category->products()->get();
+                foreach ($products as $product) {
+                    if ($basePrice !== null) {
+                        $product->update([
+                            'base_price' => $basePrice,
+                        ]);
+                    }
+
+                    // Update pricing overrides if present
+                    if (!empty($defaults['pricingOverrides'])) {
+                        foreach ($defaults['pricingOverrides'] as $levelId => $disc) {
+                            if ($disc !== '') {
+                                \App\Models\ProductCustomerLevelPrice::updateOrCreate(
+                                    [
+                                        'product_id' => $product->id,
+                                        'customer_level_id' => $levelId,
+                                    ],
+                                    [
+                                        'discount_percentage' => (float) $disc,
+                                    ]
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+            return $category;
+        });
+    }
+
+    /**
      * Generate unique slug under the same parent.
      */
     public function generateUniqueSlug(string $name, ?int $parentId, ?int $ignoreId = null): string
