@@ -53,6 +53,7 @@ class CategoryPriceCascadeTest extends TestCase
         // Create 2 products under the leaf category with initial base_price 100.00
         $product1 = Product::create([
             'title' => 'Linen Sheet Alpha',
+            'sku' => 'LINEN-001',
             'base_price' => 100.00,
             'description' => 'Test description',
             'is_active' => true,
@@ -65,6 +66,7 @@ class CategoryPriceCascadeTest extends TestCase
 
         $product2 = Product::create([
             'title' => 'Linen Sheet Beta',
+            'sku' => 'LINEN-002',
             'base_price' => 100.00,
             'description' => 'Test description 2',
             'is_active' => true,
@@ -135,6 +137,7 @@ class CategoryPriceCascadeTest extends TestCase
 
         $product = Product::create([
             'title' => 'Silk Saree',
+            'sku' => 'SILK-001',
             'base_price' => 500.00,
             'description' => 'Test silk saree',
             'is_active' => true,
