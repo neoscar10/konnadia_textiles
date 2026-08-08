@@ -166,38 +166,71 @@
     <!-- Add/Edit Unit Sub-Modal -->
     @if($showUnitModal)
         <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700">
-                <h4 class="text-base font-bold text-slate-800 dark:text-white mb-4">{{ $editingUnitId ? 'Edit Unit' : 'Add Unit' }}</h4>
-                <form wire:submit.prevent="saveUnit" class="space-y-3">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-base font-bold text-slate-800 dark:text-white">{{ $editingUnitId ? 'Edit Unit' : 'Add Unit' }}</h4>
+                    <button type="button" wire:click="$set('showUnitModal', false)" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <form wire:submit.prevent="saveUnit" class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Unit Name *</label>
-                        <input type="text" wire:model="unitName" placeholder="e.g. Centimeters, Boxes" class="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white">
-                        @error('unitName') <span class="text-rose-500 text-xs">{{ $message }}</span> @enderror
+                        <input type="text" wire:model.live="unitName" placeholder="e.g. Centimeters, Boxes, petermeter" class="w-full px-3.5 py-2.5 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500">
+                        @error('unitName') <span class="text-rose-500 text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Short Code / Symbol *</label>
-                        <input type="text" wire:model="unitShortCode" placeholder="e.g. cm, box, pcs" class="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white">
-                        @error('unitShortCode') <span class="text-rose-500 text-xs">{{ $message }}</span> @enderror
+                        <input type="text" wire:model.live="unitShortCode" placeholder="e.g. cm, box, PM" class="w-full px-3.5 py-2.5 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500">
+                        @error('unitShortCode') <span class="text-rose-500 text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="flex items-center space-x-2 py-1">
-                        <input type="checkbox" id="unitIsBase" wire:model="unitIsBase" class="rounded text-indigo-600">
-                        <label for="unitIsBase" class="text-xs font-medium text-slate-700 dark:text-slate-300">Set as Base Unit for Group</label>
+                    <div class="flex items-center space-x-2 py-2 px-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200/60 dark:border-slate-700">
+                        <input type="checkbox" id="unitIsBase" wire:model.live="unitIsBase" class="rounded text-indigo-600 w-4 h-4 cursor-pointer">
+                        <label for="unitIsBase" class="text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">Set as Base Unit for Group</label>
                     </div>
 
                     @if(!$unitIsBase)
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Ratio to Base Unit *</label>
-                            <input type="number" step="0.000001" wire:model="unitRatio" placeholder="1.0" class="w-full px-3 py-2 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white">
-                            <span class="text-[10px] text-slate-400 mt-0.5 block">How many base units equal 1 of this unit (e.g. 1 Box = 100 Pieces, 1 cm = 0.01 Meters).</span>
-                            @error('unitRatio') <span class="text-rose-500 text-xs">{{ $message }}</span> @enderror
+                            <input type="number" step="0.000001" wire:model.live="unitRatio" placeholder="1.0" class="w-full px-3.5 py-2.5 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500">
+                            <span class="text-[11px] text-slate-400 mt-1 block">How many base units equal 1 of this unit (e.g. 1 Box = 100 Pieces, 1 cm = 0.01 Meters).</span>
+                            @error('unitRatio') <span class="text-rose-500 text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                         </div>
                     @endif
 
-                    <div class="flex justify-end space-x-2 pt-3">
-                        <button type="button" wire:click="$set('showUnitModal', false)" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-xs bg-primary text-on-primary rounded-xl font-bold hover:opacity-90 shadow-sm transition-all cursor-pointer" style="background-color: #0f172a !important; color: #ffffff !important;">Save Unit</button>
+                    <!-- LIVE RELATIONSHIP PREVIEW CARD -->
+                    @if($this->unitRelationshipPreview)
+                        @php $preview = $this->unitRelationshipPreview; @endphp
+                        <div class="p-3.5 rounded-xl border transition-all shadow-xs {{ $preview['type'] === 'base' ? 'bg-indigo-50/90 border-indigo-200 text-indigo-950 dark:bg-indigo-950/60 dark:border-indigo-800 dark:text-indigo-200' : 'bg-emerald-50/90 border-emerald-200 text-emerald-950 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-200' }}">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="flex h-2 w-2 rounded-full {{ $preview['type'] === 'base' ? 'bg-indigo-600 animate-pulse' : 'bg-emerald-500 animate-pulse' }}"></span>
+                                <span class="text-[11px] font-extrabold uppercase tracking-wider opacity-90">{{ $preview['title'] }}</span>
+                            </div>
+
+                            @if($preview['type'] === 'relationship')
+                                <div class="text-sm font-black tracking-tight mb-1 text-slate-900 dark:text-white">
+                                    {{ $preview['primary'] }}
+                                </div>
+                                <div class="text-xs font-semibold text-emerald-800/90 dark:text-emerald-300/90 italic">
+                                    {{ $preview['explanation'] }}
+                                </div>
+                            @else
+                                <div class="text-xs font-bold mb-0.5">
+                                    {{ $preview['description'] }}
+                                </div>
+                                <div class="text-[11px] opacity-80 font-medium">
+                                    {{ $preview['subtext'] }}
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
+                    <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <button type="button" wire:click="$set('showUnitModal', false)" class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded-xl transition-colors">Cancel</button>
+                        <button type="submit" class="px-5 py-2 text-xs bg-slate-900 text-white dark:bg-indigo-600 rounded-xl font-bold hover:opacity-90 shadow-md transition-all cursor-pointer">Save Unit</button>
                     </div>
                 </form>
             </div>

@@ -121,4 +121,21 @@ class UnitManagementTest extends TestCase
             'unit' => 'Meters',
         ]);
     }
+
+    public function test_unit_index_page_computes_live_relationship_preview(): void
+    {
+        $this->actingAs($this->admin);
+
+        $lengthGroup = UnitGroup::where('code', 'LENGTH')->first();
+        $this->assertNotNull($lengthGroup);
+
+        Livewire::test(UnitIndexPage::class)
+            ->set('selectedGroupId', $lengthGroup->id)
+            ->call('openCreateUnitModal')
+            ->set('unitName', 'petermeter')
+            ->set('unitShortCode', 'PM')
+            ->set('unitRatio', 1000)
+            ->assertSee('1 petermeter (PM) = 1,000 Meters (m)')
+            ->assertSee('Every 1 PM used in manufacturing or stock counts as 1,000 m');
+    }
 }

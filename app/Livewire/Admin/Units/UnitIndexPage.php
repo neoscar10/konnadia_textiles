@@ -214,6 +214,75 @@ class UnitIndexPage extends Component
         $this->unitIsActive = true;
     }
 
+    public function getUnitRelationshipPreviewProperty(): ?array
+    {
+        if (!$this->selectedGroupId) {
+            return null;
+        }
+
+        $group = UnitGroup::with('units')->find($this->selectedGroupId);
+        if (!$group) {
+            return null;
+        }
+
+        $baseUnit = $group->units->firstWhere('is_base', true);
+        $name = trim($this->unitName) !== '' ? trim($this->unitName) : 'Unit';
+        $code = trim($this->unitShortCode) !== '' ? trim($this->unitShortCode) : 'code';
+        $ratio = (float) $this->unitRatio > 0 ? (float) $this->unitRatio : 1.0;
+
+        if ($this->unitIsBase) {
+            return [
+                'type' => 'base',
+                'title' => 'Base Unit Designation',
+                'description' => "1 {$name} ({$code}) will be set as the Base Unit for {$group->name}.",
+                'subtext' => "All other units in this group will calculate their quantities relative to 1 {$code}.",
+            ];
+        }
+
+        if (!$baseUnit) {
+            return [
+                'type' => 'no_base',
+                'title' => 'No Base Unit Set',
+                'description' => "This group currently has no base unit configured.",
+                'subtext' => "Check 'Set as Base Unit' to make {$name} the primary reference unit for {$group->name}.",
+            ];
+        }
+
+        if ($this->editingUnitId && $baseUnit->id === $this->editingUnitId) {
+            return [
+                'type' => 'base',
+                'title' => 'Editing Base Unit',
+                'description' => "1 {$name} ({$code}) is the Base Unit for {$group->name}.",
+                'subtext' => "Keep 'Set as Base Unit' checked unless another unit should become the base.",
+            ];
+        }
+
+        // Format ratio nicely
+        $formattedRatio = (floor($ratio) == $ratio) ? number_format($ratio, 0) : rtrim(rtrim(number_format($ratio, 6), '0'), '.');
+        $primaryStatement = "1 {$name} ({$code}) = {$formattedRatio} {$baseUnit->name} ({$baseUnit->short_code})";
+
+        $explanation = "";
+        if ($ratio < 1 && $ratio > 0) {
+            $reciprocal = 1 / $ratio;
+            $formattedReciprocal = (floor($reciprocal) == $reciprocal) ? number_format($reciprocal, 0) : rtrim(rtrim(number_format($reciprocal, 6), '0'), '.');
+            $explanation = "1 {$baseUnit->name} ({$baseUnit->short_code}) = {$formattedReciprocal} {$name} ({$code})";
+        } else {
+            $explanation = "Every 1 {$code} used in manufacturing or stock counts as {$formattedRatio} {$baseUnit->short_code}";
+        }
+
+        return [
+            'type' => 'relationship',
+            'title' => 'Live Relationship Preview',
+            'primary' => $primaryStatement,
+            'explanation' => $explanation,
+            'unit_name' => $name,
+            'unit_code' => $code,
+            'base_unit_name' => $baseUnit->name,
+            'base_unit_code' => $baseUnit->short_code,
+            'ratio' => $ratio,
+        ];
+    }
+
     public function render()
     {
         $groups = UnitGroup::with(['units'])
