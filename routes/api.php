@@ -238,9 +238,33 @@ Route::prefix('v1')->group(function () {
             // Dashboard Analytics (Authenticated Admin)
             Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Admin\AdminDashboardAnalyticsController::class, 'show']);
 
-            // Units Configuration
+            // Dynamic Units & Unit Groups Management System
             Route::prefix('units')->group(function () {
+                // Legacy / Template options
+                Route::get('/templates', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'templates']);
+
+                // Unit Group Management
+                Route::get('/groups', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'index']);
+                Route::get('/groups/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/groups', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'store']);
+                Route::put('/groups/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/groups/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/groups/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/groups/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'destroy'])->where('id', '[0-9]+');
+
+                // Unit Record Management
                 Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::post('/{id}/set-base', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'setBaseUnit'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'destroy'])->where('id', '[0-9]+');
+
+                // Conversions & Live Relationship Previews
+                Route::post('/convert', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'convert']);
+                Route::post('/preview-relationship', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'previewRelationship']);
             });
 
             // Credit Management (Requires 'access customers' or 'access orders' permission)
