@@ -267,6 +267,21 @@ Route::prefix('v1')->group(function () {
                 Route::post('/preview-relationship', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'previewRelationship']);
             });
 
+            // Manufacturing & Production Floor APIs
+            Route::prefix('production')->group(function () {
+                // Product Categories Management
+                Route::prefix('product-categories')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'index']);
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'options']);
+                    Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'show'])->where('id', '[0-9]+');
+                    Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'store']);
+                    Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                    Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'destroy'])->where('id', '[0-9]+');
+                });
+            });
+
             // Credit Management (Requires 'access customers' or 'access orders' permission)
             Route::prefix('credit-management')->group(function () {
                 Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminCreditManagementController::class, 'stats']);
