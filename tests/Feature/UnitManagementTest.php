@@ -136,6 +136,6 @@ class UnitManagementTest extends TestCase
             ->set('unitShortCode', 'PM')
             ->set('unitRatio', 1000)
             ->assertSee('1 petermeter (PM) = 1,000 Meters (m)')
-            ->assertSee('Every 1 PM used in manufacturing or stock counts as 1,000 m');
+            ->assertSee('Every 1 petermeter (PM) used in manufacturing or stock counts as 1,000 Meters (m)');
     }
 }

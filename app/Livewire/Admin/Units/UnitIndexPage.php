@@ -30,7 +30,7 @@ class UnitIndexPage extends Component
     public string $unitName = '';
     public string $unitShortCode = '';
     public bool $unitIsBase = false;
-    public float $unitRatio = 1.0;
+    public $unitRatio = 1.0;
     public bool $unitIsActive = true;
 
     protected function groupRules(): array
@@ -228,7 +228,8 @@ class UnitIndexPage extends Component
         $baseUnit = $group->units->firstWhere('is_base', true);
         $name = trim($this->unitName) !== '' ? trim($this->unitName) : 'Unit';
         $code = trim($this->unitShortCode) !== '' ? trim($this->unitShortCode) : 'code';
-        $ratio = (float) $this->unitRatio > 0 ? (float) $this->unitRatio : 1.0;
+        $rawRatio = is_numeric($this->unitRatio) ? (float) $this->unitRatio : 1.0;
+        $ratio = $rawRatio > 0 ? $rawRatio : 1.0;
 
         if ($this->unitIsBase) {
             return [
@@ -267,7 +268,7 @@ class UnitIndexPage extends Component
             $formattedReciprocal = (floor($reciprocal) == $reciprocal) ? number_format($reciprocal, 0) : rtrim(rtrim(number_format($reciprocal, 6), '0'), '.');
             $explanation = "1 {$baseUnit->name} ({$baseUnit->short_code}) = {$formattedReciprocal} {$name} ({$code})";
         } else {
-            $explanation = "Every 1 {$code} used in manufacturing or stock counts as {$formattedRatio} {$baseUnit->short_code}";
+            $explanation = "Every 1 {$name} ({$code}) used in manufacturing or stock counts as {$formattedRatio} {$baseUnit->name} ({$baseUnit->short_code})";
         }
 
         return [
