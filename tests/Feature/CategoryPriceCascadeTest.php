@@ -163,6 +163,9 @@ class CategoryPriceCascadeTest extends TestCase
                 'units' => [
                     'level1_name' => 'Piece',
                     'level1_code' => 'pcs',
+                    'level2_name' => '',
+                    'level2_code' => '',
+                    'level2_conversion' => '',
                 ],
             ])
             ->call('saveCategoryDefaults')
