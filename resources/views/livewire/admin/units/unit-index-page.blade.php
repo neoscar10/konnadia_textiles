@@ -165,7 +165,42 @@
 
     <!-- Add/Edit Unit Sub-Modal -->
     @if($showUnitModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+        @php
+            $baseUnitForGroup = $selectedGroup ? $selectedGroup->units->firstWhere('is_base', true) : null;
+            $baseName = $baseUnitForGroup ? $baseUnitForGroup->name : 'Base Unit';
+            $baseCode = $baseUnitForGroup ? $baseUnitForGroup->short_code : 'Base';
+        @endphp
+        <div wire:key="unit-modal-{{ $editingUnitId ?? 'new' }}"
+             x-data="{
+                unitName: $wire.entangle('unitName').live,
+                unitShortCode: $wire.entangle('unitShortCode').live,
+                unitIsBase: $wire.entangle('unitIsBase').live,
+                unitRatio: $wire.entangle('unitRatio').live,
+                baseName: '{{ addslashes($baseName) }}',
+                baseCode: '{{ addslashes($baseCode) }}',
+                get displayName() { return (this.unitName || '').trim() || 'Unit'; },
+                get displayCode() { return (this.unitShortCode || '').trim() || 'code'; },
+                get parsedRatio() {
+                    let r = parseFloat(this.unitRatio);
+                    return (!isNaN(r) && r > 0) ? r : 1;
+                },
+                get formattedRatio() {
+                    let r = this.parsedRatio;
+                    return (r % 1 === 0) ? r.toLocaleString() : r.toString();
+                },
+                get primaryText() {
+                    return `1 ${this.displayName} (${this.displayCode}) = ${this.formattedRatio} ${this.baseName} (${this.baseCode})`;
+                },
+                get explanationText() {
+                    if (this.parsedRatio < 1 && this.parsedRatio > 0) {
+                        let recip = 1 / this.parsedRatio;
+                        let formattedRecip = (recip % 1 === 0) ? recip.toLocaleString() : recip.toFixed(4);
+                        return `1 ${this.baseName} (${this.baseCode}) = ${formattedRecip} ${this.displayName} (${this.displayCode})`;
+                    }
+                    return `Every 1 ${this.displayName} (${this.displayCode}) used in manufacturing or stock counts as ${this.formattedRatio} ${this.baseName} (${this.baseCode})`;
+                }
+             }"
+             class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700">
                 <div class="flex items-center justify-between mb-4">
                     <h4 class="text-base font-bold text-slate-800 dark:text-white">{{ $editingUnitId ? 'Edit Unit' : 'Add Unit' }}</h4>
@@ -177,56 +212,54 @@
                 <form wire:submit.prevent="saveUnit" class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Unit Name *</label>
-                        <input type="text" wire:model.live="unitName" placeholder="e.g. Centimeters, Boxes, petermeter" class="w-full px-3.5 py-2.5 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" x-model="unitName" wire:model.live="unitName" placeholder="e.g. Centimeters, Boxes, petermeter" class="w-full px-3.5 py-2.5 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500">
                         @error('unitName') <span class="text-rose-500 text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Short Code / Symbol *</label>
-                        <input type="text" wire:model.live="unitShortCode" placeholder="e.g. cm, box, PM" class="w-full px-3.5 py-2.5 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" x-model="unitShortCode" wire:model.live="unitShortCode" placeholder="e.g. cm, box, PM" class="w-full px-3.5 py-2.5 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500">
                         @error('unitShortCode') <span class="text-rose-500 text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="flex items-center space-x-2 py-2 px-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200/60 dark:border-slate-700">
-                        <input type="checkbox" id="unitIsBase" wire:model.live="unitIsBase" class="rounded text-indigo-600 w-4 h-4 cursor-pointer">
+                        <input type="checkbox" id="unitIsBase" x-model="unitIsBase" wire:model.live="unitIsBase" class="rounded text-indigo-600 w-4 h-4 cursor-pointer">
                         <label for="unitIsBase" class="text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">Set as Base Unit for Group</label>
                     </div>
 
-                    @if(!$unitIsBase)
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Ratio to Base Unit *</label>
-                            <input type="number" step="any" wire:model.live.debounce.150ms="unitRatio" placeholder="1.0" class="w-full px-3.5 py-2.5 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500">
-                            <span class="text-[11px] text-slate-400 mt-1 block">How many base units equal 1 of this unit (e.g. 1 Box = 100 Pieces, 1 cm = 0.01 Meters).</span>
-                            @error('unitRatio') <span class="text-rose-500 text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                        </div>
-                    @endif
+                    <div x-show="!unitIsBase">
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1">Ratio to Base Unit *</label>
+                        <input type="number" step="any" x-model="unitRatio" wire:model.live="unitRatio" placeholder="1.0" class="w-full px-3.5 py-2.5 border rounded-xl text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500">
+                        <span class="text-[11px] text-slate-400 mt-1 block">How many base units equal 1 of this unit (e.g. 1 Box = 100 Pieces, 1 cm = 0.01 Meters).</span>
+                        @error('unitRatio') <span class="text-rose-500 text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                    </div>
 
-                    <!-- LIVE RELATIONSHIP PREVIEW CARD -->
-                    @if($this->unitRelationshipPreview)
-                        @php $preview = $this->unitRelationshipPreview; @endphp
-                        <div class="p-3.5 rounded-xl border transition-all shadow-xs {{ $preview['type'] === 'base' ? 'bg-indigo-50/90 border-indigo-200 text-indigo-950 dark:bg-indigo-950/60 dark:border-indigo-800 dark:text-indigo-200' : 'bg-emerald-50/90 border-emerald-200 text-emerald-950 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-200' }}">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="flex h-2 w-2 rounded-full {{ $preview['type'] === 'base' ? 'bg-indigo-600 animate-pulse' : 'bg-emerald-500 animate-pulse' }}"></span>
-                                <span class="text-[11px] font-extrabold uppercase tracking-wider opacity-90">{{ $preview['title'] }}</span>
+                    <!-- LIVE RELATIONSHIP PREVIEW CARD (AlpineJS Instant + Livewire Fallback) -->
+                    <div class="p-3.5 rounded-xl border transition-all shadow-xs"
+                         :class="unitIsBase ? 'bg-indigo-50/90 border-indigo-200 text-indigo-950 dark:bg-indigo-950/60 dark:border-indigo-800 dark:text-indigo-200' : 'bg-emerald-50/90 border-emerald-200 text-emerald-950 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-200'">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="flex h-2 w-2 rounded-full" :class="unitIsBase ? 'bg-indigo-600 animate-pulse' : 'bg-emerald-500 animate-pulse'"></span>
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider opacity-90" x-text="unitIsBase ? 'Base Unit Designation' : 'Live Relationship Preview'"></span>
+                        </div>
+
+                        <template x-if="unitIsBase">
+                            <div>
+                                <div class="text-xs font-bold mb-0.5" x-text="`1 ${displayName} (${displayCode}) will be set as the Base Unit for {{ addslashes($selectedGroup->name ?? 'Group') }}.`"></div>
+                                <div class="text-[11px] opacity-80 font-medium" x-text="`All other units in this group will calculate their quantities relative to 1 ${displayCode}.`"></div>
                             </div>
+                        </template>
 
-                            @if($preview['type'] === 'relationship')
-                                <div class="text-sm font-black tracking-tight mb-1 text-slate-900 dark:text-white">
-                                    {{ $preview['primary'] }}
+                        <template x-if="!unitIsBase">
+                            <div>
+                                <div class="text-sm font-black tracking-tight mb-1 text-slate-900 dark:text-white" x-text="primaryText">
+                                    {{ $this->unitRelationshipPreview['primary'] ?? '' }}
                                 </div>
-                                <div class="text-xs font-semibold text-emerald-800/90 dark:text-emerald-300/90 italic">
-                                    {{ $preview['explanation'] }}
+                                <div class="text-xs font-semibold text-emerald-800/90 dark:text-emerald-300/90 italic" x-text="explanationText">
+                                    {{ $this->unitRelationshipPreview['explanation'] ?? '' }}
                                 </div>
-                            @else
-                                <div class="text-xs font-bold mb-0.5">
-                                    {{ $preview['description'] }}
-                                </div>
-                                <div class="text-[11px] opacity-80 font-medium">
-                                    {{ $preview['subtext'] }}
-                                </div>
-                            @endif
-                        </div>
-                    @endif
+                            </div>
+                        </template>
+                    </div>
 
                     <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-700">
                         <button type="button" wire:click="$set('showUnitModal', false)" class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded-xl transition-colors">Cancel</button>
