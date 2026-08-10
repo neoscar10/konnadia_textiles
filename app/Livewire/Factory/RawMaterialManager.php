@@ -254,13 +254,11 @@ class RawMaterialManager extends Component
             if ($category && $category->unitGroup && $category->unitGroup->activeUnits->isNotEmpty()) {
                 $this->availableUnits = $category->unitGroup->activeUnits->pluck('name')->toArray();
                 return;
-            } else if ($category) {
-                $this->availableUnits = $category->valid_units;
-                return;
             }
         }
 
-        $this->availableUnits = Unit::active()->pluck('name')->unique()->toArray();
+        // Before Unit Class or Category is selected, do NOT list all units!
+        $this->availableUnits = [];
     }
 
     protected function getValidUnitsForSelectedCategory(): array

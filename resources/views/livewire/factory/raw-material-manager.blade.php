@@ -147,58 +147,49 @@
 
                         <!-- Width Configuration (Only for Length-based Unit Class) -->
                         @if($this->isLengthBased())
-                            <div class="bg-surface-container-low/30 border border-outline-variant/40 rounded-xl p-4 space-y-3">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="rm-standard-width" class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                            Standard Width <span class="text-error">*</span>
-                                        </label>
+                            <div class="bg-surface-container-low/30 border border-outline-variant/40 rounded-xl p-4">
+                                <label for="rm-standard-width" class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
+                                    Fabric Standard Width <span class="text-error">*</span>
+                                </label>
+
+                                <div class="flex items-center gap-3">
+                                    <!-- Width Value Input -->
+                                    <div class="flex-1">
                                         <input
                                             type="number"
                                             step="0.01"
                                             id="rm-standard-width"
                                             wire:model="standard_width"
-                                            placeholder="e.g., 44, 58, 1.5"
-                                            class="w-full py-2 px-3 rounded-xl border font-body-md text-sm focus:outline-none transition-colors
+                                            placeholder="e.g., 44, 58, 60, 1.5"
+                                            class="w-full py-2.5 px-4 rounded-xl border font-body-md text-sm focus:outline-none transition-colors
                                                 {{ $errors->has('standard_width') ? 'border-error focus:border-error focus:ring-1 focus:ring-error' : 'border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary' }}"
                                         />
-                                        @error('standard_width')
-                                            <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
-                                        @enderror
                                     </div>
 
-                                    <div>
-                                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                            Width Unit <span class="text-error">*</span>
-                                        </label>
-                                        <div class="flex flex-wrap gap-2 items-center min-h-[38px]">
-                                            @php
-                                                $widthUnitOptions = !empty($availableUnits) ? $availableUnits : ['Inch', 'CM', 'Meters', 'Feet', 'Yards'];
-                                                if (!in_array('Inch', $widthUnitOptions)) {
-                                                    array_unshift($widthUnitOptions, 'Inch');
-                                                }
-                                                if (!in_array('CM', $widthUnitOptions)) {
-                                                    $widthUnitOptions[] = 'CM';
-                                                }
-                                                $widthUnitOptions = array_unique($widthUnitOptions);
-                                            @endphp
-                                            @foreach($widthUnitOptions as $wOption)
-                                                <button
-                                                    type="button"
-                                                    wire:click="$set('width_unit', '{{ $wOption }}')"
-                                                    class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all
-                                                        {{ $width_unit === $wOption
-                                                            ? 'bg-secondary text-on-secondary border-secondary shadow-sm ring-1 ring-secondary/30'
-                                                            : 'bg-surface-container-low/40 text-on-surface border-outline-variant/60 hover:border-secondary' }}"
-                                                >
-                                                    {{ $wOption }}
-                                                </button>
-                                            @endforeach
-                                        </div>
-                                        @error('width_unit')
-                                            <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
-                                        @enderror
+                                    <!-- Width Unit Selector -->
+                                    <div class="w-44">
+                                        <select
+                                            id="rm-width-unit"
+                                            wire:model="width_unit"
+                                            class="w-full py-2.5 px-3 rounded-xl border bg-surface-container-lowest font-body-md text-sm font-bold focus:outline-none transition-colors
+                                                {{ $errors->has('width_unit') ? 'border-error focus:border-error focus:ring-1 focus:ring-error' : 'border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary' }}"
+                                        >
+                                            <option value="Inch">Inch (in)</option>
+                                            <option value="CM">Centimeter (cm)</option>
+                                            <option value="Meters">Meter (m)</option>
+                                            <option value="Feet">Foot (ft)</option>
+                                            <option value="Yards">Yard (yd)</option>
+                                        </select>
                                     </div>
+                                </div>
+
+                                <div class="flex items-center justify-between mt-1.5">
+                                    @error('standard_width')
+                                        <p class="text-error text-[11px] font-semibold">{{ $message }}</p>
+                                    @enderror
+                                    @error('width_unit')
+                                        <p class="text-error text-[11px] font-semibold">{{ $message }}</p>
+                                    @enderror
                                 </div>
                             </div>
                         @endif
