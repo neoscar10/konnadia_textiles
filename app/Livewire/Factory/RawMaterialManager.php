@@ -136,7 +136,10 @@ class RawMaterialManager extends Component
 
                 $defaultUnit = $category->default_unit;
                 if (!in_array($this->unit, $this->availableUnits)) {
-                    $this->unit = in_array($defaultUnit, $this->availableUnits) ? $defaultUnit : ($this->availableUnits[0] ?? '');
+                    $newUnit = in_array($defaultUnit, $this->availableUnits) ? $defaultUnit : ($this->availableUnits[0] ?? '');
+                    $this->selectUnit($newUnit);
+                } else {
+                    $this->selectUnit($this->unit);
                 }
             }
         } else {
@@ -150,10 +153,8 @@ class RawMaterialManager extends Component
 
         if (!empty($this->availableUnits) && !in_array($this->unit, $this->availableUnits)) {
             $this->selectUnit($this->availableUnits[0] ?? '');
-        }
-
-        if ($this->isLengthBased() && empty($this->width_unit)) {
-            $this->width_unit = 'Inch';
+        } else if ($this->isLengthBased()) {
+            $this->width_unit = $this->getNormalizedWidthUnit($this->unit ?: 'Meters');
         }
     }
 
@@ -162,17 +163,20 @@ class RawMaterialManager extends Component
         $this->unit = $unitOption;
 
         if ($this->isLengthBased()) {
-            $normalized = match (strtolower($unitOption)) {
-                'cm', 'centimeters', 'centimeter' => 'CM',
-                'inches', 'inch', 'in' => 'Inch',
-                'meters', 'meter', 'm' => 'Meters',
-                'feet', 'foot', 'ft' => 'Feet',
-                'yards', 'yard', 'yd' => 'Yards',
-                default => $unitOption,
-            };
-
-            $this->width_unit = $normalized;
+            $this->width_unit = $this->getNormalizedWidthUnit($unitOption);
         }
+    }
+
+    protected function getNormalizedWidthUnit(string $unitOption): string
+    {
+        return match (strtolower($unitOption)) {
+            'cm', 'centimeters', 'centimeter' => 'CM',
+            'inches', 'inch', 'in' => 'Inch',
+            'meters', 'meter', 'm' => 'Meters',
+            'feet', 'foot', 'ft' => 'Feet',
+            'yards', 'yard', 'yd' => 'Yards',
+            default => !empty($unitOption) ? $unitOption : 'Meters',
+        };
     }
 
     public function save()
@@ -251,7 +255,7 @@ class RawMaterialManager extends Component
         $this->unit_group_id = null;
         $this->unit_id = null;
         $this->standard_width = null;
-        $this->width_unit = 'Inch';
+        $this->width_unit = 'Meters';
         $this->is_active = true;
         $this->raw_material_category_id = null;
         $this->availableUnits = [];
