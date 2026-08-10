@@ -49,6 +49,9 @@ class JobDetailPage extends Component
     public $cuttingFabricMaterialId = '';
     public $cuttingFabricBatchId = '';
     public $cuttingFabricBaleId = '';
+    public array $cuttingBaleRows = [
+        ['bale_id' => '', 'selected_rolls' => []]
+    ];
     public $cuttingConsumedLength = '';
     public $cuttingWastageLength = 0;
     public $cuttingFabricWidth = 60.00;
@@ -1287,12 +1290,88 @@ class JobDetailPage extends Component
         }
     }
 
+    public function addCuttingBaleRow(): void
+    {
+        $this->cuttingBaleRows[] = ['bale_id' => '', 'selected_rolls' => []];
+    }
+
+    public function removeCuttingBaleRow(int $index): void
+    {
+        if (count($this->cuttingBaleRows) > 1) {
+            unset($this->cuttingBaleRows[$index]);
+            $this->cuttingBaleRows = array_values($this->cuttingBaleRows);
+            $this->recalculateTotalCuttingConsumedLength();
+        }
+    }
+
+    public function updatedCuttingBaleRows($value, $key)
+    {
+        $parts = explode('.', $key);
+        if (count($parts) >= 2) {
+            $index = intval($parts[0]);
+            $field = $parts[1];
+
+            if ($field === 'bale_id') {
+                $this->cuttingBaleRows[$index]['selected_rolls'] = [];
+                $baleId = $value;
+                if ($baleId) {
+                    $bale = \App\Models\InventoryBale::with('activeRolls')->find($baleId);
+                    if ($bale && $bale->status === 'opened') {
+                        foreach ($bale->activeRolls as $roll) {
+                            $this->cuttingBaleRows[$index]['selected_rolls'][$roll->id] = [
+                                'roll_id' => $roll->id,
+                                'roll_number' => $roll->roll_number,
+                                'max_length' => (float) $roll->current_balance_length,
+                                'cut_length' => '',
+                            ];
+                        }
+                    }
+                }
+                $this->cuttingFabricBaleId = $baleId;
+            } elseif ($field === 'selected_rolls') {
+                $this->recalculateTotalCuttingConsumedLength();
+            }
+        }
+    }
+
+    public function useFullRoll(int $baleRowIndex, int $rollId): void
+    {
+        if (isset($this->cuttingBaleRows[$baleRowIndex]['selected_rolls'][$rollId])) {
+            $maxLen = $this->cuttingBaleRows[$baleRowIndex]['selected_rolls'][$rollId]['max_length'];
+            $this->cuttingBaleRows[$baleRowIndex]['selected_rolls'][$rollId]['cut_length'] = $maxLen;
+            $this->recalculateTotalCuttingConsumedLength();
+        }
+    }
+
+    public function recalculateTotalCuttingConsumedLength(): void
+    {
+        $total = 0.0;
+        foreach ($this->cuttingBaleRows as $row) {
+            if (!empty($row['selected_rolls'])) {
+                foreach ($row['selected_rolls'] as $r) {
+                    $val = floatval($r['cut_length'] ?? 0);
+                    if ($val > 0) {
+                        $total += $val;
+                    }
+                }
+            }
+        }
+        $this->cuttingConsumedLength = $total > 0 ? round($total, 2) : '';
+    }
+
     public function updatedCuttingFabricMaterialId($value)
     {
         $this->cuttingFabricBatchId = '';
         $this->cuttingFabricBaleId = '';
+        $this->cuttingBaleRows = [['bale_id' => '', 'selected_rolls' => []]];
+        $this->cuttingConsumedLength = '';
 
         if ($value) {
+            $mat = \App\Models\RawMaterial::find($value);
+            if ($mat) {
+                $this->cuttingFabricWidth = (float) ($mat->standard_width ?: 60.00);
+            }
+
             $batches = InventoryBatch::where('raw_material_id', $value)
                 ->where('balance_quantity', '>', 0)
                 ->orderBy('id', 'desc')
@@ -1309,6 +1388,8 @@ class JobDetailPage extends Component
     public function updatedCuttingFabricBatchId($value)
     {
         $this->cuttingFabricBaleId = '';
+        $this->cuttingBaleRows = [['bale_id' => '', 'selected_rolls' => []]];
+        $this->cuttingConsumedLength = '';
 
         if ($value) {
             $batch = InventoryBatch::find($value);
@@ -1329,7 +1410,20 @@ class JobDetailPage extends Component
             ->get();
 
         if ($bales->count() === 1) {
-            $this->cuttingFabricBaleId = $bales->first()->id;
+            $bale = $bales->first();
+            $this->cuttingFabricBaleId = $bale->id;
+            $this->cuttingBaleRows = [['bale_id' => $bale->id, 'selected_rolls' => []]];
+            if ($bale->status === 'opened') {
+                $bale->load('activeRolls');
+                foreach ($bale->activeRolls as $roll) {
+                    $this->cuttingBaleRows[0]['selected_rolls'][$roll->id] = [
+                        'roll_id' => $roll->id,
+                        'roll_number' => $roll->roll_number,
+                        'max_length' => (float) $roll->current_balance_length,
+                        'cut_length' => '',
+                    ];
+                }
+            }
         }
     }
 
@@ -1548,9 +1642,28 @@ class JobDetailPage extends Component
             // Decrement the inventory batch balance
             $batch->deductQuantity((float) $this->cuttingConsumedLength);
 
-            if (!empty($this->cuttingFabricBaleId)) {
-                $bale = \App\Models\InventoryBale::find($this->cuttingFabricBaleId);
-                if ($bale) {
+            // Deduct lengths from selected rolls & bales across all rows
+            foreach ($this->cuttingBaleRows as $bRow) {
+                $baleId = $bRow['bale_id'] ?? null;
+                $bale = $baleId ? \App\Models\InventoryBale::find($baleId) : null;
+                $baleTotalCut = 0.0;
+
+                if (!empty($bRow['selected_rolls'])) {
+                    foreach ($bRow['selected_rolls'] as $rId => $rData) {
+                        $cLen = floatval($rData['cut_length'] ?? 0);
+                        if ($cLen > 0) {
+                            $baleTotalCut += $cLen;
+                            $roll = \App\Models\InventoryBaleRoll::find($rId);
+                            if ($roll) {
+                                $roll->deductLength($cLen);
+                            }
+                        }
+                    }
+                }
+
+                if ($bale && $baleTotalCut > 0) {
+                    $bale->deductLength($baleTotalCut);
+                } elseif ($bale && empty($bRow['selected_rolls']) && (float)$this->cuttingConsumedLength > 0) {
                     $bale->deductLength((float) $this->cuttingConsumedLength);
                 }
             }
