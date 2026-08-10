@@ -41,8 +41,9 @@ class CuttingStageWizard extends Component
 
     // Unopened Bale Modal State
     public bool $showOpenBaleModal = false;
+    public bool $showMismatchConfirmationModal = false;
     public ?int $activeBaleIdToOpen = null;
-    public int $baleRollCount = 5;
+    public $baleRollCount = '';
     public array $baleRollLengths = [];
     public ?string $baleMismatchWarning = null;
 
@@ -105,23 +106,34 @@ class CuttingStageWizard extends Component
     {
         $bale = InventoryBale::with('batch')->findOrFail($baleId);
         $this->activeBaleIdToOpen = $bale->id;
-        $this->baleRollCount = 5;
+        $this->baleRollCount = '';
+        $this->baleRollLengths = [];
         $this->baleMismatchWarning = null;
-
-        $declaredPerRoll = round((float) $bale->declared_length / 5, 2);
-        $this->baleRollLengths = array_fill(0, 5, $declaredPerRoll);
+        $this->showMismatchConfirmationModal = false;
 
         $this->showOpenBaleModal = true;
     }
 
     public function updatedBaleRollCount($count)
     {
+        if ($count === '' || $count === null || intval($count) <= 0) {
+            $this->baleRollLengths = [];
+            $this->baleMismatchWarning = null;
+            return;
+        }
+
         $count = max(1, min(50, intval($count)));
         $this->baleRollCount = $count;
 
-        $bale = InventoryBale::find($this->activeBaleIdToOpen);
-        $declaredPerRoll = $bale ? round((float) $bale->declared_length / $count, 2) : 100;
-        $this->baleRollLengths = array_fill(0, $count, $declaredPerRoll);
+        $currentCount = count($this->baleRollLengths);
+        if ($currentCount < $count) {
+            for ($i = $currentCount; $i < $count; $i++) {
+                $this->baleRollLengths[$i] = '';
+            }
+        } else if ($currentCount > $count) {
+            $this->baleRollLengths = array_slice($this->baleRollLengths, 0, $count);
+        }
+
         $this->checkBaleMismatchWarning();
     }
 
@@ -136,15 +148,50 @@ class CuttingStageWizard extends Component
         $bale = InventoryBale::find($this->activeBaleIdToOpen);
         if (!$bale) return;
 
-        $sum = array_sum(array_map('floatval', $this->baleRollLengths));
+        $filledLengths = array_filter($this->baleRollLengths, fn($val) => $val !== '' && $val !== null);
+        if (empty($filledLengths)) {
+            $this->baleMismatchWarning = null;
+            return;
+        }
+
+        $sum = array_sum(array_map('floatval', $filledLengths));
         $declared = (float) $bale->declared_length;
 
         if (abs($sum - $declared) > 0.001) {
             $diff = round($sum - $declared, 2);
-            $this->baleMismatchWarning = "Notice: Sum of roll lengths ({$sum}m) differs from declared purchase bale length ({$declared}m) by {$diff}m. You may still proceed to open this bale.";
+            $sign = $diff > 0 ? "+{$diff}" : "{$diff}";
+            $this->baleMismatchWarning = "Warning: Total measured roll length ({$sum}m) differs from declared purchase bale length ({$declared}m) by {$sign}m. This measured length ({$sum}m) will override the declared length for material calculations.";
         } else {
             $this->baleMismatchWarning = null;
         }
+    }
+
+    public function submitOpenedBaleForm()
+    {
+        if (!$this->activeBaleIdToOpen) return;
+
+        if (empty($this->baleRollCount) || count($this->baleRollLengths) < 1) {
+            $this->addError('baleRollCount', 'Please enter the number of rolls in the bale.');
+            return;
+        }
+
+        foreach ($this->baleRollLengths as $i => $len) {
+            if ($len === '' || $len === null || (float)$len <= 0) {
+                $this->addError("baleRollLengths.{$i}", "Please enter a valid length for Roll #" . ($i + 1));
+                return;
+            }
+        }
+
+        $bale = InventoryBale::findOrFail($this->activeBaleIdToOpen);
+        $sum = array_sum(array_map('floatval', $this->baleRollLengths));
+        $declared = (float) $bale->declared_length;
+
+        if (abs($sum - $declared) > 0.001 && !$this->showMismatchConfirmationModal) {
+            $this->showMismatchConfirmationModal = true;
+            return;
+        }
+
+        $this->saveOpenedBale();
     }
 
     public function saveOpenedBale()
@@ -152,10 +199,11 @@ class CuttingStageWizard extends Component
         if (!$this->activeBaleIdToOpen) return;
         $bale = InventoryBale::findOrFail($this->activeBaleIdToOpen);
 
-        $bale->openBale($this->baleRollLengths);
+        $result = $bale->openBale($this->baleRollLengths);
         $this->showOpenBaleModal = false;
+        $this->showMismatchConfirmationModal = false;
         $this->activeBaleIdToOpen = null;
-        $this->dispatch('toast', message: "Bale {$bale->bale_number} opened with {$bale->roll_count} rolls successfully!", type: 'success');
+        $this->dispatch('toast', message: "Bale {$bale->bale_number} opened with {$bale->roll_count} rolls! Measured length ({$result['total_recorded_length']}m) recorded for stock calculations.", type: 'success');
     }
 
     public function toggleRollSelection($fabricIndex, $rollId)

@@ -459,6 +459,9 @@
 
     <!-- MODAL: Open Unopened Bale & Record Roll Lengths -->
     @if($showOpenBaleModal)
+        @php
+            $baleToOpen = $activeBaleIdToOpen ? \App\Models\InventoryBale::find($activeBaleIdToOpen) : null;
+        @endphp
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-outline-variant/40 flex justify-between items-center bg-amber-500/10">
@@ -472,13 +475,6 @@
                 </div>
 
                 <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-                    @if($baleMismatchWarning)
-                        <div class="bg-amber-500/10 border border-amber-500/30 text-amber-900 rounded-xl p-4 text-xs font-semibold flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[18px]">warning</span>
-                            <span>{{ $baleMismatchWarning }}</span>
-                        </div>
-                    @endif
-
                     <div>
                         <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Number of Rolls in Bale <span class="text-error">*</span></label>
                         <input
@@ -486,34 +482,110 @@
                             min="1"
                             max="50"
                             wire:model.live="baleRollCount"
+                            placeholder="-- Enter number of rolls (e.g. 5) --"
                             class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-bold"
                         />
+                        @error('baleRollCount') <p class="text-xs font-bold text-error mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    <div class="space-y-3 pt-2">
-                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Individual Roll Lengths (Meters)</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            @foreach($baleRollLengths as $rIdx => $rLen)
-                                <div>
-                                    <label class="text-[10px] font-bold text-on-surface-variant uppercase">Roll {{ $rIdx + 1 }} Length</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        wire:model.live="baleRollLengths.{{ $rIdx }}"
-                                        class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-right"
-                                    />
-                                </div>
-                            @endforeach
+                    @if(!empty($baleRollCount) && count($baleRollLengths) > 0)
+                        <div class="space-y-3 pt-2">
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Individual Roll Lengths (Meters) *</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                @foreach($baleRollLengths as $rIdx => $rLen)
+                                    <div>
+                                        <label class="text-[10px] font-bold text-on-surface-variant uppercase">Roll {{ $rIdx + 1 }} Length</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            wire:model.live="baleRollLengths.{{ $rIdx }}"
+                                            placeholder="0.00"
+                                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-right"
+                                        />
+                                        @error("baleRollLengths.{$rIdx}") <p class="text-[10px] font-bold text-error mt-0.5">{{ $message }}</p> @enderror
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
+
+                        @php
+                            $measuredTotal = array_sum(array_map('floatval', array_filter($baleRollLengths, fn($v) => $v !== '' && $v !== null)));
+                        @endphp
+                        <div class="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex justify-between items-center text-xs">
+                            <span class="font-bold text-on-surface">Total Measured Rolls Length:</span>
+                            <span class="font-black text-secondary text-base font-mono">{{ number_format($measuredTotal, 2) }}m</span>
+                        </div>
+
+                        @if($baleMismatchWarning)
+                            <div class="bg-amber-500/10 border border-amber-500/30 text-amber-900 rounded-xl p-4 text-xs font-semibold flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">warning</span>
+                                <span>{{ $baleMismatchWarning }}</span>
+                            </div>
+                        @endif
+                    @endif
                 </div>
 
                 <div class="px-6 py-4 border-t border-outline-variant/40 flex justify-end gap-3 bg-surface-container-low/30">
                     <button type="button" wire:click="$set('showOpenBaleModal', false)" class="px-5 py-2.5 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant">
                         Cancel
                     </button>
-                    <button type="button" wire:click="saveOpenedBale" class="px-6 py-2.5 bg-primary text-on-primary font-bold text-xs rounded-xl shadow-sm hover:bg-primary-container transition-all">
+                    <button type="button" wire:click="submitOpenedBaleForm" class="px-6 py-2.5 bg-primary text-on-primary font-bold text-xs rounded-xl shadow-sm hover:bg-primary-container transition-all" {{ empty($baleRollCount) ? 'disabled' : '' }}>
                         Save & Open Bale
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Mismatch Confirmation Warning Modal Overlay -->
+    @if($showMismatchConfirmationModal && $activeBaleIdToOpen)
+        @php
+            $baleToConfirm = \App\Models\InventoryBale::find($activeBaleIdToOpen);
+            $sumRecorded = array_sum(array_map('floatval', array_filter($baleRollLengths, fn($v) => $v !== '' && $v !== null)));
+            $declaredLen = (float) ($baleToConfirm?->declared_length ?? 0);
+            $diffVal = round($sumRecorded - $declaredLen, 2);
+            $signVal = $diffVal > 0 ? "+{$diffVal}" : "{$diffVal}";
+        @endphp
+        <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-[60] p-4">
+            <div class="bg-surface border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
+                <div class="flex items-center gap-3 text-amber-700">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-2xl">warning</span>
+                    </div>
+                    <div>
+                        <h4 class="font-headline-sm text-lg font-black text-amber-900">Length Discrepancy Warning</h4>
+                        <p class="text-xs text-amber-800 font-medium">Bale {{ $baleToConfirm?->bale_number }} Roll Measurement Mismatch</p>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs space-y-2 text-amber-950">
+                    <div class="flex justify-between font-medium">
+                        <span>Declared Purchase Length:</span>
+                        <span class="font-bold">{{ number_format($declaredLen, 2) }}m</span>
+                    </div>
+                    <div class="flex justify-between font-medium">
+                        <span>Sum of Measured Rolls:</span>
+                        <span class="font-extrabold text-amber-900">{{ number_format($sumRecorded, 2) }}m</span>
+                    </div>
+                    <div class="h-px bg-amber-200 my-1"></div>
+                    <div class="flex justify-between font-extrabold text-sm text-amber-900">
+                        <span>Net Difference:</span>
+                        <span>{{ $signVal }}m</span>
+                    </div>
+                </div>
+
+                <p class="text-xs text-on-surface-variant leading-relaxed">
+                    The measured total roll length (<strong>{{ number_format($sumRecorded, 2) }}m</strong>) does not match the recorded purchase length (<strong>{{ number_format($declaredLen, 2) }}m</strong>).
+                    <br><br>
+                    This measured length of <strong>{{ number_format($sumRecorded, 2) }}m</strong> will be recorded as the actual genuine stock balance for material calculations. Do you want to proceed?
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button type="button" wire:click="$set('showMismatchConfirmationModal', false)" class="flex-1 px-4 py-3 rounded-xl border border-outline-variant/60 text-xs font-bold text-on-surface hover:bg-surface-container transition-all">
+                        Go Back & Review Rolls
+                    </button>
+                    <button type="button" wire:click="saveOpenedBale" class="flex-1 px-4 py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold shadow-md transition-all">
+                        Insist & Save Measured ({{ number_format($sumRecorded, 2) }}m)
                     </button>
                 </div>
             </div>
