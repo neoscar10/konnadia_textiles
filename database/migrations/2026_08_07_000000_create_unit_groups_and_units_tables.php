@@ -47,8 +47,8 @@ return new class extends Migration
         // 5. Add purchase_unit_id and base_quantity to inventory_batches
         Schema::table('inventory_batches', function (Blueprint $table) {
             $table->foreignId('purchase_unit_id')->nullable()->after('unit')->constrained('units')->nullOnDelete();
-            $table->decimal('base_quantity', 16, 4)->nullable()->after('quantity');
-            $table->decimal('base_current_balance', 16, 4)->nullable()->after('current_balance');
+            $table->decimal('base_quantity', 16, 4)->nullable()->after('received_quantity');
+            $table->decimal('base_current_balance', 16, 4)->nullable()->after('balance_quantity');
         });
     }
 
