@@ -204,4 +204,31 @@ class RawMaterialPurchaseEntryTest extends TestCase
                 'purchase_rate',
             ]);
     }
+
+    public function test_purchase_form_supports_individual_bale_lengths_when_equal_length_toggled_off()
+    {
+        $this->actingAs($this->admin);
+
+        Livewire::test(RawMaterialPurchaseEntry::class)
+            ->set('supplier_name', 'TexVenture Custom Bales')
+            ->set('purchase_date', '2026-05-20')
+            ->set('invoice_number', 'INV-CUSTOM-01')
+            ->set('raw_material_id', $this->fabric->id)
+            ->set('num_bales', 3)
+            ->set('all_bales_equal_length', false)
+            ->set('individual_bale_lengths', [300, 280, 310])
+            ->set('purchase_rate', '100.00')
+            ->assertSet('quantity_received', '890')
+            ->assertSet('total_amount', 89000.00)
+            ->call('savePurchaseEntry')
+            ->assertRedirect(route('factory.raw-materials.index'));
+
+        $batch = InventoryBatch::where('invoice_number', 'INV-CUSTOM-01')->first();
+        $this->assertNotNull($batch);
+        $this->assertEquals(890.00, (float) $batch->quantity_received);
+        $this->assertCount(3, $batch->bales);
+
+        $lengths = $batch->bales->pluck('declared_length')->map(fn($l) => (float) $l)->toArray();
+        $this->assertEquals([300.0, 280.0, 310.0], $lengths);
+    }
 }

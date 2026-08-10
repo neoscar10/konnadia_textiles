@@ -130,15 +130,19 @@ class InventoryBatch extends Model
     /**
      * Create child unopened bales for this fabric batch.
      */
-    public function createBales(int $numBales, float $declaredLength)
+    public function createBales(int $numBales, float|array $declaredLength)
     {
         $createdBales = [];
         for ($i = 1; $i <= $numBales; $i++) {
+            $len = is_array($declaredLength) 
+                ? (float) ($declaredLength[$i - 1] ?? $declaredLength[0] ?? 0)
+                : (float) $declaredLength;
+
             $createdBales[] = $this->bales()->create([
                 'bale_number' => "Bale #{$i}",
                 'status' => 'unopened',
-                'declared_length' => $declaredLength,
-                'current_balance_length' => $declaredLength,
+                'declared_length' => $len,
+                'current_balance_length' => $len,
             ]);
         }
         return $createdBales;

@@ -138,10 +138,23 @@
                         @if($unitType === 'length_based')
                             <!-- Fabric Bale Configuration -->
                             <div class="bg-primary/5 border border-primary/20 rounded-xl p-5 mb-6 space-y-4">
-                                <div class="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-                                    <span class="material-symbols-outlined text-[18px]">inventory_2</span>
-                                    <span>Fabric Bale Purchase Details</span>
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-primary/15 pb-3">
+                                    <div class="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                                        <span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                                        <span>Fabric Bale Purchase Details</span>
+                                    </div>
+                                    <!-- Toggle Switch: All bales equal length -->
+                                    <label class="flex items-center gap-2.5 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            wire:model.live="all_bales_equal_length"
+                                            class="sr-only peer"
+                                        />
+                                        <div class="relative w-11 h-6 bg-outline-variant/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        <span class="font-label-md text-xs font-extrabold text-on-surface">All bale lengths are equal</span>
+                                    </label>
                                 </div>
+
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label for="num-bales" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
@@ -151,31 +164,70 @@
                                             id="num-bales"
                                             type="number"
                                             min="1"
+                                            max="100"
                                             wire:model.live="num_bales"
-                                            placeholder="e.g., 2"
-                                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                                            placeholder="e.g., 3"
+                                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold"
                                         />
                                         @error('num_bales') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                                     </div>
 
-                                    <div>
-                                        <label for="declared-bale-length" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                            Declared Length Written on Bale <span class="text-error">*</span>
-                                        </label>
-                                        <div class="relative">
-                                            <input
-                                                id="declared-bale-length"
-                                                type="number"
-                                                step="0.01"
-                                                wire:model.live="declared_bale_length"
-                                                placeholder="e.g., 500"
-                                                class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-4 pr-16 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-                                            />
-                                            <span class="absolute right-4 top-3 text-xs font-bold text-on-surface-variant/60 pointer-events-none">{{ $unitName }} / Bale</span>
+                                    @if($all_bales_equal_length)
+                                        <div>
+                                            <label for="declared-bale-length" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                                Declared Length Written on Bale <span class="text-error">*</span>
+                                            </label>
+                                            <div class="relative">
+                                                <input
+                                                    id="declared-bale-length"
+                                                    type="number"
+                                                    step="0.01"
+                                                    wire:model.live="declared_bale_length"
+                                                    placeholder="e.g., 300"
+                                                    class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-4 pr-16 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold text-right"
+                                                />
+                                                <span class="absolute right-4 top-3 text-xs font-bold text-on-surface-variant/60 pointer-events-none">{{ $unitName }} / Bale</span>
+                                            </div>
+                                            @error('declared_bale_length') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                                         </div>
-                                        @error('declared_bale_length') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
-                                    </div>
+                                    @endif
                                 </div>
+
+                                <!-- Individual Bale Lengths Grid (When toggle is OFF) -->
+                                @if(!$all_bales_equal_length)
+                                    <div class="pt-3 border-t border-primary/15 space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <label class="block font-label-md text-xs font-bold text-primary uppercase tracking-wider">
+                                                Individual Declared Length Per Bale
+                                            </label>
+                                            <span class="text-[11px] font-bold text-on-surface-variant/80">Enter specific length for each bale</span>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                            @for($i = 0; $i < intval($num_bales ?: 1); $i++)
+                                                <div class="bg-surface rounded-xl p-3 border border-outline-variant/60">
+                                                    <label for="bale-len-{{ $i }}" class="block font-mono text-[11px] font-extrabold text-primary mb-1">
+                                                        Bale #{{ $i + 1 }} Length
+                                                    </label>
+                                                    <div class="relative">
+                                                        <input
+                                                            id="bale-len-{{ $i }}"
+                                                            type="number"
+                                                            step="0.01"
+                                                            wire:model.live="individual_bale_lengths.{{ $i }}"
+                                                            placeholder="0.00"
+                                                            class="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-3 pr-10 py-2 font-body-md text-xs font-bold text-right focus:border-primary focus:outline-none"
+                                                        />
+                                                        <span class="absolute right-2 top-2 text-[10px] font-bold text-on-surface-variant/60 pointer-events-none">{{ $unitName }}</span>
+                                                    </div>
+                                                    @error("individual_bale_lengths.{$i}")
+                                                        <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
+                                                    @enderror
+                                                </div>
+                                            @endfor
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         @endif
 
