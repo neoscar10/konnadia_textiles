@@ -1619,7 +1619,7 @@ class JobDetailPage extends Component
                 }
             }
 
-            InventoryBatchLogger::log($batch->id, 'consumed', (float) $this->cuttingConsumedLength, $this->job->production_batch_id ?? null, 'Cutting session fabric consumption recorded');
+            InventoryBatchLogger::log($batch->id, 'consumed', (float) $this->cuttingConsumedLength, $this->job->production_batch_db_id ?? $this->job->production_batch_id, 'Cutting session fabric consumption recorded');
 
             if ($this->job->status === 'pending') {
                 $this->job->update(['status' => 'in_progress']);
