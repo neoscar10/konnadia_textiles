@@ -249,7 +249,6 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
 
                     <!-- Cut Piece Output Grid Card -->
                     <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
