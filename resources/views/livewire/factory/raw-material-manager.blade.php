@@ -37,7 +37,7 @@
                             </div>
                         @endif
 
-                        <!-- Category Selection -->
+                        <!-- Category Selection (Clean: without unit_type suffix) -->
                         <div>
                             <label for="rm-category" class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
                                 Category <span class="text-error">*</span>
@@ -51,11 +51,34 @@
                                 <option value="">— Select Category —</option>
                                 @foreach($categories as $cat)
                                     <option value="{{ $cat->id }}">
-                                        {{ $cat->name }} ({{ $cat->code }}) — {{ $cat->unit_type->label() }}
+                                        {{ $cat->name }} ({{ $cat->code }})
                                     </option>
                                 @endforeach
                             </select>
                             @error('raw_material_category_id')
+                                <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Unit Class / Measurement Type Selection -->
+                        <div>
+                            <label for="rm-unit-group" class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                Unit Class / Measurement Type <span class="text-error">*</span>
+                            </label>
+                            <select
+                                id="rm-unit-group"
+                                wire:model.live="unit_group_id"
+                                class="w-full py-2.5 px-4 rounded-xl border font-body-md text-sm focus:outline-none transition-colors
+                                    {{ $errors->has('unit_group_id') ? 'border-error focus:border-error focus:ring-1 focus:ring-error' : 'border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary' }}"
+                            >
+                                <option value="">— Select Measurement Class —</option>
+                                @foreach($unitGroups as $group)
+                                    <option value="{{ $group->id }}">
+                                        {{ $group->name }} ({{ $group->activeUnits->pluck('short_code')->implode(', ') }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('unit_group_id')
                                 <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
                             @enderror
                         </div>
@@ -78,7 +101,7 @@
                             @enderror
                         </div>
 
-                        <!-- Unit Selection (dynamic based on category) -->
+                        <!-- Unit Selection (dynamic based on selected Unit Class / Category) -->
                         <div>
                             <label for="rm-unit" class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
                                 Unit of Measurement <span class="text-error">*</span>
@@ -101,7 +124,7 @@
                             @else
                                 <p class="text-xs text-on-surface-variant/50 italic font-medium bg-surface-container-high/30 px-4 py-3 rounded-xl border border-outline-variant/30">
                                     <span class="material-symbols-outlined text-[14px] align-middle mr-1">info</span>
-                                    Select a category first to see available units.
+                                    Select a Unit Class or Category first to see available units.
                                 </p>
                             @endif
                             @error('unit')
@@ -109,57 +132,73 @@
                             @enderror
 
                             <!-- Unit type hint -->
-                            @if($raw_material_category_id)
+                            @if($unit_group_id)
                                 @php
-                                    $selectedCat = $categories->find($raw_material_category_id);
+                                    $selectedGroup = $unitGroups->find($unit_group_id);
                                 @endphp
-                                @if($selectedCat)
+                                @if($selectedGroup)
                                     <div class="mt-2 flex items-center gap-1.5 text-[11px] text-on-surface-variant/70 font-semibold">
                                         <span class="material-symbols-outlined text-[14px] text-secondary">info</span>
-                                        <span>{{ $selectedCat->name }} uses <strong>{{ $selectedCat->unit_type->label() }}</strong> units.</span>
+                                        <span>Measuring using <strong>{{ $selectedGroup->name }}</strong> class.</span>
                                     </div>
                                 @endif
                             @endif
                         </div>
 
-                        <!-- Width Configuration (Only for Length-based) -->
+                        <!-- Width Configuration (Only for Length-based Unit Class) -->
                         @if($this->isLengthBased())
-                            <div class="grid grid-cols-2 gap-4 bg-surface-container-low/30 border border-outline-variant/40 rounded-xl p-4">
-                                <div>
-                                    <label for="rm-standard-width" class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                        Standard Width <span class="text-error">*</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        id="rm-standard-width"
-                                        wire:model="standard_width"
-                                        placeholder="e.g., 44, 58"
-                                        class="w-full py-2 px-3 rounded-xl border font-body-md text-sm focus:outline-none transition-colors
-                                            {{ $errors->has('standard_width') ? 'border-error focus:border-error focus:ring-1 focus:ring-error' : 'border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary' }}"
-                                    />
-                                    @error('standard_width')
-                                        <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                        Width Unit <span class="text-error">*</span>
-                                    </label>
-                                    <div class="flex gap-4 items-center h-[38px]">
-                                        <label class="inline-flex items-center text-sm font-medium text-on-surface cursor-pointer">
-                                            <input type="radio" wire:model="width_unit" value="Inch" class="text-primary focus:ring-primary mr-2" />
-                                            Inch
+                            <div class="bg-surface-container-low/30 border border-outline-variant/40 rounded-xl p-4 space-y-3">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="rm-standard-width" class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                            Standard Width <span class="text-error">*</span>
                                         </label>
-                                        <label class="inline-flex items-center text-sm font-medium text-on-surface cursor-pointer">
-                                            <input type="radio" wire:model="width_unit" value="CM" class="text-primary focus:ring-primary mr-2" />
-                                            CM
-                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            id="rm-standard-width"
+                                            wire:model="standard_width"
+                                            placeholder="e.g., 44, 58, 1.5"
+                                            class="w-full py-2 px-3 rounded-xl border font-body-md text-sm focus:outline-none transition-colors
+                                                {{ $errors->has('standard_width') ? 'border-error focus:border-error focus:ring-1 focus:ring-error' : 'border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary' }}"
+                                        />
+                                        @error('standard_width')
+                                            <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
+                                        @enderror
                                     </div>
-                                    @error('width_unit')
-                                        <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
-                                    @enderror
+
+                                    <div>
+                                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                            Width Unit <span class="text-error">*</span>
+                                        </label>
+                                        <div class="flex flex-wrap gap-2 items-center min-h-[38px]">
+                                            @php
+                                                $widthUnitOptions = !empty($availableUnits) ? $availableUnits : ['Inch', 'CM', 'Meters', 'Feet', 'Yards'];
+                                                if (!in_array('Inch', $widthUnitOptions)) {
+                                                    array_unshift($widthUnitOptions, 'Inch');
+                                                }
+                                                if (!in_array('CM', $widthUnitOptions)) {
+                                                    $widthUnitOptions[] = 'CM';
+                                                }
+                                                $widthUnitOptions = array_unique($widthUnitOptions);
+                                            @endphp
+                                            @foreach($widthUnitOptions as $wOption)
+                                                <button
+                                                    type="button"
+                                                    wire:click="$set('width_unit', '{{ $wOption }}')"
+                                                    class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all
+                                                        {{ $width_unit === $wOption
+                                                            ? 'bg-secondary text-on-secondary border-secondary shadow-sm ring-1 ring-secondary/30'
+                                                            : 'bg-surface-container-low/40 text-on-surface border-outline-variant/60 hover:border-secondary' }}"
+                                                >
+                                                    {{ $wOption }}
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                        @error('width_unit')
+                                            <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
                                 </div>
                             </div>
                         @endif

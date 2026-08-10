@@ -4,6 +4,8 @@ namespace App\Livewire\Factory;
 
 use App\Models\RawMaterial;
 use App\Models\RawMaterialCategory;
+use App\Models\UnitGroup;
+use App\Models\Unit;
 use App\Enums\RawMaterialUnitType;
 use Livewire\Component;
 use Livewire\Attributes\On;
@@ -22,33 +24,38 @@ class RawMaterialManager extends Component
     public ?int $unit_group_id = null;
     public ?int $unit_id = null;
 
-    // Dynamic unit options based on selected category / Unit Group
+    // Dynamic unit options based on selected Unit Group / Category
     public array $availableUnits = [];
 
     public function isLengthBased(): bool
     {
         if ($this->unit_group_id) {
-            $group = \App\Models\UnitGroup::find($this->unit_group_id);
-            if ($group && $group->code === 'LENGTH') {
+            $group = UnitGroup::find($this->unit_group_id);
+            if ($group && (strtoupper($group->code) === 'LENGTH' || str_contains(strtolower($group->name), 'length'))) {
                 return true;
             }
         }
 
-        if (!$this->raw_material_category_id) {
-            return false;
+        if ($this->raw_material_category_id) {
+            $category = RawMaterialCategory::with('unitGroup')->find($this->raw_material_category_id);
+            if ($category && $category->unitGroup && (strtoupper($category->unitGroup->code) === 'LENGTH' || str_contains(strtolower($category->unitGroup->name), 'length'))) {
+                return true;
+            }
+            if ($category && $category->unit_type === RawMaterialUnitType::LENGTH_BASED) {
+                return true;
+            }
         }
 
-        $category = RawMaterialCategory::with('unitGroup')->find($this->raw_material_category_id);
-        if ($category && $category->unitGroup && $category->unitGroup->code === 'LENGTH') {
-            return true;
-        }
-
-        return $category && $category->unit_type === RawMaterialUnitType::LENGTH_BASED;
+        return false;
     }
 
     protected function rules()
     {
         $validUnits = $this->getValidUnitsForSelectedCategory();
+        if (empty($validUnits) && !empty($this->availableUnits)) {
+            $validUnits = $this->availableUnits;
+        }
+
         $unitRule = !empty($validUnits) ? 'required|in:' . implode(',', $validUnits) : 'required|string|max:50';
 
         $rules = [
@@ -58,13 +65,14 @@ class RawMaterialManager extends Component
                 'max:255',
             ],
             'raw_material_category_id' => 'required|exists:raw_material_categories,id',
+            'unit_group_id' => 'required|exists:unit_groups,id',
             'unit' => $unitRule,
             'is_active' => 'required|boolean',
         ];
 
         if ($this->isLengthBased()) {
             $rules['standard_width'] = 'required|numeric|gt:0';
-            $rules['width_unit'] = 'required|in:Inch,CM';
+            $rules['width_unit'] = 'required|string|max:50';
         } else {
             $rules['standard_width'] = 'nullable';
             $rules['width_unit'] = 'nullable';
@@ -78,8 +86,9 @@ class RawMaterialManager extends Component
         return [
             'name.required' => 'Raw Material Name is required.',
             'raw_material_category_id.required' => 'Please select a category.',
+            'unit_group_id.required' => 'Please select a unit class / measurement type.',
             'unit.required' => 'Please select a unit of measurement.',
-            'unit.in' => 'The selected unit is not valid for this category.',
+            'unit.in' => 'The selected unit is not valid for the chosen unit class.',
             'standard_width.required' => 'Standard Width is required for length-based materials.',
             'standard_width.gt' => 'Standard Width must be greater than zero.',
             'width_unit.required' => 'Width Unit is required for length-based materials.',
@@ -117,16 +126,35 @@ class RawMaterialManager extends Component
             if ($category) {
                 if ($category->unit_group_id) {
                     $this->unit_group_id = $category->unit_group_id;
+                } else {
+                    // Try matching category's unit_type enum to a UnitGroup
+                    $unitGroup = UnitGroup::where('code', strtoupper($category->unit_type->value ?? ''))->first();
+                    if ($unitGroup) {
+                        $this->unit_group_id = $unitGroup->id;
+                    }
                 }
                 $this->updateAvailableUnits();
 
                 $defaultUnit = $category->default_unit;
                 if (!in_array($this->unit, $this->availableUnits)) {
-                    $this->unit = $defaultUnit;
+                    $this->unit = in_array($defaultUnit, $this->availableUnits) ? $defaultUnit : ($this->availableUnits[0] ?? '');
                 }
             }
         } else {
             $this->updateAvailableUnits();
+        }
+    }
+
+    public function updatedUnitGroupId()
+    {
+        $this->updateAvailableUnits();
+
+        if (!empty($this->availableUnits) && !in_array($this->unit, $this->availableUnits)) {
+            $this->unit = $this->availableUnits[0] ?? '';
+        }
+
+        if ($this->isLengthBased() && empty($this->width_unit)) {
+            $this->width_unit = 'Inch';
         }
     }
 
@@ -142,7 +170,7 @@ class RawMaterialManager extends Component
         
         $unitModel = null;
         if ($groupId) {
-            $unitModel = \App\Models\Unit::where('unit_group_id', $groupId)
+            $unitModel = Unit::where('unit_group_id', $groupId)
                 ->where(function ($q) {
                     $q->where('name', $this->unit)->orWhere('short_code', $this->unit);
                 })->first();
@@ -196,9 +224,17 @@ class RawMaterialManager extends Component
 
     protected function updateAvailableUnits()
     {
+        if ($this->unit_group_id) {
+            $group = UnitGroup::with('activeUnits')->find($this->unit_group_id);
+            if ($group && $group->activeUnits->isNotEmpty()) {
+                $this->availableUnits = $group->activeUnits->pluck('name')->toArray();
+                return;
+            }
+        }
+
         if ($this->raw_material_category_id) {
             $category = RawMaterialCategory::with(['unitGroup.activeUnits'])->find($this->raw_material_category_id);
-            if ($category && $category->unitGroup) {
+            if ($category && $category->unitGroup && $category->unitGroup->activeUnits->isNotEmpty()) {
                 $this->availableUnits = $category->unitGroup->activeUnits->pluck('name')->toArray();
                 return;
             } else if ($category) {
@@ -207,20 +243,18 @@ class RawMaterialManager extends Component
             }
         }
 
-        if ($this->unit_group_id) {
-            $group = \App\Models\UnitGroup::with('activeUnits')->find($this->unit_group_id);
-            if ($group) {
-                $this->availableUnits = $group->activeUnits->pluck('name')->toArray();
-                return;
-            }
-        }
-
-        // Fallback: load units from all active groups
-        $this->availableUnits = \App\Models\Unit::active()->pluck('name')->unique()->toArray();
+        $this->availableUnits = Unit::active()->pluck('name')->unique()->toArray();
     }
 
     protected function getValidUnitsForSelectedCategory(): array
     {
+        if ($this->unit_group_id) {
+            $group = UnitGroup::with('activeUnits')->find($this->unit_group_id);
+            if ($group && $group->activeUnits->isNotEmpty()) {
+                return $group->activeUnits->pluck('name')->toArray();
+            }
+        }
+
         if ($this->raw_material_category_id) {
             $category = RawMaterialCategory::find($this->raw_material_category_id);
             return $category ? $category->valid_units : [];
@@ -232,9 +266,11 @@ class RawMaterialManager extends Component
     public function render()
     {
         $categories = RawMaterialCategory::active()->orderBy('name')->get();
+        $unitGroups = UnitGroup::active()->with('activeUnits')->orderBy('name')->get();
 
         return view('livewire.factory.raw-material-manager', [
             'categories' => $categories,
+            'unitGroups' => $unitGroups,
         ]);
     }
 }
