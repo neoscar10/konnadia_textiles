@@ -224,10 +224,6 @@ class FabricCostingServiceTest extends TestCase
             ->set('cuttingOutputs', [
                 [
                     'manufacturing_product_id' => $this->mpBedSheet->id,
-                    'width' => 90.00,
-                    'length' => 2.75,
-                    'width_unit' => 'inch',
-                    'length_unit' => 'meter',
                     'quantity' => 1,
                 ]
             ])
@@ -260,10 +256,6 @@ class FabricCostingServiceTest extends TestCase
             ->set('cuttingOutputs', [
                 [
                     'manufacturing_product_id' => $this->mpBedSheet->id,
-                    'width' => 90.00,
-                    'length' => 2.75,
-                    'width_unit' => 'inch',
-                    'length_unit' => 'meter',
                     'quantity' => 1,
                 ]
             ])

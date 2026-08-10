@@ -328,61 +328,38 @@
                     <!-- Cut Piece Output Grid Card -->
                     <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
                         <div class="flex justify-between items-center pb-4 border-b border-outline-variant/40">
-                            <h4 class="font-headline-sm text-headline-sm text-primary font-bold">Cut Piece Output Grid</h4>
+                            <div>
+                                <h4 class="font-headline-sm text-headline-sm text-primary font-bold">Cut Piece Output Grid</h4>
+                                <p class="text-xs text-on-surface-variant mt-0.5">Select target product SKU and specify total pieces cut.</p>
+                            </div>
                             <button type="button" wire:click="addCuttingOutputRow" class="flex items-center gap-1 bg-secondary text-on-secondary px-4 py-2 rounded-xl text-xs font-bold shadow-xs hover:bg-secondary-container transition-all active:scale-95">
-                                <span class="material-symbols-outlined text-[16px]">add</span> Add Row
+                                <span class="material-symbols-outlined text-[16px]">add</span> Add Output Row
                             </button>
                         </div>
 
-                        <div class="space-y-4">
+                        <div class="space-y-3">
                             @foreach($cuttingOutputs as $index => $output)
-                                <div class="flex flex-wrap md:flex-nowrap items-center gap-4 p-4 bg-surface rounded-xl border border-outline-variant/60 shadow-xs relative">
+                                <div class="flex items-center gap-4 p-4 bg-surface rounded-xl border border-outline-variant/60 shadow-xs">
                                     <!-- Product Select -->
-                                    <div class="flex-1 min-w-[180px]">
-                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Target Product *</label>
-                                        <select wire:model.live="cuttingOutputs.{{ $index }}.manufacturing_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                                            <option value="">-- Choose SKU --</option>
+                                    <div class="flex-1">
+                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Target Product SKU *</label>
+                                        <select wire:model.live="cuttingOutputs.{{ $index }}.manufacturing_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                            <option value="">-- Choose Product SKU --</option>
                                             @foreach($allManufacturingProducts as $prod)
                                                 <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
                                             @endforeach
                                         </select>
                                     </div>
 
-                                    <!-- Dimensions Width -->
-                                    <div class="w-32">
-                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Width *</label>
-                                        <div class="flex gap-1">
-                                            <input type="number" step="0.01" wire:model.live="cuttingOutputs.{{ $index }}.width" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-2 py-2 text-xs font-bold text-center focus:ring-1 focus:ring-primary">
-                                            <select wire:model.live="cuttingOutputs.{{ $index }}.width_unit" class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-1 py-2 text-[10px] font-bold">
-                                                <option value="inch">in</option>
-                                                <option value="cm">cm</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Dimensions Length -->
-                                    <div class="w-32">
-                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Length *</label>
-                                        <div class="flex gap-1">
-                                            <input type="number" step="0.01" wire:model.live="cuttingOutputs.{{ $index }}.length" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-2 py-2 text-xs font-bold text-center focus:ring-1 focus:ring-primary">
-                                            <select wire:model.live="cuttingOutputs.{{ $index }}.length_unit" class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-1 py-2 text-[10px] font-bold">
-                                                <option value="meter">m</option>
-                                                <option value="yard">yd</option>
-                                                <option value="inch">in</option>
-                                                <option value="cm">cm</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Quantity -->
-                                    <div class="w-24">
-                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Quantity *</label>
-                                        <input type="number" min="1" wire:model.live="cuttingOutputs.{{ $index }}.quantity" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-black text-primary text-center focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <!-- Quantity (Pcs) -->
+                                    <div class="w-36">
+                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Cut Output (Pcs) *</label>
+                                        <input type="number" min="1" wire:model.live="cuttingOutputs.{{ $index }}.quantity" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-black text-primary text-center focus:ring-2 focus:ring-primary/20 focus:border-primary">
                                     </div>
 
                                     <!-- Delete button -->
                                     @if(count($cuttingOutputs) > 1)
-                                        <button type="button" wire:click="removeCuttingOutputRow({{ $index }})" class="p-2 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 self-end mb-1" title="Remove Row">
+                                        <button type="button" wire:click="removeCuttingOutputRow({{ $index }})" class="p-2 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 self-center" title="Remove Row">
                                             <span class="material-symbols-outlined text-[20px]">delete</span>
                                         </button>
                                     @endif

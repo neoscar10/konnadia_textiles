@@ -1273,11 +1273,7 @@ class JobDetailPage extends Component
     public function addCuttingOutputRow(): void
     {
         $this->cuttingOutputs[] = [
-            'manufacturing_product_id' => $this->job->manufacturing_product_id ?? '',
-            'width' => 60,
-            'length' => 2.5,
-            'width_unit' => 'inch',
-            'length_unit' => 'meter',
+            'manufacturing_product_id' => '',
             'quantity' => 1,
         ];
     }
@@ -1488,34 +1484,18 @@ class JobDetailPage extends Component
         $this->cuttingFabricMaterialId = '';
         $this->cuttingFabricBatchId = '';
         $this->cuttingFabricBaleId = '';
+        $this->cuttingBaleRows = [['bale_id' => '', 'selected_rolls' => []]];
         $this->cuttingConsumedLength = '';
         $this->cuttingWastageLength = 0;
         $this->cuttingFabricWidth = 60.00;
         
         $mainProduct = $this->job->manufacturingProduct;
-        if ($mainProduct && $mainProduct->is_fabric_used) {
-            $this->cuttingOutputs = [
-                [
-                    'manufacturing_product_id' => $mainProduct->id,
-                    'width' => $mainProduct->standard_fabric_width ?? 60,
-                    'length' => $mainProduct->standard_fabric_length ?? 2.5,
-                    'width_unit' => $mainProduct->fabric_width_unit ?? 'inch',
-                    'length_unit' => $mainProduct->fabric_length_unit ?? 'meter',
-                    'quantity' => $this->job->target_quantity ?? 1,
-                ]
-            ];
-        } else {
-            $this->cuttingOutputs = [
-                [
-                    'manufacturing_product_id' => $this->job->manufacturing_product_id ?? '',
-                    'width' => 60,
-                    'length' => 2.5,
-                    'width_unit' => 'inch',
-                    'length_unit' => 'meter',
-                    'quantity' => 1,
-                ]
-            ];
-        }
+        $this->cuttingOutputs = [
+            [
+                'manufacturing_product_id' => $mainProduct?->id ?? $this->job->manufacturing_product_id ?? '',
+                'quantity' => $this->job->target_quantity ?? 1,
+            ]
+        ];
     }
 
     public function getCuttingCostPreviewProperty()
@@ -1533,50 +1513,28 @@ class JobDetailPage extends Component
         $totalFabricCost = (float) $this->cuttingConsumedLength * $purchaseRate;
         $totalWastageCost = (float) $this->cuttingWastageLength * $purchaseRate;
 
-        $totalOutputArea = 0.0;
-        $items = [];
-        
-        $costingService = app(\App\Services\FabricCostingService::class);
-        $lengthUnit = $batch->unit ?: 'Meters';
-        $consumedLengthInches = $costingService->convertToInches((float)$this->cuttingConsumedLength, $lengthUnit);
-        $totalFabricArea = (float)$this->cuttingFabricWidth * $consumedLengthInches;
+        $totalCutQty = (int) array_sum(array_column($this->cuttingOutputs, 'quantity'));
+        $preview = [];
 
         foreach ($this->cuttingOutputs as $output) {
             if (empty($output['manufacturing_product_id']) || empty($output['quantity'])) {
                 continue;
             }
-            $width = (float)($output['width'] ?? 0);
-            $length = (float)($output['length'] ?? 0);
-            $wUnit = $output['width_unit'] ?: 'inch';
-            $lUnit = $output['length_unit'] ?: 'meter';
-            $qty = (int)($output['quantity'] ?? 0);
+            $qty = (int) $output['quantity'];
+            $prod = ManufacturingProduct::find($output['manufacturing_product_id']);
+            $shareRatio = $totalCutQty > 0 ? ($qty / $totalCutQty) : (1 / count($this->cuttingOutputs));
 
-            $singleArea = $costingService->calculateArea($width, $wUnit, $length, $lUnit);
-            $totalArea = $singleArea * $qty;
-            $totalOutputArea += $totalArea;
-
-            $items[] = [
-                'manufacturing_product_id' => $output['manufacturing_product_id'],
-                'quantity' => $qty,
-                'total_area' => $totalArea,
-            ];
-        }
-
-        $preview = [];
-        foreach ($items as $item) {
-            $baseCost = $totalFabricArea > 0 ? ($item['total_area'] / $totalFabricArea) * $totalFabricCost : 0.0;
-            $allocatedWastage = $totalOutputArea > 0 ? ($item['total_area'] / $totalOutputArea) * $totalWastageCost : 0.0;
+            $baseCost = round($totalFabricCost * $shareRatio, 2);
+            $allocatedWastage = round($totalWastageCost * $shareRatio, 2);
             $totalCost = $baseCost + $allocatedWastage;
-            
-            $prod = ManufacturingProduct::find($item['manufacturing_product_id']);
 
             $preview[] = [
                 'product_name' => $prod ? $prod->name : 'Unknown Product',
-                'quantity' => $item['quantity'],
+                'quantity' => $qty,
                 'base_cost' => $baseCost,
                 'allocated_wastage' => $allocatedWastage,
                 'total_cost' => $totalCost,
-                'cost_per_unit' => $item['quantity'] > 0 ? ($totalCost / $item['quantity']) : 0.0,
+                'cost_per_unit' => $qty > 0 ? ($totalCost / $qty) : 0.0,
             ];
         }
 
@@ -1597,13 +1555,8 @@ class JobDetailPage extends Component
             'cuttingFabricBatchId' => 'required|exists:inventory_batches,id',
             'cuttingConsumedLength' => 'required|numeric|gt:0',
             'cuttingWastageLength' => 'required|numeric|min:0',
-            'cuttingFabricWidth' => 'required|numeric|gt:0',
             'cuttingOutputs' => 'required|array|min:1',
             'cuttingOutputs.*.manufacturing_product_id' => 'required|exists:manufacturing_products,id',
-            'cuttingOutputs.*.width' => 'required|numeric|gt:0',
-            'cuttingOutputs.*.length' => 'required|numeric|gt:0',
-            'cuttingOutputs.*.width_unit' => 'required|in:inch,cm',
-            'cuttingOutputs.*.length_unit' => 'required|in:meter,yard',
             'cuttingOutputs.*.quantity' => 'required|integer|min:1',
         ], [
             'cuttingFabricBatchId.required' => 'Please select a fabric inventory batch.',
@@ -1611,8 +1564,6 @@ class JobDetailPage extends Component
             'cuttingConsumedLength.gt' => 'Consumed length must be greater than 0.',
             'cuttingWastageLength.required' => 'Wastage length is required.',
             'cuttingOutputs.*.manufacturing_product_id.required' => 'Product is required.',
-            'cuttingOutputs.*.width.required' => 'Width is required.',
-            'cuttingOutputs.*.length.required' => 'Length is required.',
             'cuttingOutputs.*.quantity.required' => 'Quantity is required.',
         ]);
 

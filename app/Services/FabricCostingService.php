@@ -6,6 +6,7 @@ use App\Models\ProductionJob;
 use App\Models\InventoryBatch;
 use App\Models\JobMaterialConsumption;
 use App\Models\JobProductionOutput;
+use App\Models\ManufacturingProduct;
 use App\Models\Task;
 use Illuminate\Support\Facades\DB;
 
@@ -87,10 +88,11 @@ class FabricCostingService
             $totalOutputArea = 0.0;
 
             foreach ($cutPiecesArray as $index => $piece) {
-                $width = (float) $piece['width'];
-                $length = (float) $piece['length'];
-                $widthUnit = $piece['width_unit'] ?: 'inch';
-                $lengthUnitPiece = $piece['length_unit'] ?: 'meter';
+                $prod = ManufacturingProduct::find($piece['manufacturing_product_id']);
+                $width = (float) ($piece['width'] ?? $prod?->standard_fabric_width ?? $fabricWidth ?? 60.00);
+                $length = (float) ($piece['length'] ?? $prod?->standard_fabric_length ?? 2.5);
+                $widthUnit = $piece['width_unit'] ?? $prod?->fabric_width_unit ?? 'inch';
+                $lengthUnitPiece = $piece['length_unit'] ?? $prod?->fabric_length_unit ?? 'meter';
                 $qty = (int) $piece['quantity'];
 
                 $singleArea = $this->calculateArea($width, $widthUnit, $length, $lengthUnitPiece);
