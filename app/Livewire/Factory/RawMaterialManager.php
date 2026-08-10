@@ -251,8 +251,12 @@ class RawMaterialManager extends Component
 
         if ($this->raw_material_category_id) {
             $category = RawMaterialCategory::with(['unitGroup.activeUnits'])->find($this->raw_material_category_id);
-            if ($category && $category->unitGroup && $category->unitGroup->activeUnits->isNotEmpty()) {
-                $this->availableUnits = $category->unitGroup->activeUnits->pluck('name')->toArray();
+            if ($category) {
+                if ($category->unitGroup && $category->unitGroup->activeUnits->isNotEmpty()) {
+                    $this->availableUnits = $category->unitGroup->activeUnits->pluck('name')->toArray();
+                } else {
+                    $this->availableUnits = $category->valid_units;
+                }
                 return;
             }
         }
