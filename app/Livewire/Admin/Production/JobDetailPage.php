@@ -46,7 +46,9 @@ class JobDetailPage extends Component
     public array $alterationRecords = [];
 
     // Fabric Cutting Session Form
+    public $cuttingFabricMaterialId = '';
     public $cuttingFabricBatchId = '';
+    public $cuttingFabricBaleId = '';
     public $cuttingConsumedLength = '';
     public $cuttingWastageLength = 0;
     public $cuttingFabricWidth = 60.00;
@@ -1173,9 +1175,113 @@ class JobDetailPage extends Component
         }
     }
 
-    public function resetCuttingForm()
+    public function updatedCuttingFabricMaterialId($value)
     {
         $this->cuttingFabricBatchId = '';
+        $this->cuttingFabricBaleId = '';
+
+        if ($value) {
+            $batches = InventoryBatch::where('raw_material_id', $value)
+                ->where('balance_quantity', '>', 0)
+                ->orderBy('id', 'desc')
+                ->get();
+
+            if ($batches->count() === 1) {
+                $batch = $batches->first();
+                $this->cuttingFabricBatchId = $batch->id;
+                $this->autoEnsureBaleAndSelect($batch);
+            }
+        }
+    }
+
+    public function updatedCuttingFabricBatchId($value)
+    {
+        $this->cuttingFabricBaleId = '';
+
+        if ($value) {
+            $batch = InventoryBatch::find($value);
+            if ($batch) {
+                $this->autoEnsureBaleAndSelect($batch);
+            }
+        }
+    }
+
+    protected function autoEnsureBaleAndSelect(InventoryBatch $batch)
+    {
+        if ($batch->bales()->count() === 0 && (float)$batch->balance_quantity > 0) {
+            $batch->createBales(1, (float) $batch->balance_quantity);
+        }
+
+        $bales = \App\Models\InventoryBale::where('inventory_batch_id', $batch->id)
+            ->where('status', '!=', 'depleted')
+            ->get();
+
+        if ($bales->count() === 1) {
+            $this->cuttingFabricBaleId = $bales->first()->id;
+        }
+    }
+
+    public function getFabricMaterialsListProperty()
+    {
+        $materials = \App\Models\RawMaterial::active()
+            ->where(function ($query) {
+                $query->whereHas('category', function ($q) {
+                    $q->where('unit_type', 'length_based')
+                      ->orWhere('unit_type', \App\Enums\RawMaterialUnitType::LENGTH_BASED)
+                      ->orWhere('code', 'like', '%FAB%')
+                      ->orWhere('name', 'like', '%Fabric%');
+                })
+                ->orWhereHas('batches', function ($q) {
+                    $q->where('balance_quantity', '>', 0);
+                });
+            })
+            ->orderBy('name')
+            ->get();
+
+        if ($materials->isEmpty()) {
+            $materials = \App\Models\RawMaterial::active()->orderBy('name')->get();
+        }
+
+        return $materials;
+    }
+
+    public function getBatchesForSelectedFabricProperty()
+    {
+        if (empty($this->cuttingFabricMaterialId)) {
+            return collect();
+        }
+
+        return InventoryBatch::where('raw_material_id', $this->cuttingFabricMaterialId)
+            ->where('balance_quantity', '>', 0)
+            ->orderBy('id', 'desc')
+            ->get();
+    }
+
+    public function getBalesForSelectedBatchProperty()
+    {
+        if (empty($this->cuttingFabricBatchId)) {
+            return collect();
+        }
+
+        $batch = InventoryBatch::find($this->cuttingFabricBatchId);
+        if (!$batch) {
+            return collect();
+        }
+
+        if ($batch->bales()->count() === 0 && (float)$batch->balance_quantity > 0) {
+            $batch->createBales(1, (float)$batch->balance_quantity);
+        }
+
+        return \App\Models\InventoryBale::where('inventory_batch_id', $batch->id)
+            ->where('status', '!=', 'depleted')
+            ->get();
+    }
+
+    public function resetCuttingForm()
+    {
+        $this->cuttingFabricMaterialId = '';
+        $this->cuttingFabricBatchId = '';
+        $this->cuttingFabricBaleId = '';
         $this->cuttingConsumedLength = '';
         $this->cuttingWastageLength = 0;
         $this->cuttingFabricWidth = 60.00;
@@ -1329,6 +1435,14 @@ class JobDetailPage extends Component
 
             // Decrement the inventory batch balance
             $batch->deductQuantity((float) $this->cuttingConsumedLength);
+
+            if (!empty($this->cuttingFabricBaleId)) {
+                $bale = \App\Models\InventoryBale::find($this->cuttingFabricBaleId);
+                if ($bale) {
+                    $bale->deductLength((float) $this->cuttingConsumedLength);
+                }
+            }
+
             InventoryBatchLogger::log($batch->id, 'consumed', (float) $this->cuttingConsumedLength, $this->job->production_batch_id ?? null, 'Cutting session fabric consumption recorded');
 
             if ($this->job->status === 'pending') {

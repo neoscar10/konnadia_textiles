@@ -152,39 +152,74 @@
                             </div>
                         @endif
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Fabric Batch Selector -->
-                            <div class="space-y-4">
+                        <div class="space-y-4 mb-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <!-- Step 1: Select Fabric Raw Material -->
                                 <div>
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">Select Fabric Batch *</label>
-                                    <select wire:model.live="cuttingFabricBatchId" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                                        <option value="">-- Choose Fabric Roll / Bale --</option>
-                                        @foreach($availableBatches as $batch)
-                                            @if(optional($batch->rawMaterial->category)->code === 'CAT-FAB')
-                                                <option value="{{ $batch->id }}">
-                                                    {{ $batch->rawMaterial->name }} (Batch: {{ $batch->batch_number }}) — Stock: {{ number_format($batch->balance_quantity, 2) }} {{ $batch->unit }}
-                                                </option>
-                                            @endif
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">1. Select Fabric Material *</label>
+                                    <select wire:model.live="cuttingFabricMaterialId" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                        <option value="">-- Select Fabric Material --</option>
+                                        @foreach($this->fabricMaterialsList as $mat)
+                                            <option value="{{ $mat->id }}">{{ $mat->name }} ({{ $mat->code }})</option>
                                         @endforeach
                                     </select>
                                 </div>
 
-                                @php
-                                    $selectedBatch = $availableBatches->firstWhere('id', $this->cuttingFabricBatchId);
-                                @endphp
-                                @if($selectedBatch)
-                                    <div class="p-4 bg-secondary-container/20 text-on-secondary-container border border-secondary/20 rounded-xl space-y-2">
-                                        <div class="flex justify-between items-center text-xs">
-                                            <span class="font-bold">Available Stock:</span>
-                                            <span class="font-extrabold text-secondary">{{ number_format($selectedBatch->balance_quantity, 2) }} {{ $selectedBatch->unit }}</span>
-                                        </div>
-                                        <div class="flex justify-between items-center text-xs">
-                                            <span class="font-bold">Purchase Rate:</span>
-                                            <span class="font-extrabold text-primary">₹{{ number_format($selectedBatch->unit_cost, 2) }} / {{ $selectedBatch->unit }}</span>
-                                        </div>
-                                    </div>
-                                @endif
+                                <!-- Step 2: Select Fabric Batch -->
+                                <div>
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">2. Select Fabric Batch *</label>
+                                    <select wire:model.live="cuttingFabricBatchId" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary" {{ empty($cuttingFabricMaterialId) ? 'disabled' : '' }}>
+                                        <option value="">-- Choose Batch --</option>
+                                        @foreach($this->batchesForSelectedFabric as $batch)
+                                            <option value="{{ $batch->id }}">
+                                                {{ $batch->batch_number }} — Stock: {{ number_format($batch->balance_quantity, 2) }} {{ $batch->unit }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('cuttingFabricBatchId') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                                </div>
+
+                                <!-- Step 3: Select Particular Bale / Lot -->
+                                <div>
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">3. Select Bale / Lot</label>
+                                    <select wire:model.live="cuttingFabricBaleId" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary" {{ empty($cuttingFabricBatchId) ? 'disabled' : '' }}>
+                                        <option value="">-- Select Particular Bale --</option>
+                                        @foreach($this->balesForSelectedBatch as $bale)
+                                            <option value="{{ $bale->id }}">
+                                                {{ $bale->bale_number }} [{{ strtoupper($bale->status) }}] — Bal: {{ number_format($bale->current_balance_length, 2) }}m (Decl: {{ $bale->declared_length }}m)
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
+
+                            @php
+                                $selectedBatch = !empty($this->cuttingFabricBatchId) ? \App\Models\InventoryBatch::find($this->cuttingFabricBatchId) : null;
+                                $selectedBale = !empty($this->cuttingFabricBaleId) ? \App\Models\InventoryBale::find($this->cuttingFabricBaleId) : null;
+                            @endphp
+                            @if($selectedBatch)
+                                <div class="p-4 bg-secondary-container/20 text-on-secondary-container border border-secondary/20 rounded-xl flex flex-wrap justify-between items-center text-xs gap-3">
+                                    <div>
+                                        <span class="font-bold block text-[10px] uppercase text-on-surface-variant">Batch Reference</span>
+                                        <span class="font-extrabold text-primary font-mono text-xs">{{ $selectedBatch->batch_number }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-bold block text-[10px] uppercase text-on-surface-variant">Available Stock</span>
+                                        <span class="font-extrabold text-secondary">{{ number_format($selectedBatch->balance_quantity, 2) }} {{ $selectedBatch->unit }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-bold block text-[10px] uppercase text-on-surface-variant">Purchase Rate</span>
+                                        <span class="font-extrabold text-primary">₹{{ number_format($selectedBatch->unit_cost, 2) }} / {{ $selectedBatch->unit }}</span>
+                                    </div>
+                                    @if($selectedBale)
+                                        <div class="border-l border-secondary/20 pl-3">
+                                            <span class="font-bold block text-[10px] uppercase text-amber-800">Selected Bale</span>
+                                            <span class="font-extrabold text-amber-900 font-mono text-xs">{{ $selectedBale->bale_number }} (Bal: {{ number_format($selectedBale->current_balance_length, 2) }}m)</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
 
                             <!-- Fabric Dimensions & Consumed -->
                             <div class="grid grid-cols-2 gap-4">
