@@ -416,14 +416,80 @@ class CuttingStageWizard extends Component
         return redirect()->route('factory.tasks.index');
     }
 
+    public function updatedSelectedFabrics($value, $key)
+    {
+        $parts = explode('.', $key);
+        if (count($parts) >= 2) {
+            $index = intval($parts[0]);
+            $field = $parts[1];
+
+            if ($field === 'raw_material_id') {
+                $this->selectedFabrics[$index]['inventory_batch_id'] = '';
+                $this->selectedFabrics[$index]['inventory_bale_id'] = '';
+                $this->selectedFabrics[$index]['selected_rolls'] = [];
+
+                $matId = $this->selectedFabrics[$index]['raw_material_id'];
+                if ($matId) {
+                    $batches = InventoryBatch::where('raw_material_id', $matId)
+                        ->where('balance_quantity', '>', 0)
+                        ->orderBy('id', 'desc')
+                        ->get();
+
+                    if ($batches->count() === 1) {
+                        $batch = $batches->first();
+                        $this->selectedFabrics[$index]['inventory_batch_id'] = $batch->id;
+                        $this->autoEnsureBalesAndSelect($index, $batch);
+                    }
+                }
+            } elseif ($field === 'inventory_batch_id') {
+                $this->selectedFabrics[$index]['inventory_bale_id'] = '';
+                $this->selectedFabrics[$index]['selected_rolls'] = [];
+
+                $batchId = $this->selectedFabrics[$index]['inventory_batch_id'];
+                if ($batchId) {
+                    $batch = InventoryBatch::find($batchId);
+                    if ($batch) {
+                        $this->autoEnsureBalesAndSelect($index, $batch);
+                    }
+                }
+            } elseif ($field === 'inventory_bale_id') {
+                $this->selectedFabrics[$index]['selected_rolls'] = [];
+            }
+        }
+    }
+
+    protected function autoEnsureBalesAndSelect(int $index, InventoryBatch $batch)
+    {
+        if ($batch->bales()->count() === 0 && (float)$batch->balance_quantity > 0) {
+            $batch->createBales(1, (float) $batch->balance_quantity);
+        }
+
+        $bales = InventoryBale::where('inventory_batch_id', $batch->id)->where('status', '!=', 'depleted')->get();
+        if ($bales->count() === 1) {
+            $this->selectedFabrics[$index]['inventory_bale_id'] = $bales->first()->id;
+        }
+    }
+
     public function render()
     {
         $fabricMaterials = RawMaterial::active()
-            ->whereHas('category', function ($q) {
-                $q->where('unit_type', 'length_based')->orWhere('code', 'CAT-FAB');
+            ->where(function ($query) {
+                $query->whereHas('category', function ($q) {
+                    $q->where('unit_type', 'length_based')
+                      ->orWhere('unit_type', \App\Enums\RawMaterialUnitType::LENGTH_BASED)
+                      ->orWhere('code', 'like', '%FAB%')
+                      ->orWhere('name', 'like', '%Fabric%');
+                })
+                ->orWhereHas('batches', function ($q) {
+                    $q->where('balance_quantity', '>', 0);
+                });
             })
             ->orderBy('name')
             ->get();
+
+        if ($fabricMaterials->isEmpty()) {
+            $fabricMaterials = RawMaterial::active()->orderBy('name')->get();
+        }
 
         $manufacturingProducts = ManufacturingProduct::active()->orderBy('name')->get();
         $supervisors = User::where('is_active', true)->get();

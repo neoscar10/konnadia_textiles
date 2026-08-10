@@ -140,7 +140,7 @@
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Inventory Batch <span class="text-error">*</span></label>
                             @php
                                 $batches = !empty($fabRow['raw_material_id']) 
-                                    ? \App\Models\InventoryBatch::active()->byMaterial($fabRow['raw_material_id'])->orderBy('purchase_date', 'asc')->get()
+                                    ? \App\Models\InventoryBatch::where('raw_material_id', $fabRow['raw_material_id'])->where('balance_quantity', '>', 0)->orderBy('id', 'desc')->get()
                                     : collect();
                             @endphp
                             <select
@@ -159,9 +159,16 @@
                         <div>
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Fabric Bale <span class="text-error">*</span></label>
                             @php
-                                $bales = !empty($fabRow['inventory_batch_id'])
-                                    ? \App\Models\InventoryBale::where('inventory_batch_id', $fabRow['inventory_batch_id'])->where('status', '!=', 'depleted')->get()
-                                    : collect();
+                                $bales = collect();
+                                if (!empty($fabRow['inventory_batch_id'])) {
+                                    $bObj = \App\Models\InventoryBatch::find($fabRow['inventory_batch_id']);
+                                    if ($bObj) {
+                                        if ($bObj->bales()->count() === 0 && (float)$bObj->balance_quantity > 0) {
+                                            $bObj->createBales(1, (float)$bObj->balance_quantity);
+                                        }
+                                        $bales = \App\Models\InventoryBale::where('inventory_batch_id', $bObj->id)->where('status', '!=', 'depleted')->get();
+                                    }
+                                }
                             @endphp
                             <select
                                 wire:model.live="selectedFabrics.{{ $fIdx }}.inventory_bale_id"
