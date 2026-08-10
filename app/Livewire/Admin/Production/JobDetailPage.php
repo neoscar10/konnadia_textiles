@@ -1624,10 +1624,21 @@ class JobDetailPage extends Component
             if ($this->job->status === 'pending') {
                 $this->job->update(['status' => 'in_progress']);
             }
+
+            // Sync Cutting Stage Execution progress
+            $stageExecution = $this->job->stageExecutions()->where('task_id', $this->selectedTaskId)->first();
+            if ($stageExecution) {
+                $totalLoggedCutQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
+                $stageExecution->update([
+                    'status' => $totalLoggedCutQty >= $this->job->target_quantity ? 'completed' : 'in_progress',
+                    'completed_quantity' => $totalLoggedCutQty,
+                ]);
+            }
         });
 
         $this->job->load([
             'batch.childBatches',
+            'stageExecutions',
             'materialConsumptions.inventoryBatch.rawMaterial.category',
             'productOutputs.manufacturingProduct',
             'productOutputs.task',
