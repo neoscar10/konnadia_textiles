@@ -100,8 +100,10 @@ class RawMaterialPurchaseEntryTest extends TestCase
 
         Livewire::test(RawMaterialPurchaseEntry::class)
             ->set('raw_material_id', $this->fabric->id)
-            ->set('quantity_received', '150.5')
+            ->set('num_bales', 2)
+            ->set('declared_bale_length', '75.25')
             ->set('purchase_rate', '120.00')
+            ->assertSet('quantity_received', '150.5')
             ->assertSet('total_amount', 18060.00);
     }
 
@@ -116,7 +118,8 @@ class RawMaterialPurchaseEntryTest extends TestCase
             ->set('purchase_date', $purchaseDate)
             ->set('invoice_number', 'INV-9912')
             ->set('raw_material_id', $this->fabric->id)
-            ->set('quantity_received', '250.00')
+            ->set('num_bales', 1)
+            ->set('declared_bale_length', '250.00')
             ->set('purchase_rate', '100.00')
             ->call('savePurchaseEntry')
             ->assertRedirect(route('factory.raw-materials.index'));
@@ -184,19 +187,20 @@ class RawMaterialPurchaseEntryTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(RawMaterialPurchaseEntry::class)
+            ->set('raw_material_id', $this->fabric->id)
             ->set('supplier_name', '')
             ->set('purchase_date', '')
             ->set('invoice_number', '')
-            ->set('raw_material_id', '')
-            ->set('quantity_received', '')
+            ->set('num_bales', '')
+            ->set('declared_bale_length', '')
             ->set('purchase_rate', '')
             ->call('savePurchaseEntry')
             ->assertHasErrors([
                 'supplier_name',
                 'purchase_date',
                 'invoice_number',
-                'raw_material_id',
-                'quantity_received',
+                'num_bales',
+                'declared_bale_length',
                 'purchase_rate',
             ]);
     }

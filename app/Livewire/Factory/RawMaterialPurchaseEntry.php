@@ -21,6 +21,10 @@ class RawMaterialPurchaseEntry extends Component
     public $purchase_rate = '';
     public $total_amount = 0.00;
 
+    // Fabric Bale specific properties
+    public $num_bales = 1;
+    public $declared_bale_length = '';
+
     // View helper variables
     public ?string $unitType = null; // 'length_based' or 'other'
     public ?string $unitName = null; // e.g. Meters, Pieces
@@ -49,6 +53,16 @@ class RawMaterialPurchaseEntry extends Component
         $this->recalculateTotal();
     }
 
+    public function updatedNumBales()
+    {
+        $this->recalculateTotal();
+    }
+
+    public function updatedDeclaredBaleLength()
+    {
+        $this->recalculateTotal();
+    }
+
     public function updatedQuantityReceived()
     {
         $this->recalculateTotal();
@@ -61,6 +75,13 @@ class RawMaterialPurchaseEntry extends Component
 
     protected function recalculateTotal()
     {
+        if ($this->unitType === 'length_based') {
+            $bales = intval($this->num_bales ?: 1);
+            $lengthPerBale = floatval($this->declared_bale_length ?: 0);
+            $totalLength = $bales * $lengthPerBale;
+            $this->quantity_received = $totalLength > 0 ? (string) $totalLength : '';
+        }
+
         $qty = floatval($this->quantity_received ?: 0);
         $rate = floatval($this->purchase_rate ?: 0);
         $this->total_amount = round($qty * $rate, 2);
@@ -76,7 +97,8 @@ class RawMaterialPurchaseEntry extends Component
         ];
 
         if ($this->unitType === 'length_based') {
-            $rules['quantity_received'] = 'required|numeric|gt:0';
+            $rules['num_bales'] = 'required|integer|min:1';
+            $rules['declared_bale_length'] = 'required|numeric|gt:0';
             $rules['purchase_rate'] = 'required|numeric|gt:0';
         } else {
             $rules['quantity_received'] = 'required|numeric|gt:0';
@@ -88,20 +110,19 @@ class RawMaterialPurchaseEntry extends Component
 
     protected function messages()
     {
-        $qtyLabel = $this->unitType === 'length_based' ? 'Length Received' : 'Quantity Received';
-        $rateLabel = $this->unitType === 'length_based' ? 'Rate per Length Unit' : 'Rate per Unit';
-
         return [
             'supplier_name.required' => 'Supplier Name is required.',
             'purchase_date.required' => 'Purchase Date is required.',
             'invoice_number.required' => 'Invoice Number is required.',
             'raw_material_id.required' => 'Please select a raw material.',
-            'quantity_received.required' => "{$qtyLabel} is required.",
-            'quantity_received.numeric' => "{$qtyLabel} must be a number.",
-            'quantity_received.gt' => "{$qtyLabel} must be greater than zero.",
-            'purchase_rate.required' => "{$rateLabel} is required.",
-            'purchase_rate.numeric' => "{$rateLabel} must be a number.",
-            'purchase_rate.gt' => "{$rateLabel} must be greater than zero.",
+            'num_bales.required' => 'Number of Bales is required.',
+            'num_bales.min' => 'Number of Bales must be at least 1.',
+            'declared_bale_length.required' => 'Declared Length per Bale is required.',
+            'declared_bale_length.gt' => 'Declared Length per Bale must be greater than zero.',
+            'quantity_received.required' => 'Quantity Received is required.',
+            'quantity_received.gt' => 'Quantity Received must be greater than zero.',
+            'purchase_rate.required' => 'Purchase Rate is required.',
+            'purchase_rate.gt' => 'Purchase Rate must be greater than zero.',
         ];
     }
 
@@ -121,6 +142,9 @@ class RawMaterialPurchaseEntry extends Component
                 $baseQty = $material->unitModel->toBaseQuantity($qtyReceived);
             }
 
+            $numBales = $this->unitType === 'length_based' ? intval($this->num_bales) : null;
+            $declaredLength = $this->unitType === 'length_based' ? floatval($this->declared_bale_length) : null;
+
             $batch = InventoryBatch::create([
                 'raw_material_id' => $this->raw_material_id,
                 'supplier_name' => $this->supplier_name,
@@ -135,14 +159,22 @@ class RawMaterialPurchaseEntry extends Component
                 'total_amount' => $this->total_amount,
                 'unit' => $material->unit,
                 'purchase_unit_id' => $material->unit_id,
+                'num_bales' => $numBales,
+                'declared_bale_length' => $declaredLength,
                 'status' => 'active',
             ]);
+
+            // If fabric length-based material, create unopened bales!
+            if ($this->unitType === 'length_based' && $numBales > 0) {
+                $batch->createBales($numBales, $declaredLength);
+            }
+
             // Log creation
-            InventoryBatchLogger::log($batch->id, 'created', $batch->quantity_received, null, 'Purchase entry recorded');
+            InventoryBatchLogger::log($batch->id, 'created', $batch->quantity_received, null, "Purchase entry recorded ({$numBales} bales)");
         });
 
         session()->flash('toast', [
-            'message' => 'Purchase entry saved and inventory batch created successfully!',
+            'message' => 'Purchase entry saved and inventory batch with bales created successfully!',
             'type' => 'success'
         ]);
 

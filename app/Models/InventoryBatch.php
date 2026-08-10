@@ -23,6 +23,11 @@ class InventoryBatch extends Model
         'purchase_rate',
         'total_amount',
         'status',
+        'num_bales',
+        'declared_bale_length',
+        'purchase_unit_id',
+        'base_quantity',
+        'base_current_balance',
         // Legacy fields for backward compatibility
         'received_quantity',
         'unit',
@@ -36,6 +41,8 @@ class InventoryBatch extends Model
         'balance_quantity' => 'decimal:4',
         'purchase_rate' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'num_bales' => 'integer',
+        'declared_bale_length' => 'decimal:4',
         // Legacy
         'received_quantity' => 'decimal:2',
         'unit_cost' => 'decimal:2',
@@ -110,6 +117,31 @@ class InventoryBatch extends Model
     public function logs()
     {
         return $this->hasMany(InventoryBatchLog::class);
+    }
+
+    /**
+     * Get fabric bales linked to this batch.
+     */
+    public function bales()
+    {
+        return $this->hasMany(InventoryBale::class, 'inventory_batch_id');
+    }
+
+    /**
+     * Create child unopened bales for this fabric batch.
+     */
+    public function createBales(int $numBales, float $declaredLength)
+    {
+        $createdBales = [];
+        for ($i = 1; $i <= $numBales; $i++) {
+            $createdBales[] = $this->bales()->create([
+                'bale_number' => "Bale #{$i}",
+                'status' => 'unopened',
+                'declared_length' => $declaredLength,
+                'current_balance_length' => $declaredLength,
+            ]);
+        }
+        return $createdBales;
     }
 
     /**

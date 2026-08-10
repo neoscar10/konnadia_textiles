@@ -280,6 +280,32 @@ Route::prefix('v1')->group(function () {
                     Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'toggleStatus'])->where('id', '[0-9]+');
                     Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'destroy'])->where('id', '[0-9]+');
                 });
+
+                // Task Master Management
+                Route::prefix('tasks')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'index']);
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'options']);
+                    Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'show'])->where('id', '[0-9]+');
+                    Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'store']);
+                    Route::post('/reorder', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'reorder']);
+                    Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                    Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'destroy'])->where('id', '[0-9]+');
+                });
+            });
+
+            // Task Master Direct Alias
+            Route::prefix('tasks')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'store']);
+                Route::post('/reorder', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'reorder']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'destroy'])->where('id', '[0-9]+');
             });
 
             // Credit Management (Requires 'access customers' or 'access orders' permission)

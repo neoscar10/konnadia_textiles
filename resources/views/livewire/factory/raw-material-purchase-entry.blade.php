@@ -135,10 +135,54 @@
 
                     <!-- Dynamic Purchase Fields -->
                     @if($raw_material_id)
+                        @if($unitType === 'length_based')
+                            <!-- Fabric Bale Configuration -->
+                            <div class="bg-primary/5 border border-primary/20 rounded-xl p-5 mb-6 space-y-4">
+                                <div class="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                                    <span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                                    <span>Fabric Bale Purchase Details</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="num-bales" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                            Number of Bales Purchased <span class="text-error">*</span>
+                                        </label>
+                                        <input
+                                            id="num-bales"
+                                            type="number"
+                                            min="1"
+                                            wire:model.live="num_bales"
+                                            placeholder="e.g., 2"
+                                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                                        />
+                                        @error('num_bales') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                                    </div>
+
+                                    <div>
+                                        <label for="declared-bale-length" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                            Declared Length Written on Bale <span class="text-error">*</span>
+                                        </label>
+                                        <div class="relative">
+                                            <input
+                                                id="declared-bale-length"
+                                                type="number"
+                                                step="0.01"
+                                                wire:model.live="declared_bale_length"
+                                                placeholder="e.g., 500"
+                                                class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-4 pr-16 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                                            />
+                                            <span class="absolute right-4 top-3 text-xs font-bold text-on-surface-variant/60 pointer-events-none">{{ $unitName }} / Bale</span>
+                                        </div>
+                                        @error('declared_bale_length') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div class="md:col-span-2">
                                 <label for="qty-received" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
-                                    {{ $unitType === 'length_based' ? 'Length Received' : 'Quantity Received' }} <span class="text-error">*</span>
+                                    {{ $unitType === 'length_based' ? 'Total Length Calculated' : 'Quantity Received' }} <span class="text-error">*</span>
                                 </label>
                                 <div class="relative">
                                     <input
@@ -146,8 +190,10 @@
                                         type="number"
                                         step="0.0001"
                                         wire:model.live="quantity_received"
+                                        {{ $unitType === 'length_based' ? 'readonly' : '' }}
                                         placeholder="0.0000"
-                                        class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-4 pr-16 py-3 font-body-md text-sm text-right focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                                        class="w-full border rounded-xl pl-4 pr-16 py-3 font-body-md text-sm text-right focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none
+                                            {{ $unitType === 'length_based' ? 'bg-surface-container border-outline-variant/40 font-bold text-primary cursor-not-allowed' : 'bg-surface border-outline-variant/60' }}"
                                     />
                                     <span class="absolute right-4 top-3 text-xs font-bold text-on-surface-variant/60 pointer-events-none">{{ $unitName }}</span>
                                 </div>

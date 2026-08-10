@@ -102,6 +102,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/factory/raw-materials/batches', \App\Livewire\Factory\InventoryBatchList::class)->name('factory.raw-materials.batches');
     Route::get('/factory/raw-materials/batches/{batch}', \App\Livewire\Factory\InventoryBatchDetail::class)->name('factory.raw-materials.batches.show');
     Route::get('/factory/raw-materials/{material}', \App\Livewire\Factory\RawMaterialDetail::class)->name('factory.raw-materials.show');
+
+    // Cutting Stage & Workflow Wizards
+    Route::get('/factory/cutting-stage', \App\Livewire\Factory\CuttingStageWizard::class)->name('factory.cutting-stage');
+    Route::get('/factory/production-jobs/{job}/stage-wizard', \App\Livewire\Factory\JobStageWizard::class)->name('factory.job-stage-wizard');
+    Route::get('/admin/production/finished-goods-combination', \App\Livewire\Admin\Production\FinishedGoodsCombinationPage::class)->name('admin.production.finished-goods-combination');
 });
 
 // Optional Customer Route Group (available to guests and logged-in customers)

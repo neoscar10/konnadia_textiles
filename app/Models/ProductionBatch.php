@@ -20,6 +20,8 @@ class ProductionBatch extends Model
         'status',
         'completed_at',
         'is_converted',
+        'unconverted_quantity',
+        'converted_quantity',
         'remarks',
     ];
 
@@ -28,6 +30,8 @@ class ProductionBatch extends Model
         'completed_at' => 'datetime',
         'is_converted' => 'boolean',
         'planned_quantity' => 'integer',
+        'unconverted_quantity' => 'integer',
+        'converted_quantity' => 'integer',
     ];
 
     /**
@@ -234,5 +238,11 @@ class ProductionBatch extends Model
     public function getTotalFinishedQuantityAttribute(): int
     {
         return (int) $this->productOutputs()->sum('quantity_produced');
+    }
+
+    public function getRemainingUnconvertedQuantityAttribute(): int
+    {
+        $totalFinished = $this->total_finished_quantity > 0 ? $this->total_finished_quantity : $this->planned_quantity;
+        return max(0, $totalFinished - (int) $this->converted_quantity);
     }
 }
