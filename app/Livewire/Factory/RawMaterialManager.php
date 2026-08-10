@@ -65,7 +65,7 @@ class RawMaterialManager extends Component
                 'max:255',
             ],
             'raw_material_category_id' => 'required|exists:raw_material_categories,id',
-            'unit_group_id' => 'required|exists:unit_groups,id',
+            'unit_group_id' => 'nullable|exists:unit_groups,id',
             'unit' => $unitRule,
             'is_active' => 'required|boolean',
         ];
@@ -86,7 +86,6 @@ class RawMaterialManager extends Component
         return [
             'name.required' => 'Raw Material Name is required.',
             'raw_material_category_id.required' => 'Please select a category.',
-            'unit_group_id.required' => 'Please select a unit class / measurement type.',
             'unit.required' => 'Please select a unit of measurement.',
             'unit.in' => 'The selected unit is not valid for the chosen unit class.',
             'standard_width.required' => 'Standard Width is required for length-based materials.',
@@ -160,6 +159,24 @@ class RawMaterialManager extends Component
 
     public function save()
     {
+        // Auto-resolve unit_group_id if not set explicitly
+        if (!$this->unit_group_id && $this->raw_material_category_id) {
+            $category = RawMaterialCategory::with('unitGroup')->find($this->raw_material_category_id);
+            if ($category && $category->unit_group_id) {
+                $this->unit_group_id = $category->unit_group_id;
+            } else {
+                $unitModel = Unit::where('name', $this->unit)->orWhere('short_code', $this->unit)->first();
+                if ($unitModel) {
+                    $this->unit_group_id = $unitModel->unit_group_id;
+                } else if ($category) {
+                    $unitGroup = UnitGroup::where('code', strtoupper($category->unit_type->value ?? ''))->first();
+                    if ($unitGroup) {
+                        $this->unit_group_id = $unitGroup->id;
+                    }
+                }
+            }
+        }
+
         $this->validate();
 
         $isLengthBased = $this->isLengthBased();
