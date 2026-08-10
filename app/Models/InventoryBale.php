@@ -60,6 +60,8 @@ class InventoryBale extends Model
             ]);
         }
 
+        $diff = $sum - (float) $this->declared_length;
+
         $this->update([
             'status' => 'opened',
             'roll_count' => count($rollLengths),
@@ -67,11 +69,25 @@ class InventoryBale extends Model
             'current_balance_length' => $sum,
         ]);
 
+        if (abs($diff) > 0.0001 && $this->batch) {
+            $this->batch->balance_quantity = max(0, (float) $this->batch->balance_quantity + $diff);
+            $this->batch->quantity_received = max(0, (float) $this->batch->quantity_received + $diff);
+            $this->batch->save();
+
+            \App\Services\InventoryBatchLogger::log(
+                $this->batch->id,
+                'adjusted',
+                $diff,
+                null,
+                "Bale {$this->bale_number} opened: stock adjusted by {$diff}m based on actual measured rolls length ({$sum}m vs declared {$this->declared_length}m)"
+            );
+        }
+
         return [
             'total_recorded_length' => $sum,
             'declared_length' => (float) $this->declared_length,
-            'difference' => round($sum - (float) $this->declared_length, 4),
-            'has_mismatch' => abs($sum - (float) $this->declared_length) > 0.001,
+            'difference' => round($diff, 4),
+            'has_mismatch' => abs($diff) > 0.001,
         ];
     }
 

@@ -54,6 +54,13 @@ class JobDetailPage extends Component
     public $cuttingFabricWidth = 60.00;
     public array $cuttingOutputs = [];
 
+    // Unopened Bale Modal State
+    public bool $showOpenBaleModal = false;
+    public ?int $activeBaleIdToOpen = null;
+    public int $baleRollCount = 5;
+    public array $baleRollLengths = [];
+    public ?string $baleMismatchWarning = null;
+
     // Subsidiary Material Consumption Form (CAT-SUB BOM-driven)
     public array $subsidiaryConsumptions = []; // [['bom_raw_material_id'=>, 'bom_material_name'=>, 'unit'=>, 'expected_quantity'=>, 'inventory_batch_id'=>, 'actual_consumed'=>]]
     public bool $isTaskSubsidiary = false; // true when selected task is linked to CAT-SUB
@@ -1204,6 +1211,63 @@ class JobDetailPage extends Component
                 $this->autoEnsureBaleAndSelect($batch);
             }
         }
+    }
+
+    public function triggerOpenBaleModal(int $baleId)
+    {
+        $bale = \App\Models\InventoryBale::with('batch')->findOrFail($baleId);
+        $this->activeBaleIdToOpen = $bale->id;
+        $this->baleRollCount = 5;
+        $this->baleMismatchWarning = null;
+
+        $declaredPerRoll = round((float) $bale->declared_length / 5, 2);
+        $this->baleRollLengths = array_fill(0, 5, $declaredPerRoll);
+
+        $this->showOpenBaleModal = true;
+    }
+
+    public function updatedBaleRollCount($count)
+    {
+        $count = max(1, min(50, intval($count)));
+        $this->baleRollCount = $count;
+
+        $bale = \App\Models\InventoryBale::find($this->activeBaleIdToOpen);
+        $declaredPerRoll = $bale ? round((float) $bale->declared_length / $count, 2) : 100;
+        $this->baleRollLengths = array_fill(0, $count, $declaredPerRoll);
+        $this->checkBaleMismatchWarning();
+    }
+
+    public function updatedBaleRollLengths()
+    {
+        $this->checkBaleMismatchWarning();
+    }
+
+    protected function checkBaleMismatchWarning()
+    {
+        if (!$this->activeBaleIdToOpen) return;
+        $bale = \App\Models\InventoryBale::find($this->activeBaleIdToOpen);
+        if (!$bale) return;
+
+        $sum = array_sum(array_map('floatval', $this->baleRollLengths));
+        $declared = (float) $bale->declared_length;
+
+        if (abs($sum - $declared) > 0.001) {
+            $diff = round($sum - $declared, 2);
+            $this->baleMismatchWarning = "Notice: Sum of roll lengths ({$sum}m) differs from declared purchase bale length ({$declared}m) by {$diff}m. Measured roll total ({$sum}m) will be recorded as actual stock length.";
+        } else {
+            $this->baleMismatchWarning = null;
+        }
+    }
+
+    public function saveOpenedBale()
+    {
+        if (!$this->activeBaleIdToOpen) return;
+        $bale = \App\Models\InventoryBale::findOrFail($this->activeBaleIdToOpen);
+
+        $result = $bale->openBale($this->baleRollLengths);
+        $this->showOpenBaleModal = false;
+        $this->activeBaleIdToOpen = null;
+        $this->dispatch('toast', message: "Bale {$bale->bale_number} opened with {$bale->roll_count} rolls! Actual measured length ({$result['total_recorded_length']}m) saved for material calculations.", type: 'success');
     }
 
     protected function autoEnsureBaleAndSelect(InventoryBatch $batch)

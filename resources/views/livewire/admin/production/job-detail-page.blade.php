@@ -215,9 +215,26 @@
                                         <div class="border-l border-secondary/20 pl-3">
                                             <span class="font-bold block text-[10px] uppercase text-amber-800">Selected Bale</span>
                                             <span class="font-extrabold text-amber-900 font-mono text-xs">{{ $selectedBale->bale_number }} (Bal: {{ number_format($selectedBale->current_balance_length, 2) }}m)</span>
+                                            <span class="inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded ml-1 {{ $selectedBale->status === 'unopened' ? 'bg-amber-200 text-amber-900' : 'bg-emerald-100 text-emerald-800' }}">
+                                                {{ $selectedBale->status }}
+                                            </span>
                                         </div>
                                     @endif
                                 </div>
+
+                                @if($selectedBale && $selectedBale->status === 'unopened')
+                                    <div class="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-wrap justify-between items-center text-xs gap-3">
+                                        <div class="space-y-0.5">
+                                            <div class="font-extrabold text-amber-900 flex items-center gap-1.5">
+                                                <span class="material-symbols-outlined text-[18px]">inventory_2</span> Unopened Bale Selected (Declared Length: {{ $selectedBale->declared_length }}m)
+                                            </div>
+                                            <p class="text-[11px] text-amber-800 font-medium">Bale has not been opened yet. Open bale to enter the number of rolls and measured roll lengths for material calculation.</p>
+                                        </div>
+                                        <button type="button" wire:click="triggerOpenBaleModal({{ $selectedBale->id }})" class="bg-amber-600 hover:bg-amber-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5 active:scale-95 shrink-0">
+                                            <span class="material-symbols-outlined text-[16px]">content_cut</span> Open Bale & Record Rolls
+                                        </button>
+                                    </div>
+                                @endif
                             @endif
                         </div>
 
@@ -1282,6 +1299,71 @@
                     <button type="button" wire:click="$set('showFinalCompletionModal', false)" class="w-full inline-flex justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-bold py-2.5 rounded-xl transition-all text-xs">
                         Keep Reviewing Job Detail
                     </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Open Bale Modal Dialog -->
+    @if($showOpenBaleModal && $activeBaleIdToOpen)
+        @php
+            $baleToOpen = \App\Models\InventoryBale::find($activeBaleIdToOpen);
+        @endphp
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div class="bg-surface border border-outline-variant/60 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-start pb-4 border-b border-outline-variant/40">
+                    <div>
+                        <span class="text-[10px] font-black text-amber-800 uppercase tracking-widest bg-amber-100 px-2.5 py-1 rounded-md">Bale Opening & Roll Entry</span>
+                        <h3 class="font-headline-sm text-headline-sm text-primary font-extrabold mt-1">Open {{ $baleToOpen?->bale_number }}</h3>
+                        <p class="text-xs text-on-surface-variant">Recorded Purchase Declared Length: <strong class="text-primary">{{ $baleToOpen?->declared_length }}m</strong></p>
+                    </div>
+                    <button type="button" wire:click="$set('showOpenBaleModal', false)" class="text-outline hover:text-on-surface p-2 rounded-xl">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Number of Rolls in this Bale *</label>
+                        <input type="number" min="1" max="50" wire:model.live="baleRollCount" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-bold text-primary focus:ring-2 focus:ring-primary/20">
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Measured Length of Each Roll (Meters) *</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            @foreach($baleRollLengths as $i => $len)
+                                <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-1">
+                                    <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase">Roll #{{ $i + 1 }}</label>
+                                    <div class="relative">
+                                        <input type="number" step="0.01" min="0.01" wire:model.live="baleRollLengths.{{ $i }}" class="w-full bg-surface border border-outline-variant/60 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-primary">
+                                        <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-outline font-bold">m</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    @php
+                        $measuredTotal = array_sum(array_map('floatval', $baleRollLengths));
+                    @endphp
+                    <div class="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex justify-between items-center text-xs">
+                        <span class="font-bold text-on-surface">Total Measured Rolls Length:</span>
+                        <span class="font-black text-secondary text-base font-mono">{{ number_format($measuredTotal, 2) }}m</span>
+                    </div>
+
+                    @if($baleMismatchWarning)
+                        <div class="p-4 bg-amber-500/10 border border-amber-500/30 text-amber-900 rounded-2xl text-xs font-medium space-y-1">
+                            <div class="flex items-center gap-1 font-bold text-amber-800">
+                                <span class="material-symbols-outlined text-[16px]">info</span> Purchase Mismatch Warning
+                            </div>
+                            <p>{{ $baleMismatchWarning }}</p>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40">
+                    <button type="button" wire:click="$set('showOpenBaleModal', false)" class="px-5 py-2.5 rounded-xl border border-outline-variant/60 text-xs font-bold text-on-surface hover:bg-surface-container">Cancel</button>
+                    <button type="button" wire:click="saveOpenedBale" class="px-6 py-2.5 rounded-xl bg-primary text-on-primary text-xs font-extrabold shadow-md hover:bg-primary-container transition-all">Save & Open Bale</button>
                 </div>
             </div>
         </div>
