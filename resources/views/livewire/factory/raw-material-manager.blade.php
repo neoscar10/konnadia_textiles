@@ -111,7 +111,7 @@
                                     @foreach($availableUnits as $unitOption)
                                         <button
                                             type="button"
-                                            wire:click="$set('unit', '{{ $unitOption }}')"
+                                            wire:click="selectUnit('{{ $unitOption }}')"
                                             class="px-4 py-2 rounded-xl text-xs font-bold border transition-all
                                                 {{ $unit === $unitOption
                                                     ? 'bg-primary text-on-primary border-primary shadow-md ring-2 ring-primary/20'

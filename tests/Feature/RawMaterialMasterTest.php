@@ -434,4 +434,22 @@ class RawMaterialMasterTest extends TestCase
         $component->set('raw_material_category_id', $subCat->id)
             ->assertSet('availableUnits', $subCat->valid_units);
     }
+
+    public function test_selecting_material_unit_syncs_width_unit_with_manual_override_option()
+    {
+        $this->actingAs($this->admin);
+        $fabricCat = RawMaterialCategory::where('code', 'CAT-FAB')->first();
+
+        $component = Livewire::test(RawMaterialManager::class)
+            ->dispatch('open-raw-material-modal')
+            ->set('raw_material_category_id', $fabricCat->id)
+            ->call('selectUnit', 'Meters')
+            ->assertSet('unit', 'Meters')
+            ->assertSet('width_unit', 'Meters');
+
+        // Manual override for width_unit
+        $component->set('width_unit', 'Inch')
+            ->assertSet('unit', 'Meters')
+            ->assertSet('width_unit', 'Inch');
+    }
 }

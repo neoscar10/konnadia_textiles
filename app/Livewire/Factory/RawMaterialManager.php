@@ -149,11 +149,29 @@ class RawMaterialManager extends Component
         $this->updateAvailableUnits();
 
         if (!empty($this->availableUnits) && !in_array($this->unit, $this->availableUnits)) {
-            $this->unit = $this->availableUnits[0] ?? '';
+            $this->selectUnit($this->availableUnits[0] ?? '');
         }
 
         if ($this->isLengthBased() && empty($this->width_unit)) {
             $this->width_unit = 'Inch';
+        }
+    }
+
+    public function selectUnit(string $unitOption)
+    {
+        $this->unit = $unitOption;
+
+        if ($this->isLengthBased()) {
+            $normalized = match (strtolower($unitOption)) {
+                'cm', 'centimeters', 'centimeter' => 'CM',
+                'inches', 'inch', 'in' => 'Inch',
+                'meters', 'meter', 'm' => 'Meters',
+                'feet', 'foot', 'ft' => 'Feet',
+                'yards', 'yard', 'yd' => 'Yards',
+                default => $unitOption,
+            };
+
+            $this->width_unit = $normalized;
         }
     }
 
