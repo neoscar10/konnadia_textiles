@@ -179,7 +179,7 @@
                                 <!-- Step 1: Select Fabric Raw Material -->
                                 <div>
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">1. Select Fabric Material *</label>
-                                    <select wire:model.live="cuttingFabricMaterialId" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                    <select wire:model.live="cuttingFabricMaterialId" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary @if($this->isSelectedStageCompleted) opacity-75 bg-surface-container-low cursor-not-allowed @endif">
                                         <option value="">-- Select Fabric Material --</option>
                                         @foreach($this->fabricMaterialsList as $mat)
                                             <option value="{{ $mat->id }}">{{ $mat->name }} ({{ $mat->code }}) — Std Width: {{ $mat->standard_width ?: 60 }}in</option>
@@ -190,7 +190,7 @@
                                 <!-- Step 2: Select Fabric Batch -->
                                 <div>
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">2. Select Fabric Batch *</label>
-                                    <select wire:model.live="cuttingFabricBatchId" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary" {{ empty($cuttingFabricMaterialId) ? 'disabled' : '' }}>
+                                    <select wire:model.live="cuttingFabricBatchId" @if($this->isSelectedStageCompleted || empty($cuttingFabricMaterialId)) disabled @endif class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary @if($this->isSelectedStageCompleted) opacity-75 bg-surface-container-low cursor-not-allowed @endif">
                                         <option value="">-- Choose Batch --</option>
                                         @foreach($this->batchesForSelectedFabric as $batch)
                                             <option value="{{ $batch->id }}">
@@ -289,10 +289,12 @@
 
                                                                         <div class="space-y-1">
                                                                             <div class="flex items-center gap-1">
-                                                                                <input type="number" step="0.01" min="0" max="{{ $rData['max_length'] }}" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.cut_length" placeholder="Cut length (m)" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-primary focus:ring-1 focus:ring-primary">
-                                                                                <button type="button" wire:click="useFullRoll({{ $bIndex }}, {{ $rId }})" class="px-2.5 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-black text-[10px] rounded-lg shrink-0 transition-all" title="Use full roll length">
-                                                                                    Use All
-                                                                                </button>
+                                                                                <input type="number" step="0.01" min="0" max="{{ $rData['max_length'] }}" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.cut_length" @if($this->isSelectedStageCompleted) disabled @endif placeholder="Cut length (m)" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-primary focus:ring-1 focus:ring-primary @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
+                                                                                @if(!$this->isSelectedStageCompleted)
+                                                                                    <button type="button" wire:click="useFullRoll({{ $bIndex }}, {{ $rId }})" class="px-2.5 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-black text-[10px] rounded-lg shrink-0 transition-all" title="Use full roll length">
+                                                                                        Use All
+                                                                                    </button>
+                                                                                @endif
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -316,7 +318,7 @@
                                         Total Consumed Length * <span class="material-symbols-outlined text-[14px] text-primary" title="Auto-computed from selected roll cut lengths">lock</span>
                                     </label>
                                     <div class="relative">
-                                        <input type="number" step="0.01" min="0.01" wire:model.live="cuttingConsumedLength" placeholder="0.00" class="w-full bg-surface-container-lowest border border-primary/40 rounded-xl pl-4 pr-12 py-3 text-sm font-black text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                        <input type="number" step="0.01" min="0.01" wire:model.live="cuttingConsumedLength" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-primary/40 rounded-xl pl-4 pr-12 py-3 text-sm font-black text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary @if($this->isSelectedStageCompleted) opacity-75 bg-surface-container-low cursor-not-allowed @endif">
                                         <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-primary font-extrabold uppercase">
                                             {{ $selectedBatch ? $selectedBatch->unit : 'Meters' }}
                                         </span>
@@ -338,7 +340,7 @@
                                 <div>
                                     <label class="block text-[11px] font-bold text-error uppercase tracking-wider mb-2">Fabric Wastage Length *</label>
                                     <div class="relative">
-                                        <input type="number" step="0.01" min="0" wire:model.live="cuttingWastageLength" placeholder="0.00" class="w-full bg-surface border border-error/30 rounded-xl pl-4 pr-12 py-3 text-sm font-bold text-error focus:ring-2 focus:ring-error/20 focus:border-error">
+                                        <input type="number" step="0.01" min="0" wire:model.live="cuttingWastageLength" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface border border-error/30 rounded-xl pl-4 pr-12 py-3 text-sm font-bold text-error focus:ring-2 focus:ring-error/20 focus:border-error @if($this->isSelectedStageCompleted) opacity-75 bg-surface-container-low cursor-not-allowed @endif">
                                         <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-error font-bold uppercase">
                                             {{ $selectedBatch ? $selectedBatch->unit : 'Meters' }}
                                         </span>
@@ -564,10 +566,12 @@
                     </div>
                 </div>
 
-                <button type="button" wire:click="addMaterialRow" class="flex items-center gap-2 bg-secondary text-on-secondary px-4 py-2.5 rounded-xl font-label-md text-label-md hover:bg-secondary-container transition-all font-bold shadow-xs active:scale-95 shrink-0">
-                    <span class="material-symbols-outlined text-[18px]">add</span>
-                    Add Material Row
-                </button>
+                @if(!$this->isSelectedStageCompleted)
+                    <button type="button" wire:click="addMaterialRow" class="flex items-center gap-2 bg-secondary text-on-secondary px-4 py-2.5 rounded-xl font-label-md text-label-md hover:bg-secondary-container transition-all font-bold shadow-xs active:scale-95 shrink-0">
+                        <span class="material-symbols-outlined text-[18px]">add</span>
+                        Add Material Row
+                    </button>
+                @endif
             </div>
 
             @if($errors->has('materialConsumptions'))
@@ -591,7 +595,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Select Available Inventory Batch *</label>
-                                    <select wire:model.live="materialConsumptions.{{ $index }}.inventory_batch_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all truncate">
+                                    <select wire:model.live="materialConsumptions.{{ $index }}.inventory_batch_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all truncate @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
                                         <option value="">-- Select Material Batch for {{ $selectedTask ? $selectedTask->name : 'Stage' }} --</option>
                                         @foreach($availableBatches as $batch)
                                             <option value="{{ $batch->id }}">
@@ -626,7 +630,7 @@
                                 <div class="flex-1">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Qty Consumed *</label>
                                     <div class="relative">
-                                        <input type="number" step="0.01" min="0.01" max="{{ $selectedBatch ? $selectedBatch->balance_quantity : 99999 }}" wire:model.live="materialConsumptions.{{ $index }}.quantity_consumed" placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl pl-3.5 pr-14 py-2.5 text-sm font-black text-secondary text-center focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all">
+                                        <input type="number" step="0.01" min="0.01" max="{{ $selectedBatch ? $selectedBatch->balance_quantity : 99999 }}" wire:model.live="materialConsumptions.{{ $index }}.quantity_consumed" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl pl-3.5 pr-14 py-2.5 text-sm font-black text-secondary text-center focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
                                         <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-outline font-bold uppercase truncate max-w-[40px]">
                                             {{ $selectedBatch ? $selectedBatch->unit : 'Units' }}
                                         </span>
@@ -636,7 +640,7 @@
                                     @enderror
                                 </div>
 
-                                @if(count($materialConsumptions) > 1)
+                                @if(!$this->isSelectedStageCompleted && count($materialConsumptions) > 1)
                                     <button type="button" wire:click="removeMaterialRow({{ $index }})" class="p-2.5 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 mt-5" title="Remove Row">
                                         <span class="material-symbols-outlined text-[20px]">delete</span>
                                     </button>
@@ -647,10 +651,17 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40 mt-6">
-                    <button type="submit" class="bg-secondary text-on-secondary px-8 py-3 rounded-xl font-label-md text-label-md font-bold hover:bg-secondary-container shadow-md transition-all active:scale-95 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">inventory</span>
-                        Record Raw Material Consumption for {{ $selectedTask ? $selectedTask->name : 'Stage' }}
-                    </button>
+                    @if($this->isSelectedStageCompleted)
+                        <button type="button" disabled class="bg-outline-variant/40 text-on-surface-variant/60 px-8 py-3 rounded-xl font-label-md text-label-md font-bold cursor-not-allowed shadow-xs flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[20px]">lock</span>
+                            Material Entry Locked
+                        </button>
+                    @else
+                        <button type="submit" class="bg-secondary text-on-secondary px-8 py-3 rounded-xl font-label-md text-label-md font-bold hover:bg-secondary-container shadow-md transition-all active:scale-95 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[20px]">inventory</span>
+                            Record Raw Material Consumption for {{ $selectedTask ? $selectedTask->name : 'Stage' }}
+                        </button>
+                    @endif
                 </div>
             </form>
 
@@ -911,7 +922,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Select Authorized Worker *</label>
-                                    <select wire:model.live="laborAllocations.{{ $index }}.labor_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate">
+                                    <select wire:model.live="laborAllocations.{{ $index }}.labor_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
                                         <option value="">-- Choose Worker for {{ $selectedTask ? $selectedTask->name : 'Stage' }} --</option>
                                         @foreach($authorizedLabors as $labor)
                                             <option value="{{ $labor->id }}">
@@ -927,7 +938,7 @@
 
                             <div class="col-span-12 sm:col-span-6 lg:col-span-4">
                                 <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Product SKU *</label>
-                                <select wire:model.live="laborAllocations.{{ $index }}.manufacturing_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate">
+                                <select wire:model.live="laborAllocations.{{ $index }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
                                     @foreach($allManufacturingProducts as $prod)
                                         <option value="{{ $prod->id }}">
                                             {{ $prod->name }} ({{ $prod->code }})
@@ -940,7 +951,7 @@
                                 <div class="flex-1">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Processed Qty *</label>
                                     <div class="relative">
-                                        <input type="number" min="1" max="{{ $stagePending }}" wire:model.live="laborAllocations.{{ $index }}.quantity" placeholder="0" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl pl-3.5 pr-12 py-2.5 text-sm font-black text-primary text-center focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                        <input type="number" min="1" max="{{ $stagePending }}" wire:model.live="laborAllocations.{{ $index }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl pl-3.5 pr-12 py-2.5 text-sm font-black text-primary text-center focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
                                         <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-outline font-bold uppercase">Pcs</span>
                                     </div>
                                     @error("laborAllocations.{$index}.quantity") 
@@ -948,7 +959,7 @@
                                     @enderror
                                 </div>
 
-                                @if(count($laborAllocations) > 1)
+                                @if(!$this->isSelectedStageCompleted && count($laborAllocations) > 1)
                                     <button type="button" wire:click="removeLaborRow({{ $index }})" class="p-2.5 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 mt-5" title="Remove Row">
                                         <span class="material-symbols-outlined text-[20px]">delete</span>
                                     </button>
@@ -1033,10 +1044,12 @@
                     </div>
                 </div>
 
-                <button type="button" wire:click="addOutputRow" class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2.5 rounded-xl font-label-md text-label-md hover:bg-primary-container transition-all font-bold shadow-xs active:scale-95 shrink-0">
-                    <span class="material-symbols-outlined text-[18px]">add</span>
-                    Add Product Output Row
-                </button>
+                @if(!$this->isSelectedStageCompleted)
+                    <button type="button" wire:click="addOutputRow" class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2.5 rounded-xl font-label-md text-label-md hover:bg-primary-container transition-all font-bold shadow-xs active:scale-95 shrink-0">
+                        <span class="material-symbols-outlined text-[18px]">add</span>
+                        Add Product Output Row
+                    </button>
+                @endif
             </div>
 
             @if($errors->has('productionOutputs'))
@@ -1056,7 +1069,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Select Manufacturing Product Output *</label>
-                                    <select wire:model.live="productionOutputs.{{ $index }}.manufacturing_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate">
+                                    <select wire:model.live="productionOutputs.{{ $index }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
                                         <option value="">-- Select Manufacturing Product --</option>
                                         @foreach($allManufacturingProducts as $prod)
                                             <option value="{{ $prod->id }}">
@@ -1074,7 +1087,7 @@
                                 <div class="flex-1">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Quantity Produced *</label>
                                     <div class="relative">
-                                        <input type="number" min="1" wire:model.live="productionOutputs.{{ $index }}.quantity_produced" placeholder="0" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl pl-3.5 pr-14 py-2.5 text-sm font-black text-primary text-center focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                        <input type="number" min="1" wire:model.live="productionOutputs.{{ $index }}.quantity_produced" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl pl-3.5 pr-14 py-2.5 text-sm font-black text-primary text-center focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
                                         <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-outline font-bold uppercase">Pcs</span>
                                     </div>
                                     @error("productionOutputs.{$index}.quantity_produced") 
@@ -1082,7 +1095,7 @@
                                     @enderror
                                 </div>
 
-                                @if(count($productionOutputs) > 1)
+                                @if(!$this->isSelectedStageCompleted && count($productionOutputs) > 1)
                                     <button type="button" wire:click="removeOutputRow({{ $index }})" class="p-2.5 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 mt-5" title="Remove Row">
                                         <span class="material-symbols-outlined text-[20px]">delete</span>
                                     </button>
@@ -1093,10 +1106,17 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40 mt-6">
-                    <button type="submit" class="bg-primary text-on-primary px-8 py-3 rounded-xl font-label-md text-label-md font-bold hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">precision_manufacturing</span>
-                        Record Product Output for {{ $selectedTask ? $selectedTask->name : 'Stage' }}
-                    </button>
+                    @if($this->isSelectedStageCompleted)
+                        <button type="button" disabled class="bg-outline-variant/40 text-on-surface-variant/60 px-8 py-3 rounded-xl font-label-md text-label-md font-bold cursor-not-allowed shadow-xs flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[20px]">lock</span>
+                            Output Entry Locked
+                        </button>
+                    @else
+                        <button type="submit" class="bg-primary text-on-primary px-8 py-3 rounded-xl font-label-md text-label-md font-bold hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[20px]">precision_manufacturing</span>
+                            Record Product Output for {{ $selectedTask ? $selectedTask->name : 'Stage' }}
+                        </button>
+                    @endif
                 </div>
             </form>
 

@@ -285,9 +285,83 @@ class JobDetailPage extends Component
         $this->alterationRecords = [['source_product_id' => $defaultProdId, 'source_quantity' => '', 'target_product_id' => '', 'target_quantity' => '']];
         
         $this->resetCuttingForm();
-
-        // Pre-fill subsidiary material consumptions if this task involves CAT-SUB
         $this->preloadSubsidiaryConsumptions();
+
+        if ($this->isSelectedStageCompleted) {
+            $this->loadCompletedStageData();
+        }
+    }
+
+    /**
+     * Populate form models with recorded data when viewing a completed stage.
+     */
+    private function loadCompletedStageData(): void
+    {
+        if (!$this->selectedTaskId || !$this->isSelectedStageCompleted) {
+            return;
+        }
+
+        $selectedTask = $this->routingTasks->firstWhere('id', $this->selectedTaskId);
+        $isCutting = $selectedTask && ($selectedTask->name === 'Cutting' || $selectedTask->code === 'TSK-001');
+
+        if ($isCutting) {
+            $cuttingConsumptions = $this->job->materialConsumptions->where('task_id', $this->selectedTaskId);
+            $firstMat = $cuttingConsumptions->first();
+            if ($firstMat) {
+                $this->cuttingFabricBatchId = $firstMat->inventory_batch_id;
+                $this->cuttingConsumedLength = (string) $cuttingConsumptions->sum('quantity_consumed');
+                $batch = $firstMat->inventoryBatch;
+                if ($batch) {
+                    $this->cuttingFabricWidth = (string) ($batch->width ?? 60.0);
+                }
+            }
+
+            $cuttingOutputs = $this->job->productOutputs->where('task_id', $this->selectedTaskId);
+            if ($cuttingOutputs->isNotEmpty()) {
+                $this->cuttingOutputs = $cuttingOutputs->map(function ($po) {
+                    return [
+                        'manufacturing_product_id' => $po->manufacturing_product_id,
+                        'quantity' => (string) $po->quantity_produced,
+                    ];
+                })->values()->toArray();
+            }
+
+            $cuttingWastage = $this->job->wastages->where('task_id', $this->selectedTaskId)->first();
+            if ($cuttingWastage) {
+                $this->cuttingWastageLength = (string) $cuttingWastage->quantity_wasted;
+            }
+        } else {
+            $recordedConsumptions = $this->job->materialConsumptions->where('task_id', $this->selectedTaskId);
+            if ($recordedConsumptions->isNotEmpty()) {
+                $this->materialConsumptions = $recordedConsumptions->map(function ($mc) {
+                    return [
+                        'inventory_batch_id' => $mc->inventory_batch_id,
+                        'quantity_consumed' => (string) $mc->quantity_consumed,
+                    ];
+                })->values()->toArray();
+            }
+
+            $recordedAllocations = $this->job->allocations->where('task_id', $this->selectedTaskId);
+            if ($recordedAllocations->isNotEmpty()) {
+                $this->laborAllocations = $recordedAllocations->map(function ($la) {
+                    return [
+                        'labor_id' => $la->labor_id,
+                        'manufacturing_product_id' => $this->job->manufacturing_product_id ?? '',
+                        'quantity' => (string) ($la->assigned_quantity ?? $la->completed_quantity),
+                    ];
+                })->values()->toArray();
+            }
+
+            $recordedOutputs = $this->job->productOutputs->where('task_id', $this->selectedTaskId);
+            if ($recordedOutputs->isNotEmpty()) {
+                $this->productionOutputs = $recordedOutputs->map(function ($po) {
+                    return [
+                        'manufacturing_product_id' => $po->manufacturing_product_id,
+                        'quantity_produced' => (string) $po->quantity_produced,
+                    ];
+                })->values()->toArray();
+            }
+        }
     }
 
     /**
