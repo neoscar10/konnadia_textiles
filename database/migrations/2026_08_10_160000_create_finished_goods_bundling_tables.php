@@ -32,9 +32,9 @@ return new class extends Migration
             Schema::create('storefront_product_bundles', function (Blueprint $table) {
                 $table->id();
                 $table->string('bundle_code')->unique();
-                $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete();
-                $table->foreignId('product_combination_id')->nullable()->constrained('product_combinations')->nullOnDelete();
-                $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->foreignId('product_id')->nullable()->constrained('products', 'id', 'spb_product_fk')->nullOnDelete();
+                $table->foreignId('product_combination_id')->nullable()->constrained('product_combinations', 'id', 'spb_comb_fk')->nullOnDelete();
+                $table->foreignId('created_by')->nullable()->constrained('users', 'id', 'spb_user_fk')->nullOnDelete();
                 $table->integer('quantity_created')->default(1);
                 $table->text('notes')->nullable();
                 $table->timestamps();
@@ -45,9 +45,9 @@ return new class extends Migration
         if (!Schema::hasTable('storefront_product_bundle_items')) {
             Schema::create('storefront_product_bundle_items', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('storefront_product_bundle_id')->constrained('storefront_product_bundles')->onDelete('cascade');
-                $table->foreignId('production_batch_id')->constrained('production_batches')->onDelete('cascade');
-                $table->foreignId('manufacturing_product_id')->constrained('manufacturing_products')->onDelete('cascade');
+                $table->foreignId('storefront_product_bundle_id')->constrained('storefront_product_bundles', 'id', 'spbi_bundle_fk')->onDelete('cascade');
+                $table->foreignId('production_batch_id')->constrained('production_batches', 'id', 'spbi_batch_fk')->onDelete('cascade');
+                $table->foreignId('manufacturing_product_id')->constrained('manufacturing_products', 'id', 'spbi_mfg_prod_fk')->onDelete('cascade');
                 $table->integer('quantity_used')->default(1);
                 $table->timestamps();
             });
