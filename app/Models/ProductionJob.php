@@ -161,19 +161,47 @@ class ProductionJob extends Model
             return 0;
         }
 
+        if ($this->status === 'completed') {
+            return (int) $this->target_quantity;
+        }
+
+        // Check stage executions if present
+        $stageExecs = $this->stageExecutions()->get();
+        if ($stageExecs->count() > 0) {
+            $allCompleted = $stageExecs->where('status', '!=', 'completed')->count() === 0;
+            if ($allCompleted) {
+                return (int) $this->target_quantity;
+            }
+
+            $stageCompletions = [];
+            foreach ($stageExecs as $exec) {
+                $outputQty = (int) $this->productOutputs()->where('task_id', $exec->task_id)->sum('quantity_produced');
+                $laborQty = (int) $this->allocations()->where('task_id', $exec->task_id)->sum('quantity_processed');
+                $done = max($exec->completed_quantity, $outputQty, $laborQty);
+                if ($exec->status === 'completed') {
+                    $done = max($done, $exec->target_quantity > 0 ? $exec->target_quantity : $this->target_quantity);
+                }
+                $stageCompletions[] = min($this->target_quantity, $done);
+            }
+            $avg = array_sum($stageCompletions) / count($stageCompletions);
+            return (int) min($this->target_quantity, round($avg));
+        }
+
         $product = $this->manufacturingProduct;
         if ($product && $product->tasks()->count() > 0) {
             $taskIds = $product->tasks()->pluck('tasks.id');
             $stageSums = [];
             foreach ($taskIds as $tid) {
-                $stageSums[] = (int) $this->allocations()->where('task_id', $tid)->sum('quantity_processed');
+                $outputQty = (int) $this->productOutputs()->where('task_id', $tid)->sum('quantity_produced');
+                $laborQty = (int) $this->allocations()->where('task_id', $tid)->sum('quantity_processed');
+                $stageSums[] = max($outputQty, $laborQty);
             }
             $avgCompleted = array_sum($stageSums) / count($stageSums);
             return (int) min($this->target_quantity, round($avgCompleted));
         }
 
         // Fallback for single task or unlinked product
-        $sum = (int) $this->allocations()->sum('quantity_processed');
+        $sum = (int) max($this->productOutputs()->sum('quantity_produced'), $this->allocations()->sum('quantity_processed'));
         return (int) min($this->target_quantity, $sum);
     }
 
@@ -183,7 +211,11 @@ class ProductionJob extends Model
     public function getProgressPercentageAttribute(): float
     {
         if ($this->target_quantity <= 0) {
-            return 0;
+            return 0.0;
+        }
+
+        if ($this->status === 'completed') {
+            return 100.0;
         }
 
         $completed = $this->completed_quantity;

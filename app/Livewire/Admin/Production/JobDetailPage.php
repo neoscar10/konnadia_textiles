@@ -100,7 +100,7 @@ class JobDetailPage extends Component
         ];
     }
 
-    public function completeStageAndProgress(): void
+    public function completeStageAndProgress()
     {
         if (!$this->selectedTaskId) {
             return;
@@ -111,30 +111,70 @@ class JobDetailPage extends Component
             return;
         }
 
-        $totalLoggedQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
-        if ($totalLoggedQty < $stageExecution->target_quantity && $stageExecution->target_quantity > 0) {
-            $this->dispatch('toast', message: "Cannot complete stage: Recorded output ({$totalLoggedQty} Pcs) has not met stage target ({$stageExecution->target_quantity} Pcs).", type: 'error');
+        $outputQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
+        $laborQty = (int) $this->job->allocations()->where('task_id', $this->selectedTaskId)->sum('quantity_processed');
+        $totalLoggedQty = max($outputQty, $laborQty, $stageExecution->completed_quantity);
+
+        $targetQty = $stageExecution->target_quantity > 0 ? $stageExecution->target_quantity : $this->job->target_quantity;
+        if ($totalLoggedQty < $targetQty && $targetQty > 0) {
+            $this->dispatch('toast', message: "Cannot complete stage: Recorded output ({$totalLoggedQty} Pcs) has not met stage target ({$targetQty} Pcs).", type: 'error');
             return;
         }
 
         $stageExecution->update([
             'status' => 'completed',
-            'completed_quantity' => max($totalLoggedQty, $stageExecution->target_quantity),
+            'completed_quantity' => max($totalLoggedQty, $targetQty),
         ]);
 
         // Progress job workflow to next uncompleted stage if available
         $nextStageExec = $this->job->stageExecutions()
             ->where('status', '!=', 'completed')
+            ->orderBy('sequence_number')
             ->orderBy('id')
             ->first();
 
         if ($nextStageExec) {
             $this->selectedTaskId = $nextStageExec->task_id;
             $this->selectTask($nextStageExec->task_id);
-            $this->dispatch('toast', message: 'Stage marked completed! Automatically progressed workflow to ' . ($nextStageExec->task?->name ?? 'next stage') . '.', type: 'success');
+            $this->dispatch('toast', message: 'Stage marked completed! Progressed workflow to ' . ($nextStageExec->task?->name ?? 'next stage') . '.', type: 'success');
         } else {
+            // All stages completed! Mark job as completed and redirect to Production Jobs Hub
             $this->job->update(['status' => 'completed']);
-            $this->dispatch('toast', message: 'All production stages completed successfully! Production job achieved 100%.', type: 'success');
+            session()->flash('success', "Production Job {$this->job->job_code} completed all stages successfully (100% target achieved)!");
+            return $this->redirect(route('admin.production.jobs.index'), navigate: true);
+        }
+    }
+
+    protected function syncStageAndJobCompletion(): void
+    {
+        if (!$this->selectedTaskId) {
+            return;
+        }
+
+        $stageExec = $this->job->stageExecutions()->where('task_id', $this->selectedTaskId)->first();
+        if ($stageExec) {
+            $outputQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
+            $laborQty = (int) $this->job->allocations()->where('task_id', $this->selectedTaskId)->sum('quantity_processed');
+            $totalDone = max($outputQty, $laborQty, $stageExec->completed_quantity);
+            $targetQty = $stageExec->target_quantity > 0 ? $stageExec->target_quantity : $this->job->target_quantity;
+
+            if ($totalDone >= $targetQty && $targetQty > 0) {
+                $stageExec->update([
+                    'status' => 'completed',
+                    'completed_quantity' => $totalDone,
+                ]);
+            } else if ($totalDone > 0) {
+                $stageExec->update([
+                    'status' => 'in_progress',
+                    'completed_quantity' => $totalDone,
+                ]);
+            }
+        }
+
+        // Auto-mark Job as completed if all stage executions are completed
+        $uncompletedCount = $this->job->stageExecutions()->where('status', '!=', 'completed')->count();
+        if ($uncompletedCount === 0 && $this->job->stageExecutions()->count() > 0) {
+            $this->job->update(['status' => 'completed']);
         }
     }
 
@@ -917,6 +957,7 @@ class JobDetailPage extends Component
             }
 
             $this->job->load(['allocations.labor', 'allocations.task']);
+            $this->syncStageAndJobCompletion();
 
             $defaultProdId = $this->job->manufacturing_product_id ?? '';
             $this->laborAllocations = [
@@ -1210,6 +1251,7 @@ class JobDetailPage extends Component
         });
 
         $this->job->load(['productOutputs.manufacturingProduct', 'productOutputs.task']);
+        $this->syncStageAndJobCompletion();
 
         $defaultProdId = $this->job->manufacturing_product_id ?? '';
         $this->productionOutputs = [
