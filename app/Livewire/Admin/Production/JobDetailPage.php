@@ -1889,6 +1889,34 @@ class JobDetailPage extends Component
                 $this->job->update($updateData);
             }
 
+            // Save cutter labor allocations if provided
+            if (!empty($this->laborAllocations)) {
+                foreach ($this->laborAllocations as $alloc) {
+                    if (empty($alloc['labor_id']) || empty($alloc['quantity'])) {
+                        continue;
+                    }
+                    $labor = Labor::find($alloc['labor_id']);
+                    if (!$labor) {
+                        continue;
+                    }
+
+                    $prodId = $alloc['manufacturing_product_id'] ?? ($this->job->manufacturing_product_id ?? $firstOutputProdId);
+                    $product = $prodId ? ManufacturingProduct::find($prodId) : null;
+                    $pieceRate = $product ? (float)$product->standard_labor_rate : 0.0;
+                    $calculatedWage = $labor->payment_method === 'job_work' ? round((float)$alloc['quantity'] * $pieceRate, 2) : 0.0;
+
+                    JobLaborAllocation::create([
+                        'production_job_id' => $this->job->id,
+                        'task_id' => $this->selectedTaskId,
+                        'labor_id' => $labor->id,
+                        'manufacturing_product_id' => $prodId,
+                        'quantity_processed' => (int)$alloc['quantity'],
+                        'piece_rate' => $pieceRate,
+                        'calculated_wage' => $calculatedWage,
+                    ]);
+                }
+            }
+
             // Sync Cutting Stage Execution progress
             $stageExecution = $this->job->stageExecutions()->where('task_id', $this->selectedTaskId)->first();
             if ($stageExecution) {

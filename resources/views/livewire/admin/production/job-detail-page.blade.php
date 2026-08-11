@@ -103,7 +103,12 @@
     <div class="mb-6">
         <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider shrink-0 mr-2">Production Stage:</span>
-            @foreach($job->stageExecutions as $idx => $stageExec)
+            @php
+                $visibleStageExecutions = (!$job->manufacturing_product_id)
+                    ? $job->stageExecutions->where('sequence_number', 1)
+                    : $job->stageExecutions;
+            @endphp
+            @foreach($visibleStageExecutions as $idx => $stageExec)
                 @php
                     $task = $stageExec->task;
                     $stageOutputSum = $stageExec->completed_quantity;
@@ -501,10 +506,50 @@
                             @endforeach
                         </div>
                     </div>
+
+                    <!-- Cutting Labor Assignment Card -->
+                    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
+                        <div class="flex justify-between items-center pb-4 border-b border-outline-variant/40">
+                            <div>
+                                <h4 class="font-headline-sm text-headline-sm text-primary font-bold">Cutting Labor Assignment</h4>
+                                <p class="text-xs text-on-surface-variant mt-0.5">Assign cutter factory workers and record piece-rate labor wages for cutting.</p>
+                            </div>
+                            @if(!$this->isSelectedStageCompleted)
+                                <button type="button" wire:click="addLaborRow" class="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-xl text-xs font-bold shadow-xs hover:bg-primary-container transition-all active:scale-95">
+                                    <span class="material-symbols-outlined text-[16px]">person_add</span> Add Cutter Worker
+                                </button>
+                            @endif
+                        </div>
+
+                        <div class="space-y-3">
+                            @foreach($laborAllocations as $index => $allocation)
+                                <div class="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-surface rounded-xl border border-outline-variant/60 shadow-xs">
+                                    <div class="flex-1 w-full">
+                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Cutter Worker *</label>
+                                        <select wire:model="laborAllocations.{{ $index }}.labor_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                                            <option value="">-- Select Factory Cutter --</option>
+                                            @foreach($this->authorizedLabors as $lab)
+                                                <option value="{{ $lab->id }}">{{ $lab->name }} ({{ $lab->labor_code }}) — {{ $lab->payment_method === 'monthly_salary' ? 'Monthly' : 'Piece-Rate' }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="w-full md:w-36">
+                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Processed (Pcs) *</label>
+                                        <input type="number" min="1" wire:model="laborAllocations.{{ $index }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-black text-primary text-center">
+                                    </div>
+                                    @if(!$this->isSelectedStageCompleted && count($laborAllocations) > 1)
+                                        <button type="button" wire:click="removeLaborRow({{ $index }})" class="p-2 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 self-center">
+                                            <span class="material-symbols-outlined text-[20px]">delete</span>
+                                        </button>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Right Side: Real-time Cost Preview Summary -->
-                <div class="col-span-12 xl:col-span-4 space-y-6">
+                <!-- Right Side: Real-time Cost Preview Summary (Sticky) -->
+                <div class="col-span-12 xl:col-span-4 space-y-6 sticky top-6 self-start max-h-[calc(100vh-2rem)] overflow-y-auto">
                     <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
                         <h4 class="font-headline-sm text-headline-sm text-primary font-bold flex items-center gap-2">
                             <span class="material-symbols-outlined">payments</span> Cost Valuation
