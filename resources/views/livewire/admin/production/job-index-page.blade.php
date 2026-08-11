@@ -140,11 +140,11 @@
                 </div>
             </div>
 
-            <!-- Manufacturing Product Select -->
+            <!-- Manufacturing Product Select (Optional) -->
             <div>
-                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Manufacturing Product *</label>
+                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Primary Product (Optional — Can specify at Cutting Stage)</label>
                 <select wire:model="manufacturing_product_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-2.5 font-bold text-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="">-- Select Product --</option>
+                    <option value="">-- Cutting Work Order (Specify Yields at Cutting Stage) --</option>
                     @foreach($allProducts as $prod)
                         <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
                     @endforeach
@@ -155,7 +155,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Target Quantity -->
                 <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Target Output Qty (Units) *</label>
+                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Planned Lay / Output Target (Units) *</label>
                     <input type="number" min="1" wire:model="target_quantity" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-2.5 font-black text-lg text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary">
                     @error('target_quantity') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                 </div>

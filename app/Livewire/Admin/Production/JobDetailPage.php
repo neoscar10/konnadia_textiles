@@ -1885,6 +1885,14 @@ class JobDetailPage extends Component
                     'completed_quantity' => $totalLoggedCutQty,
                 ]);
             }
+
+            // Assign primary product if job was initiated without a pre-assigned product
+            $firstOutputProdId = $this->cuttingOutputs[0]['manufacturing_product_id'] ?? null;
+            if (!$this->job->manufacturing_product_id && $firstOutputProdId) {
+                $this->job->update([
+                    'manufacturing_product_id' => $firstOutputProdId,
+                ]);
+            }
         });
 
         $this->job->load([

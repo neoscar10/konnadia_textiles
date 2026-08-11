@@ -65,11 +65,7 @@ class ProductionJob extends Model
     public function ensureStageExecutionsExist(): void
     {
         $product = $this->manufacturingProduct;
-        if (!$product) {
-            return;
-        }
-
-        $routingTasks = $product->tasks;
+        $routingTasks = $product ? $product->tasks : Task::where('status', true)->get();
         if ($routingTasks->isEmpty()) {
             return;
         }

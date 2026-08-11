@@ -31,16 +31,13 @@ class ProductionWorkflowService
     {
         try {
             $result = DB::transaction(function () use ($productId, $supervisorId, $plannedQuantity, $priority, $remarks, $batchDate) {
-                $product = ManufacturingProduct::find($productId);
-                if (!$product) {
-                    throw new Exception("Manufacturing Product not found for ID: {$productId}.");
-                }
+                $product = $productId ? ManufacturingProduct::find($productId) : null;
 
                 // Create the Production Batch record
                 $batch = ProductionBatch::create([
                     'batch_date' => $batchDate ?? now()->format('Y-m-d'),
                     'supervisor_id' => $supervisorId,
-                    'manufacturing_product_id' => $product->id,
+                    'manufacturing_product_id' => $product?->id,
                     'planned_quantity' => $plannedQuantity,
                     'priority' => $priority,
                     'status' => 'Created',
@@ -51,7 +48,7 @@ class ProductionWorkflowService
                 $job = ProductionJob::create([
                     'production_batch_id' => $batch->batch_code,
                     'production_batch_db_id' => $batch->id,
-                    'manufacturing_product_id' => $product->id,
+                    'manufacturing_product_id' => $product?->id,
                     'supervisor_id' => $supervisorId,
                     'job_date' => $batch->batch_date,
                     'target_quantity' => $plannedQuantity,
@@ -59,8 +56,8 @@ class ProductionWorkflowService
                     'notes' => $remarks ?? "Master Production Job for Batch {$batch->batch_code}",
                 ]);
 
-                // Populate stage executions from Product Routing tasks
-                $routingTasks = $product->tasks;
+                // Populate stage executions from Product Routing tasks or default active tasks
+                $routingTasks = $product ? $product->tasks : Task::where('status', true)->get();
                 if ($routingTasks->isEmpty()) {
                     $fallbackTask = Task::where('status', true)->first();
                     if ($fallbackTask) {
@@ -69,7 +66,7 @@ class ProductionWorkflowService
                 }
 
                 if ($routingTasks->isEmpty()) {
-                    throw new Exception("No production task routing found for {$product->name}. Please configure tasks in Product Master or Task Master first.");
+                    throw new Exception("No production task routing found. Please configure tasks in Task Master first.");
                 }
 
                 foreach ($routingTasks as $idx => $task) {

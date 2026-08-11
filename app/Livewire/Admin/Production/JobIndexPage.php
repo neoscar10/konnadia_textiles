@@ -49,18 +49,17 @@ class JobIndexPage extends Component
     {
         $this->validate([
             'production_batch_id' => 'nullable|string|max:100',
-            'manufacturing_product_id' => 'required|exists:manufacturing_products,id',
+            'manufacturing_product_id' => 'nullable|exists:manufacturing_products,id',
             'target_quantity' => 'required|numeric|min:1',
             'status' => 'required|in:pending,in_progress,completed,cancelled',
             'notes' => 'nullable|string|max:1000',
         ], [
-            'manufacturing_product_id.required' => 'Please select a manufacturing product.',
             'target_quantity.min' => 'Target quantity must be at least 1 unit.',
         ]);
 
         $job = ProductionJob::create([
             'production_batch_id' => $this->production_batch_id,
-            'manufacturing_product_id' => $this->manufacturing_product_id,
+            'manufacturing_product_id' => $this->manufacturing_product_id ?: null,
             'target_quantity' => $this->target_quantity,
             'status' => $this->status,
             'notes' => $this->notes,
