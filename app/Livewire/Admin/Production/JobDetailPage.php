@@ -1902,7 +1902,15 @@ class JobDetailPage extends Component
 
                     $prodId = $alloc['manufacturing_product_id'] ?? ($this->job->manufacturing_product_id ?? $firstOutputProdId);
                     $product = $prodId ? ManufacturingProduct::find($prodId) : null;
-                    $pieceRate = $product ? (float)$product->standard_labor_rate : 0.0;
+                    
+                    $pivotRate = null;
+                    if ($prodId && $this->selectedTaskId) {
+                        $pivotRate = DB::table('manufacturing_product_task')
+                            ->where('manufacturing_product_id', $prodId)
+                            ->where('task_id', $this->selectedTaskId)
+                            ->value('standard_labor_rate');
+                    }
+                    $pieceRate = !is_null($pivotRate) ? (float)$pivotRate : ($product ? (float)$product->getStandardLaborRateForTask($this->selectedTaskId) : 0.0);
                     $calculatedWage = $labor->payment_method === 'job_work' ? round((float)$alloc['quantity'] * $pieceRate, 2) : 0.0;
 
                     JobLaborAllocation::create([

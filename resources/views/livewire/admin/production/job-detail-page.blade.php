@@ -548,12 +548,29 @@
                                                     @endforeach
                                                 </select>
                                             </div>
-                                            <div class="w-full md:w-36">
+
+                                            <div class="flex-1 w-full">
+                                                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Target Product SKU *</label>
+                                                <select wire:model="laborAllocations.{{ $index }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                                                    <option value="">-- Choose Cut Product SKU --</option>
+                                                    @php
+                                                        $selectedOutputProductIds = collect($cuttingOutputs)->pluck('manufacturing_product_id')->filter()->unique()->toArray();
+                                                        $outputProducts = $allManufacturingProducts->whereIn('id', $selectedOutputProductIds);
+                                                        $dropdownProducts = $outputProducts->isNotEmpty() ? $outputProducts : $allManufacturingProducts;
+                                                    @endphp
+                                                    @foreach($dropdownProducts as $prod)
+                                                        <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <div class="w-full md:w-32">
                                                 <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Processed (Pcs) *</label>
                                                 <input type="number" min="1" wire:model="laborAllocations.{{ $index }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-black text-primary text-center">
                                             </div>
+
                                             @if(!$this->isSelectedStageCompleted && count($laborAllocations) > 1)
-                                                <button type="button" wire:click="removeLaborRow({{ $index }})" class="p-2 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 self-center">
+                                                <button type="button" wire:click="removeLaborRow({{ $index }})" class="p-2 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 self-center" title="Remove Row">
                                                     <span class="material-symbols-outlined text-[20px]">delete</span>
                                                 </button>
                                             @endif
