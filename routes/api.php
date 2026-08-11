@@ -293,6 +293,18 @@ Route::prefix('v1')->group(function () {
                     Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'toggleStatus'])->where('id', '[0-9]+');
                     Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'destroy'])->where('id', '[0-9]+');
                 });
+
+                // Manufacturing Products Management
+                Route::prefix('manufacturing-products')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'index']);
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'options']);
+                    Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'show'])->where('id', '[0-9]+');
+                    Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'store']);
+                    Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                    Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'destroy'])->where('id', '[0-9]+');
+                });
             });
 
             // Task Master Direct Alias
