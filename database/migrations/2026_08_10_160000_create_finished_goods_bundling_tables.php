@@ -14,7 +14,15 @@ return new class extends Migration
         // 1. Add unconverted_quantity and converted_quantity to production_batches
         if (!Schema::hasColumn('production_batches', 'unconverted_quantity')) {
             Schema::table('production_batches', function (Blueprint $table) {
-                $table->integer('unconverted_quantity')->default(0)->after('total_finished_quantity');
+                $afterCol = Schema::hasColumn('production_batches', 'total_finished_quantity')
+                    ? 'total_finished_quantity'
+                    : (Schema::hasColumn('production_batches', 'planned_quantity') ? 'planned_quantity' : null);
+
+                if ($afterCol) {
+                    $table->integer('unconverted_quantity')->default(0)->after($afterCol);
+                } else {
+                    $table->integer('unconverted_quantity')->default(0);
+                }
                 $table->integer('converted_quantity')->default(0)->after('unconverted_quantity');
             });
         }
