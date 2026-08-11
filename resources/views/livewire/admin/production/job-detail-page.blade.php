@@ -324,6 +324,7 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
 
                     <!-- Cut Piece Output Grid Card -->
                     <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
@@ -438,81 +439,81 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Full-Width (col-span-12): RECORDED CUTTING SESSIONS & FABRIC USAGE AUDIT TABLE -->
+                <div class="col-span-12 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
+                    <div class="flex justify-between items-center pb-4 border-b border-outline-variant/40">
+                        <div>
+                            <h4 class="font-headline-sm text-headline-sm text-primary font-bold flex items-center gap-2">
+                                <span class="material-symbols-outlined text-secondary">inventory_2</span>
+                                Recorded Cutting Sessions & Fabric Usage Log
+                            </h4>
+                            <p class="text-xs text-on-surface-variant mt-0.5">Audit log of all fabric roll deductions and cut piece outputs recorded for this job.</p>
+                        </div>
+                        <span class="px-3 py-1 bg-primary/10 text-primary rounded-xl font-bold text-xs">
+                            Total Sessions: {{ $stageConsumptions->count() }}
+                        </span>
+                    </div>
+
+                    @if($stageConsumptions->count() > 0)
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse font-body-md">
+                                <thead>
+                                    <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
+                                        <th class="px-4 py-3 font-bold">Date & Time</th>
+                                        <th class="px-4 py-3 font-bold">Fabric Batch</th>
+                                        <th class="px-4 py-3 font-bold text-center">Consumed Length</th>
+                                        <th class="px-4 py-3 font-bold text-center">Cut Outputs Produced</th>
+                                        <th class="px-4 py-3 font-bold text-right">Fabric Cost Valuation</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-outline-variant/40">
+                                    @foreach($stageConsumptions as $consumption)
+                                        @php
+                                            $matchedOutputs = $stageOutputs->where('inventory_batch_id', $consumption->inventory_batch_id);
+                                        @endphp
+                                        <tr class="hover:bg-surface-container/50 transition-colors">
+                                            <td class="px-4 py-3 text-xs text-on-surface-variant font-medium">
+                                                {{ $consumption->created_at ? $consumption->created_at->format('M d, Y · H:i A') : 'N/A' }}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <p class="font-bold text-on-surface text-sm">{{ $consumption->inventoryBatch?->rawMaterial?->name ?? 'Fabric Material' }}</p>
+                                                <span class="text-xs text-outline font-mono">Batch: {{ $consumption->inventoryBatch?->batch_number }}</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center font-black text-secondary text-sm">
+                                                {{ number_format((float)$consumption->quantity_consumed, 2) }} <span class="text-xs font-normal text-outline">{{ $consumption->inventoryBatch?->unit ?? 'Meters' }}</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                @if($matchedOutputs->count() > 0)
+                                                    <div class="space-y-1">
+                                                        @foreach($matchedOutputs as $out)
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary font-bold text-xs border border-primary/20">
+                                                                {{ $out->quantity_produced }} Pcs · {{ $out->manufacturingProduct?->name }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                @else
+                                                    <span class="text-xs text-outline font-mono">Recorded</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-3 text-right font-black text-primary text-sm">
+                                                ₹{{ number_format((float)$consumption->total_cost, 2) }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="p-8 text-center bg-surface rounded-xl border border-outline-variant/40 space-y-2">
+                            <span class="material-symbols-outlined text-4xl text-outline">content_cut</span>
+                            <p class="text-sm font-bold text-on-surface-variant">No cutting sessions recorded yet for this job.</p>
+                            <p class="text-xs text-outline">Select fabric material above and click "Save Cutting Session Output" to record cutting progress.</p>
+                        </div>
+                    @endif
+                </div>
             </div>
         </form>
-
-        <!-- RECORDED CUTTING SESSIONS & FABRIC USAGE AUDIT TABLE -->
-        <div class="mt-8 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
-            <div class="flex justify-between items-center pb-4 border-b border-outline-variant/40">
-                <div>
-                    <h4 class="font-headline-sm text-headline-sm text-primary font-bold flex items-center gap-2">
-                        <span class="material-symbols-outlined text-secondary">inventory_2</span>
-                        Recorded Cutting Sessions & Fabric Usage Log
-                    </h4>
-                    <p class="text-xs text-on-surface-variant mt-0.5">Audit log of all fabric roll deductions and cut piece outputs recorded for this job.</p>
-                </div>
-                <span class="px-3 py-1 bg-primary/10 text-primary rounded-xl font-bold text-xs">
-                    Total Sessions: {{ $stageConsumptions->count() }}
-                </span>
-            </div>
-
-            @if($stageConsumptions->count() > 0)
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse font-body-md">
-                        <thead>
-                            <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
-                                <th class="px-4 py-3 font-bold">Date & Time</th>
-                                <th class="px-4 py-3 font-bold">Fabric Batch</th>
-                                <th class="px-4 py-3 font-bold text-center">Consumed Length</th>
-                                <th class="px-4 py-3 font-bold text-center">Cut Outputs Produced</th>
-                                <th class="px-4 py-3 font-bold text-right">Fabric Cost Valuation</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-outline-variant/40">
-                            @foreach($stageConsumptions as $consumption)
-                                @php
-                                    $matchedOutputs = $stageOutputs->where('inventory_batch_id', $consumption->inventory_batch_id);
-                                @endphp
-                                <tr class="hover:bg-surface-container/50 transition-colors">
-                                    <td class="px-4 py-3 text-xs text-on-surface-variant font-medium">
-                                        {{ $consumption->created_at ? $consumption->created_at->format('M d, Y · H:i A') : 'N/A' }}
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <p class="font-bold text-on-surface text-sm">{{ $consumption->inventoryBatch?->rawMaterial?->name ?? 'Fabric Material' }}</p>
-                                        <span class="text-xs text-outline font-mono">Batch: {{ $consumption->inventoryBatch?->batch_number }}</span>
-                                    </td>
-                                    <td class="px-4 py-3 text-center font-black text-secondary text-sm">
-                                        {{ number_format((float)$consumption->quantity_consumed, 2) }} <span class="text-xs font-normal text-outline">{{ $consumption->inventoryBatch?->unit ?? 'Meters' }}</span>
-                                    </td>
-                                    <td class="px-4 py-3 text-center">
-                                        @if($matchedOutputs->count() > 0)
-                                            <div class="space-y-1">
-                                                @foreach($matchedOutputs as $out)
-                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary font-bold text-xs border border-primary/20">
-                                                        {{ $out->quantity_produced }} Pcs · {{ $out->manufacturingProduct?->name }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        @else
-                                            <span class="text-xs text-outline font-mono">Recorded</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-right font-black text-primary text-sm">
-                                        ₹{{ number_format((float)$consumption->total_cost, 2) }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="p-8 text-center bg-surface rounded-xl border border-outline-variant/40 space-y-2">
-                    <span class="material-symbols-outlined text-4xl text-outline">content_cut</span>
-                    <p class="text-sm font-bold text-on-surface-variant">No cutting sessions recorded yet for this job.</p>
-                    <p class="text-xs text-outline">Select fabric material above and click "Save Cutting Session Output" to record cutting progress.</p>
-                </div>
-            @endif
-        </div>
     @else
         <!-- STANDARD STAGE FORMS -->
         @if($selectedTask && $selectedTask->consumes_raw_material && !$isTaskStitching)
