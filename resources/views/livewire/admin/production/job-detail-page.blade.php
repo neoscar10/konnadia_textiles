@@ -593,6 +593,20 @@
                                 </div>
                             </div>
 
+                            @error('laborAllocations')
+                                <div class="p-4 bg-error-container/30 border border-error/40 text-error rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs">
+                                    <span class="material-symbols-outlined text-[20px] text-error shrink-0">error</span>
+                                    <span>{{ $message }}</span>
+                                </div>
+                            @enderror
+
+                            @error('cuttingOutputs')
+                                <div class="p-4 bg-error-container/30 border border-error/40 text-error rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs">
+                                    <span class="material-symbols-outlined text-[20px] text-error shrink-0">error</span>
+                                    <span>{{ $message }}</span>
+                                </div>
+                            @enderror
+
                             <!-- STEP 2 FOOTER NAVIGATION -->
                             <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs">
                                 <button type="button" wire:click="setWizardStep(1)" class="bg-surface-container-high text-on-surface-variant px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-outline-variant/30 transition-all flex items-center gap-1.5">

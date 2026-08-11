@@ -59,14 +59,120 @@ class JobDetailPage extends Component
 
     public function setWizardStep(int $step): void
     {
-        $this->wizardStep = max(1, min($this->maxWizardSteps, $step));
+        $targetStep = max(1, min($this->maxWizardSteps, $step));
+
+        if ($this->selectedTask && ($this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001')) {
+            // Validation when moving past Step 1
+            if ($this->wizardStep === 1 && $targetStep > 1) {
+                if (empty($this->cuttingFabricBatchId)) {
+                    $this->addError('cuttingFabricBatchId', 'Please select a fabric inventory batch before proceeding.');
+                    $this->dispatch('toast', message: 'Please select a fabric inventory batch before proceeding.', type: 'error');
+                    return;
+                }
+                if (empty($this->cuttingConsumedLength) || (float)$this->cuttingConsumedLength <= 0) {
+                    $this->addError('cuttingConsumedLength', 'Please record consumed fabric roll length before proceeding.');
+                    $this->dispatch('toast', message: 'Please record consumed fabric roll length before proceeding.', type: 'error');
+                    return;
+                }
+            }
+
+            // Validation when moving past Step 2
+            if ($this->wizardStep === 2 && $targetStep > 2) {
+                if (!$this->validateCuttingStep2()) {
+                    return;
+                }
+            }
+        }
+
+        $this->wizardStep = $targetStep;
+    }
+
+    public function validateCuttingStep2(): bool
+    {
+        $this->resetErrorBag(['cuttingOutputs', 'laborAllocations']);
+
+        if (empty($this->cuttingOutputs)) {
+            $this->addError('cuttingOutputs', 'Please specify at least one target product cut output.');
+            $this->dispatch('toast', message: 'Please specify at least one target product cut output.', type: 'error');
+            return false;
+        }
+
+        $cutTotalsPerProduct = [];
+        foreach ($this->cuttingOutputs as $idx => $out) {
+            if (empty($out['manufacturing_product_id'])) {
+                $this->addError("cuttingOutputs.{$idx}.manufacturing_product_id", 'Please select a target product SKU.');
+                $this->dispatch('toast', message: 'Please select a target product SKU for all output rows.', type: 'error');
+                return false;
+            }
+            $qty = (int) ($out['quantity'] ?? 0);
+            if ($qty <= 0) {
+                $this->addError("cuttingOutputs.{$idx}.quantity", 'Cut output quantity must be at least 1.');
+                $this->dispatch('toast', message: 'Cut output quantity must be at least 1.', type: 'error');
+                return false;
+            }
+            $pId = (int) $out['manufacturing_product_id'];
+            $cutTotalsPerProduct[$pId] = ($cutTotalsPerProduct[$pId] ?? 0) + $qty;
+        }
+
+        $filledLaborAllocations = array_filter($this->laborAllocations, function ($alloc) {
+            return !empty($alloc['labor_id']);
+        });
+
+        if (!empty($filledLaborAllocations)) {
+            $laborTotalsPerProduct = [];
+            foreach ($filledLaborAllocations as $idx => $alloc) {
+                if (empty($alloc['manufacturing_product_id'])) {
+                    $this->addError("laborAllocations.{$idx}.manufacturing_product_id", 'Please select the target product SKU for worker assignment.');
+                    $this->dispatch('toast', message: 'Please select the target product SKU for worker assignment.', type: 'error');
+                    return false;
+                }
+                $qty = (int) ($alloc['quantity'] ?? 0);
+                if ($qty <= 0) {
+                    $this->addError("laborAllocations.{$idx}.quantity", 'Processed quantity must be at least 1.');
+                    $this->dispatch('toast', message: 'Processed quantity must be at least 1.', type: 'error');
+                    return false;
+                }
+
+                $pId = (int) $alloc['manufacturing_product_id'];
+                if (!isset($cutTotalsPerProduct[$pId])) {
+                    $prod = ManufacturingProduct::find($pId);
+                    $prodName = $prod ? "{$prod->name} ({$prod->code})" : "product SKU #{$pId}";
+                    $msg = "Cutter labor assigned to {$prodName}, but this SKU is not listed in the Cut Piece Output Grid.";
+                    $this->addError('laborAllocations', $msg);
+                    $this->dispatch('toast', message: $msg, type: 'error');
+                    return false;
+                }
+
+                $laborTotalsPerProduct[$pId] = ($laborTotalsPerProduct[$pId] ?? 0) + $qty;
+            }
+
+            foreach ($cutTotalsPerProduct as $pId => $cutQty) {
+                $prod = ManufacturingProduct::find($pId);
+                $prodName = $prod ? "{$prod->name} ({$prod->code})" : "Product SKU #{$pId}";
+                $assignedLaborQty = $laborTotalsPerProduct[$pId] ?? 0;
+
+                if ($assignedLaborQty > 0 && $assignedLaborQty > $cutQty) {
+                    $msg = "Total labor processed pieces ({$assignedLaborQty} Pcs) for {$prodName} exceeds total cut output ({$cutQty} Pcs). Assigned labor pieces must match cut output exactly.";
+                    $this->addError('laborAllocations', $msg);
+                    $this->dispatch('toast', message: $msg, type: 'error');
+                    return false;
+                }
+
+                if ($assignedLaborQty > 0 && $assignedLaborQty < $cutQty) {
+                    $msg = "Total labor processed pieces ({$assignedLaborQty} Pcs) for {$prodName} is less than total cut output ({$cutQty} Pcs). All {$cutQty} cut pieces must be assigned to workers.";
+                    $this->addError('laborAllocations', $msg);
+                    $this->dispatch('toast', message: $msg, type: 'error');
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public function nextWizardStep(): void
     {
-        if ($this->wizardStep < $this->maxWizardSteps) {
-            $this->wizardStep++;
-        }
+        $this->setWizardStep($this->wizardStep + 1);
     }
 
     public function previousWizardStep(): void
@@ -1839,6 +1945,10 @@ class JobDetailPage extends Component
         $batch = InventoryBatch::findOrFail($this->cuttingFabricBatchId);
         if ($this->cuttingConsumedLength > (float)$batch->balance_quantity) {
             $this->addError('cuttingConsumedLength', "Consumed length exceeds available stock ({$batch->balance_quantity} {$batch->unit}).");
+            return;
+        }
+
+        if (!$this->validateCuttingStep2()) {
             return;
         }
 
