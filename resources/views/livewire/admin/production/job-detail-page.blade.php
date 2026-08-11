@@ -125,6 +125,108 @@
             @endforeach
         </div>
 
+        <!-- INTERACTIVE WIZARD PROGRESS TRACKER HEADER -->
+        @php
+            $isCuttingStage = $selectedTask && ($selectedTask->name === 'Cutting' || $selectedTask->code === 'TSK-001');
+        @endphp
+
+        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 shadow-xs mb-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-outline-variant/40">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                        <span class="material-symbols-outlined text-[22px]">route</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-headline-sm text-headline-sm text-primary font-bold">
+                                {{ $selectedTask ? $selectedTask->name : 'Stage' }} Operations Wizard
+                            </h3>
+                            @if($this->isSelectedStageCompleted)
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-secondary/15 text-secondary border border-secondary/30">
+                                    Completed
+                                </span>
+                            @else
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-primary/15 text-primary border border-primary/30">
+                                    Step {{ $wizardStep }} of 4
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-on-surface-variant font-medium mt-0.5">
+                            Follow the guided steps below to record material usage, worker allocations, output yields, and stage progression.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Navigation Controls -->
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                    <button type="button" wire:click="previousWizardStep" @if($wizardStep <= 1) disabled @endif class="px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 text-on-surface rounded-xl text-xs font-bold hover:bg-surface-container transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                        Back
+                    </button>
+
+                    <div class="text-xs font-bold text-outline font-mono">
+                        Step {{ $wizardStep }} / 4
+                    </div>
+
+                    <button type="button" wire:click="nextWizardStep" @if($wizardStep >= 4) disabled @endif class="px-3.5 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold hover:bg-primary-container transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-xs">
+                        Next
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP INDICATOR TRACKER BAR -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                <!-- STEP 1 -->
+                <button type="button" wire:click="setWizardStep(1)" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === 1 ? 'bg-primary/10 border-primary text-primary shadow-xs' : ($wizardStep > 1 ? 'bg-secondary-container/20 border-secondary/40 text-secondary' : 'bg-surface border-outline-variant/50 text-on-surface-variant') }}">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === 1 ? 'bg-primary text-on-primary' : ($wizardStep > 1 ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/60 text-on-surface-variant') }}">
+                            @if($wizardStep > 1) ✓ @else 1 @endif
+                        </span>
+                        <span class="truncate uppercase tracking-wider text-[11px]">
+                            {{ $isCuttingStage ? '1. Fabric & Rolls' : '1. Material Entry' }}
+                        </span>
+                    </div>
+                </button>
+
+                <!-- STEP 2 -->
+                <button type="button" wire:click="setWizardStep(2)" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === 2 ? 'bg-primary/10 border-primary text-primary shadow-xs' : ($wizardStep > 2 ? 'bg-secondary-container/20 border-secondary/40 text-secondary' : 'bg-surface border-outline-variant/50 text-on-surface-variant') }}">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === 2 ? 'bg-primary text-on-primary' : ($wizardStep > 2 ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/60 text-on-surface-variant') }}">
+                            @if($wizardStep > 2) ✓ @else 2 @endif
+                        </span>
+                        <span class="truncate uppercase tracking-wider text-[11px]">
+                            {{ $isCuttingStage ? '2. Cut Yields' : '2. Record Workers' }}
+                        </span>
+                    </div>
+                </button>
+
+                <!-- STEP 3 -->
+                <button type="button" wire:click="setWizardStep(3)" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === 3 ? 'bg-primary/10 border-primary text-primary shadow-xs' : ($wizardStep > 3 ? 'bg-secondary-container/20 border-secondary/40 text-secondary' : 'bg-surface border-outline-variant/50 text-on-surface-variant') }}">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === 3 ? 'bg-primary text-on-primary' : ($wizardStep > 3 ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/60 text-on-surface-variant') }}">
+                            @if($wizardStep > 3) ✓ @else 3 @endif
+                        </span>
+                        <span class="truncate uppercase tracking-wider text-[11px]">
+                            {{ $isCuttingStage ? '3. Valuation' : '3. Product Output' }}
+                        </span>
+                    </div>
+                </button>
+
+                <!-- STEP 4 -->
+                <button type="button" wire:click="setWizardStep(4)" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === 4 ? 'bg-primary/10 border-primary text-primary shadow-xs' : 'bg-surface border-outline-variant/50 text-on-surface-variant' }}">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === 4 ? 'bg-primary text-on-primary' : 'bg-outline-variant/60 text-on-surface-variant' }}">
+                            4
+                        </span>
+                        <span class="truncate uppercase tracking-wider text-[11px]">
+                            4. Variance & Alteration
+                        </span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
         @if($this->isSelectedStageCompleted)
             <div class="mb-6 p-5 rounded-2xl bg-secondary-container/20 border border-secondary/40 text-on-secondary-container flex items-center justify-between shadow-xs">
                 <div class="flex items-center gap-3.5">
@@ -548,6 +650,8 @@
         </form>
     @else
         <!-- STANDARD STAGE FORMS -->
+        @if($wizardStep === 1)
+        <!-- WIZARD STEP 1: MATERIAL CONSUMPTION & BOM -->
         @if($selectedTask && $selectedTask->consumes_raw_material && !$isTaskStitching)
         <!-- SECTION 1: RAW MATERIAL SELECTION & CONSUMPTION -->
         <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
@@ -702,6 +806,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         {{-- ═══ SUBSIDIARY BOM CONSUMPTION PANEL (CAT-SUB tasks only) ═══ --}}
         @if($isTaskSubsidiary && count($subsidiaryConsumptions) > 0)
@@ -791,8 +896,9 @@
                             <span class="material-symbols-outlined text-[20px]">inventory</span>
                             Record Subsidiary Consumption (No Wastage)
                         </button>
+                    </div>
+                </form>
             </div>
-        @endif
         @endif
 
         {{-- ═══ STITCHING COST POOL INFO BANNER (CAT-STITCH tasks) ═══ --}}
@@ -810,7 +916,18 @@
             </div>
         @endif
 
-        @if($selectedTask)
+        <!-- STEP 1 FOOTER NAVIGATION -->
+        <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
+            <span class="text-xs font-bold text-on-surface-variant">Step 1 of 4: Material & Subsidiary BOM Entry</span>
+            <button type="button" wire:click="setWizardStep(2)" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+                Next Step: Record Workers & Allocations
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+        </div>
+        @endif
+
+        @if($wizardStep === 2 && $selectedTask)
+        <!-- WIZARD STEP 2: WORKER ALLOCATION & LABOR MANAGEMENT -->
         <!-- SECTION 2: WORKER ALLOCATION & OUTPUT ENTRY -->
         <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
             @if($precedingInfo)
@@ -862,10 +979,12 @@
                         </div>
                     @endif
 
-                    <button type="button" wire:click="addLaborRow" class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2.5 rounded-xl font-label-md text-label-md hover:bg-primary-container transition-all font-bold shadow-xs active:scale-95 ml-2">
-                        <span class="material-symbols-outlined text-[18px]">person_add</span>
-                        Add Worker Row
-                    </button>
+                    @if(!$this->isSelectedStageCompleted)
+                        <button type="button" wire:click="addLaborRow" class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2.5 rounded-xl font-label-md text-label-md hover:bg-primary-container transition-all font-bold shadow-xs active:scale-95 ml-2">
+                            <span class="material-symbols-outlined text-[18px]">person_add</span>
+                            Add Worker Row
+                        </button>
+                    @endif
                 </div>
             </div>
 
@@ -885,7 +1004,7 @@
                 </div>
 
                 <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <select wire:model.live="bulkLaborSelections.{{ $prodId }}" class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all shrink-0 min-w-[200px]">
+                    <select wire:model.live="bulkLaborSelections.{{ $prodId }}" @if($this->isSelectedStageCompleted) disabled @endif class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all shrink-0 min-w-[200px] @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
                         <option value="">-- Choose Worker for Bulk Assign --</option>
                         @foreach($authorizedLabors as $labor)
                             <option value="{{ $labor->id }}">
@@ -894,7 +1013,7 @@
                         @endforeach
                     </select>
 
-                    <button type="button" wire:click="bulkAllocate('{{ $prodId }}')" @if($stagePending <= 0) disabled @endif class="bg-secondary text-on-secondary px-5 py-2 rounded-xl text-xs font-bold hover:bg-secondary-container transition-all shadow-xs active:scale-95 shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" wire:click="bulkAllocate('{{ $prodId }}')" @if($this->isSelectedStageCompleted || $stagePending <= 0) disabled @endif class="bg-secondary text-on-secondary px-5 py-2 rounded-xl text-xs font-bold hover:bg-secondary-container transition-all shadow-xs active:scale-95 shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
                         <span class="material-symbols-outlined text-[16px]">bolt</span>
                         Bulk Assign 100%
                     </button>
@@ -1025,8 +1144,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- STEP 2 FOOTER NAVIGATION -->
+        <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
+            <button type="button" wire:click="setWizardStep(1)" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                Back: Material Entry
+            </button>
+            <button type="button" wire:click="setWizardStep(3)" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+                Next Step: Record Product Output Yield
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+        </div>
         @endif
 
+        @if($wizardStep === 3 && $selectedTask)
+        <!-- WIZARD STEP 3: MULTI-PRODUCT OUTPUT YIELD & PRODUCTION LOSS -->
         <!-- SECTION 3: MULTI-PRODUCT PRODUCTION OUTPUT RECORDING -->
         <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
             <div class="bg-surface p-4 rounded-xl border border-outline-variant/60 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1282,154 +1415,155 @@
             </div>
         </div>
 
-        <!-- SECTION 5: ALTERATION MANAGEMENT & CHILD BATCH GENERATION -->
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
-            <div class="bg-surface p-4 rounded-xl border border-outline-variant/60 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center font-bold shrink-0">
-                        <span class="material-symbols-outlined">alt_route</span>
+        <!-- STEP 3 FOOTER NAVIGATION -->
+        <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
+            <button type="button" wire:click="setWizardStep(2)" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                Back: Record Workers
+            </button>
+            <button type="button" wire:click="setWizardStep(4)" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+                Next Step: Output Variance & Alteration Check
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+        </div>
+        @endif
+
+        @if($wizardStep === 4 && $selectedTask)
+        <!-- WIZARD STEP 4: OUTPUT VARIANCE & PRODUCT ALTERATION CONVERTER -->
+        <div class="space-y-6 mb-8">
+            @php
+                $varInfo = $this->stageVarianceInfo;
+            @endphp
+
+            @if($varInfo['has_shortfall'])
+                <!-- VARIANCE ALERT CARD -->
+                <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 shadow-xs text-amber-950 space-y-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-900 flex items-center justify-center font-bold shrink-0">
+                            <span class="material-symbols-outlined text-[28px]">warning</span>
+                        </div>
+                        <div class="space-y-1">
+                            <h4 class="font-headline-sm text-headline-sm font-bold text-amber-950">Output Quantity Shortfall Detected!</h4>
+                            <p class="text-xs text-amber-900 leading-relaxed">
+                                Stage input quantity entering <strong>{{ $selectedTask?->name }}</strong> was <strong>{{ number_format($varInfo['input_qty']) }} Pcs</strong>, but recorded product output is <strong>{{ number_format($varInfo['output_qty']) }} Pcs</strong> (Shortfall: <strong>{{ number_format($varInfo['shortfall_qty']) }} Pcs</strong>).
+                            </p>
+                            <p class="text-xs font-semibold text-amber-900">
+                                Were these remaining <strong>{{ number_format($varInfo['shortfall_qty']) }} Pcs</strong> converted or altered into another target product (e.g. bedsheet cut pieces converted into pillow covers)?
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="font-headline-sm text-headline-sm text-primary font-bold">
-                            Alteration Management & Child Batch Generation
-                        </h3>
-                        <p class="text-xs text-on-surface-variant font-medium mt-0.5">
-                            Convert partially processed items into a new target product SKU and automatically generate a linked <span class="font-bold text-amber-800 underline">Child Production Batch</span>.
-                        </p>
+
+                    <!-- ALTERATION CONVERTER FORM -->
+                    <div class="bg-surface-container-lowest border border-amber-500/30 rounded-xl p-5 space-y-4 text-on-surface">
+                        <h5 class="font-bold text-xs uppercase tracking-wider text-primary flex items-center gap-2">
+                            <span class="material-symbols-outlined text-amber-600">published_with_changes</span>
+                            Record Product Alteration & Spawn Child Production Batch
+                        </h5>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Target Converted Product *</label>
+                                <select wire:model.live="alterationRecords.0.target_product_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                                    <option value="">-- Select Target Product (e.g. Pillow Covers) --</option>
+                                    @foreach($allManufacturingProducts as $p)
+                                        <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->code }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Quantity Converted (Pcs) *</label>
+                                <input type="number" min="1" max="{{ $varInfo['shortfall_qty'] }}" wire:model.live="alterationRecords.0.target_quantity" placeholder="{{ $varInfo['shortfall_qty'] }}" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-black text-primary text-center focus:ring-2 focus:ring-primary/20">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <button type="button" wire:click="saveJobAlteration" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-xs transition-all flex items-center gap-2 active:scale-95">
+                                <span class="material-symbols-outlined text-[18px]">alt_route</span>
+                                Record Alteration & Start Cutting Stage for New Product
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                <button type="button" wire:click="addAlterationRow" class="flex items-center gap-2 bg-amber-600 text-white px-4 py-2.5 rounded-xl font-label-md text-label-md hover:bg-amber-700 transition-all font-bold shadow-xs active:scale-95 shrink-0">
-                    <span class="material-symbols-outlined text-[18px]">add</span>
-                    Add Alteration Row
-                </button>
-            </div>
-
-            @if($errors->has('alterationRecords'))
-                <div class="bg-error-container/40 border border-error/30 text-error p-4 rounded-xl mb-6 flex items-center gap-3">
-                    <span class="material-symbols-outlined text-error shrink-0">error</span>
-                    <p class="font-body-md text-body-md font-semibold">{{ $errors->first('alterationRecords') }}</p>
+            @elseif($varInfo['is_target_met'])
+                <div class="bg-secondary-container/20 border border-secondary/40 rounded-2xl p-6 text-on-secondary-container flex items-center justify-between shadow-xs">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-secondary/15 text-secondary flex items-center justify-center font-bold shrink-0">
+                            <span class="material-symbols-outlined text-[28px]">task_alt</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-primary">Stage Target 100% Satisfied!</h4>
+                            <p class="text-xs text-on-surface-variant font-medium mt-0.5">
+                                Recorded output quantity ({{ number_format($varInfo['output_qty']) }} Pcs) meets or exceeds stage target ({{ number_format($varInfo['input_qty']) }} Pcs). You can now complete this stage to progress the workflow.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <div class="p-6 bg-surface-container-low border border-outline-variant/60 rounded-2xl text-center space-y-2">
+                    <span class="material-symbols-outlined text-3xl text-outline opacity-50">analytics</span>
+                    <p class="text-xs font-semibold text-on-surface-variant">Record worker output and product output entries in Steps 2 & 3 to evaluate stage variance.</p>
                 </div>
             @endif
 
-            <form wire:submit.prevent="saveJobAlteration" class="space-y-4">
-                <div class="space-y-3">
-                    @foreach($alterationRecords as $index => $alt)
-                        <div class="grid grid-cols-12 gap-3 sm:gap-4 items-center p-4 sm:p-5 bg-surface rounded-xl border border-outline-variant/60 shadow-xs hover:border-amber-500/40 transition-all">
-                            <div class="col-span-12 lg:col-span-5 grid grid-cols-12 gap-2">
-                                <div class="col-span-8">
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Source Product *</label>
-                                    <select wire:model.live="alterationRecords.{{ $index }}.source_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all truncate">
-                                        <option value="">-- Source Product --</option>
-                                        @foreach($allManufacturingProducts as $prod)
-                                            <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
-                                        @endforeach
-                                    </select>
-                                    @error("alterationRecords.{$index}.source_product_id") 
-                                        <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> 
-                                    @enderror
-                                </div>
-                                <div class="col-span-4">
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Source Qty *</label>
-                                    <input type="number" min="1" wire:model.live="alterationRecords.{{ $index }}.source_quantity" placeholder="0" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-black text-amber-800 text-center focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all">
-                                    @error("alterationRecords.{$index}.source_quantity") 
-                                        <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> 
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <div class="hidden lg:flex col-span-1 justify-center items-center">
-                                <span class="material-symbols-outlined text-amber-600 text-[24px]">arrow_forward</span>
-                            </div>
-
-                            <div class="col-span-12 lg:col-span-6 grid grid-cols-12 gap-2 items-center">
-                                <div class="col-span-7">
-                                    <label class="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-1">Target Product (New SKU) *</label>
-                                    <select wire:model.live="alterationRecords.{{ $index }}.target_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all truncate">
-                                        <option value="">-- Target Product SKU --</option>
-                                        @foreach($allManufacturingProducts as $prod)
-                                            <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
-                                        @endforeach
-                                    </select>
-                                    @error("alterationRecords.{$index}.target_product_id") 
-                                        <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> 
-                                    @enderror
-                                </div>
-                                <div class="col-span-4">
-                                    <label class="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-1">Target Qty *</label>
-                                    <input type="number" min="1" wire:model.live="alterationRecords.{{ $index }}.target_quantity" placeholder="0" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-black text-secondary text-center focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all">
-                                    @error("alterationRecords.{$index}.target_quantity") 
-                                        <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> 
-                                    @enderror
-                                </div>
-                                <div class="col-span-1 text-right">
-                                    @if(count($alterationRecords) > 1)
-                                        <button type="button" wire:click="removeAlterationRow({{ $index }})" class="p-2 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 mt-4" title="Remove Row">
-                                            <span class="material-symbols-outlined text-[18px]">delete</span>
-                                        </button>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-
-                <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40 mt-6">
-                    <button type="submit" class="bg-amber-600 text-white px-8 py-3 rounded-xl font-label-md text-label-md font-bold hover:bg-amber-700 shadow-md transition-all active:scale-95 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">alt_route</span>
-                        Record Alteration & Generate Child Production Batch
-                    </button>
-                </div>
-            </form>
-
-            <!-- 5. RECORDED ALTERATIONS & GENERATED CHILD BATCHES LOG -->
-            <div class="mt-8 pt-6 border-t border-outline-variant/40">
-                <h4 class="font-headline-sm text-headline-sm text-primary font-bold mb-4 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-amber-600">alt_route</span>
-                    Alterations & Linked Child Production Batches Log
-                </h4>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse font-body-md">
-                        <thead>
-                            <tr class="bg-amber-500/10 border-b border-outline-variant/60 text-xs text-amber-900 uppercase tracking-wider">
-                                <th class="px-4 py-3 font-bold">Source Product & Qty</th>
-                                <th class="px-4 py-3 font-bold">Target Product Yield</th>
-                                <th class="px-4 py-3 font-bold text-center">Generated Child Batch</th>
-                                <th class="px-4 py-3 font-bold text-right">Logged At</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-outline-variant/40">
-                            @forelse($jobAlterations as $alt)
-                                <tr class="hover:bg-surface-container/50 transition-colors">
-                                    <td class="px-4 py-3">
-                                        <p class="font-bold text-on-surface text-sm">{{ $alt->sourceProduct?->name ?? 'Source Product' }}</p>
-                                        <span class="text-xs font-black text-amber-800">{{ number_format($alt->source_quantity) }} Pcs</span>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <p class="font-bold text-primary text-sm">{{ $alt->targetProduct?->name ?? 'Target Product' }}</p>
-                                        <span class="text-xs font-black text-secondary">{{ number_format($alt->target_quantity) }} Pcs</span>
-                                    </td>
-                                    <td class="px-4 py-3 text-center">
-                                        @if($alt->childBatch)
-                                            <span class="px-3 py-1 bg-amber-500/20 text-amber-800 font-mono font-black text-xs rounded-xl border border-amber-500/30">
-                                                {{ $alt->childBatch->batch_code }}
-                                            </span>
-                                        @else
-                                            <span class="text-xs text-outline font-mono">N/A</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-right text-xs font-mono text-outline whitespace-nowrap">
-                                        {{ $alt->created_at ? $alt->created_at->format('d M, h:i A') : '-' }}
-                                    </td>
+            <!-- ALTERATION LOG TABLE -->
+            @if(count($jobAlterations) > 0)
+                <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs">
+                    <h4 class="font-headline-sm text-headline-sm text-amber-800 font-bold mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-amber-700">alt_route</span>
+                        Recorded Product Alterations & Linked Child Batches
+                    </h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse font-body-md">
+                            <thead>
+                                <tr class="bg-amber-500/10 border-b border-outline-variant/60 text-xs text-amber-900 uppercase tracking-wider">
+                                    <th class="px-4 py-3 font-bold">Source Product & Qty</th>
+                                    <th class="px-4 py-3 font-bold">Target Product Yield</th>
+                                    <th class="px-4 py-3 font-bold text-center">Generated Child Batch</th>
+                                    <th class="px-4 py-3 font-bold text-right">Logged At</th>
                                 </tr>
-                            @empty
-                                <tr><td colspan="4" class="px-4 py-8 text-center text-on-surface-variant text-sm">No alterations recorded for this job.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y divide-outline-variant/40">
+                                @foreach($jobAlterations as $alt)
+                                    <tr class="hover:bg-surface-container/50 transition-colors">
+                                        <td class="px-4 py-3">
+                                            <p class="font-bold text-on-surface text-sm">{{ $alt->sourceProduct?->name ?? 'Source Product' }}</p>
+                                            <span class="text-xs font-black text-amber-800">{{ number_format($alt->source_quantity) }} Pcs</span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <p class="font-bold text-primary text-sm">{{ $alt->targetProduct?->name ?? 'Target Product' }}</p>
+                                            <span class="text-xs font-black text-secondary">{{ number_format($alt->target_quantity) }} Pcs</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            @if($alt->childBatch)
+                                                <span class="px-3 py-1 bg-amber-500/20 text-amber-800 font-mono font-black text-xs rounded-xl border border-amber-500/30">
+                                                    {{ $alt->childBatch->batch_code }}
+                                                </span>
+                                            @else
+                                                <span class="text-xs text-outline font-mono">N/A</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-right text-xs font-mono text-outline whitespace-nowrap">
+                                            {{ $alt->created_at ? $alt->created_at->format('d M, h:i A') : '-' }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+            @endif
+
+            <!-- STEP 4 FOOTER NAVIGATION -->
+            <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs">
+                <button type="button" wire:click="setWizardStep(3)" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                    Back: Product Output Yield
+                </button>
+                <span class="text-xs font-bold text-on-surface-variant">Step 4 of 4: Output Variance & Stage Progression</span>
             </div>
         </div>
+        @endif
     @endif
     </div>
 
