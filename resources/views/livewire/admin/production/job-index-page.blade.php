@@ -140,17 +140,6 @@
                 </div>
             </div>
 
-            <!-- Initial Status -->
-            <div>
-                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Initial Status *</label>
-                <select wire:model="status" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-2.5 font-bold text-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="in_progress">In Progress</option>
-                    <option value="pending">Pending</option>
-                    <option value="completed">Completed</option>
-                </select>
-                @error('status') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-            </div>
-
             <!-- Notes -->
             <div>
                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Production Notes</label>

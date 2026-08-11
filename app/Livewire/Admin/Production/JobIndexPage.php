@@ -46,7 +46,6 @@ class JobIndexPage extends Component
     {
         $this->validate([
             'production_batch_id' => 'nullable|string|max:100',
-            'status' => 'required|in:pending,in_progress,completed,cancelled',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -54,7 +53,7 @@ class JobIndexPage extends Component
             'production_batch_id' => $this->production_batch_id,
             'manufacturing_product_id' => null,
             'target_quantity' => 0,
-            'status' => $this->status,
+            'status' => 'in_progress',
             'notes' => $this->notes,
         ]);
 
