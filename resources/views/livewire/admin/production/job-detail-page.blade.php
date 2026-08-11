@@ -755,22 +755,24 @@
                         @endif
                     </div>
 
-                    <!-- Complete Stage Action Button -->
-                    <div class="bg-surface-container-low border border-outline-variant/60 rounded-2xl p-6 shadow-xs text-center space-y-3">
-                        @if($this->isSelectedStageCompleted)
-                            <p class="text-xs text-on-surface-variant leading-relaxed">This cutting stage is completed and locked from further entry. Recorded sessions and yields are archived in the audit log below.</p>
-                            <button type="button" disabled class="w-full bg-outline-variant/40 text-on-surface-variant/60 py-4 rounded-xl font-bold text-base cursor-not-allowed shadow-xs flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-[20px]">lock</span>
-                                Stage Completed (Locked)
-                            </button>
-                        @else
-                            <p class="text-xs text-on-surface-variant leading-relaxed">Ensure all pieces, measurements, and fabric wastes are logged accurately. Saving this cutting session will deduct bale lengths from stock and allocate unit costs downstream.</p>
-                            <button type="submit" class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold text-base hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined">save</span>
-                                Save Cutting Session Output
-                            </button>
-                        @endif
-                    </div>
+                    @if($wizardStep === 4)
+                        <!-- Complete Stage Action Button (Shown only on Step 4) -->
+                        <div class="bg-surface-container-low border border-outline-variant/60 rounded-2xl p-6 shadow-xs text-center space-y-3">
+                            @if($this->isSelectedStageCompleted)
+                                <p class="text-xs text-on-surface-variant leading-relaxed">This cutting stage is completed and locked from further entry. Recorded sessions and yields are archived in the audit log below.</p>
+                                <button type="button" disabled class="w-full bg-outline-variant/40 text-on-surface-variant/60 py-4 rounded-xl font-bold text-base cursor-not-allowed shadow-xs flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-[20px]">lock</span>
+                                    Stage Completed (Locked)
+                                </button>
+                            @else
+                                <p class="text-xs text-on-surface-variant leading-relaxed">Ensure all pieces, measurements, and fabric wastes are logged accurately. Saving this cutting session will deduct bale lengths from stock and allocate unit costs downstream.</p>
+                                <button type="submit" class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold text-base hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined">save</span>
+                                    Save Cutting Session Output
+                                </button>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </div>
         </form>
