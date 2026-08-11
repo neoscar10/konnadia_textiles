@@ -29,50 +29,70 @@ class JobDetailPage extends Component
     public bool $showFinalCompletionModal = false;
     public $selectedTaskId = null;
 
-    // Stage Operations Wizard Step State (1: Material/Terminal, 2: Workers, 3: Outputs, 4: Variance/Alteration)
     public int $wizardStep = 1;
 
-    public function setWizardStep(int $step): void
+    public function getSelectedTaskProperty()
     {
-        $this->wizardStep = max(1, min(4, $step));
+        return $this->selectedTaskId ? Task::with('rawMaterialCategories')->find($this->selectedTaskId) : null;
     }
 
-    public function nextWizardStep(): void
+    public function getHasMaterialStepProperty(): bool
     {
-        if ($this->wizardStep < 4) {
-            $this->wizardStep++;
+        if (!$this->selectedTask) {
+            return false;
         }
-    }
 
-    public function previousWizardStep(): void
-    {
-        if ($this->wizardStep > 1) {
-            $this->wizardStep--;
+        $isCutting = $this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001';
+        if ($isCutting) {
+            return true;
         }
+
+        $consumesRawMaterial = $this->selectedTask->consumes_raw_material && ($this->selectedTask->name !== 'Stitching' && $this->selectedTask->code !== 'TSK-002');
+
+        return $consumesRawMaterial || count($this->subsidiaryConsumptions) > 0;
     }
 
-    public function getStageVarianceInfoProperty(): array
+    public function getMaxWizardStepsProperty(): int
+    {
+        return $this->hasMaterialStep ? 4 : 3;
+    }
+
+    public function completeStageAndProgress(): void
     {
         if (!$this->selectedTaskId) {
-            return ['input_qty' => 0, 'output_qty' => 0, 'shortfall_qty' => 0, 'has_shortfall' => false, 'is_target_met' => false];
+            return;
         }
 
-        $stageExec = $this->job->stageExecutions->where('task_id', $this->selectedTaskId)->first();
-        $inputQty = $stageExec ? (int) $stageExec->target_quantity : (int) $this->job->target_quantity;
-        if ($inputQty <= 0) {
-            $inputQty = (int) $this->job->target_quantity;
+        $stageExecution = $this->job->stageExecutions()->where('task_id', $this->selectedTaskId)->first();
+        if (!$stageExecution) {
+            return;
         }
 
-        $outputQty = (int) $this->job->productOutputs->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
-        $shortfallQty = max(0, $inputQty - $outputQty);
+        $totalLoggedQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
+        if ($totalLoggedQty < $stageExecution->target_quantity && $stageExecution->target_quantity > 0) {
+            $this->dispatch('toast', message: "Cannot complete stage: Recorded output ({$totalLoggedQty} Pcs) has not met stage target ({$stageExecution->target_quantity} Pcs).", type: 'error');
+            return;
+        }
 
-        return [
-            'input_qty' => $inputQty,
-            'output_qty' => $outputQty,
-            'shortfall_qty' => $shortfallQty,
-            'has_shortfall' => $outputQty > 0 && $shortfallQty > 0,
-            'is_target_met' => $outputQty >= $inputQty && $inputQty > 0,
-        ];
+        $stageExecution->update([
+            'status' => 'completed',
+            'completed_quantity' => max($totalLoggedQty, $stageExecution->target_quantity),
+        ]);
+
+        // Progress job workflow to next uncompleted stage if available
+        $nextStageExec = $this->job->stageExecutions()
+            ->where('status', '!=', 'completed')
+            ->orderBy('id')
+            ->first();
+
+        if ($nextStageExec) {
+            $this->selectedTaskId = $nextStageExec->task_id;
+            $this->selectTask($nextStageExec->task_id);
+            $this->dispatch('toast', message: 'Stage marked completed! Automatically progressed workflow to ' . ($nextStageExec->task?->name ?? 'next stage') . '.', type: 'success');
+        } else {
+            $this->job->update(['status' => 'completed']);
+            $this->dispatch('toast', message: 'All production stages completed successfully! Production job achieved 100%.', type: 'success');
+        }
     }
 
     // Worker Allocations Form (Section 2 & 7)
