@@ -1826,12 +1826,12 @@ class JobDetailPage extends Component
 
         $totalCutOutputQty = (int) array_sum(array_column($this->cuttingOutputs, 'quantity'));
         $targetQty = (int) $this->job->target_quantity;
-        if ($totalCutOutputQty > $targetQty) {
+        if ($targetQty > 0 && $totalCutOutputQty > $targetQty) {
             $this->addError('cuttingOutputs', "Total cut piece output ({$totalCutOutputQty} Pcs) cannot exceed the job target quantity ({$targetQty} Pcs).");
             return;
         }
 
-        DB::transaction(function () use ($costingService, $batch) {
+        DB::transaction(function () use ($costingService, $batch, $totalCutOutputQty) {
             $costingService->calculateFabricCostAllocation(
                 $this->job->id,
                 $batch->id,
@@ -1876,21 +1876,28 @@ class JobDetailPage extends Component
                 $this->job->update(['status' => 'in_progress']);
             }
 
+            // Assign primary product and set target quantity if initiated without them
+            $firstOutputProdId = $this->cuttingOutputs[0]['manufacturing_product_id'] ?? null;
+            $updateData = [];
+            if (!$this->job->manufacturing_product_id && $firstOutputProdId) {
+                $updateData['manufacturing_product_id'] = $firstOutputProdId;
+            }
+            if (($this->job->target_quantity <= 0) && $totalCutOutputQty > 0) {
+                $updateData['target_quantity'] = $totalCutOutputQty;
+            }
+            if (!empty($updateData)) {
+                $this->job->update($updateData);
+            }
+
             // Sync Cutting Stage Execution progress
             $stageExecution = $this->job->stageExecutions()->where('task_id', $this->selectedTaskId)->first();
             if ($stageExecution) {
                 $totalLoggedCutQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
+                $effectiveTarget = $this->job->target_quantity > 0 ? $this->job->target_quantity : $totalLoggedCutQty;
                 $stageExecution->update([
-                    'status' => $totalLoggedCutQty >= $this->job->target_quantity ? 'completed' : 'in_progress',
+                    'status' => ($totalLoggedCutQty > 0 && $totalLoggedCutQty >= $effectiveTarget) ? 'completed' : 'in_progress',
                     'completed_quantity' => $totalLoggedCutQty,
-                ]);
-            }
-
-            // Assign primary product if job was initiated without a pre-assigned product
-            $firstOutputProdId = $this->cuttingOutputs[0]['manufacturing_product_id'] ?? null;
-            if (!$this->job->manufacturing_product_id && $firstOutputProdId) {
-                $this->job->update([
-                    'manufacturing_product_id' => $firstOutputProdId,
+                    'target_quantity' => $effectiveTarget,
                 ]);
             }
         });

@@ -140,36 +140,15 @@
                 </div>
             </div>
 
-            <!-- Manufacturing Product Select (Optional) -->
+            <!-- Initial Status -->
             <div>
-                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Primary Product (Optional — Can specify at Cutting Stage)</label>
-                <select wire:model="manufacturing_product_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-2.5 font-bold text-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="">-- Cutting Work Order (Specify Yields at Cutting Stage) --</option>
-                    @foreach($allProducts as $prod)
-                        <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
-                    @endforeach
+                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Initial Status *</label>
+                <select wire:model="status" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-2.5 font-bold text-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    <option value="in_progress">In Progress</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
                 </select>
-                @error('manufacturing_product_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Target Quantity -->
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Planned Lay / Output Target (Units) *</label>
-                    <input type="number" min="1" wire:model="target_quantity" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-2.5 font-black text-lg text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    @error('target_quantity') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Initial Status -->
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Initial Status *</label>
-                    <select wire:model="status" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-2.5 font-bold text-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                        <option value="in_progress">In Progress</option>
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                    @error('status') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                </div>
+                @error('status') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
             </div>
 
             <!-- Notes -->
