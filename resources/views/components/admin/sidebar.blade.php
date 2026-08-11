@@ -198,10 +198,6 @@
                     <span class="material-symbols-outlined shrink-0" data-icon="precision_manufacturing">precision_manufacturing</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Production Jobs</span>
                 </a>
-                <a href="{{ route('factory.cutting-stage') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.cutting-stage') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
-                    <span class="material-symbols-outlined shrink-0" data-icon="content_cut">content_cut</span>
-                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Mandatory Cutting Stage</span>
-                </a>
                 <a href="{{ route('admin.production.finished-goods-combination') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.finished-goods-combination') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                     <span class="material-symbols-outlined shrink-0" data-icon="extension">extension</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Storefront Bundling</span>
