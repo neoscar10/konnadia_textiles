@@ -123,8 +123,30 @@
                     </span>
                 </button>
             @endforeach
-
         </div>
+
+        @if($this->isSelectedStageCompleted)
+            <div class="mb-6 p-5 rounded-2xl bg-secondary-container/20 border border-secondary/40 text-on-secondary-container flex items-center justify-between shadow-xs">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-2xl bg-secondary/15 text-secondary flex items-center justify-center font-bold shrink-0">
+                        <span class="material-symbols-outlined text-[26px]">verified</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-primary flex items-center gap-2">
+                            Stage Completed — Read-Only Inspection Mode
+                        </h4>
+                        <p class="text-xs text-on-surface-variant font-medium mt-0.5">
+                            The <strong>{{ $selectedTask?->name }}</strong> stage has reached 100% target output and is completed. Recorded outputs, labor allocations, and material usages are displayed below for review and cannot accept new entries.
+                        </p>
+                    </div>
+                </div>
+                <span class="px-3.5 py-1.5 bg-secondary/20 border border-secondary/40 text-secondary rounded-xl text-xs font-extrabold uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-secondary"></span>
+                    Completed & Locked
+                </span>
+            </div>
+        @endif
+
       @if($selectedTask && ($selectedTask->name === 'Cutting' || $selectedTask->code === 'TSK-001'))
         <!-- CUSTOM CUTTING SESSION TERMINAL UI -->
         <form wire:submit.prevent="saveCuttingSession" class="space-y-6 mb-8">
@@ -432,11 +454,19 @@
 
                     <!-- Complete Stage Action Button -->
                     <div class="bg-surface-container-low border border-outline-variant/60 rounded-2xl p-6 shadow-xs text-center space-y-3">
-                        <p class="text-xs text-on-surface-variant leading-relaxed">Ensure all pieces, measurements, and fabric wastes are logged accurately. Saving this cutting session will deduct bale lengths from stock and allocate unit costs downstream.</p>
-                        <button type="submit" class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold text-base hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined">save</span>
-                            Save Cutting Session Output
-                        </button>
+                        @if($this->isSelectedStageCompleted)
+                            <p class="text-xs text-on-surface-variant leading-relaxed">This cutting stage is completed and locked from further entry. Recorded sessions and yields are archived in the audit log below.</p>
+                            <button type="button" disabled class="w-full bg-outline-variant/40 text-on-surface-variant/60 py-4 rounded-xl font-bold text-base cursor-not-allowed shadow-xs flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-[20px]">lock</span>
+                                Stage Completed (Locked)
+                            </button>
+                        @else
+                            <p class="text-xs text-on-surface-variant leading-relaxed">Ensure all pieces, measurements, and fabric wastes are logged accurately. Saving this cutting session will deduct bale lengths from stock and allocate unit costs downstream.</p>
+                            <button type="submit" class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold text-base hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined">save</span>
+                                Save Cutting Session Output
+                            </button>
+                        @endif
                     </div>
                 </div>
 
@@ -929,10 +959,17 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40 mt-6">
-                    <button type="submit" @if($stagePending <= 0) disabled @endif class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-label-md text-label-md font-bold hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span class="material-symbols-outlined text-[20px]">task_alt</span>
-                        Record Worker Output & Wages for {{ $selectedTask ? $selectedTask->name : 'Stage' }}
-                    </button>
+                    @if($this->isSelectedStageCompleted)
+                        <button type="button" disabled class="bg-outline-variant/40 text-on-surface-variant/60 px-8 py-3.5 rounded-xl font-label-md text-label-md font-bold cursor-not-allowed shadow-xs flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[20px]">lock</span>
+                            Stage Completed & Locked
+                        </button>
+                    @else
+                        <button type="submit" @if($stagePending <= 0) disabled @endif class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-label-md text-label-md font-bold hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="material-symbols-outlined text-[20px]">task_alt</span>
+                            Record Worker Output & Wages for {{ $selectedTask ? $selectedTask->name : 'Stage' }}
+                        </button>
+                    @endif
                 </div>
             </form>
 

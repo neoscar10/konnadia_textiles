@@ -195,11 +195,31 @@ class JobDetailPage extends Component
         $this->job->ensureStageExecutionsExist();
         $this->job->unsetRelation('stageExecutions');
 
-        $firstTask = $this->routingTasks->first();
-        $this->selectedTaskId = $firstTask ? $firstTask->id : null;
+        // Auto-select the current active (first uncompleted) stage execution
+        $activeStageExec = $this->job->stageExecutions
+            ->filter(fn($se) => $se->status !== 'completed')
+            ->first();
+
+        if ($activeStageExec) {
+            $this->selectedTaskId = $activeStageExec->task_id;
+        } else {
+            $lastStageExec = $this->job->stageExecutions->last();
+            $this->selectedTaskId = $lastStageExec ? $lastStageExec->task_id : ($this->routingTasks->first()?->id);
+        }
 
         $this->resetFormRows();
         $this->resetCuttingForm();
+        $this->preloadSubsidiaryConsumptions();
+    }
+
+    public function getIsSelectedStageCompletedProperty(): bool
+    {
+        if (!$this->selectedTaskId) {
+            return false;
+        }
+
+        $stageExec = $this->job->stageExecutions->where('task_id', $this->selectedTaskId)->first();
+        return $stageExec && $stageExec->status === 'completed';
     }
 
     private function resetFormRows(): void
@@ -1549,6 +1569,11 @@ class JobDetailPage extends Component
     {
         if (!auth()->user()->hasAnyRole(['super_admin', 'admin', 'Factory Supervisor']) && !auth()->user()->can('manage_labor')) {
             abort(403, 'Unauthorized action. Only Factory Supervisors can record cutting sessions.');
+        }
+
+        if ($this->isSelectedStageCompleted) {
+            $this->dispatch('toast', message: 'This stage has already been completed (100% target reached) and is locked from further entry.', type: 'error');
+            return;
         }
 
         $this->validate([
