@@ -161,7 +161,8 @@ class ProductionJob extends Model
             return 0;
         }
 
-        if ($this->status === 'completed') {
+        $rawStatus = $this->attributes['status'] ?? 'pending';
+        if ($rawStatus === 'completed') {
             return (int) $this->target_quantity;
         }
 
@@ -203,6 +204,34 @@ class ProductionJob extends Model
         // Fallback for single task or unlinked product
         $sum = (int) max($this->productOutputs()->sum('quantity_produced'), $this->allocations()->sum('quantity_processed'));
         return (int) min($this->target_quantity, $sum);
+    }
+
+    /**
+     * Dynamically resolve job status, automatically returning 'completed' if overall output progress hits 100%.
+     */
+    public function getStatusAttribute($value): string
+    {
+        $rawStatus = $value ?? ($this->attributes['status'] ?? 'pending');
+        if (!$this->exists || $rawStatus === 'completed' || $rawStatus === 'cancelled') {
+            return $rawStatus;
+        }
+
+        $targetQty = (int) $this->target_quantity;
+        if ($targetQty > 0) {
+            $stageExecs = $this->stageExecutions()->get();
+            $isAllStagesCompleted = $stageExecs->count() > 0 && $stageExecs->where('status', '!=', 'completed')->count() === 0;
+            $isTargetQuantityMet = $this->getCompletedQuantityAttribute() >= $targetQty;
+
+            if ($isAllStagesCompleted || $isTargetQuantityMet) {
+                if ($rawStatus !== 'completed') {
+                    \Illuminate\Support\Facades\DB::table('production_jobs')->where('id', $this->id)->update(['status' => 'completed']);
+                    $this->attributes['status'] = 'completed';
+                }
+                return 'completed';
+            }
+        }
+
+        return $rawStatus;
     }
 
     /**
