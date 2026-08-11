@@ -395,9 +395,23 @@
                                                                 </span>
                                                             </div>
 
-                                                            @if(!empty($bRow['selected_rolls']))
+                                                            @php
+                                                                $activeRollsList = !empty($bRow['selected_rolls']) ? $bRow['selected_rolls'] : [];
+                                                                if (empty($activeRollsList) && $rowBale && $rowBale->status === 'opened' && $rowBale->activeRolls->isNotEmpty()) {
+                                                                    foreach ($rowBale->activeRolls as $r) {
+                                                                        $activeRollsList[$r->id] = [
+                                                                            'roll_id' => $r->id,
+                                                                            'roll_number' => $r->roll_number,
+                                                                            'max_length' => (float) $r->current_balance_length,
+                                                                            'cut_length' => '',
+                                                                        ];
+                                                                    }
+                                                                }
+                                                            @endphp
+
+                                                            @if(!empty($activeRollsList))
                                                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                                    @foreach($bRow['selected_rolls'] as $rId => $rData)
+                                                                    @foreach($activeRollsList as $rId => $rData)
                                                                         <div class="p-3 bg-surface border border-outline-variant/50 rounded-xl space-y-2">
                                                                             <div class="flex justify-between items-center">
                                                                                 <span class="font-bold text-xs text-primary">Roll #{{ $rData['roll_number'] }}</span>

@@ -312,6 +312,24 @@ class JobDetailPage extends Component
         $bale = \App\Models\InventoryBale::findOrFail($this->activeBaleIdToOpen);
 
         $result = $bale->openBale($this->baleRollLengths);
+        $bale->refresh();
+        $bale->load('activeRolls');
+
+        // Immediately populate cuttingBaleRows for this bale with its newly recorded rolls
+        foreach ($this->cuttingBaleRows as $index => $row) {
+            if (isset($row['bale_id']) && (int)$row['bale_id'] === (int)$bale->id) {
+                $this->cuttingBaleRows[$index]['selected_rolls'] = [];
+                foreach ($bale->activeRolls as $roll) {
+                    $this->cuttingBaleRows[$index]['selected_rolls'][$roll->id] = [
+                        'roll_id' => $roll->id,
+                        'roll_number' => $roll->roll_number,
+                        'max_length' => (float) $roll->current_balance_length,
+                        'cut_length' => '',
+                    ];
+                }
+            }
+        }
+
         $this->showOpenBaleModal = false;
         $this->showMismatchConfirmationModal = false;
         $this->activeBaleIdToOpen = null;
