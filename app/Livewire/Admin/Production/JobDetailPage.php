@@ -57,6 +57,49 @@ class JobDetailPage extends Component
         return $this->hasMaterialStep ? 4 : 3;
     }
 
+    public function setWizardStep(int $step): void
+    {
+        $this->wizardStep = max(1, min($this->maxWizardSteps, $step));
+    }
+
+    public function nextWizardStep(): void
+    {
+        if ($this->wizardStep < $this->maxWizardSteps) {
+            $this->wizardStep++;
+        }
+    }
+
+    public function previousWizardStep(): void
+    {
+        if ($this->wizardStep > 1) {
+            $this->wizardStep--;
+        }
+    }
+
+    public function getStageVarianceInfoProperty(): array
+    {
+        if (!$this->selectedTaskId) {
+            return ['input_qty' => 0, 'output_qty' => 0, 'shortfall_qty' => 0, 'has_shortfall' => false, 'is_target_met' => false];
+        }
+
+        $stageExec = $this->job->stageExecutions->where('task_id', $this->selectedTaskId)->first();
+        $inputQty = $stageExec ? (int) $stageExec->target_quantity : (int) $this->job->target_quantity;
+        if ($inputQty <= 0) {
+            $inputQty = (int) $this->job->target_quantity;
+        }
+
+        $outputQty = (int) $this->job->productOutputs->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
+        $shortfallQty = max(0, $inputQty - $outputQty);
+
+        return [
+            'input_qty' => $inputQty,
+            'output_qty' => $outputQty,
+            'shortfall_qty' => $shortfallQty,
+            'has_shortfall' => $outputQty > 0 && $shortfallQty > 0,
+            'is_target_met' => $outputQty >= $inputQty && $inputQty > 0,
+        ];
+    }
+
     public function completeStageAndProgress(): void
     {
         if (!$this->selectedTaskId) {
