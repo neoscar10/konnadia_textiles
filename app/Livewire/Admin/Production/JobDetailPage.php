@@ -1500,6 +1500,17 @@ class JobDetailPage extends Component
             abort(403, 'Unauthorized action. Only Factory Supervisors can manage alterations.');
         }
 
+        // Auto-populate source_product_id and source_quantity if missing from alteration converter UI
+        $varInfo = $this->stageVarianceInfo;
+        foreach ($this->alterationRecords as $idx => $row) {
+            if (empty($row['source_product_id'])) {
+                $this->alterationRecords[$idx]['source_product_id'] = $this->job->manufacturing_product_id ?: (ManufacturingProduct::first()?->id);
+            }
+            if (empty($row['source_quantity'])) {
+                $this->alterationRecords[$idx]['source_quantity'] = !empty($row['target_quantity']) ? $row['target_quantity'] : ($varInfo['shortfall_qty'] ?? 1);
+            }
+        }
+
         $this->validate([
             'alterationRecords' => 'required|array|min:1',
             'alterationRecords.*.source_product_id' => 'required|exists:manufacturing_products,id',
@@ -1507,10 +1518,11 @@ class JobDetailPage extends Component
             'alterationRecords.*.target_product_id' => 'required|exists:manufacturing_products,id',
             'alterationRecords.*.target_quantity' => 'required|numeric|min:1',
         ], [
-            'alterationRecords.*.source_product_id.required' => 'Source product is required.',
-            'alterationRecords.*.source_quantity.required' => 'Source quantity is required.',
-            'alterationRecords.*.target_product_id.required' => 'Target product is required.',
-            'alterationRecords.*.target_quantity.required' => 'Target quantity is required.',
+            'alterationRecords.*.target_product_id.required' => 'Please select a target converted product.',
+            'alterationRecords.*.target_product_id.exists' => 'Selected target product does not exist.',
+            'alterationRecords.*.target_quantity.required' => 'Please enter quantity converted.',
+            'alterationRecords.*.target_quantity.numeric' => 'Quantity converted must be a number.',
+            'alterationRecords.*.target_quantity.min' => 'Quantity converted must be at least 1 unit.',
         ]);
 
         $lastChildBatchCode = '';

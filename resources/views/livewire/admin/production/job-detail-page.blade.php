@@ -1717,11 +1717,17 @@
                                         <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->code }})</option>
                                     @endforeach
                                 </select>
+                                @error('alterationRecords.0.target_product_id')
+                                    <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span>
+                                @enderror
                             </div>
 
                             <div>
                                 <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Quantity Converted (Pcs) *</label>
                                 <input type="number" min="1" max="{{ $varInfo['shortfall_qty'] }}" wire:model.live="alterationRecords.0.target_quantity" placeholder="{{ $varInfo['shortfall_qty'] }}" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-black text-primary text-center focus:ring-2 focus:ring-primary/20">
+                                @error('alterationRecords.0.target_quantity')
+                                    <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span>
+                                @enderror
                             </div>
                         </div>
 
