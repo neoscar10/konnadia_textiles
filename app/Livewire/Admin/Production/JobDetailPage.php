@@ -1963,6 +1963,7 @@ class JobDetailPage extends Component
         return [
             'total_fabric_cost' => $totalFabricCost,
             'total_wastage_cost' => $totalWastageCost,
+            'consolidated_fabric_valuation' => $totalFabricCost + $totalWastageCost,
             'preview_items' => $preview,
         ];
     }
