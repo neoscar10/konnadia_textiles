@@ -1363,10 +1363,11 @@ class JobDetailPage extends Component
 
         DB::transaction(function () {
             foreach ($this->productionOutputs as $row) {
+                $prodId = !empty($row['manufacturing_product_id']) ? $row['manufacturing_product_id'] : ($this->job->manufacturing_product_id ?? null);
                 JobProductionOutput::create([
                     'job_code' => $this->job->job_code,
                     'production_job_id' => $this->job->id,
-                    'manufacturing_product_id' => $row['manufacturing_product_id'],
+                    'manufacturing_product_id' => $prodId,
                     'task_id' => $this->selectedTaskId,
                     'quantity_produced' => (int) $row['quantity_produced'],
                 ]);

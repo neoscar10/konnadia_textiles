@@ -1307,7 +1307,7 @@
 
                             <div class="col-span-12 sm:col-span-6 lg:col-span-4">
                                 <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Product SKU *</label>
-                                <select wire:model.live="laborAllocations.{{ $index }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
+                                <select wire:model.live="laborAllocations.{{ $index }}.manufacturing_product_id" @if($job->manufacturing_product_id || $this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($job->manufacturing_product_id || $this->isSelectedStageCompleted) opacity-85 bg-surface-container-low cursor-not-allowed @endif">
                                     @php
                                         $stageProducts = $job->manufacturingProduct ? collect([$job->manufacturingProduct]) : $allManufacturingProducts;
                                     @endphp
@@ -1458,10 +1458,13 @@
                                     {{ $index + 1 }}
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Select Manufacturing Product Output *</label>
-                                    <select wire:model.live="productionOutputs.{{ $index }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
-                                        <option value="">-- Select Manufacturing Product --</option>
-                                        @foreach($allManufacturingProducts as $prod)
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Manufacturing Product Output *</label>
+                                    @php
+                                        $outputProdOptions = $job->manufacturingProduct ? collect([$job->manufacturingProduct]) : $allManufacturingProducts;
+                                        $isFixedProduct = (bool) $job->manufacturing_product_id;
+                                    @endphp
+                                    <select wire:model.live="productionOutputs.{{ $index }}.manufacturing_product_id" @if($isFixedProduct || $this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($isFixedProduct || $this->isSelectedStageCompleted) opacity-85 bg-surface-container-low cursor-not-allowed @endif">
+                                        @foreach($outputProdOptions as $prod)
                                             <option value="{{ $prod->id }}">
                                                 {{ $prod->name }} ({{ $prod->code }}) — Standard Wage: ₹{{ number_format((float)$prod->standard_labor_rate, 2) }}
                                             </option>
