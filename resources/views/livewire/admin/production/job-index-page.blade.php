@@ -203,7 +203,7 @@
     </div>
 
     <!-- Storefront Finished Goods Conversion Modal -->
-    <x-admin.modal id="storefront-conversion-modal" title="Convert Completed Goods to Storefront Product" maxWidth="2xl">
+    <x-admin.modal id="storefront-conversion-modal" title="Convert Completed Goods to Storefront Product" maxWidth="4xl">
         <form wire:submit.prevent="processConversion" class="space-y-5">
             <p class="text-on-surface-variant text-sm">Convert completed factory products into sellable Storefront Products. Select your target storefront product, define the piece ratio for 1 set (e.g. 1 Bed Sheet + 2 Pillow Cases = 1 Set), and enter the total factory pieces to process from each completed job.</p>
 
@@ -253,9 +253,9 @@
                             $isExceed = $selectedJob && ($inputPcs > $maxAvail);
                         @endphp
                         <div class="p-3.5 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
-                            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                                <div class="md:col-span-6">
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Source Completed Job #{{ $index + 1 }} *</label>
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                                <div class="md:col-span-5">
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 whitespace-nowrap">Source Completed Job #{{ $index + 1 }} *</label>
                                     <select wire:model.live="conversionComponents.{{ $index }}.production_job_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
                                         <option value="">-- Choose Completed Factory Job --</option>
                                         @foreach($completedJobsForPicker as $cj)
@@ -268,20 +268,20 @@
                                 </div>
 
                                 <div class="md:col-span-3">
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Ratio (Pcs per Set) *</label>
-                                    <div class="flex items-center gap-1">
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 whitespace-nowrap">Ratio (Pcs per Set) *</label>
+                                    <div class="flex items-center gap-1.5">
                                         <input type="number" min="1" wire:model.live="conversionComponents.{{ $index }}.quantity_per_set" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
-                                        <span class="text-[11px] font-bold text-outline">Pcs/Set</span>
+                                        <span class="text-[11px] font-bold text-outline whitespace-nowrap">Pcs/Set</span>
                                     </div>
                                     @error("conversionComponents.{$index}.quantity_per_set") <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
                                 </div>
 
-                                <div class="md:col-span-3">
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Factory Pieces to Process *</label>
-                                    <div class="flex items-center gap-1">
+                                <div class="md:col-span-4">
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 whitespace-nowrap">Factory Pieces to Process *</label>
+                                    <div class="flex items-center gap-1.5">
                                         <input type="number" min="1" wire:model.live="conversionComponents.{{ $index }}.total_pieces_input" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
                                         @if(count($conversionComponents) > 1)
-                                            <button type="button" wire:click="removeConversionComponentRow({{ $index }})" class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors">
+                                            <button type="button" wire:click="removeConversionComponentRow({{ $index }})" class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors shrink-0">
                                                 <span class="material-symbols-outlined text-base">delete</span>
                                             </button>
                                         @endif
