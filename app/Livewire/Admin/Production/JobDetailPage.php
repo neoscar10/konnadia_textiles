@@ -285,6 +285,9 @@ class JobDetailPage extends Component
         $uncompletedCount = $this->job->stageExecutions()->where('status', '!=', 'completed')->count();
         if ($uncompletedCount === 0 && $this->job->stageExecutions()->count() > 0) {
             $this->job->update(['status' => 'completed']);
+            session()->flash('success', "Production Job {$this->job->job_code} completed all stages successfully (100% target achieved)!");
+            $this->redirect(route('admin.production.jobs.index'), navigate: true);
+            return;
         }
 
         $this->job->unsetRelation('stageExecutions');
@@ -473,6 +476,13 @@ class JobDetailPage extends Component
 
         $this->job->ensureStageExecutionsExist();
         $this->job->unsetRelation('stageExecutions');
+
+        // If job is 100% completed, redirect immediately to production jobs hub
+        $uncompletedCount = $this->job->stageExecutions->where('status', '!=', 'completed')->count();
+        if ($this->job->status === 'completed' || ($this->job->stageExecutions->count() > 0 && $uncompletedCount === 0)) {
+            session()->flash('success', "Production Job {$this->job->job_code} is 100% completed.");
+            return $this->redirect(route('admin.production.jobs.index'), navigate: true);
+        }
 
         // Auto-select the current active (first uncompleted) stage execution
         $activeStageExec = $this->job->stageExecutions
