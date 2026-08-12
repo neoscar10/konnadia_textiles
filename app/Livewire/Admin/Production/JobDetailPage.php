@@ -868,14 +868,18 @@ class JobDetailPage extends Component
             return (int) $currentExecution->target_quantity;
         }
 
-        // Fallback to preceding stage execution's completed quantity
+        // Fallback to preceding stage execution's completed output or target quantity
         $precedingExecution = $this->job->stageExecutions
             ->where('sequence_number', '<', $currentExecution->sequence_number)
             ->sortByDesc('sequence_number')
             ->first();
 
         if ($precedingExecution) {
-            $precedingCompleted = $precedingExecution->completed_quantity;
+            $precedingOutput = (int) $this->job->productOutputs()
+                ->where('task_id', $precedingExecution->task_id)
+                ->sum('quantity_produced');
+
+            $precedingCompleted = max($precedingOutput, (int) $precedingExecution->completed_quantity, (int) $precedingExecution->target_quantity);
             if ($precedingCompleted > 0) {
                 return $precedingCompleted;
             }

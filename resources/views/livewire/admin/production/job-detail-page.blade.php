@@ -1348,7 +1348,7 @@
                             Stage Completed & Locked
                         </button>
                     @else
-                        <button type="submit" @if($stagePending <= 0) disabled @endif class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-label-md text-label-md font-bold hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button type="submit" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-label-md text-label-md font-bold hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center gap-2">
                             <span class="material-symbols-outlined text-[20px]">task_alt</span>
                             Record Worker Output & Wages for {{ $selectedTask ? $selectedTask->name : 'Stage' }}
                         </button>
