@@ -233,7 +233,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Quantity of Sets to Convert *</label>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Qnty of Sets to Convert *</label>
                         <input type="number" min="1" wire:model.live="assembled_sets_quantity" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 font-bold text-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
                         @error('assembled_sets_quantity') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                     </div>
