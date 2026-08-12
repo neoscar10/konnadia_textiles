@@ -2053,7 +2053,7 @@ class JobDetailPage extends Component
                 }
             }
 
-            // Sync Cutting Stage Execution progress
+            // Sync Cutting Stage Execution progress & spawn distinct product job flows
             $stageExecution = $this->job->stageExecutions()->where('task_id', $this->selectedTaskId)->first();
             if ($stageExecution) {
                 $totalLoggedCutQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
@@ -2064,6 +2064,10 @@ class JobDetailPage extends Component
                     'target_quantity' => $effectiveTarget,
                 ]);
             }
+
+            // Spawn distinct downstream ProductionJob flows per cut product SKU
+            $workflowService = resolve(\App\Services\Manufacturing\ProductionWorkflowService::class);
+            $spawnedFlows = $workflowService->spawnDistinctProductFlowsFromCutting($this->job, $this->cuttingOutputs);
         });
 
         $this->job->load([
@@ -2076,7 +2080,17 @@ class JobDetailPage extends Component
             'wastages.task',
         ]);
 
-        $this->dispatch('toast', message: 'Cutting session output and costs allocated successfully!', type: 'success');
-        $this->resetCuttingForm();
+        $this->resetErrorBag();
+
+        $flowCount = count($this->cuttingOutputs);
+        $msg = "Cutting session saved! Created {$flowCount} distinct production flow(s) for the cut product SKUs.";
+
+        $this->dispatch('toast', message: $msg, type: 'success');
+        session()->flash('toast', [
+            'message' => $msg,
+            'type' => 'success'
+        ]);
+
+        return redirect()->route('admin.production.jobs.index');
     }
 }

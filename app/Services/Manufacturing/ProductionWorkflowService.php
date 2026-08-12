@@ -239,5 +239,148 @@ class ProductionWorkflowService
     {
         return $this->completeJob($job->id);
     }
+
+    /**
+     * Spawn distinct production job flows for each product output cut during the cutting stage.
+     */
+    public function spawnDistinctProductFlowsFromCutting(ProductionJob $job, array $cuttingOutputs): array
+    {
+        $productOutputs = [];
+        foreach ($cuttingOutputs as $out) {
+            $pId = (int) ($out['manufacturing_product_id'] ?? 0);
+            $qty = (int) ($out['quantity'] ?? 0);
+            if ($pId > 0 && $qty > 0) {
+                $productOutputs[$pId] = ($productOutputs[$pId] ?? 0) + $qty;
+            }
+        }
+
+        if (empty($productOutputs)) {
+            return [$job];
+        }
+
+        $productIds = array_values(array_keys($productOutputs));
+        $firstProductId = $productIds[0];
+        $firstProductQty = $productOutputs[$firstProductId];
+
+        // 1. Update current primary job for first product SKU cut output
+        $job->update([
+            'manufacturing_product_id' => $firstProductId,
+            'target_quantity' => $firstProductQty,
+        ]);
+
+        $cuttingTask = Task::where('name', 'like', '%Cut%')->first() ?? Task::first();
+        $cuttingTaskId = $cuttingTask?->id;
+
+        $job->ensureStageExecutionsExist();
+        $job->unsetRelation('stageExecutions');
+        $job->load('stageExecutions');
+
+        $cuttingStage = $job->stageExecutions->firstWhere('task_id', $cuttingTaskId)
+            ?? $job->stageExecutions->first();
+
+        if ($cuttingStage) {
+            $cuttingStage->update([
+                'status' => 'completed',
+                'target_quantity' => $firstProductQty,
+                'completed_quantity' => $firstProductQty,
+                'completed_at' => now(),
+            ]);
+
+            $nextStage = $job->stageExecutions
+                ->where('sequence_number', '>', $cuttingStage->sequence_number)
+                ->sortBy('sequence_number')
+                ->first();
+
+            if ($nextStage) {
+                $nextStage->update([
+                    'status' => 'in_progress',
+                    'target_quantity' => $firstProductQty,
+                    'started_at' => now(),
+                ]);
+            }
+        }
+
+        $allFlowJobs = [$job];
+
+        // 2. Create distinct production jobs for subsequent product SKUs
+        for ($i = 1; $i < count($productIds); $i++) {
+            $pId = $productIds[$i];
+            $pQty = $productOutputs[$pId];
+            $product = ManufacturingProduct::find($pId);
+
+            $existingJob = ProductionJob::where('production_batch_id', $job->production_batch_id)
+                ->where('manufacturing_product_id', $pId)
+                ->where('id', '!=', $job->id)
+                ->first();
+
+            if ($existingJob) {
+                $childJob = $existingJob;
+                $childJob->update([
+                    'target_quantity' => $pQty,
+                    'status' => 'in_progress',
+                ]);
+            } else {
+                $year = date('Y');
+                $maxNum = ProductionJob::where('job_code', 'like', "JOB-{$year}-%")
+                    ->get()
+                    ->map(fn($j) => (int) str_replace("JOB-{$year}-", '', $j->job_code))
+                    ->max() ?: 0;
+                $newJobCode = sprintf("JOB-%s-%04d", $year, $maxNum + 1);
+
+                $childJob = ProductionJob::create([
+                    'job_code' => $newJobCode,
+                    'production_batch_id' => $job->production_batch_id,
+                    'production_batch_db_id' => $job->production_batch_db_id,
+                    'manufacturing_product_id' => $pId,
+                    'supervisor_id' => $job->supervisor_id,
+                    'job_date' => $job->job_date ?? now()->format('Y-m-d'),
+                    'target_quantity' => $pQty,
+                    'status' => 'in_progress',
+                    'notes' => "Distinct production flow for {$product?->name} spawned from Cutting Job {$job->job_code}",
+                ]);
+            }
+
+            $childJob->ensureStageExecutionsExist();
+            $childJob->unsetRelation('stageExecutions');
+            $childJob->load('stageExecutions');
+
+            $childCuttingStage = $childJob->stageExecutions->firstWhere('task_id', $cuttingTaskId)
+                ?? $childJob->stageExecutions->first();
+
+            if ($childCuttingStage) {
+                $childCuttingStage->update([
+                    'status' => 'completed',
+                    'target_quantity' => $pQty,
+                    'completed_quantity' => $pQty,
+                    'completed_at' => now(),
+                ]);
+
+                $childNextStage = $childJob->stageExecutions
+                    ->where('sequence_number', '>', $childCuttingStage->sequence_number)
+                    ->sortBy('sequence_number')
+                    ->first();
+
+                if ($childNextStage) {
+                    $childNextStage->update([
+                        'status' => 'in_progress',
+                        'target_quantity' => $pQty,
+                        'started_at' => now(),
+                    ]);
+                }
+            }
+
+            \App\Models\JobProductionOutput::where('production_job_id', $job->id)
+                ->where('manufacturing_product_id', $pId)
+                ->update(['production_job_id' => $childJob->id]);
+
+            \App\Models\JobLaborAllocation::where('job_id', $job->job_code)
+                ->where('manufacturing_product_id', $pId)
+                ->update(['job_id' => $childJob->job_code]);
+
+            $allFlowJobs[] = $childJob;
+        }
+
+        return $allFlowJobs;
+    }
 }
 
