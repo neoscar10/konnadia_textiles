@@ -181,7 +181,7 @@ class JobIndexPage extends Component
         // Eligible Completed Jobs for Conversion Picker
         $completedJobsForPicker = ProductionJob::with(['manufacturingProduct'])
             ->get()
-            ->filter(fn($j) => $j->status === 'completed' || $j->remaining_unconverted_quantity > 0);
+            ->filter(fn($j) => $j->status === 'completed' && $j->remaining_unconverted_quantity > 0);
 
         // Storefront Products & Variants for Target Picker
         $storefrontProducts = Product::where('is_active', true)->with('combinations')->orderBy('name')->get();

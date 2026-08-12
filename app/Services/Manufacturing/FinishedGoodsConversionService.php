@@ -181,6 +181,11 @@ class FinishedGoodsConversionService
                 }
 
                 $job = \App\Models\ProductionJob::findOrFail($jobId);
+
+                if ($job->status !== 'completed') {
+                    throw new Exception("Cannot convert Job {$job->job_code}: This job is currently '{$job->status}' and has not completed all manufacturing stages yet.");
+                }
+
                 $available = $job->remaining_unconverted_quantity;
 
                 if ($totalNeeded > $available) {

@@ -296,6 +296,9 @@ class ProductionJob extends Model
      */
     public function getTotalProducedQuantityAttribute(): int
     {
+        if ($this->status !== 'completed') {
+            return 0;
+        }
         return $this->completed_quantity;
     }
 
@@ -304,6 +307,9 @@ class ProductionJob extends Model
      */
     public function getRemainingUnconvertedQuantityAttribute(): int
     {
+        if ($this->status !== 'completed') {
+            return 0;
+        }
         $produced = $this->total_produced_quantity;
         $converted = (int) ($this->converted_quantity ?? 0);
         return max(0, $produced - $converted);
@@ -314,6 +320,10 @@ class ProductionJob extends Model
      */
     public function getConversionStatusAttribute(): string
     {
+        if ($this->status !== 'completed') {
+            return 'not_completed';
+        }
+
         $converted = (int) ($this->converted_quantity ?? 0);
         $remaining = $this->remaining_unconverted_quantity;
 
