@@ -482,9 +482,9 @@
 
                             <!-- STEP 1 FOOTER NAVIGATION -->
                             <div class="flex justify-end pt-4 border-t border-outline-variant/40">
-                                <button type="button" wire:click="setWizardStep(2)" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+                                <button type="button" wire:click="setWizardStep(2)" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
                                     Next Step: Cut Yields & Labor
-                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
                                 </button>
                             </div>
                         </div>
@@ -609,13 +609,13 @@
 
                             <!-- STEP 2 FOOTER NAVIGATION -->
                             <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs">
-                                <button type="button" wire:click="setWizardStep(1)" class="bg-surface-container-high text-on-surface-variant px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-outline-variant/30 transition-all flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                                <button type="button" wire:click="setWizardStep(1)" class="bg-surface-container-high text-on-surface border border-outline-variant/60 px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-all flex items-center gap-2 shadow-xs cursor-pointer">
+                                    <span class="material-symbols-outlined text-lg">arrow_back</span>
                                     Back to Fabric Selection
                                 </button>
-                                <button type="button" wire:click="setWizardStep(3)" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+                                <button type="button" wire:click="setWizardStep(3)" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
                                     Next Step: Cost Valuation
-                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
                                 </button>
                             </div>
                         </div>
@@ -648,7 +648,7 @@
                                         <div class="h-px bg-outline-variant/30 my-2"></div>
                                         <div class="flex justify-between font-extrabold text-sm">
                                             <span>Consolidated Valuation:</span>
-                                            <span class="text-secondary font-black">₹{{ number_format($this->cuttingCostPreview['total_fabric_cost'], 2) }}</span>
+                                            <span>₹{{ number_format($this->cuttingCostPreview['consolidated_fabric_valuation'], 2) }}</span>
                                         </div>
                                     </div>
 
@@ -688,13 +688,13 @@
 
                             <!-- STEP 3 FOOTER NAVIGATION -->
                             <div class="flex justify-between items-center pt-4 border-t border-outline-variant/40">
-                                <button type="button" wire:click="setWizardStep(2)" class="bg-surface-container-high text-on-surface-variant px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-outline-variant/30 transition-all flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                                <button type="button" wire:click="setWizardStep(2)" class="bg-surface-container-high text-on-surface border border-outline-variant/60 px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-all flex items-center gap-2 shadow-xs cursor-pointer">
+                                    <span class="material-symbols-outlined text-lg">arrow_back</span>
                                     Back to Cut Yields & Labor
                                 </button>
-                                <button type="button" wire:click="setWizardStep(4)" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+                                <button type="button" wire:click="setWizardStep(4)" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
                                     Next Step: Save & Progress
-                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
                                 </button>
                             </div>
                         </div>
@@ -731,8 +731,8 @@
 
                             <!-- STEP 4 FOOTER NAVIGATION -->
                             <div class="flex justify-start pt-4 border-t border-outline-variant/40">
-                                <button type="button" wire:click="setWizardStep(3)" class="bg-surface-container-high text-on-surface-variant px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-outline-variant/30 transition-all flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                                <button type="button" wire:click="setWizardStep(3)" class="bg-surface-container-high text-on-surface border border-outline-variant/60 px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-all flex items-center gap-2 shadow-xs cursor-pointer">
+                                    <span class="material-symbols-outlined text-lg">arrow_back</span>
                                     Back to Cost Valuation
                                 </button>
                             </div>
