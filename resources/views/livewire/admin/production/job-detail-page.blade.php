@@ -513,7 +513,10 @@
                                                 <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Target Product SKU *</label>
                                                 <select wire:model.live="cuttingOutputs.{{ $index }}.manufacturing_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
                                                     <option value="">-- Choose Product SKU --</option>
-                                                    @foreach($allManufacturingProducts as $prod)
+                                                    @php
+                                                        $cuttingProductOptions = $job->manufacturingProduct ? collect([$job->manufacturingProduct]) : $allManufacturingProducts;
+                                                    @endphp
+                                                    @foreach($cuttingProductOptions as $prod)
                                                         <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
                                                     @endforeach
                                                 </select>
@@ -570,7 +573,7 @@
                                                     @php
                                                         $selectedOutputProductIds = collect($cuttingOutputs)->pluck('manufacturing_product_id')->filter()->unique()->toArray();
                                                         $outputProducts = $allManufacturingProducts->whereIn('id', $selectedOutputProductIds);
-                                                        $dropdownProducts = $outputProducts->isNotEmpty() ? $outputProducts : $allManufacturingProducts;
+                                                        $dropdownProducts = $outputProducts->isNotEmpty() ? $outputProducts : ($job->manufacturingProduct ? collect([$job->manufacturingProduct]) : $allManufacturingProducts);
                                                     @endphp
                                                     @foreach($dropdownProducts as $prod)
                                                         <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
@@ -1304,7 +1307,10 @@
                             <div class="col-span-12 sm:col-span-6 lg:col-span-4">
                                 <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Product SKU *</label>
                                 <select wire:model.live="laborAllocations.{{ $index }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
-                                    @foreach($allManufacturingProducts as $prod)
+                                    @php
+                                        $stageProducts = $job->manufacturingProduct ? collect([$job->manufacturingProduct]) : $allManufacturingProducts;
+                                    @endphp
+                                    @foreach($stageProducts as $prod)
                                         <option value="{{ $prod->id }}">
                                             {{ $prod->name }} ({{ $prod->code }})
                                         </option>
