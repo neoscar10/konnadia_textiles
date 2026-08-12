@@ -286,6 +286,8 @@ class JobDetailPage extends Component
         if ($uncompletedCount === 0 && $this->job->stageExecutions()->count() > 0) {
             $this->job->update(['status' => 'completed']);
         }
+
+        $this->job->unsetRelation('stageExecutions');
     }
 
     // Worker Allocations Form (Section 2 & 7)
@@ -873,7 +875,7 @@ class JobDetailPage extends Component
             return (int) $currentExecution->target_quantity;
         }
 
-        // Fallback to preceding stage execution's completed output or target quantity
+        // Fallback to preceding stage execution's completed output, labor, or target quantity
         $precedingExecution = $this->job->stageExecutions
             ->where('sequence_number', '<', $currentExecution->sequence_number)
             ->sortByDesc('sequence_number')
@@ -884,7 +886,18 @@ class JobDetailPage extends Component
                 ->where('task_id', $precedingExecution->task_id)
                 ->sum('quantity_produced');
 
-            $precedingCompleted = max($precedingOutput, (int) $precedingExecution->completed_quantity, (int) $precedingExecution->target_quantity);
+            $precedingLabor = (int) $this->job->allocations()
+                ->where('task_id', $precedingExecution->task_id)
+                ->sum('quantity_processed');
+
+            $precedingCompleted = max(
+                $precedingOutput,
+                $precedingLabor,
+                (int) $precedingExecution->completed_quantity,
+                (int) $precedingExecution->target_quantity,
+                (int) $this->job->target_quantity
+            );
+
             if ($precedingCompleted > 0) {
                 return $precedingCompleted;
             }
@@ -913,13 +926,29 @@ class JobDetailPage extends Component
             return null;
         }
 
-        $precedingCompleted = $precedingExecution->completed_quantity;
+        $precedingOutput = (int) $this->job->productOutputs()
+            ->where('task_id', $precedingExecution->task_id)
+            ->sum('quantity_produced');
+
+        $precedingLabor = (int) $this->job->allocations()
+            ->where('task_id', $precedingExecution->task_id)
+            ->sum('quantity_processed');
+
+        $precedingCompleted = max(
+            $precedingOutput,
+            $precedingLabor,
+            (int) $precedingExecution->completed_quantity,
+            (int) $precedingExecution->target_quantity,
+            (int) $this->job->target_quantity
+        );
+
+        $targetQty = $precedingExecution->target_quantity > 0 ? (int) $precedingExecution->target_quantity : (int) $this->job->target_quantity;
 
         return [
             'task'     => $precedingExecution->task,
             'completed' => $precedingCompleted,
-            'target'   => (int) $precedingExecution->target_quantity,
-            'pending_in_preceding' => max(0, (int) $precedingExecution->target_quantity - $precedingCompleted),
+            'target'   => $targetQty,
+            'pending_in_preceding' => max(0, $targetQty - $precedingCompleted),
         ];
     }
 
