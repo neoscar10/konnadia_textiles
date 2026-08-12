@@ -9,12 +9,12 @@
             <h2 class="font-headline-lg text-headline-lg text-primary font-extrabold tracking-tight">Production Jobs Hub</h2>
             <p class="font-body-md text-body-md text-on-surface-variant">Create work orders, track overall stage completion, and convert completed products to storefront inventory.</p>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
-            <button type="button" wire:click="openConversionModal" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95">
+        <div class="flex items-center gap-3 shrink-0">
+            <button type="button" wire:click="openConversionModal" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
                 <span class="material-symbols-outlined">shopping_cart_checkout</span>
                 Convert to Storefront Product
             </button>
-            <button type="button" wire:click="openCreateModal" class="flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md hover:bg-primary-container transition-all active:scale-95">
+            <button type="button" wire:click="openCreateModal" class="flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md hover:bg-primary-container transition-all active:scale-95 whitespace-nowrap">
                 <span class="material-symbols-outlined">add</span>
                 Create New Production Job
             </button>
