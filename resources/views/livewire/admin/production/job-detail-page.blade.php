@@ -133,8 +133,8 @@
         <!-- INTERACTIVE WIZARD PROGRESS TRACKER HEADER -->
         @php
             $isCuttingStage = $selectedTask && ($selectedTask->name === 'Cutting' || $selectedTask->code === 'TSK-001');
-            $hasMat = $this->hasMaterialStep;
-            $maxSteps = $this->maxWizardSteps;
+            $hasMat = $selectedTask && $selectedTask->consumes_raw_material && !$isTaskStitching;
+            $maxSteps = $isCuttingStage ? 4 : ($hasMat ? 3 : 2);
         @endphp
 
         <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 shadow-xs mb-6">
@@ -183,7 +183,7 @@
             </div>
 
             <!-- STEP INDICATOR TRACKER BAR -->
-            <div class="grid grid-cols-2 @if($maxSteps === 4) md:grid-cols-4 @else md:grid-cols-3 @endif gap-2 sm:gap-3">
+            <div class="grid grid-cols-2 @if($maxSteps === 4) md:grid-cols-4 @elseif($maxSteps === 3) md:grid-cols-3 @else md:grid-cols-2 @endif gap-2 sm:gap-3">
                 @if($hasMat)
                     <!-- STEP 1 (Material) -->
                     <button type="button" wire:click="setWizardStep(1)" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === 1 ? 'bg-primary/10 border-primary text-primary shadow-xs' : ($wizardStep > 1 ? 'bg-secondary-container/20 border-secondary/40 text-secondary' : 'bg-surface border-outline-variant/50 text-on-surface-variant') }}">
@@ -199,7 +199,7 @@
                 @endif
 
                 <!-- WORKERS STEP -->
-                @php $workerStepNum = $hasMat ? 2 : 1; @endphp
+                @php $workerStepNum = $isCuttingStage ? 2 : ($hasMat ? 2 : 1); @endphp
                 <button type="button" wire:click="setWizardStep({{ $workerStepNum }})" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === $workerStepNum ? 'bg-primary/10 border-primary text-primary shadow-xs' : ($wizardStep > $workerStepNum ? 'bg-secondary-container/20 border-secondary/40 text-secondary' : 'bg-surface border-outline-variant/50 text-on-surface-variant') }}">
                     <div class="flex items-center gap-2">
                         <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === $workerStepNum ? 'bg-primary text-on-primary' : ($wizardStep > $workerStepNum ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/60 text-on-surface-variant') }}">
@@ -212,7 +212,7 @@
                 </button>
 
                 <!-- OUTPUT STEP -->
-                @php $outputStepNum = $hasMat ? 3 : 2; @endphp
+                @php $outputStepNum = $isCuttingStage ? 3 : ($hasMat ? 3 : 2); @endphp
                 <button type="button" wire:click="setWizardStep({{ $outputStepNum }})" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === $outputStepNum ? 'bg-primary/10 border-primary text-primary shadow-xs' : ($wizardStep > $outputStepNum ? 'bg-secondary-container/20 border-secondary/40 text-secondary' : 'bg-surface border-outline-variant/50 text-on-surface-variant') }}">
                     <div class="flex items-center gap-2">
                         <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === $outputStepNum ? 'bg-primary text-on-primary' : ($wizardStep > $outputStepNum ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/60 text-on-surface-variant') }}">
@@ -224,18 +224,19 @@
                     </div>
                 </button>
 
-                <!-- FINAL VARIANCE & PROGRESSION STEP -->
-                @php $finalStepNum = $maxSteps; @endphp
-                <button type="button" wire:click="setWizardStep({{ $finalStepNum }})" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === $finalStepNum ? 'bg-primary/10 border-primary text-primary shadow-xs' : 'bg-surface border-outline-variant/50 text-on-surface-variant' }}">
-                    <div class="flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === $finalStepNum ? 'bg-primary text-on-primary' : 'bg-outline-variant/60 text-on-surface-variant' }}">
-                            {{ $finalStepNum }}
-                        </span>
-                        <span class="truncate uppercase tracking-wider text-[11px]">
-                            {{ $isCuttingStage ? '4. Save & Progress' : ($finalStepNum . '. Variance & Progress') }}
-                        </span>
-                    </div>
-                </button>
+                @if($isCuttingStage)
+                    <!-- FINAL CUTTING STEP -->
+                    <button type="button" wire:click="setWizardStep(4)" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === 4 ? 'bg-primary/10 border-primary text-primary shadow-xs' : 'bg-surface border-outline-variant/50 text-on-surface-variant' }}">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === 4 ? 'bg-primary text-on-primary' : 'bg-outline-variant/60 text-on-surface-variant' }}">
+                                4
+                            </span>
+                            <span class="truncate uppercase tracking-wider text-[11px]">
+                                4. Save & Progress
+                            </span>
+                        </div>
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -1675,29 +1676,13 @@
             </div>
         </div>
 
-        <!-- OUTPUT STEP FOOTER NAVIGATION -->
-        <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
-            <button type="button" wire:click="setWizardStep({{ $hasMat ? 2 : 1 }})" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                Back: Record Workers
-            </button>
-            <button type="button" wire:click="setWizardStep({{ $maxSteps }})" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
-                Next Step: Output Variance & Stage Progression
-                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </button>
-        </div>
-        @endif
-
-        @if($wizardStep === $maxSteps && $selectedTask)
-        <!-- WIZARD STEP FINAL: OUTPUT VARIANCE & PRODUCT ALTERATION CONVERTER & STAGE PROGRESSION -->
-        <div class="space-y-6 mb-8">
             @php
                 $varInfo = $this->stageVarianceInfo;
             @endphp
 
             @if($varInfo['has_shortfall'])
                 <!-- VARIANCE ALERT CARD -->
-                <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 shadow-xs text-amber-950 space-y-4">
+                <div class="mt-8 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 shadow-xs text-amber-950 space-y-4">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-900 flex items-center justify-center font-bold shrink-0">
                             <span class="material-symbols-outlined text-[28px]">warning</span>
@@ -1745,30 +1730,11 @@
                         </div>
                     </div>
                 </div>
-            @elseif($varInfo['is_target_met'])
-                <div class="bg-secondary-container/20 border border-secondary/40 rounded-2xl p-6 text-on-secondary-container flex items-center justify-between shadow-xs">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-secondary/15 text-secondary flex items-center justify-center font-bold shrink-0">
-                            <span class="material-symbols-outlined text-[28px]">task_alt</span>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-sm text-primary">Stage Target 100% Satisfied!</h4>
-                            <p class="text-xs text-on-surface-variant font-medium mt-0.5">
-                                Recorded output quantity ({{ number_format($varInfo['output_qty']) }} Pcs) meets or exceeds stage target ({{ number_format($varInfo['input_qty']) }} Pcs). You can now complete this stage to progress the workflow.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            @else
-                <div class="p-6 bg-surface-container-low border border-outline-variant/60 rounded-2xl text-center space-y-2">
-                    <span class="material-symbols-outlined text-3xl text-outline opacity-50">analytics</span>
-                    <p class="text-xs font-semibold text-on-surface-variant">Record worker output and product output entries in Steps 2 & 3 to evaluate stage variance.</p>
-                </div>
             @endif
 
             <!-- ALTERATION LOG TABLE -->
             @if(count($jobAlterations) > 0)
-                <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs">
+                <div class="mt-8 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs">
                     <h4 class="font-headline-sm text-headline-sm text-amber-800 font-bold mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-amber-700">alt_route</span>
                         Recorded Product Alterations & Linked Child Batches
@@ -1815,7 +1781,7 @@
             @endif
 
             <!-- STAGE WORKFLOW PROGRESSION ACTION CARD -->
-            <div class="p-6 bg-surface-container-lowest border border-secondary/40 rounded-2xl shadow-xs space-y-4">
+            <div class="mt-8 p-6 bg-surface-container-lowest border border-secondary/40 rounded-2xl shadow-xs space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div class="flex items-center gap-3.5">
                         <div class="w-12 h-12 rounded-2xl bg-secondary/15 text-secondary flex items-center justify-center font-bold shrink-0">
@@ -1843,13 +1809,13 @@
                 </div>
             </div>
 
-            <!-- STEP FOOTER NAVIGATION -->
-            <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs">
-                <button type="button" wire:click="setWizardStep({{ $maxSteps - 1 }})" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
+            <!-- OUTPUT STEP FOOTER NAVIGATION -->
+            <div class="mt-8 flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
+                <button type="button" wire:click="setWizardStep({{ $hasMat ? 2 : 1 }})" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Back: Product Output Yield
+                    Back: Record Workers
                 </button>
-                <span class="text-xs font-bold text-on-surface-variant">Step {{ $maxSteps }} of {{ $maxSteps }}: Final Stage Progression</span>
+                <span class="text-xs font-bold text-on-surface-variant">Step {{ $maxSteps }} of {{ $maxSteps }}: Product Output & Stage Completion</span>
             </div>
         </div>
         @endif

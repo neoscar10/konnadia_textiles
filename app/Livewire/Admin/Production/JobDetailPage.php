@@ -261,18 +261,21 @@ class JobDetailPage extends Component
         if ($stageExec) {
             $outputQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
             $laborQty = (int) $this->job->allocations()->where('task_id', $this->selectedTaskId)->sum('quantity_processed');
-            $totalDone = max($outputQty, $laborQty, $stageExec->completed_quantity);
             $targetQty = $stageExec->target_quantity > 0 ? $stageExec->target_quantity : $this->job->target_quantity;
+            $effectiveDone = max($outputQty, $stageExec->completed_quantity);
 
-            if ($totalDone >= $targetQty && $targetQty > 0) {
+            // A stage is marked completed when output yield meets target OR when explicitly completed via workflow
+            $isOutputTargetMet = ($outputQty > 0 && $outputQty >= $targetQty) || ($laborQty >= $targetQty && $outputQty >= $targetQty);
+
+            if ($isOutputTargetMet && $targetQty > 0) {
                 $stageExec->update([
                     'status' => 'completed',
-                    'completed_quantity' => $totalDone,
+                    'completed_quantity' => max($outputQty, $laborQty),
                 ]);
-            } else if ($totalDone > 0) {
+            } else if ($effectiveDone > 0 || $laborQty > 0) {
                 $stageExec->update([
                     'status' => 'in_progress',
-                    'completed_quantity' => $totalDone,
+                    'completed_quantity' => max($outputQty, $laborQty),
                 ]);
             }
         }
