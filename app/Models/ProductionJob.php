@@ -17,6 +17,7 @@ class ProductionJob extends Model
         'supervisor_id',
         'job_date',
         'target_quantity',
+        'converted_quantity',
         'status',
         'notes',
     ];
@@ -24,6 +25,7 @@ class ProductionJob extends Model
     protected $casts = [
         'job_date' => 'date',
         'target_quantity' => 'integer',
+        'converted_quantity' => 'integer',
     ];
 
     protected static function boot()
@@ -287,5 +289,42 @@ class ProductionJob extends Model
     public function setInputQuantityAttribute($value)
     {
         $this->target_quantity = $value;
+    }
+
+    /**
+     * Get total produced quantity available for conversion.
+     */
+    public function getTotalProducedQuantityAttribute(): int
+    {
+        return $this->completed_quantity;
+    }
+
+    /**
+     * Get remaining unconverted quantity available for storefront conversion.
+     */
+    public function getRemainingUnconvertedQuantityAttribute(): int
+    {
+        $produced = $this->total_produced_quantity;
+        $converted = (int) ($this->converted_quantity ?? 0);
+        return max(0, $produced - $converted);
+    }
+
+    /**
+     * Get storefront conversion status string.
+     */
+    public function getConversionStatusAttribute(): string
+    {
+        $converted = (int) ($this->converted_quantity ?? 0);
+        $remaining = $this->remaining_unconverted_quantity;
+
+        if ($converted > 0 && $remaining === 0) {
+            return 'fully_converted';
+        }
+
+        if ($converted > 0 && $remaining > 0) {
+            return 'partially_converted';
+        }
+
+        return 'unconverted';
     }
 }

@@ -134,4 +134,105 @@ class FinishedGoodsConversionService
             return $batch;
         });
     }
+
+    /**
+     * Convert multi-job completed products into a Storefront Product or Variant bundle set.
+     *
+     * @param int|null $targetProductId
+     * @param int|null $targetCombinationId
+     * @param int $assembledSets
+     * @param array $jobComponents Array of ['production_job_id' => int, 'quantity_per_set' => int]
+     * @param string|null $notes
+     * @return \App\Models\StorefrontProductBundle
+     * @throws Exception
+     */
+    public function convertJobsToStorefrontBundle(?int $targetProductId, ?int $targetCombinationId, int $assembledSets, array $jobComponents, ?string $notes = null): \App\Models\StorefrontProductBundle
+    {
+        if (empty($targetProductId) && empty($targetCombinationId)) {
+            throw new Exception("Please select a Storefront Product or Variant.");
+        }
+
+        if ($assembledSets <= 0) {
+            throw new Exception("Quantity of sets to convert must be at least 1.");
+        }
+
+        if (empty($jobComponents)) {
+            throw new Exception("Please select at least one completed production job component.");
+        }
+
+        return DB::transaction(function () use ($targetProductId, $targetCombinationId, $assembledSets, $jobComponents, $notes) {
+            // 1. Create StorefrontProductBundle record
+            $bundle = \App\Models\StorefrontProductBundle::create([
+                'product_id' => $targetProductId ?: null,
+                'product_combination_id' => $targetCombinationId ?: null,
+                'created_by' => auth()->id(),
+                'quantity_created' => $assembledSets,
+                'notes' => $notes ?: "Storefront Conversion from Production Jobs Hub",
+            ]);
+
+            // 2. Validate availability and deduct unconverted quantities from each source job
+            foreach ($jobComponents as $comp) {
+                $jobId = intval($comp['production_job_id'] ?? 0);
+                $qtyPerSet = intval($comp['quantity_per_set'] ?? 1);
+                $totalNeeded = $assembledSets * $qtyPerSet;
+
+                if ($jobId <= 0 || $totalNeeded <= 0) {
+                    continue;
+                }
+
+                $job = \App\Models\ProductionJob::findOrFail($jobId);
+                $available = $job->remaining_unconverted_quantity;
+
+                if ($totalNeeded > $available) {
+                    throw new Exception("Insufficient unconverted units in Job {$job->job_code} ({$job->manufacturingProduct?->name}). Requested: {$totalNeeded} Pcs, Available: {$available} Pcs.");
+                }
+
+                // Update converted_quantity on job
+                $newConvertedQty = (int) $job->converted_quantity + $totalNeeded;
+                $job->update([
+                    'converted_quantity' => $newConvertedQty,
+                ]);
+
+                // Also update parent ProductionBatch converted_quantity if linked
+                if ($job->batch) {
+                    $job->batch->update([
+                        'converted_quantity' => (int) $job->batch->converted_quantity + $totalNeeded,
+                        'is_converted' => ((int) $job->batch->converted_quantity + $totalNeeded) >= ((int) $job->batch->total_finished_quantity ?: (int) $job->batch->planned_quantity),
+                    ]);
+                }
+
+                // Log Item link
+                \App\Models\StorefrontProductBundleItem::create([
+                    'storefront_product_bundle_id' => $bundle->id,
+                    'production_batch_id' => $job->production_batch_db_id ?: ($job->batch?->id),
+                    'manufacturing_product_id' => $job->manufacturing_product_id,
+                    'quantity_used' => $totalNeeded,
+                ]);
+            }
+
+            // 3. Increment Storefront Product or Combination Stock
+            $targetEntity = null;
+            if ($targetCombinationId) {
+                $targetEntity = ProductCombination::findOrFail($targetCombinationId);
+            } else {
+                $targetEntity = Product::findOrFail($targetProductId);
+            }
+
+            $targetEntity->increment('stock_quantity', $assembledSets);
+
+            // 4. Record Immutable Stock Movement Log
+            InventoryMovement::create([
+                'product_id' => $targetCombinationId ? $targetEntity->product_id : $targetEntity->id,
+                'product_combination_id' => $targetCombinationId ? $targetEntity->id : null,
+                'quantity_change' => $assembledSets,
+                'unit_cost' => 0.00,
+                'reference_type' => \App\Models\StorefrontProductBundle::class,
+                'reference_id' => $bundle->id,
+                'movement_type' => 'manufacturing_inward',
+                'notes' => "Converted {$assembledSets} Storefront Set(s) via Bundle Code {$bundle->bundle_code}",
+            ]);
+
+            return $bundle;
+        });
+    }
 }
