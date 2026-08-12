@@ -46,7 +46,7 @@ return new class extends Migration
             Schema::create('storefront_product_bundle_items', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('storefront_product_bundle_id')->constrained('storefront_product_bundles', 'id', 'spbi_bundle_fk')->onDelete('cascade');
-                $table->foreignId('production_batch_id')->constrained('production_batches', 'id', 'spbi_batch_fk')->onDelete('cascade');
+                $table->foreignId('production_batch_id')->nullable()->constrained('production_batches', 'id', 'spbi_batch_fk')->nullOnDelete();
                 $table->foreignId('manufacturing_product_id')->constrained('manufacturing_products', 'id', 'spbi_mfg_prod_fk')->onDelete('cascade');
                 $table->integer('quantity_used')->default(1);
                 $table->timestamps();

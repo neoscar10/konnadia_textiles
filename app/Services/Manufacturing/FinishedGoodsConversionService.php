@@ -205,10 +205,29 @@ class FinishedGoodsConversionService
                     ]);
                 }
 
+                // Resolve batch ID or auto-create batch for standalone jobs if missing
+                $batchId = $job->production_batch_db_id ?: ($job->batch?->id);
+                if (!$batchId && $job->manufacturing_product_id) {
+                    $batch = \App\Models\ProductionBatch::create([
+                        'batch_code' => $job->production_batch_id ?: ('PB-JOB-' . $job->id),
+                        'manufacturing_product_id' => $job->manufacturing_product_id,
+                        'planned_quantity' => $job->target_quantity ?: 1,
+                        'total_finished_quantity' => $job->target_quantity ?: 1,
+                        'unconverted_quantity' => $job->target_quantity ?: 1,
+                        'status' => 'Completed',
+                        'supervisor_id' => $job->supervisor_id,
+                    ]);
+                    $batchId = $batch->id;
+                    $job->update([
+                        'production_batch_db_id' => $batch->id,
+                        'production_batch_id' => $batch->batch_code,
+                    ]);
+                }
+
                 // Log Item link
                 \App\Models\StorefrontProductBundleItem::create([
                     'storefront_product_bundle_id' => $bundle->id,
-                    'production_batch_id' => $job->production_batch_db_id ?: ($job->batch?->id),
+                    'production_batch_id' => $batchId,
                     'manufacturing_product_id' => $job->manufacturing_product_id,
                     'quantity_used' => $totalNeeded,
                 ]);
