@@ -31,8 +31,6 @@ class JobIndexPage extends Component
 
     // Storefront Conversion Modal Properties
     public ?int $target_product_id = null;
-    public ?int $target_combination_id = null;
-    public int $assembled_sets_quantity = 1;
     public string $conversion_notes = '';
     public array $conversionComponents = [];
 
@@ -58,15 +56,15 @@ class JobIndexPage extends Component
     {
         $this->resetValidation();
         $this->target_product_id = null;
-        $this->target_combination_id = null;
-        $this->assembled_sets_quantity = 1;
         $this->conversion_notes = '';
         $this->conversionComponents = [];
 
         if ($preSelectedJobId) {
+            $job = ProductionJob::find($preSelectedJobId);
             $this->conversionComponents[] = [
                 'production_job_id' => $preSelectedJobId,
                 'quantity_per_set' => 1,
+                'total_pieces_input' => $job ? $job->remaining_unconverted_quantity : 0,
             ];
         } else {
             $this->addConversionComponentRow();
@@ -80,6 +78,7 @@ class JobIndexPage extends Component
         $this->conversionComponents[] = [
             'production_job_id' => '',
             'quantity_per_set' => 1,
+            'total_pieces_input' => 0,
         ];
     }
 
@@ -89,15 +88,68 @@ class JobIndexPage extends Component
         $this->conversionComponents = array_values($this->conversionComponents);
     }
 
-    public function processConversion(): void
+    public function updatedConversionComponents($value, $key): void
     {
-        if (empty($this->target_product_id) && empty($this->target_combination_id)) {
-            $this->addError('target_product_id', 'Please select a Storefront Product or Variant.');
-            return;
+        if (str_contains($key, 'production_job_id')) {
+            $parts = explode('.', $key);
+            $idx = intval($parts[0]);
+            $jobId = intval($value);
+            if ($jobId) {
+                $job = ProductionJob::find($jobId);
+                if ($job) {
+                    $this->conversionComponents[$idx]['total_pieces_input'] = $job->remaining_unconverted_quantity;
+                }
+            }
+        }
+    }
+
+    public function getConversionSummaryProperty(): array
+    {
+        if (empty($this->conversionComponents)) {
+            return ['max_sets' => 0, 'rows' => []];
         }
 
-        if (intval($this->assembled_sets_quantity) <= 0) {
-            $this->addError('assembled_sets_quantity', 'Quantity of sets to convert must be at least 1.');
+        $possibleSets = [];
+        $rowDetails = [];
+
+        foreach ($this->conversionComponents as $idx => $comp) {
+            $jobId = intval($comp['production_job_id'] ?? 0);
+            $job = $jobId ? ProductionJob::with('manufacturingProduct')->find($jobId) : null;
+            $ratio = max(1, intval($comp['quantity_per_set'] ?? 1));
+            $inputPcs = max(0, intval($comp['total_pieces_input'] ?? 0));
+
+            $sets = $jobId && $inputPcs > 0 ? (int) floor($inputPcs / $ratio) : 0;
+            if ($jobId) {
+                $possibleSets[] = $sets;
+            }
+
+            $rowDetails[$idx] = [
+                'job' => $job,
+                'ratio' => $ratio,
+                'inputPcs' => $inputPcs,
+                'setsPossible' => $sets,
+            ];
+        }
+
+        $maxSets = !empty($possibleSets) ? (int) min($possibleSets) : 0;
+
+        foreach ($rowDetails as $idx => $det) {
+            $consumed = $maxSets * $det['ratio'];
+            $leftover = max(0, $det['inputPcs'] - $consumed);
+            $rowDetails[$idx]['consumedPcs'] = $consumed;
+            $rowDetails[$idx]['leftoverPcs'] = $leftover;
+        }
+
+        return [
+            'max_sets' => $maxSets,
+            'rows' => $rowDetails,
+        ];
+    }
+
+    public function processConversion(): void
+    {
+        if (empty($this->target_product_id)) {
+            $this->addError('target_product_id', 'Please select a Storefront Product.');
             return;
         }
 
@@ -111,7 +163,10 @@ class JobIndexPage extends Component
                 $this->addError("conversionComponents.{$idx}.production_job_id", 'Production Job is required.');
             }
             if (empty($comp['quantity_per_set']) || intval($comp['quantity_per_set']) <= 0) {
-                $this->addError("conversionComponents.{$idx}.quantity_per_set", 'Quantity per set must be at least 1.');
+                $this->addError("conversionComponents.{$idx}.quantity_per_set", 'Pieces per set must be at least 1.');
+            }
+            if (empty($comp['total_pieces_input']) || intval($comp['total_pieces_input']) <= 0) {
+                $this->addError("conversionComponents.{$idx}.total_pieces_input", 'Pieces to process must be at least 1.');
             }
         }
 
@@ -119,18 +174,25 @@ class JobIndexPage extends Component
             return;
         }
 
+        $summary = $this->conversionSummary;
+        $maxSets = $summary['max_sets'];
+
+        if ($maxSets <= 0) {
+            $this->addError('conversionComponents', 'Cannot assemble any complete storefront sets with the entered piece quantities and set ratio. Please check your inputs.');
+            return;
+        }
+
         try {
             $conversionService = resolve(FinishedGoodsConversionService::class);
             $bundle = $conversionService->convertJobsToStorefrontBundle(
-                $this->target_product_id ?: null,
-                $this->target_combination_id ?: null,
-                intval($this->assembled_sets_quantity),
+                intval($this->target_product_id),
+                $maxSets,
                 $this->conversionComponents,
                 $this->conversion_notes ?: "Converted from Production Jobs Hub"
             );
 
             $this->dispatch('close-modal', 'storefront-conversion-modal');
-            $this->dispatch('toast', message: "Successfully converted {$this->assembled_sets_quantity} storefront set(s) under Bundle {$bundle->bundle_code}!", type: 'success');
+            $this->dispatch('toast', message: "Successfully converted {$maxSets} storefront set(s) under Bundle {$bundle->bundle_code}! Stock added: +{$maxSets}", type: 'success');
         } catch (Exception $e) {
             $this->addError('conversionComponents', $e->getMessage());
             $this->dispatch('toast', message: $e->getMessage(), type: 'error');

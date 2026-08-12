@@ -205,7 +205,7 @@
     <!-- Storefront Finished Goods Conversion Modal -->
     <x-admin.modal id="storefront-conversion-modal" title="Convert Completed Goods to Storefront Product" maxWidth="2xl">
         <form wire:submit.prevent="processConversion" class="space-y-5">
-            <p class="text-on-surface-variant text-sm">Convert completed factory products into sellable Storefront Products. You can combine multiple completed jobs into a single storefront bundle set (e.g. 1 Bed Sheet + 2 Pillow Cases = 1 Storefront Set).</p>
+            <p class="text-on-surface-variant text-sm">Convert completed factory products into sellable Storefront Products. Select your target storefront product, define the piece ratio for 1 set (e.g. 1 Bed Sheet + 2 Pillow Cases = 1 Set), and enter the total factory pieces to process from each completed job.</p>
 
             @if($errors->has('conversionComponents'))
                 <div class="bg-error-container/40 border border-error/30 text-error p-3.5 rounded-xl text-xs font-bold">
@@ -214,58 +214,33 @@
             @endif
 
             <!-- 1. Select Target Storefront Product SKU -->
-            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-4">
+            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-3">
                 <h4 class="font-bold text-sm text-primary flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg">storefront</span>
-                    1. Target Storefront Product / Variant SKU *
+                    1. Target Storefront Product SKU *
                 </h4>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Select Storefront Product *</label>
-                        <select wire:model.live="target_product_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                            <option value="">-- Select Storefront Product SKU --</option>
-                            @foreach($storefrontProducts as $sp)
-                                <option value="{{ $sp->id }}">{{ $sp->title ?? $sp->name }} (SKU: {{ $sp->sku ?? 'SKU-'.$sp->id }}) — Stock: {{ $sp->stock_quantity }}</option>
-                            @endforeach
-                        </select>
-                        @error('target_product_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Qnty of Sets to Convert *</label>
-                        <input type="number" min="1" wire:model.live="assembled_sets_quantity" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 font-bold text-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                        @error('assembled_sets_quantity') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Select Target Storefront Product *</label>
+                    <select wire:model.live="target_product_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                        <option value="">-- Select Storefront Product SKU --</option>
+                        @foreach($storefrontProducts as $sp)
+                            <option value="{{ $sp->id }}">{{ $sp->title ?? $sp->name }} (SKU: {{ $sp->sku ?? 'SKU-'.$sp->id }}) — Current Stock: {{ $sp->stock_quantity }}</option>
+                        @endforeach
+                    </select>
+                    @error('target_product_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                 </div>
-
-                @if($target_product_id)
-                    @php
-                        $selectedProd = $storefrontProducts->firstWhere('id', $target_product_id);
-                    @endphp
-                    @if($selectedProd && $selectedProd->combinations->count() > 0)
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Select Product Variant (Optional)</label>
-                            <select wire:model="target_combination_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                                <option value="">-- Apply directly to Base Product ({{ $selectedProd->title ?? $selectedProd->name }}) --</option>
-                                @foreach($selectedProd->combinations as $comb)
-                                    <option value="{{ $comb->id }}">{{ $comb->combination_string ?? 'Variant #'.$comb->id }} — Stock: {{ $comb->stock_quantity }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
-                @endif
             </div>
 
-            <!-- 2. Source Factory Components -->
+            <!-- 2. Source Factory Components & Processed Pieces -->
             <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-3">
                 <div class="flex items-center justify-between">
                     <h4 class="font-bold text-sm text-primary flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">fact_check</span>
-                        2. Factory Product Components per Set *
+                        2. Set Definition & Factory Pieces to Process *
                     </h4>
                     <button type="button" wire:click="addConversionComponentRow" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                        <span class="material-symbols-outlined text-sm">add_circle</span> Add Another Item
+                        <span class="material-symbols-outlined text-sm">add_circle</span> Add Another Component
                     </button>
                 </div>
 
@@ -273,14 +248,13 @@
                     @foreach($conversionComponents as $index => $comp)
                         @php
                             $selectedJob = !empty($comp['production_job_id']) ? $completedJobsForPicker->firstWhere('id', intval($comp['production_job_id'])) : null;
-                            $qtyPerSet = intval($comp['quantity_per_set'] ?? 1);
-                            $totalNeeded = max(1, intval($this->assembled_sets_quantity)) * $qtyPerSet;
-                            $avail = $selectedJob ? $selectedJob->remaining_unconverted_quantity : 0;
-                            $isShortage = $selectedJob && ($totalNeeded > $avail);
+                            $maxAvail = $selectedJob ? $selectedJob->remaining_unconverted_quantity : 0;
+                            $inputPcs = intval($comp['total_pieces_input'] ?? 0);
+                            $isExceed = $selectedJob && ($inputPcs > $maxAvail);
                         @endphp
                         <div class="p-3.5 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                                <div class="md:col-span-7">
+                                <div class="md:col-span-6">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Source Completed Job #{{ $index + 1 }} *</label>
                                     <select wire:model.live="conversionComponents.{{ $index }}.production_job_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
                                         <option value="">-- Choose Completed Factory Job --</option>
@@ -293,37 +267,87 @@
                                     @error("conversionComponents.{$index}.production_job_id") <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
                                 </div>
 
-                                <div class="md:col-span-4">
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Pieces per Set *</label>
-                                    <div class="flex items-center gap-2">
+                                <div class="md:col-span-3">
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Ratio (Pcs per Set) *</label>
+                                    <div class="flex items-center gap-1">
                                         <input type="number" min="1" wire:model.live="conversionComponents.{{ $index }}.quantity_per_set" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
-                                        <span class="text-xs font-bold text-outline">Pcs</span>
+                                        <span class="text-[11px] font-bold text-outline">Pcs/Set</span>
                                     </div>
                                     @error("conversionComponents.{$index}.quantity_per_set") <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
                                 </div>
 
-                                <div class="md:col-span-1 text-right">
-                                    @if(count($conversionComponents) > 1)
-                                        <button type="button" wire:click="removeConversionComponentRow({{ $index }})" class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors">
-                                            <span class="material-symbols-outlined text-lg">delete</span>
-                                        </button>
-                                    @endif
+                                <div class="md:col-span-3">
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Factory Pieces to Process *</label>
+                                    <div class="flex items-center gap-1">
+                                        <input type="number" min="1" wire:model.live="conversionComponents.{{ $index }}.total_pieces_input" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
+                                        @if(count($conversionComponents) > 1)
+                                            <button type="button" wire:click="removeConversionComponentRow({{ $index }})" class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors">
+                                                <span class="material-symbols-outlined text-base">delete</span>
+                                            </button>
+                                        @endif
+                                    </div>
+                                    @error("conversionComponents.{$index}.total_pieces_input") <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
                                 </div>
                             </div>
 
                             @if($selectedJob)
                                 <div class="flex items-center justify-between text-xs pt-1 border-t border-outline-variant/30">
                                     <span class="text-on-surface-variant font-semibold">
-                                        Total Required: <strong class="text-primary">{{ $totalNeeded }} Pcs</strong> ({{ $qtyPerSet }} Pcs/set &times; {{ $assembled_sets_quantity }} sets)
+                                        Selected: <strong>{{ $selectedJob->manufacturingProduct?->name }}</strong> (Job {{ $selectedJob->job_code }})
                                     </span>
-                                    <span class="font-bold {{ $isShortage ? 'text-error' : 'text-emerald-700' }}">
-                                        Available Unconverted: {{ $avail }} Pcs {{ $isShortage ? '(Shortage: ' . ($totalNeeded - $avail) . ' Pcs)' : '' }}
+                                    <span class="font-bold {{ $isExceed ? 'text-error' : 'text-emerald-700' }}">
+                                        Available Unconverted Stock: {{ $maxAvail }} Pcs {{ $isExceed ? '(Exceeds available stock!)' : '' }}
                                     </span>
                                 </div>
                             @endif
                         </div>
                     @endforeach
                 </div>
+
+                <!-- Automatic Live Conversion Calculation Summary Callout -->
+                @php
+                    $summary = $this->conversionSummary;
+                    $maxSets = $summary['max_sets'];
+                    $targetProduct = $target_product_id ? $storefrontProducts->firstWhere('id', $target_product_id) : null;
+                @endphp
+                @if($target_product_id && !empty($summary['rows']))
+                    <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-2 mt-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base">calculate</span>
+                                Automatic Conversion Summary
+                            </span>
+                            <span class="text-lg font-black text-emerald-700 bg-emerald-100 px-3 py-0.5 rounded-lg">
+                                +{{ number_format($maxSets) }} Sets
+                            </span>
+                        </div>
+
+                        <p class="text-xs font-semibold text-emerald-900">
+                            Converting the entered factory pieces will produce <strong class="text-emerald-700 font-extrabold text-sm">{{ number_format($maxSets) }} complete sets</strong> of <strong>{{ $targetProduct?->title ?? $targetProduct?->name }}</strong> (stock will increase from {{ $targetProduct?->stock_quantity }} to {{ ($targetProduct?->stock_quantity ?? 0) + $maxSets }}).
+                        </p>
+
+                        <div class="pt-2 border-t border-emerald-200/60 space-y-1">
+                            @foreach($summary['rows'] as $r)
+                                @if($r['job'])
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-emerald-900">
+                                            • <strong>{{ $r['job']->manufacturingProduct?->name }}</strong> (Job {{ $r['job']->job_code }}): Processing {{ $r['inputPcs'] }} Pcs @ {{ $r['ratio'] }} Pcs/Set &rightarrow; Consumes <strong>{{ $r['consumedPcs'] }} Pcs</strong>
+                                        </span>
+                                        @if($r['leftoverPcs'] > 0)
+                                            <span class="text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded text-[11px]">
+                                                {{ $r['leftoverPcs'] }} Pcs will remain unconverted
+                                            </span>
+                                        @else
+                                            <span class="text-emerald-700 font-bold text-[11px]">
+                                                0 Pcs leftover
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <!-- Notes -->

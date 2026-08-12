@@ -96,7 +96,6 @@ class StorefrontFinishedGoodsConversionTest extends TestCase
         // Convert 100 sets -> needs 100 Bed Sheets & 200 Pillow Cases
         $bundle = $service->convertJobsToStorefrontBundle(
             $this->storefrontSetProduct->id,
-            null,
             100, // 100 sets
             [
                 ['production_job_id' => $this->jobBedSheet->id, 'quantity_per_set' => 1],
@@ -129,7 +128,6 @@ class StorefrontFinishedGoodsConversionTest extends TestCase
         // Attempting to convert 104 sets when only 103 Bed Sheets exist
         $service->convertJobsToStorefrontBundle(
             $this->storefrontSetProduct->id,
-            null,
             104,
             [
                 ['production_job_id' => $this->jobBedSheet->id, 'quantity_per_set' => 1],
@@ -138,22 +136,26 @@ class StorefrontFinishedGoodsConversionTest extends TestCase
     }
 
     /** @test */
-    public function it_integrates_conversion_modal_via_job_index_livewire()
+    public function it_integrates_conversion_modal_via_job_index_livewire_with_automatic_set_calculation()
     {
         $this->actingAs($this->admin);
 
+        // Processing 50 Bedsheets (1/set) and 105 Pillow Cases (2/set) -> 50 sets, 5 pillow cases leftover
         Livewire::test(JobIndexPage::class)
             ->set('target_product_id', $this->storefrontSetProduct->id)
-            ->set('assembled_sets_quantity', 100)
             ->set('conversionComponents', [
-                ['production_job_id' => $this->jobBedSheet->id, 'quantity_per_set' => 1],
-                ['production_job_id' => $this->jobPillowCase->id, 'quantity_per_set' => 2],
+                ['production_job_id' => $this->jobBedSheet->id, 'quantity_per_set' => 1, 'total_pieces_input' => 50],
+                ['production_job_id' => $this->jobPillowCase->id, 'quantity_per_set' => 2, 'total_pieces_input' => 105],
             ])
             ->call('processConversion')
             ->assertHasNoErrors()
             ->assertDispatched('toast');
 
-        $this->assertEquals(100, $this->storefrontSetProduct->fresh()->stock_quantity);
-        $this->assertEquals(3, $this->jobBedSheet->fresh()->remaining_unconverted_quantity);
+        // +50 stock created for storefront product
+        $this->assertEquals(50, $this->storefrontSetProduct->fresh()->stock_quantity);
+        // Job Bed Sheet: 50 consumed out of 103 -> 53 remaining
+        $this->assertEquals(53, $this->jobBedSheet->fresh()->remaining_unconverted_quantity);
+        // Job Pillow Case: 100 consumed out of 200 (105 entered, 100 consumed) -> 100 remaining
+        $this->assertEquals(100, $this->jobPillowCase->fresh()->remaining_unconverted_quantity);
     }
 }

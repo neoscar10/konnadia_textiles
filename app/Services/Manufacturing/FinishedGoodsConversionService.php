@@ -136,20 +136,19 @@ class FinishedGoodsConversionService
     }
 
     /**
-     * Convert multi-job completed products into a Storefront Product or Variant bundle set.
+     * Convert multi-job completed products into a Storefront Product bundle set.
      *
-     * @param int|null $targetProductId
-     * @param int|null $targetCombinationId
+     * @param int $targetProductId
      * @param int $assembledSets
      * @param array $jobComponents Array of ['production_job_id' => int, 'quantity_per_set' => int]
      * @param string|null $notes
      * @return \App\Models\StorefrontProductBundle
      * @throws Exception
      */
-    public function convertJobsToStorefrontBundle(?int $targetProductId, ?int $targetCombinationId, int $assembledSets, array $jobComponents, ?string $notes = null): \App\Models\StorefrontProductBundle
+    public function convertJobsToStorefrontBundle(int $targetProductId, int $assembledSets, array $jobComponents, ?string $notes = null): \App\Models\StorefrontProductBundle
     {
-        if (empty($targetProductId) && empty($targetCombinationId)) {
-            throw new Exception("Please select a Storefront Product or Variant.");
+        if (empty($targetProductId)) {
+            throw new Exception("Please select a Storefront Product.");
         }
 
         if ($assembledSets <= 0) {
@@ -160,11 +159,11 @@ class FinishedGoodsConversionService
             throw new Exception("Please select at least one completed production job component.");
         }
 
-        return DB::transaction(function () use ($targetProductId, $targetCombinationId, $assembledSets, $jobComponents, $notes) {
+        return DB::transaction(function () use ($targetProductId, $assembledSets, $jobComponents, $notes) {
             // 1. Create StorefrontProductBundle record
             $bundle = \App\Models\StorefrontProductBundle::create([
-                'product_id' => $targetProductId ?: null,
-                'product_combination_id' => $targetCombinationId ?: null,
+                'product_id' => $targetProductId,
+                'product_combination_id' => null,
                 'created_by' => auth()->id(),
                 'quantity_created' => $assembledSets,
                 'notes' => $notes ?: "Storefront Conversion from Production Jobs Hub",
@@ -215,20 +214,14 @@ class FinishedGoodsConversionService
                 ]);
             }
 
-            // 3. Increment Storefront Product or Combination Stock
-            $targetEntity = null;
-            if ($targetCombinationId) {
-                $targetEntity = ProductCombination::findOrFail($targetCombinationId);
-            } else {
-                $targetEntity = Product::findOrFail($targetProductId);
-            }
-
+            // 3. Increment Storefront Product Stock
+            $targetEntity = Product::findOrFail($targetProductId);
             $targetEntity->increment('stock_quantity', $assembledSets);
 
             // 4. Record Immutable Stock Movement Log
             InventoryMovement::create([
-                'product_id' => $targetCombinationId ? $targetEntity->product_id : $targetEntity->id,
-                'product_combination_id' => $targetCombinationId ? $targetEntity->id : null,
+                'product_id' => $targetEntity->id,
+                'product_combination_id' => null,
                 'quantity_change' => $assembledSets,
                 'unit_cost' => 0.00,
                 'reference_type' => \App\Models\StorefrontProductBundle::class,
