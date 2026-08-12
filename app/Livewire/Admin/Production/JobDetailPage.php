@@ -232,6 +232,8 @@ class JobDetailPage extends Component
             'completed_quantity' => max($totalLoggedQty, $targetQty),
         ]);
 
+        $this->syncStageAndJobCompletion();
+
         // Progress job workflow to next uncompleted stage if available
         $nextStageExec = $this->job->stageExecutions()
             ->where('status', '!=', 'completed')
@@ -240,7 +242,6 @@ class JobDetailPage extends Component
             ->first();
 
         if ($nextStageExec) {
-            $this->selectedTaskId = $nextStageExec->task_id;
             $this->selectTask($nextStageExec->task_id);
             $this->dispatch('toast', message: 'Stage marked completed! Progressed workflow to ' . ($nextStageExec->task?->name ?? 'next stage') . '.', type: 'success');
         } else {
@@ -540,7 +541,11 @@ class JobDetailPage extends Component
         $this->resetValidation();
 
         // Refresh job relationships to reflect latest stage state
+        $this->job->unsetRelation('stageExecutions');
+        $this->job->unsetRelation('allocations');
+        $this->job->unsetRelation('productOutputs');
         $this->job->load([
+            'stageExecutions.task',
             'batch.childBatches',
             'allocations.labor',
             'allocations.task',
