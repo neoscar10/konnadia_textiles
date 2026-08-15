@@ -560,6 +560,9 @@ class JobDetailPage extends Component
             $this->selectedTaskId = $lastStageExec ? $lastStageExec->task_id : ($this->routingTasks->first()?->id);
         }
 
+        $this->activeStep = $this->hasMaterialStep ? 'material' : 'workers';
+        $this->wizardStep = 1;
+
         $this->resetFormRows();
         $this->resetCuttingForm();
 
@@ -613,8 +616,8 @@ class JobDetailPage extends Component
     public function selectTask($taskId): void
     {
         $this->selectedTaskId = $taskId;
-        $this->activeStep = 'workers';
         $this->wizardStep = 1;
+        $this->activeStep = $this->hasMaterialStep ? 'material' : 'workers';
         $this->resetValidation();
 
         // Refresh job relationships to reflect latest stage state

@@ -179,6 +179,13 @@
                 </div>
             @else
                 <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    @if($hasMat)
+                        <button type="button" wire:click="setActiveStep('material')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'material' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                            <span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                            <span>1. Material Selection</span>
+                        </button>
+                    @endif
+
                     @php $workerStepNum = $hasMat ? 2 : 1; @endphp
                     <button type="button" wire:click="setActiveStep('workers')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'workers' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">group</span>
