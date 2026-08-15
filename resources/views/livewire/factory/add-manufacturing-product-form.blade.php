@@ -15,28 +15,30 @@
     <!-- Main Form Area -->
     <form wire:submit.prevent="save" class="grid grid-cols-12 gap-6 items-start">
         <!-- Left/Center Content -->
-        <div class="col-span-12 lg:col-span-8 space-y-6">
+        <div class="col-span-12 space-y-6">
 
+            <!-- ═══════════════ WIZARD TABS ═══════════════ -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden mb-6 flex overflow-x-auto">
+                <button type="button" wire:click="setWizardStep(1)" class="px-6 py-4 font-label-md whitespace-nowrap font-bold text-sm flex-1 {{ $wizardStep === 1 ? 'text-primary border-b-2 border-primary bg-surface-container-low/50' : 'text-on-surface-variant hover:text-primary transition-colors' }}">
+                    1. Basic Info & Fabric
+                </button>
+                <button type="button" wire:click="setWizardStep(2)" class="px-6 py-4 font-label-md whitespace-nowrap font-bold text-sm flex-1 {{ $wizardStep === 2 ? 'text-secondary border-b-2 border-secondary bg-surface-container-low/50' : 'text-on-surface-variant hover:text-secondary transition-colors' }}">
+                    2. Subsidiary BOM
+                </button>
+                <button type="button" wire:click="setWizardStep(3)" class="px-6 py-4 font-label-md whitespace-nowrap font-bold text-sm flex-1 {{ $wizardStep === 3 ? 'text-tertiary border-b-2 border-tertiary bg-surface-container-low/50' : 'text-on-surface-variant hover:text-tertiary transition-colors' }}">
+                    3. Stitching
+                </button>
+                <button type="button" wire:click="setWizardStep(4)" class="px-6 py-4 font-label-md whitespace-nowrap font-bold text-sm flex-1 {{ $wizardStep === 4 ? 'text-primary border-b-2 border-primary bg-surface-container-low/50' : 'text-on-surface-variant hover:text-primary transition-colors' }}">
+                    4. Packaging
+                </button>
+                <button type="button" wire:click="setWizardStep(5)" class="px-6 py-4 font-label-md whitespace-nowrap font-bold text-sm flex-1 {{ $wizardStep === 5 ? 'text-primary border-b-2 border-primary bg-surface-container-low/50' : 'text-on-surface-variant hover:text-primary transition-colors' }}">
+                    5. Task Routing
+                </button>
+            </div>
+
+            @if($wizardStep === 1)
             <!-- ═══════════════ CARD 1: BASIC INFORMATION ═══════════════ -->
             <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
-                <div class="flex border-b border-outline-variant/60 bg-surface-container-low/30 overflow-x-auto">
-                    <button type="button" class="px-6 py-4 font-label-md text-primary border-b-2 border-primary whitespace-nowrap bg-surface-container-low/50 font-bold text-sm">
-                        Basic Info
-                    </button>
-                    <button type="button" disabled class="px-6 py-4 font-label-md text-on-surface-variant/40 whitespace-nowrap text-sm cursor-not-allowed">
-                        Fabric Config
-                    </button>
-                    <button type="button" disabled class="px-6 py-4 font-label-md text-on-surface-variant/40 whitespace-nowrap text-sm cursor-not-allowed">
-                        Subsidiary BOM
-                    </button>
-                    <button type="button" disabled class="px-6 py-4 font-label-md text-on-surface-variant/40 whitespace-nowrap text-sm cursor-not-allowed">
-                        Stitching
-                    </button>
-                    <button type="button" disabled class="px-6 py-4 font-label-md text-on-surface-variant/40 whitespace-nowrap text-sm cursor-not-allowed">
-                        Task Routing
-                    </button>
-                </div>
-
                 <div class="p-6 sm:p-8 space-y-6">
                     <!-- Row 1: Product Name & Internal Code -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -119,10 +121,16 @@
                                 <div>
                                     <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Standard Width *</label>
                                     <div class="flex gap-2 min-w-0">
-                                        <input wire:model.blur="standard_fabric_width" class="w-0 flex-1 min-w-0 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-3.5 py-2.5 bg-surface text-sm font-semibold" type="number" step="0.01" placeholder="60.00"/>
-                                        <select wire:model.live="fabric_width_unit" class="w-24 shrink-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs">
-                                            <option value="inch">Inch</option>
-                                            <option value="cm">CM</option>
+                                        <input wire:model.blur="standard_fabric_width" class="flex-1 min-w-0 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-3.5 py-2.5 bg-surface text-sm font-semibold" type="number" step="0.01" placeholder="60.00"/>
+                                        <select wire:model.live="fabric_width_group_id" class="flex-1 min-w-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs truncate">
+                                            @foreach($allUnitGroups as $group)
+                                                <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <select wire:model.live="fabric_width_unit" class="flex-1 min-w-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs truncate">
+                                            @foreach($allUnitGroups->find($fabric_width_group_id)?->units ?? [] as $unit)
+                                                <option value="{{ $unit->short_code }}">{{ $unit->name }} ({{ $unit->short_code }})</option>
+                                            @endforeach
                                         </select>
                                     </div>
                                     @error('standard_fabric_width') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
@@ -131,10 +139,16 @@
                                 <div>
                                     <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Standard Length *</label>
                                     <div class="flex gap-2 min-w-0">
-                                        <input wire:model.blur="standard_fabric_length" class="w-0 flex-1 min-w-0 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-3.5 py-2.5 bg-surface text-sm font-semibold" type="number" step="0.01" placeholder="2.50"/>
-                                        <select wire:model.live="fabric_length_unit" class="w-24 shrink-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs">
-                                            <option value="meter">Meter</option>
-                                            <option value="yard">Yard</option>
+                                        <input wire:model.blur="standard_fabric_length" class="flex-1 min-w-0 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-3.5 py-2.5 bg-surface text-sm font-semibold" type="number" step="0.01" placeholder="2.50"/>
+                                        <select wire:model.live="fabric_length_group_id" class="flex-1 min-w-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs truncate">
+                                            @foreach($allUnitGroups as $group)
+                                                <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <select wire:model.live="fabric_length_unit" class="flex-1 min-w-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs truncate">
+                                            @foreach($allUnitGroups->find($fabric_length_group_id)?->units ?? [] as $unit)
+                                                <option value="{{ $unit->short_code }}">{{ $unit->name }} ({{ $unit->short_code }})</option>
+                                            @endforeach
                                         </select>
                                     </div>
                                     @error('standard_fabric_length') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
@@ -184,7 +198,9 @@
                     </div>
                 </div>
             </div>
+            @endif
 
+            @if($wizardStep === 2)
             <!-- ═══════════════ CARD 2: SUBSIDIARY MATERIAL BOM ═══════════════ -->
             <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
                 <!-- Card Header / Toggle Row -->
@@ -310,7 +326,9 @@
                     </div>
                 @endif
             </div>
+            @endif
 
+            @if($wizardStep === 3)
             <!-- ═══════════════ CARD 3: STITCHING MATERIAL CONFIG ═══════════════ -->
             <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/60 bg-surface-container-low/30">
@@ -384,7 +402,9 @@
                     </div>
                 @endif
             </div>
+            @endif
 
+            @if($wizardStep === 4)
             <!-- ═══════════════ CARD: PACKAGING MATERIAL CONFIG ═══════════════ -->
             <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/60 bg-surface-container-low/30">
@@ -502,7 +522,9 @@
                     </div>
                 @endif
             </div>
+            @endif
 
+            @if($wizardStep === 5)
             <!-- ═══════════════ CARD 4: TASK SEQUENCE & ROUTING CONFIGURATION ═══════════════ -->
             <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/60 bg-surface-container-low/30">
@@ -606,7 +628,7 @@
                                         </button>
                                     @endif
                                 </div>
-                                @if(count($routingTasksList) > 1)
+                                @if(count($routingTasksList) > 1 && $index > 0)
                                     <button
                                         type="button"
                                         wire:click="removeRoutingRow({{ $index }})"
@@ -640,303 +662,36 @@
                 </div>
             </div>
 
-            <!-- ═══════════════ CARD 5: STOREFRONT B2B PRODUCT MAPPING ═══════════════ -->
-            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/60 bg-surface-container-low/30">
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
-                            <span class="material-symbols-outlined text-lg">storefront</span>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-sm text-secondary">Storefront B2B Product Mapping</h3>
-                            <p class="text-on-surface-variant text-xs">Link this Manufacturing Product to a B2B sales product.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="p-6 space-y-4">
-                    <div>
-                        <!-- Storefront Parent Product Selector -->
-                        <div>
-                            <label class="block font-label-md text-xs font-bold text-on-surface-variant mb-2">Storefront Sales Product</label>
-                            <select
-                                wire:model.live="mapped_product_id"
-                                class="w-full rounded-xl border border-outline-variant/60 focus:border-secondary focus:ring-1 focus:ring-secondary font-body-md px-4 py-3 bg-surface text-sm font-semibold"
-                            >
-                                <option value="">-- No Mapping / Select Product --</option>
-                                @foreach($storefrontProducts as $sp)
-                                    <option value="{{ $sp->id }}">{{ $sp->title }}</option>
-                                @endforeach
-                            </select>
-                            @error('mapped_product_id')
-                                <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <!-- Real-time Preview Badge/Card -->
-                    @if($mapped_product_id)
-                        @php
-                            $selProduct = $storefrontProducts->firstWhere('id', $mapped_product_id);
-                            $selCombination = $mapped_product_combination_id ? $storefrontCombinations->firstWhere('id', $mapped_product_combination_id) : null;
-                        @endphp
-                        @if($selProduct)
-                            <div class="mt-4 p-4 rounded-xl bg-secondary-container/10 border border-secondary/20 flex items-start justify-between gap-4">
-                                <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
-                                        <span class="material-symbols-outlined text-secondary text-xl">inventory_2</span>
-                                    </div>
-                                    <div>
-                                        <div class="text-[10px] uppercase font-black text-secondary tracking-wider">Currently Mapped Storefront Target</div>
-                                        <h4 class="font-extrabold text-sm text-on-surface mt-0.5">
-                                            {{ $selProduct->title }}
-                                            @if($selCombination)
-                                                <span class="text-xs text-secondary bg-secondary-container px-2 py-0.5 rounded-full font-bold ml-1">
-                                                    {{ is_array($selCombination->combination_values) ? implode(' / ', $selCombination->combination_values) : $selCombination->combination_values }}
-                                                </span>
-                                            @endif
-                                        </h4>
-                                        <p class="text-xs text-on-surface-variant font-mono mt-1">
-                                            SKU: {{ $selCombination ? $selCombination->sku : $selProduct->sku }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-[10px] uppercase font-bold text-on-surface-variant">Storefront Stock</div>
-                                    <div class="font-mono font-black text-lg text-secondary mt-0.5">
-                                        {{ $selCombination ? $selCombination->stock_quantity : $selProduct->stock_quantity }} Pcs
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                    @else
-                        <div class="bg-surface-container-high/30 border border-outline-variant/40 rounded-xl p-4 flex items-center gap-2 text-on-surface-variant italic text-xs">
-                            <span class="material-symbols-outlined text-[16px]">info</span>
-                            <span>No storefront mapping configured yet. This product cannot be converted to finished goods storefront stock upon batch completion without a valid mapping.</span>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Right Sidebar -->
-        <div class="col-span-12 lg:col-span-4 space-y-6">
-            <!-- Checklist Card -->
-            @php
-                $reqBasic = !empty($name) && !empty($manufacturing_product_category_id);
-                $reqRouting = count($routingTasksList) > 0;
-                $reqDoneCount = ($reqBasic ? 1 : 0) + ($reqRouting ? 1 : 0);
-            @endphp
-            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 p-6 shadow-xs">
-                <div class="flex items-center justify-between mb-4">
-                    <h4 class="font-headline-sm text-headline-sm font-bold text-sm">Form Checklist</h4>
-                    <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-md text-[10px] font-bold">
-                        {{ $reqDoneCount }}/2 Required Done
-                    </span>
-                </div>
-                <ul class="space-y-3">
-                    <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ $reqBasic ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
-                            {{ $reqBasic ? 'check_circle' : 'pending' }}
-                        </span>
-                        <span class="font-body-md text-sm {{ $reqBasic ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Basic Information</span>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ $reqRouting ? 'text-primary font-bold' : 'text-outline opacity-40' }}">
-                            {{ $reqRouting ? 'check_circle' : 'pending' }}
-                        </span>
-                        <span class="font-body-md text-sm {{ $reqRouting ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Task Routing Sequence ({{ count($routingTasksList) }} steps)</span>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ $is_fabric_used ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
-                            {{ $is_fabric_used ? 'check_circle' : 'radio_button_unchecked' }}
-                        </span>
-                        <span class="font-body-md text-sm {{ $is_fabric_used ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Fabric Dimensions (Optional)</span>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ $is_subsidiary_used ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
-                            {{ $is_subsidiary_used ? 'check_circle' : 'radio_button_unchecked' }}
-                        </span>
-                        <span class="font-body-md text-sm {{ $is_subsidiary_used ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Subsidiary BOM (Optional)</span>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ $is_stitching_used ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
-                            {{ $is_stitching_used ? 'check_circle' : 'radio_button_unchecked' }}
-                        </span>
-                        <span class="font-body-md text-sm {{ $is_stitching_used ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Stitching Materials (Optional)</span>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ $is_packaging_used ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
-                            {{ $is_packaging_used ? 'check_circle' : 'radio_button_unchecked' }}
-                        </span>
-                        <span class="font-body-md text-sm {{ $is_packaging_used ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Packaging Materials (Optional)</span>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-sm {{ !empty($mapped_product_id) ? 'text-secondary font-bold' : 'text-outline opacity-40' }}">
-                            {{ !empty($mapped_product_id) ? 'check_circle' : 'radio_button_unchecked' }}
-                        </span>
-                        <span class="font-body-md text-sm {{ !empty($mapped_product_id) ? 'font-semibold text-on-surface' : 'text-on-surface-variant' }}">Storefront B2B Mapping (Optional)</span>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Routing Sequence Summary Card -->
-            @if(count($routingTasksList) > 0)
-                <div class="bg-primary/5 rounded-2xl border border-primary/20 p-5 shadow-xs">
-                    <h4 class="font-bold text-sm text-primary flex items-center gap-2 mb-3">
-                        <span class="material-symbols-outlined text-[18px]">account_tree</span>
-                        Routing Sequence Summary
-                    </h4>
-                    <div class="space-y-2">
-                        @foreach($routingTasksList as $idx => $r)
-                            @php
-                                $taskObj = $availableTasks->firstWhere('id', $r['task_id']);
-                                $rateVal = (float)($r['standard_labor_rate'] !== '' ? $r['standard_labor_rate'] : ($standard_labor_rate ?: 15.00));
-                            @endphp
-                            <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-surface border border-outline-variant/30">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <span class="w-5 h-5 rounded-full bg-primary/20 text-primary font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
-                                        {{ $idx + 1 }}
-                                    </span>
-                                    <span class="font-bold text-on-surface truncate">{{ $taskObj?->name ?? 'Select Task' }}</span>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0">
-                                    <span class="font-mono text-on-surface-variant font-semibold">₹{{ number_format($rateVal, 2) }}</span>
-                                    @if(!empty($r['is_final_step']))
-                                        <span class="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container text-[9px] font-bold">Final</span>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
             @endif
 
-            <!-- Material & BOM Summary Card -->
-            @php
-                $validSubRows = $is_subsidiary_used ? array_filter($subsidiaryMaterialsList, fn($r) => !empty($r['raw_material_id'])) : [];
-                $validStitchIds = $is_stitching_used ? array_filter($stitchingMaterialsList) : [];
-                $validPkgRows = $is_packaging_used ? array_filter($packagingMaterialsList, fn($r) => !empty($r['raw_material_id'])) : [];
-                $hasMaterialSummary = $is_fabric_used || count($validSubRows) > 0 || count($validStitchIds) > 0 || count($validPkgRows) > 0;
-            @endphp
-            @if($hasMaterialSummary)
-                <div class="bg-secondary-container/30 rounded-2xl border border-secondary/20 p-5 shadow-xs">
-                    <h4 class="font-bold text-sm text-secondary flex items-center gap-2 mb-3">
-                        <span class="material-symbols-outlined text-[18px]">inventory_2</span>
-                        BOM & Materials Summary
-                    </h4>
-                    <div class="space-y-3">
-                        @if($is_fabric_used && ($standard_fabric_width || $standard_fabric_length))
-                            <div class="text-xs border-b border-secondary/10 pb-2">
-                                <span class="font-bold text-on-surface block text-[11px] uppercase tracking-wider text-secondary">Fabric Specifications</span>
-                                <div class="flex justify-between text-on-surface-variant font-mono mt-0.5">
-                                    <span>Width: {{ $standard_fabric_width ?: '—' }} {{ $fabric_width_unit }}</span>
-                                    <span>Length: {{ $standard_fabric_length ?: '—' }} {{ $fabric_length_unit }}</span>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if($is_subsidiary_used && count($validSubRows) > 0)
-                            <div class="text-xs space-y-1">
-                                <span class="font-bold text-on-surface block text-[11px] uppercase tracking-wider text-secondary">Subsidiaries (BOM)</span>
-                                @foreach($validSubRows as $row)
-                                    @php
-                                        $matName = $subsidiaryRawMaterials->firstWhere('id', $row['raw_material_id'])?->name ?? '—';
-                                    @endphp
-                                    <div class="flex items-center justify-between text-xs">
-                                        <span class="font-semibold text-on-surface truncate max-w-[60%]">{{ $matName }}</span>
-                                        <span class="text-on-surface-variant font-mono">
-                                            {{ $row['consumption_quantity'] ?: '—' }} {{ $row['unit'] ?? '' }}
-                                        </span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-
-                        @if($is_stitching_used && count($validStitchIds) > 0)
-                            <div class="text-xs space-y-1 border-t border-secondary/10 pt-2">
-                                <span class="font-bold text-on-surface block text-[11px] uppercase tracking-wider text-secondary">Stitching Threads</span>
-                                @foreach($validStitchIds as $sId)
-                                    @php
-                                        $matName = $stitchingRawMaterials->firstWhere('id', $sId)?->name ?? '—';
-                                    @endphp
-                                    <div class="flex items-center justify-between text-xs">
-                                        <span class="font-semibold text-on-surface truncate">{{ $matName }}</span>
-                                        <span class="text-secondary font-mono font-bold text-[10px] bg-secondary-container px-1.5 py-0.5 rounded">Allocated</span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-
-                        @if($is_packaging_used && count($validPkgRows) > 0)
-                            <div class="text-xs space-y-1 border-t border-secondary/10 pt-2">
-                                <span class="font-bold text-on-surface block text-[11px] uppercase tracking-wider text-secondary">Packaging Materials</span>
-                                @foreach($validPkgRows as $row)
-                                    @php
-                                        $matName = $packagingRawMaterials->firstWhere('id', $row['raw_material_id'])?->name ?? '—';
-                                    @endphp
-                                    <div class="flex items-center justify-between text-xs">
-                                        <span class="font-semibold text-on-surface truncate max-w-[60%]">{{ $matName }}</span>
-                                        <span class="text-on-surface-variant font-mono">
-                                            {{ $row['required_quantity'] ?: '—' }} {{ $row['unit'] ?? '' }}
-                                        </span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            @endif
-
-            <!-- Cost Estimation Card -->
-            <div class="bg-primary text-on-primary rounded-2xl shadow-lg p-6 relative overflow-hidden">
-                <div class="absolute -right-4 -top-4 opacity-10">
-                    <span class="material-symbols-outlined text-9xl">calculate</span>
-                </div>
-                <h4 class="font-label-md uppercase tracking-wider mb-4 opacity-80 text-xs font-bold">Cost Estimation Summary</h4>
-                @php
-                    $totalRoutingLabor = array_sum(array_map(function($r) use ($standard_labor_rate) {
-                        return (float)($r['standard_labor_rate'] !== '' ? $r['standard_labor_rate'] : ($standard_labor_rate ?: 15.00));
-                    }, $routingTasksList));
-
-                    $configuredBomCount = count($validSubRows) + count($validStitchIds) + count($validPkgRows) + ($is_fabric_used ? 1 : 0);
-                @endphp
-                <div class="space-y-3 mb-6 relative z-10 text-sm">
-                    <div class="flex justify-between">
-                        <span>Total Routing Wages</span>
-                        <span class="font-mono font-bold">₹{{ number_format($totalRoutingLabor, 2) }}</span>
-                    </div>
-                    <div class="flex justify-between text-xs opacity-90">
-                        <span>Configured Material Components</span>
-                        <span class="font-mono font-bold">{{ $configuredBomCount }} Item{{ $configuredBomCount === 1 ? '' : 's' }}</span>
-                    </div>
-                    <div class="pt-3 border-t border-on-primary/20 flex justify-between font-bold text-base">
-                        <span>Total Est. Base Cost</span>
-                        <span class="font-mono">₹{{ number_format($totalRoutingLabor, 2) }}</span>
-                    </div>
-                </div>
-                <div class="bg-on-primary/10 p-3 rounded-xl border border-on-primary/10 text-xs">
-                    <p class="text-center opacity-90">Labor rates are accumulated across all {{ count($routingTasksList) }} task sequence steps configured above.</p>
-                </div>
-            </div>
         </div>
 
         <!-- Sticky Footer -->
         <div class="col-span-12 mt-6 flex justify-between items-center py-4 px-6 bg-surface-container-low border border-outline-variant/60 rounded-2xl shadow-xs">
             <div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-xs">
-                <span class="font-bold text-primary">© 2026 Storesite Manufacturing ERP</span>
-                <span class="w-1 h-1 bg-outline-variant rounded-full"></span>
-                <span>All modifications require supervisor rights</span>
+                @if($wizardStep > 1)
+                    <button type="button" wire:click="previousStep" class="px-6 py-2.5 rounded-xl font-label-md text-label-md font-bold text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-150 text-xs flex items-center gap-1 border border-outline-variant/30">
+                        <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                        Previous Step
+                    </button>
+                @else
+                    <a href="{{ route('factory.products.index') }}" wire:navigate class="px-6 py-2.5 rounded-xl font-label-md text-label-md font-bold text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-150 text-xs">
+                        Cancel
+                    </a>
+                @endif
             </div>
             <div class="flex items-center gap-3">
-                <a href="{{ route('factory.products.index') }}" wire:navigate class="px-6 py-2.5 rounded-xl font-label-md text-label-md font-bold text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-150 text-xs">
-                    Cancel
-                </a>
-                <button type="submit" class="px-8 py-2.5 bg-primary text-on-primary rounded-xl font-label-md text-label-md font-bold shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 flex items-center gap-2 text-xs">
-                    <span class="material-symbols-outlined text-[18px]">bolt</span>
-                    {{ $productId ? 'Save Changes' : 'Save & Initiate' }}
-                </button>
+                @if($wizardStep < $maxSteps)
+                    <button type="button" wire:click="nextStep" class="px-8 py-2.5 bg-primary text-on-primary rounded-xl font-label-md text-label-md font-bold shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 flex items-center gap-2 text-xs">
+                        Next Step
+                        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                    </button>
+                @else
+                    <button type="submit" class="px-8 py-2.5 bg-secondary text-white rounded-xl font-label-md text-label-md font-bold shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 flex items-center gap-2 text-xs">
+                        <span class="material-symbols-outlined text-[18px]">bolt</span>
+                        {{ $productId ? 'Save Changes' : 'Save Product' }}
+                    </button>
+                @endif
             </div>
         </div>
     </form>

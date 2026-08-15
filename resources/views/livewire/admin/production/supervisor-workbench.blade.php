@@ -102,9 +102,9 @@
                                 @forelse($batches as $batch)
                                     @php
                                         $isRowSelected = ($selectedBatchId == $batch->id);
-                                        $activeJob = $batch->jobs->where('status', '!=', 'completed')->first() ?? $batch->jobs->last();
+                                        $activeStage = $batch->job?->stageExecutions->where('status', '!=', 'completed')->first() ?? $batch->job?->stageExecutions->last();
                                         $totalRoutingSteps = $batch->manufacturingProduct?->tasks->count() ?? 1;
-                                        $currentStep = $activeJob ? $activeJob->sequence_number : 1;
+                                        $currentStep = $activeStage ? $activeStage->sequence_number : 1;
                                     @endphp
                                     <tr wire:click="selectBatch({{ $batch->id }})" class="cursor-pointer transition-colors {{ $isRowSelected ? 'bg-primary/5 font-bold' : 'hover:bg-surface-container-low/50' }}">
                                         <td class="px-5 py-4">
@@ -117,9 +117,9 @@
                                                 <span class="px-2 py-0.5 rounded bg-primary/10 text-primary font-mono text-[10px] font-bold">
                                                     Step {{ $currentStep }} of {{ $totalRoutingSteps }}
                                                 </span>
-                                                @if($activeJob)
+                                                @if($activeStage)
                                                     <span class="text-xs font-semibold text-on-surface-variant">
-                                                        • {{ $activeJob->task?->name }}
+                                                        • {{ $activeStage->task?->name }}
                                                     </span>
                                                 @endif
                                             </div>
@@ -166,9 +166,9 @@
                                                     <span>Ledger</span>
                                                     <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                                                 </a>
-                                            @elseif($activeJob)
-                                                <a href="{{ route('admin.production.jobs.show', $activeJob->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary text-on-primary px-3.5 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-container transition-all active:scale-95 shadow-xs">
-                                                    <span>{{ $activeJob->status === 'completed' ? 'View Job' : 'Execute Job' }}</span>
+                                            @elseif($activeStage && $batch->job)
+                                                <a href="{{ route('admin.production.jobs.show', $batch->job->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary text-on-primary px-3.5 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-container transition-all active:scale-95 shadow-xs">
+                                                    <span>{{ $activeStage->status === 'completed' ? 'View Job' : 'Execute Job' }}</span>
                                                     <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                                                 </a>
                                             @else
@@ -252,7 +252,7 @@
                             <div class="border-t border-outline-variant/40 pt-3">
                                 <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2">Sequential Routing Progress</span>
                                 <div class="space-y-2">
-                                    @forelse($selectedBatch->jobs as $j)
+                                    @forelse($selectedBatch->job?->stageExecutions ?? [] as $j)
                                         @php
                                             $isDone = ($j->status === 'completed');
                                             $isCurrent = ($j->status !== 'completed');
@@ -264,7 +264,7 @@
                                                     {{ $seqNo }}
                                                 </span>
                                                 <div>
-                                                    <p class="font-bold text-xs text-primary">{{ $j->job_code }}</p>
+                                                    <p class="font-bold text-xs text-primary">{{ $selectedBatch->job?->job_code ?? 'Stage' }}</p>
                                                     <p class="text-[11px] text-on-surface-variant font-semibold">
                                                         Stage: {{ $j->task?->name }} ({{ number_format($j->target_quantity) }} Pcs)
                                                     </p>
@@ -276,7 +276,7 @@
                                                 @else
                                                     <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold animate-pulse">Active</span>
                                                 @endif
-                                                <a href="{{ route('admin.production.jobs.show', $j->id) }}" wire:navigate class="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all">
+                                                <a href="{{ route('admin.production.jobs.show', $selectedBatch->job->id) }}" wire:navigate class="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all">
                                                     <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                                                 </a>
                                             </div>

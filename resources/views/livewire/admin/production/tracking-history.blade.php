@@ -26,6 +26,29 @@
                 <option value="job_work">Job Work (Piece Rate)</option>
             </select>
         </div>
+        <div>
+            <select wire:model.live="jobFilter" class="bg-surface border-outline-variant rounded-lg font-label-md text-label-md py-2.5 px-4 focus:ring-1 focus:ring-primary font-bold">
+                <option value="">Job ID (All)</option>
+                @foreach($jobs as $job)
+                    <option value="{{ $job->job_code }}">{{ $job->job_code }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <select wire:model.live="workerFilter" class="bg-surface border-outline-variant rounded-lg font-label-md text-label-md py-2.5 px-4 focus:ring-1 focus:ring-primary font-bold">
+                <option value="">Labor Worker (All)</option>
+                @foreach($workers as $worker)
+                    <option value="{{ $worker->id }}">{{ $worker->name }} ({{ $worker->code }})</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <div class="flex items-center gap-2">
+                <input type="date" wire:model.live="dateFrom" class="bg-surface border-outline-variant rounded-lg font-label-md text-label-md py-2.5 px-4 focus:ring-1 focus:ring-primary font-bold text-on-surface-variant" title="Date From" />
+                <span class="text-on-surface-variant font-bold text-sm">-</span>
+                <input type="date" wire:model.live="dateTo" class="bg-surface border-outline-variant rounded-lg font-label-md text-label-md py-2.5 px-4 focus:ring-1 focus:ring-primary font-bold text-on-surface-variant" title="Date To" />
+            </div>
+        </div>
     </div>
 
     <!-- Data Table -->

@@ -30,7 +30,32 @@ class JobDetailPage extends Component
     public $selectedTaskId = null;
 
     public int $wizardStep = 1;
+    public $activeStep = 'workers';
 
+    public function setActiveStep(string $step)
+    {
+        $targetStep = 1;
+        $isCutting = $this->selectedTask && ($this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001');
+        
+        if ($isCutting) {
+            if ($step === 'workers') $targetStep = 2;
+            elseif ($step === 'output') $targetStep = 3;
+            elseif ($step === 'wastage') $targetStep = 4;
+            else $targetStep = 1;
+        } else {
+            if ($step === 'workers') {
+                $targetStep = $this->hasMaterialStep ? 2 : 1;
+            } elseif ($step === 'output') {
+                $targetStep = $this->hasMaterialStep ? 3 : 2;
+            } elseif ($step === 'wastage') {
+                $targetStep = $this->maxWizardSteps;
+            } elseif ($step === 'material') {
+                $targetStep = 1;
+            }
+        }
+        
+        $this->setWizardStep($targetStep);
+    }
     public function getSelectedTaskProperty()
     {
         return $this->selectedTaskId ? Task::with('rawMaterialCategories')->find($this->selectedTaskId) : null;
@@ -49,7 +74,7 @@ class JobDetailPage extends Component
 
         $consumesRawMaterial = $this->selectedTask->consumes_raw_material && ($this->selectedTask->name !== 'Stitching' && $this->selectedTask->code !== 'TSK-002');
 
-        return $consumesRawMaterial || count($this->subsidiaryConsumptions) > 0;
+        return $consumesRawMaterial;
     }
 
     public function getMaxWizardStepsProperty(): int
@@ -85,6 +110,23 @@ class JobDetailPage extends Component
         }
 
         $this->wizardStep = $targetStep;
+
+        $isCutting = $this->selectedTask && ($this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001');
+        if (!$isCutting) {
+            $workerStep = $this->hasMaterialStep ? 2 : 1;
+            $outputStep = $this->hasMaterialStep ? 3 : 2;
+            $wastageStep = $this->maxWizardSteps;
+            
+            if ($targetStep === $workerStep) {
+                $this->activeStep = 'workers';
+            } elseif ($targetStep === $outputStep) {
+                $this->activeStep = 'output';
+            } elseif ($targetStep === $wastageStep) {
+                $this->activeStep = 'wastage';
+            } elseif ($targetStep === 1 && $this->hasMaterialStep) {
+                $this->activeStep = 'material';
+            }
+        }
     }
 
     public function validateCuttingStep2(): bool
@@ -178,7 +220,7 @@ class JobDetailPage extends Component
     public function previousWizardStep(): void
     {
         if ($this->wizardStep > 1) {
-            $this->wizardStep--;
+            $this->setWizardStep($this->wizardStep - 1);
         }
     }
 
@@ -219,7 +261,14 @@ class JobDetailPage extends Component
 
         $outputQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
         $laborQty = (int) $this->job->allocations()->where('task_id', $this->selectedTaskId)->sum('quantity_processed');
-        $totalLoggedQty = max($outputQty, $laborQty, $stageExecution->completed_quantity);
+        $wastedQty = (int) $this->job->wastages()->where('task_id', $this->selectedTaskId)->sum('quantity_wasted');
+        
+        // Sum all alterations for this job to count towards completion resolution
+        $alteredQty = (int) $this->job->alterations()->sum('source_quantity');
+        
+        $effectiveOutput = $outputQty + $wastedQty + $alteredQty;
+        
+        $totalLoggedQty = max($effectiveOutput, $laborQty, $stageExecution->completed_quantity);
 
         $targetQty = $stageExecution->target_quantity > 0 ? $stageExecution->target_quantity : $this->job->target_quantity;
         if ($totalLoggedQty < $targetQty && $targetQty > 0) {
@@ -229,7 +278,6 @@ class JobDetailPage extends Component
 
         $stageExecution->update([
             'status' => 'completed',
-            'completed_quantity' => max($totalLoggedQty, $targetQty),
         ]);
 
         $this->syncStageAndJobCompletion();
@@ -262,21 +310,37 @@ class JobDetailPage extends Component
         if ($stageExec) {
             $outputQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
             $laborQty = (int) $this->job->allocations()->where('task_id', $this->selectedTaskId)->sum('quantity_processed');
+            $wastedQty = (int) $this->job->wastages()->where('task_id', $this->selectedTaskId)->sum('quantity_wasted');
+            
             $targetQty = $stageExec->target_quantity > 0 ? $stageExec->target_quantity : $this->job->target_quantity;
-            $effectiveDone = max($outputQty, $stageExec->completed_quantity);
+            
+            // If the stage is already marked as completed (e.g. manually via completeStageAndProgress), do NOT revert it!
+            if ($stageExec->status === 'completed') {
+                // Just ensure propagation of actual output yield downstream
+                $this->job->stageExecutions()
+                    ->where('sequence_number', '>', $stageExec->sequence_number)
+                    ->update(['target_quantity' => $outputQty]);
+                return;
+            }
+            
+            $effectiveDone = $outputQty + $wastedQty;
 
-            // A stage is marked completed when output yield meets target OR when explicitly completed via workflow
-            $isOutputTargetMet = ($outputQty > 0 && $outputQty >= $targetQty) || ($laborQty >= $targetQty && $outputQty >= $targetQty);
+            // A stage is marked completed when effective done (output yield + wastage) meets target
+            $isOutputTargetMet = ($effectiveDone > 0 && $effectiveDone >= $targetQty);
 
             if ($isOutputTargetMet && $targetQty > 0) {
                 $stageExec->update([
                     'status' => 'completed',
-                    'completed_quantity' => max($outputQty, $laborQty),
                 ]);
+
+                // Propagate actual output yield as the new target for all subsequent stages
+                $this->job->stageExecutions()
+                    ->where('sequence_number', '>', $stageExec->sequence_number)
+                    ->update(['target_quantity' => $outputQty]);
+
             } else if ($effectiveDone > 0 || $laborQty > 0) {
                 $stageExec->update([
                     'status' => 'in_progress',
-                    'completed_quantity' => max($outputQty, $laborQty),
                 ]);
             }
         }
@@ -452,7 +516,7 @@ class JobDetailPage extends Component
     }
 
     // Subsidiary Material Consumption Form (CAT-SUB BOM-driven)
-    public array $subsidiaryConsumptions = []; // [['bom_raw_material_id'=>, 'bom_material_name'=>, 'unit'=>, 'expected_quantity'=>, 'inventory_batch_id'=>, 'actual_consumed'=>]]
+
     public bool $isTaskSubsidiary = false; // true when selected task is linked to CAT-SUB
     public bool $isTaskStitching = false;  // true when selected task is linked to CAT-STITCH
 
@@ -498,7 +562,7 @@ class JobDetailPage extends Component
 
         $this->resetFormRows();
         $this->resetCuttingForm();
-        $this->preloadSubsidiaryConsumptions();
+
     }
 
     public function getIsSelectedStageCompletedProperty(): bool
@@ -549,7 +613,8 @@ class JobDetailPage extends Component
     public function selectTask($taskId): void
     {
         $this->selectedTaskId = $taskId;
-        $this->wizardStep = 1;
+        $this->activeStep = 'workers';
+        $this->wizardStep = ($this->selectedTask && ($this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001')) ? 2 : ($this->hasMaterialStep ? 2 : 1);
         $this->resetValidation();
 
         // Refresh job relationships to reflect latest stage state
@@ -579,7 +644,7 @@ class JobDetailPage extends Component
         $this->alterationRecords = [['source_product_id' => $defaultProdId, 'source_quantity' => '', 'target_product_id' => '', 'target_quantity' => '']];
         
         $this->resetCuttingForm();
-        $this->preloadSubsidiaryConsumptions();
+
 
         if ($this->isSelectedStageCompleted) {
             $this->loadCompletedStageData();
@@ -662,47 +727,7 @@ class JobDetailPage extends Component
      * Build subsidiary consumption rows pre-filled from the product's BOM
      * when the selected task is linked to the CAT-SUB raw material category.
      */
-    private function preloadSubsidiaryConsumptions(): void
-    {
-        $this->subsidiaryConsumptions = [];
-        $this->isTaskSubsidiary = false;
-        $this->isTaskStitching = false;
 
-        if (!$this->selectedTaskId) {
-            return;
-        }
-
-        $task = Task::with('rawMaterialCategories')->find($this->selectedTaskId);
-        if (!$task) {
-            return;
-        }
-
-        $this->isTaskSubsidiary = $task->rawMaterialCategories->contains('code', 'CAT-SUB');
-        $this->isTaskStitching  = $task->rawMaterialCategories->contains('code', 'CAT-STITCH');
-
-        if (!$this->isTaskSubsidiary) {
-            return;
-        }
-
-        $product = $this->job->manufacturingProduct;
-        if (!$product) {
-            return;
-        }
-
-        $bomItems = $product->subsidiaryMaterials;
-        $targetQty = (int) $this->job->target_quantity;
-
-        foreach ($bomItems as $mat) {
-            $this->subsidiaryConsumptions[] = [
-                'bom_raw_material_id' => $mat->id,
-                'bom_material_name'   => $mat->name,
-                'unit'                => $mat->unit,
-                'expected_quantity'   => round($mat->pivot->consumption_quantity * $targetQty, 4),
-                'inventory_batch_id'  => '',
-                'actual_consumed'     => '',
-            ];
-        }
-    }
 
     public function addLaborRow($manufacturingProductId = null): void
     {
@@ -1250,105 +1275,6 @@ class JobDetailPage extends Component
         $this->dispatch('toast', message: 'Raw material inventory consumption recorded successfully!', type: 'success');
     }
 
-    /**
-     * Save subsidiary material consumption (CAT-SUB BOM-driven).
-     *
-     * Rules:
-     *  - No wastage calculation.
-     *  - Inventory reduces strictly by actual consumed quantity.
-     *  - Costs logged as: actual_consumed * batch_purchase_rate.
-     */
-    public function saveSubsidiaryConsumption()
-    {
-        if (!auth()->user()->hasAnyRole(['super_admin', 'admin', 'Factory Supervisor'])) {
-            abort(403, 'Unauthorized action. Only Factory Supervisors can record subsidiary material consumption.');
-        }
-
-        $this->validate([
-            // Subsidiary consumptions are optional for many tasks (e.g., Packaging).
-            'subsidiaryConsumptions' => 'array',
-            // Both fields are nullable; we will enforce consistency manually.
-            'subsidiaryConsumptions.*.inventory_batch_id' => 'nullable|exists:inventory_batches,id',
-            'subsidiaryConsumptions.*.actual_consumed' => 'nullable|numeric|gt:0',
-        ], [
-            'subsidiaryConsumptions.*.inventory_batch_id.exists' => 'Selected inventory batch does not exist.',
-            'subsidiaryConsumptions.*.actual_consumed.numeric' => 'Actual consumed must be a number.',
-            'subsidiaryConsumptions.*.actual_consumed.gt' => 'Actual consumed quantity must be greater than 0.',
-        ]);
-
-        // Cross‑field consistency: if one of the two fields is present, the other must be present.
-        foreach ($this->subsidiaryConsumptions as $idx => $row) {
-            $hasBatch = !empty($row['inventory_batch_id'] ?? null);
-            $hasConsumed = !empty($row['actual_consumed'] ?? null);
-            if ($hasBatch xor $hasConsumed) {
-                $this->addError(
-                    "subsidiaryConsumptions.{$idx}.inventory_batch_id",
-                    'Both inventory batch and consumed quantity must be provided together.'
-                );
-                return;
-            }
-        }
-
-        // Filter out empty rows that were not filled
-        $this->subsidiaryConsumptions = array_filter($this->subsidiaryConsumptions, function ($row) {
-            return !empty($row['inventory_batch_id']) && !empty($row['actual_consumed']);
-        });
-
-        // Validate stock availability
-        foreach ($this->subsidiaryConsumptions as $idx => $row) {
-            $batch = InventoryBatch::find($row['inventory_batch_id']);
-            if (!$batch) {
-                $this->addError("subsidiaryConsumptions.{$idx}.inventory_batch_id", "Selected batch not found.");
-                return;
-            }
-            $consumed = (float) $row['actual_consumed'];
-            if ($consumed > (float) $batch->balance_quantity) {
-                $this->addError(
-                    "subsidiaryConsumptions.{$idx}.actual_consumed",
-                    "Consumed ({$consumed} {$batch->unit}) exceeds available stock ({$batch->balance_quantity} {$batch->unit}) in batch {$batch->batch_number}."
-                );
-                return;
-            }
-        }
-
-        DB::transaction(function () {
-            foreach ($this->subsidiaryConsumptions as $row) {
-                $batch       = InventoryBatch::findOrFail($row['inventory_batch_id']);
-                $consumedQty = (float) $row['actual_consumed'];
-                $totalCost   = $consumedQty * (float) $batch->unit_cost;
-
-                // Log consumption — NO wastage factor applied
-                JobMaterialConsumption::create([
-                    'job_code'           => $this->job->job_code,
-                    'production_job_id'  => $this->job->id,
-                    'inventory_batch_id' => $batch->id,
-                    'task_id'            => $this->selectedTaskId,
-                    'quantity_consumed'  => $consumedQty,
-                    'unit_cost'          => $batch->unit_cost,
-                    'total_cost'         => $totalCost,
-                ]);
-
-                $batch->deductQuantity($consumedQty);
-            }
-
-            if ($this->job->status === 'pending') {
-                $this->job->update(['status' => 'in_progress']);
-            }
-        });
-
-        $this->job->load(['materialConsumptions.inventoryBatch.rawMaterial.category', 'materialConsumptions.task']);
-        // Log each subsidiary consumption
-        foreach ($this->subsidiaryConsumptions as $row) {
-            $batch = InventoryBatch::find($row['inventory_batch_id']);
-            $consumedQty = (float) $row['actual_consumed'];
-            InventoryBatchLogger::log($batch->id, 'consumed', $consumedQty, $this->job->production_batch_id ?? null, 'Subsidiary material consumed for production task');
-        }
-
-        // Reload pre-filled BOM rows for next submission
-        $this->preloadSubsidiaryConsumptions();
-
-        $this->dispatch('toast', message: 'Subsidiary material consumption recorded successfully!', type: 'success');
-    }
 
     public function saveProductionOutput()
     {
@@ -1409,7 +1335,49 @@ class JobDetailPage extends Component
             }
         }
 
-        DB::transaction(function () {
+        $subsidiaryDeductions = [];
+        if ($this->isTaskSubsidiary) {
+            foreach ($this->productionOutputs as $idx => $row) {
+                $prodId = !empty($row['manufacturing_product_id']) ? $row['manufacturing_product_id'] : ($this->job->manufacturing_product_id ?? null);
+                $qty = (int) ($row['quantity_produced'] ?? 0);
+                
+                $product = ManufacturingProduct::with('subsidiaryMaterials')->find($prodId);
+                if ($product && $product->subsidiaryMaterials) {
+                    foreach ($product->subsidiaryMaterials as $mat) {
+                        $requiredQty = $mat->pivot->consumption_quantity * $qty;
+                        if ($requiredQty > 0) {
+                            $matId = $mat->id;
+                            if (!isset($subsidiaryDeductions[$matId])) {
+                                $subsidiaryDeductions[$matId] = [
+                                    'material' => $mat,
+                                    'total_required' => 0,
+                                ];
+                            }
+                            $subsidiaryDeductions[$matId]['total_required'] += $requiredQty;
+                        }
+                    }
+                }
+            }
+            
+            // Validate availability
+            foreach ($subsidiaryDeductions as $matId => &$data) {
+                $required = $data['total_required'];
+                $availableBatches = InventoryBatch::where('raw_material_id', $matId)
+                                                  ->where('balance_quantity', '>', 0)
+                                                  ->orderBy('created_at', 'asc')
+                                                  ->get();
+                $totalAvailable = $availableBatches->sum('balance_quantity');
+                if ($totalAvailable < $required) {
+                    $matName = $data['material']->name;
+                    $shortage = $required - $totalAvailable;
+                    $this->addError('productionOutputs', "Insufficient inventory for subsidiary material '{$matName}'. Required: {$required}. Available: {$totalAvailable}. Shortage: {$shortage}.");
+                    return;
+                }
+                $data['batches'] = $availableBatches;
+            }
+        }
+
+        DB::transaction(function () use ($subsidiaryDeductions) {
             foreach ($this->productionOutputs as $row) {
                 $prodId = !empty($row['manufacturing_product_id']) ? $row['manufacturing_product_id'] : ($this->job->manufacturing_product_id ?? null);
                 JobProductionOutput::create([
@@ -1419,6 +1387,34 @@ class JobDetailPage extends Component
                     'task_id' => $this->selectedTaskId,
                     'quantity_produced' => (int) $row['quantity_produced'],
                 ]);
+            }
+
+            if ($this->isTaskSubsidiary && !empty($subsidiaryDeductions)) {
+                foreach ($subsidiaryDeductions as $matId => $data) {
+                    $required = $data['total_required'];
+                    foreach ($data['batches'] as $batch) {
+                        if ($required <= 0) break;
+                        
+                        $deduct = min($required, $batch->balance_quantity);
+                        $totalCost = $deduct * (float) $batch->unit_cost;
+                        
+                        JobMaterialConsumption::create([
+                            'job_code'           => $this->job->job_code,
+                            'production_job_id'  => $this->job->id,
+                            'inventory_batch_id' => $batch->id,
+                            'task_id'            => $this->selectedTaskId,
+                            'quantity_consumed'  => $deduct,
+                            'unit_cost'          => $batch->unit_cost,
+                            'total_cost'         => $totalCost,
+                        ]);
+                        
+                        $batch->deductQuantity($deduct);
+                        
+                        InventoryBatchLogger::log($batch->id, 'consumed', $deduct, $this->job->production_batch_id ?? null, 'Subsidiary material automatically consumed for product output');
+                        
+                        $required -= $deduct;
+                    }
+                }
             }
 
             if ($this->job->status === 'pending') {
@@ -1535,7 +1531,7 @@ class JobDetailPage extends Component
                     'manufacturing_product_id' => $this->job->manufacturing_product_id,
                     'planned_quantity' => $this->job->target_quantity,
                     'status' => 'In Progress',
-                    'supervisor_id' => $this->job->supervisor_id,
+                    'supervisor_id' => $this->job->supervisor_id ?? auth()->id(),
                 ]);
                 $this->job->update(['production_batch_db_id' => $parentBatch->id, 'production_batch_id' => $parentBatch->batch_code]);
             }

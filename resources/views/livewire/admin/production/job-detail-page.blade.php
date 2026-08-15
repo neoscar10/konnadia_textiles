@@ -99,42 +99,17 @@
         </div>
     </div>
 
-    <!-- STAGE SELECTION TABS -->
-    <div class="mb-6">
-        <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider shrink-0 mr-2">Production Stage:</span>
-            @php
-                $visibleStageExecutions = (!$job->manufacturing_product_id)
-                    ? $job->stageExecutions->where('sequence_number', 1)
-                    : $job->stageExecutions;
-            @endphp
-            @foreach($visibleStageExecutions as $idx => $stageExec)
-                @php
-                    $task = $stageExec->task;
-                    $stageOutputSum = $stageExec->completed_quantity;
-                    $stageMax = $stageExec->target_quantity > 0 ? $stageExec->target_quantity : (int)$job->target_quantity;
-                    $stagePending = $stageExec->pending_quantity;
-                    $isSelected = ($selectedTaskId == $task?->id);
-                @endphp
-                <button type="button" wire:click="selectTask({{ $task?->id }})" class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 border {{ $isSelected ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant/60 hover:bg-surface-container-high' }}">
-                    <span>P{{ $idx + 1 }}: {{ $task?->name }}</span>
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] {{ $isSelected ? 'bg-white text-primary font-black' : ($stagePending > 0 ? 'bg-amber-500/10 text-amber-700 font-bold' : 'bg-secondary/10 text-secondary font-bold') }}">
-                        {{ number_format($stageOutputSum) }} / {{ number_format($stageMax) }} Pcs
-                        @if($stagePending > 0)
-                            • {{ number_format($stagePending) }} Ready
-                        @else
-                            • Completed
-                        @endif
-                    </span>
-                </button>
-            @endforeach
-        </div>
+    <!-- MAIN TWO-COLUMN WORKSPACE LAYOUT (WIZARD LEFT, STAGE SIDEBAR RIGHT) -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+        <!-- LEFT COLUMN: STAGE OPERATIONS WIZARD (3 SPANS) -->
+        <div class="lg:col-span-3 space-y-6 order-2 lg:order-last">
+
 
         <!-- INTERACTIVE WIZARD PROGRESS TRACKER HEADER -->
         @php
             $isCuttingStage = $selectedTask && ($selectedTask->name === 'Cutting' || $selectedTask->code === 'TSK-001');
-            $hasMat = $selectedTask && $selectedTask->consumes_raw_material && !$isTaskStitching;
-            $maxSteps = $isCuttingStage ? 4 : ($hasMat ? 3 : 2);
+            $hasMat = $this->hasMaterialStep;
+            $maxSteps = $this->maxWizardSteps;
         @endphp
 
         <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 shadow-xs mb-6">
@@ -182,92 +157,57 @@
                 </div>
             </div>
 
-            <!-- STEP INDICATOR TRACKER BAR -->
-            <div class="grid grid-cols-2 @if($maxSteps === 4) md:grid-cols-4 @elseif($maxSteps === 3) md:grid-cols-3 @else md:grid-cols-2 @endif gap-2 sm:gap-3">
-                @if($hasMat)
-                    <!-- STEP 1 (Material) -->
-                    <button type="button" wire:click="setWizardStep(1)" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === 1 ? 'bg-primary/10 border-primary text-primary shadow-xs' : ($wizardStep > 1 ? 'bg-secondary-container/20 border-secondary/40 text-secondary' : 'bg-surface border-outline-variant/50 text-on-surface-variant') }}">
-                        <div class="flex items-center gap-2">
-                            <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === 1 ? 'bg-primary text-on-primary' : ($wizardStep > 1 ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/60 text-on-surface-variant') }}">
-                                @if($wizardStep > 1) ✓ @else 1 @endif
-                            </span>
-                            <span class="truncate uppercase tracking-wider text-[11px]">
-                                {{ $isCuttingStage ? '1. Fabric & Rolls' : '1. Material Entry' }}
-                            </span>
-                        </div>
+            <!-- DYNAMIC ACTIVE-STEP SUB-TABS -->
+            @if($isCuttingStage)
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    <button type="button" wire:click="setWizardStep(1)" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 1 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                        <span class="material-symbols-outlined text-[18px]">content_cut</span>
+                        <span>1. Fabric & Roll Selection</span>
                     </button>
-                @endif
-
-                <!-- WORKERS STEP -->
-                @php $workerStepNum = $isCuttingStage ? 2 : ($hasMat ? 2 : 1); @endphp
-                <button type="button" wire:click="setWizardStep({{ $workerStepNum }})" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === $workerStepNum ? 'bg-primary/10 border-primary text-primary shadow-xs' : ($wizardStep > $workerStepNum ? 'bg-secondary-container/20 border-secondary/40 text-secondary' : 'bg-surface border-outline-variant/50 text-on-surface-variant') }}">
-                    <div class="flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === $workerStepNum ? 'bg-primary text-on-primary' : ($wizardStep > $workerStepNum ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/60 text-on-surface-variant') }}">
-                            @if($wizardStep > $workerStepNum) ✓ @else {{ $workerStepNum }} @endif
-                        </span>
-                        <span class="truncate uppercase tracking-wider text-[11px]">
-                            {{ $isCuttingStage ? '2. Cut Yields & Labor' : ($workerStepNum . '. Record Workers') }}
-                        </span>
-                    </div>
-                </button>
-
-                <!-- OUTPUT STEP -->
-                @php $outputStepNum = $isCuttingStage ? 3 : ($hasMat ? 3 : 2); @endphp
-                <button type="button" wire:click="setWizardStep({{ $outputStepNum }})" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === $outputStepNum ? 'bg-primary/10 border-primary text-primary shadow-xs' : ($wizardStep > $outputStepNum ? 'bg-secondary-container/20 border-secondary/40 text-secondary' : 'bg-surface border-outline-variant/50 text-on-surface-variant') }}">
-                    <div class="flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === $outputStepNum ? 'bg-primary text-on-primary' : ($wizardStep > $outputStepNum ? 'bg-secondary text-on-secondary' : 'bg-outline-variant/60 text-on-surface-variant') }}">
-                            @if($wizardStep > $outputStepNum) ✓ @else {{ $outputStepNum }} @endif
-                        </span>
-                        <span class="truncate uppercase tracking-wider text-[11px]">
-                            {{ $isCuttingStage ? '3. Cost Valuation' : ($outputStepNum . '. Product Output') }}
-                        </span>
-                    </div>
-                </button>
-
-                @if($isCuttingStage)
-                    <!-- FINAL CUTTING STEP -->
-                    <button type="button" wire:click="setWizardStep(4)" class="p-3 rounded-xl border text-left transition-all relative overflow-hidden text-xs font-bold {{ $wizardStep === 4 ? 'bg-primary/10 border-primary text-primary shadow-xs' : 'bg-surface border-outline-variant/50 text-on-surface-variant' }}">
-                        <div class="flex items-center gap-2">
-                            <span class="w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 {{ $wizardStep === 4 ? 'bg-primary text-on-primary' : 'bg-outline-variant/60 text-on-surface-variant' }}">
-                                4
-                            </span>
-                            <span class="truncate uppercase tracking-wider text-[11px]">
-                                4. Save & Progress
-                            </span>
-                        </div>
+                    <button type="button" wire:click="setWizardStep(2)" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 2 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                        <span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                        <span>2. Cut Yields & Labor</span>
                     </button>
-                @endif
-            </div>
+                    <button type="button" wire:click="setWizardStep(3)" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 3 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                        <span class="material-symbols-outlined text-[18px]">payments</span>
+                        <span>3. Cost Valuation</span>
+                    </button>
+                    <button type="button" wire:click="setWizardStep(4)" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 4 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                        <span class="material-symbols-outlined text-[18px]">published_with_changes</span>
+                        <span>4. Save & Progress</span>
+                    </button>
+                </div>
+            @else
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    @php $workerStepNum = $hasMat ? 2 : 1; @endphp
+                    <button type="button" wire:click="setActiveStep('workers')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'workers' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                        <span class="material-symbols-outlined text-[18px]">group</span>
+                        <span>{{ $workerStepNum }}. Workers & Allocation</span>
+                    </button>
+
+                    @php $outputStepNum = $hasMat ? 3 : 2; @endphp
+                    <button type="button" wire:click="setActiveStep('output')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'output' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                        <span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                        <span>{{ $outputStepNum }}. Product Output Yields</span>
+                    </button>
+
+                    @php $wastageStepNum = $hasMat ? 4 : 3; @endphp
+                    <button type="button" wire:click="setActiveStep('wastage')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'wastage' ? 'bg-error text-on-error border-error shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                        <span class="material-symbols-outlined text-[18px]">report_problem</span>
+                        <span>{{ $wastageStepNum }}. Wastage & Alterations</span>
+                    </button>
+                </div>
+            @endif
         </div>
 
-        @if($this->isSelectedStageCompleted)
-            <div class="mb-6 p-5 rounded-2xl bg-secondary-container/20 border border-secondary/40 text-on-secondary-container flex items-center justify-between shadow-xs">
-                <div class="flex items-center gap-3.5">
-                    <div class="w-11 h-11 rounded-2xl bg-secondary/15 text-secondary flex items-center justify-center font-bold shrink-0">
-                        <span class="material-symbols-outlined text-[26px]">verified</span>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-sm text-primary flex items-center gap-2">
-                            Stage Completed — Read-Only Inspection Mode
-                        </h4>
-                        <p class="text-xs text-on-surface-variant font-medium mt-0.5">
-                            The <strong>{{ $selectedTask?->name }}</strong> stage has reached 100% target output and is completed. Recorded outputs, labor allocations, and material usages are displayed below for review and cannot accept new entries.
-                        </p>
-                    </div>
-                </div>
-                <span class="px-3.5 py-1.5 bg-secondary/20 border border-secondary/40 text-secondary rounded-xl text-xs font-extrabold uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-secondary"></span>
-                    Completed & Locked
-                </span>
-            </div>
-        @endif
+
 
       @if($selectedTask && ($selectedTask->name === 'Cutting' || $selectedTask->code === 'TSK-001'))
         <!-- CUSTOM CUTTING SESSION TERMINAL UI -->
         <form wire:submit.prevent="saveCuttingSession" class="space-y-6 mb-8">
             <div class="grid grid-cols-12 gap-6">
                 <!-- Left Side: Cutting Form Entry -->
-                <div class="col-span-12 lg:col-span-8 space-y-6">
+                <div class="col-span-12 space-y-6">
 
                     @if($errors->any())
                         <div class="bg-error-container/40 border border-error/30 text-error p-4 rounded-xl mb-6">
@@ -744,85 +684,7 @@
                     @endif
                 </div>
 
-                <!-- Right Side: Real-time Cost Preview Summary (Sticky) -->
-                <div class="col-span-12 lg:col-span-4 space-y-6 sticky top-6 self-start max-h-[calc(100vh-2rem)] overflow-y-auto">
-                    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
-                        <h4 class="font-headline-sm text-headline-sm text-primary font-bold flex items-center gap-2">
-                            <span class="material-symbols-outlined">payments</span> Cost Valuation
-                        </h4>
 
-                        @if($this->cuttingCostPreview)
-                            <div class="space-y-4">
-                                <div class="p-4 bg-primary/5 text-primary border border-primary/20 rounded-xl space-y-2 text-xs">
-                                    <div class="flex justify-between font-medium">
-                                        <span>Total Consumed Fabric:</span>
-                                        <span class="font-bold">₹{{ number_format($this->cuttingCostPreview['total_fabric_cost'], 2) }}</span>
-                                    </div>
-                                    <div class="flex justify-between font-medium text-error">
-                                        <span>Total Allocated Wastage:</span>
-                                        <span class="font-bold">+ ₹{{ number_format($this->cuttingCostPreview['total_wastage_cost'], 2) }}</span>
-                                    </div>
-                                    <div class="h-px bg-outline-variant/30 my-2"></div>
-                                    <div class="flex justify-between font-extrabold text-sm">
-                                        <span>Consolidated Valuation:</span>
-                                        <span class="text-secondary font-black">₹{{ number_format($this->cuttingCostPreview['total_fabric_cost'], 2) }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-3 pt-2">
-                                    <span class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Itemized Cost Allocation:</span>
-                                    @foreach($this->cuttingCostPreview['preview_items'] as $item)
-                                        <div class="p-3 bg-surface border border-outline-variant/40 rounded-xl text-xs space-y-1.5 shadow-2xs">
-                                            <div class="flex justify-between font-bold text-on-surface text-sm truncate">
-                                                <span>{{ $item['product_name'] }}</span>
-                                                <span>x{{ $item['quantity'] }}</span>
-                                            </div>
-                                            <div class="flex justify-between text-on-surface-variant">
-                                                <span>Base Fabric Cost:</span>
-                                                <span>₹{{ number_format($item['base_cost'], 2) }}</span>
-                                            </div>
-                                            <div class="flex justify-between text-error/80">
-                                                <span>Wastage Cost (WA):</span>
-                                                <span>+ ₹{{ number_format($item['allocated_wastage'], 2) }}</span>
-                                            </div>
-                                            <div class="pt-1.5 mt-1 border-t border-outline-variant/30 flex justify-between font-bold text-primary">
-                                                <span>Total Material Cost:</span>
-                                                <span>₹{{ number_format($item['total_cost'], 2) }}</span>
-                                            </div>
-                                            <div class="text-[10px] text-outline font-semibold">
-                                                Yield Cost: ₹{{ number_format($item['cost_per_unit'], 2) }} / pc
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @else
-                            <div class="p-8 text-center text-on-surface-variant bg-surface rounded-xl border border-outline-variant/40 italic text-xs flex flex-col items-center gap-2">
-                                <span class="material-symbols-outlined text-4xl text-outline opacity-40">calculate</span>
-                                Enter fabric roll selection and consumed quantity to display live cost rollup preview.
-                            </div>
-                        @endif
-                    </div>
-
-                    @if($wizardStep === 4)
-                        <!-- Complete Stage Action Button (Shown only on Step 4) -->
-                        <div class="bg-surface-container-low border border-outline-variant/60 rounded-2xl p-6 shadow-xs text-center space-y-3">
-                            @if($this->isSelectedStageCompleted)
-                                <p class="text-xs text-on-surface-variant leading-relaxed">This cutting stage is completed and locked from further entry. Recorded sessions and yields are archived in the audit log below.</p>
-                                <button type="button" disabled class="w-full bg-outline-variant/40 text-on-surface-variant/60 py-4 rounded-xl font-bold text-base cursor-not-allowed shadow-xs flex items-center justify-center gap-2">
-                                    <span class="material-symbols-outlined text-[20px]">lock</span>
-                                    Stage Completed (Locked)
-                                </button>
-                            @else
-                                <p class="text-xs text-on-surface-variant leading-relaxed">Ensure all pieces, measurements, and fabric wastes are logged accurately. Saving this cutting session will deduct bale lengths from stock and allocate unit costs downstream.</p>
-                                <button type="submit" class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold text-base hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
-                                    <span class="material-symbols-outlined">save</span>
-                                    Save Cutting Session Output
-                                </button>
-                            @endif
-                        </div>
-                    @endif
-                </div>
             </div>
         </form>
 
@@ -1058,98 +920,6 @@
         </div>
         @endif
 
-        {{-- ═══ SUBSIDIARY BOM CONSUMPTION PANEL (CAT-SUB tasks only) ═══ --}}
-        @if($isTaskSubsidiary && count($subsidiaryConsumptions) > 0)
-            <div class="bg-surface-container-lowest border border-secondary/30 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
-                <div class="flex items-center gap-3 mb-5 pb-4 border-b border-outline-variant/40">
-                    <div class="w-10 h-10 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold shrink-0">
-                        <span class="material-symbols-outlined text-[22px]">inventory_2</span>
-                    </div>
-                    <div>
-                        <h3 class="font-headline-sm text-headline-sm text-secondary font-bold">Subsidiary Material BOM Consumption</h3>
-                        <p class="text-xs text-on-surface-variant font-medium mt-0.5">Pre-filled from product BOM. Select batch and confirm actual quantity consumed. <strong>No wastage is applied.</strong></p>
-                    </div>
-                </div>
-
-                @error('subsidiaryConsumptions')
-                    <div class="bg-error-container/40 border border-error/30 text-error p-4 rounded-xl mb-4 flex items-center gap-3">
-                        <span class="material-symbols-outlined text-error shrink-0">error</span>
-                        <p class="font-semibold text-sm">{{ $message }}</p>
-                    </div>
-                @enderror
-
-                <form wire:submit.prevent="saveSubsidiaryConsumption" class="space-y-3">
-                    {{-- Column headers --}}
-                    <div class="grid grid-cols-12 gap-3 px-1 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                        <div class="col-span-3">Material</div>
-                        <div class="col-span-2 text-center">Unit</div>
-                        <div class="col-span-2 text-center">Expected Qty</div>
-                        <div class="col-span-3">Inventory Batch</div>
-                        <div class="col-span-2 text-center">Actual Consumed</div>
-                    </div>
-
-                    @foreach($subsidiaryConsumptions as $idx => $row)
-                        <div class="grid grid-cols-12 gap-3 items-center p-3.5 bg-surface rounded-xl border border-outline-variant/50 hover:border-secondary/40 transition-colors">
-                            {{-- Material Name --}}
-                            <div class="col-span-3">
-                                <p class="font-bold text-sm truncate">{{ $row['bom_material_name'] }}</p>
-                            </div>
-
-                            {{-- Auto-derived unit badge --}}
-                            <div class="col-span-2 flex justify-center">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-secondary-container/60 text-on-secondary-container font-bold text-xs border border-secondary/20">
-                                    {{ $row['unit'] }}
-                                </span>
-                            </div>
-
-                            {{-- Expected quantity (read-only reference) --}}
-                            <div class="col-span-2 text-center">
-                                <span class="font-black text-sm text-primary">{{ number_format($row['expected_quantity'], 4) }}</span>
-                            </div>
-
-                            {{-- Batch selector (only CAT-SUB batches for this material) --}}
-                            <div class="col-span-3">
-                                <select
-                                    wire:model.live="subsidiaryConsumptions.{{ $idx }}.inventory_batch_id"
-                                    class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
-                                >
-                                    <option value="">-- Select Batch --</option>
-                                    @foreach($availableBatches->where('raw_material_id', $row['bom_raw_material_id']) as $batch)
-                                        <option value="{{ $batch->id }}">
-                                            {{ $batch->batch_number }} — {{ number_format($batch->balance_quantity, 2) }} {{ $batch->unit }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error("subsidiaryConsumptions.{$idx}.inventory_batch_id")
-                                    <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span>
-                                @enderror
-                            </div>
-
-                            {{-- Actual consumed --}}
-                            <div class="col-span-2">
-                                <input
-                                    type="number"
-                                    step="0.0001"
-                                    min="0.0001"
-                                    wire:model.live="subsidiaryConsumptions.{{ $idx }}.actual_consumed"
-                                    class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-black text-secondary text-center focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
-                                />
-                                @error("subsidiaryConsumptions.{$idx}.actual_consumed")
-                                    <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span>
-                                @enderror
-                            </div>
-                        </div>
-                    @endforeach
-
-                    <div class="flex justify-end pt-4 border-t border-outline-variant/40 mt-4">
-                        <button type="submit" class="bg-secondary text-on-secondary px-8 py-3 rounded-xl font-bold text-sm hover:bg-secondary-container shadow-md transition-all active:scale-95 flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[20px]">inventory</span>
-                            Record Subsidiary Consumption (No Wastage)
-                        </button>
-                    </div>
-                </form>
-            </div>
-        @endif
 
         {{-- ═══ STITCHING COST POOL INFO BANNER (CAT-STITCH tasks) ═══ --}}
         @if($isTaskStitching)
@@ -1206,7 +976,7 @@
                             Stage Worker Execution & Labor Allocation: {{ $selectedTask ? $selectedTask->name : 'Select Stage' }}
                         </h3>
                         <p class="text-xs text-on-surface-variant font-medium mt-0.5">
-                            Assign authorized workers via <span class="font-bold text-primary">Individual Split</span> or <span class="font-bold text-secondary">Bulk 100% Allocation</span> for stage <span class="font-bold text-primary">{{ $selectedTask ? $selectedTask->name : '' }}</span>.
+                            Assign authorized workers for stage <span class="font-bold text-primary">{{ $selectedTask ? $selectedTask->name : '' }}</span>.
                         </p>
                     </div>
                 </div>
@@ -1238,37 +1008,6 @@
                 </div>
             </div>
 
-            <!-- BULK ALLOCATION CONTROL BAR -->
-            @php
-                $prodId = $job->manufacturing_product_id ?? '';
-            @endphp
-            <div class="bg-secondary-container/20 border border-secondary/30 rounded-xl p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <div class="w-9 h-9 rounded-xl bg-secondary text-on-secondary flex items-center justify-center font-bold shrink-0">
-                        <span class="material-symbols-outlined text-[20px]">bolt</span>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-xs text-primary uppercase tracking-wider">Bulk 100% Worker Allocation</h4>
-                        <p class="text-[11px] text-on-surface-variant font-medium">Assign full stage pending quantity ({{ number_format($stagePending) }} Pcs) to a single laborer in one action.</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <select wire:model.live="bulkLaborSelections.{{ $prodId }}" @if($this->isSelectedStageCompleted) disabled @endif class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all shrink-0 min-w-[200px] @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
-                        <option value="">-- Choose Worker for Bulk Assign --</option>
-                        @foreach($authorizedLabors as $labor)
-                            <option value="{{ $labor->id }}">
-                                {{ $labor->name }} ({{ $labor->code }})
-                            </option>
-                        @endforeach
-                    </select>
-
-                    <button type="button" wire:click="bulkAllocate('{{ $prodId }}')" @if($this->isSelectedStageCompleted || $stagePending <= 0) disabled @endif class="bg-secondary text-on-secondary px-5 py-2 rounded-xl text-xs font-bold hover:bg-secondary-container transition-all shadow-xs active:scale-95 shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span class="material-symbols-outlined text-[16px]">bolt</span>
-                        Bulk Assign 100%
-                    </button>
-                </div>
-            </div>
 
             @if($errors->has('laborAllocations'))
                 <div class="bg-error-container/40 border border-error/30 text-error p-4 rounded-xl mb-6 flex items-center gap-3">
@@ -1551,6 +1290,25 @@
             </div>
         </div>
 
+        <!-- OUTPUT STEP FOOTER NAVIGATION -->
+        <div class="mt-8 flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
+            <button type="button" wire:click="setWizardStep({{ $hasMat ? 2 : 1 }})" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                Back: Record Workers
+            </button>
+            <button type="button" wire:click="setWizardStep({{ $hasMat ? 4 : 3 }})" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+                Next Step: Wastage & Alterations
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+        </div>
+        @endif
+
+        @if((($hasMat && $wizardStep === 4) || (!$hasMat && $wizardStep === 3)) && $selectedTask)
+            @php
+                $varInfo = $this->stageVarianceInfo;
+            @endphp
+            
+            @if($varInfo['has_shortfall'] || count($stageWastages) > 0)
         <!-- SECTION 4: WASTAGE & PRODUCTION LOSS RECORDING -->
         <div class="bg-error-container/10 border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
             <div class="bg-surface p-4 rounded-xl border border-error/20 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1678,10 +1436,7 @@
                 </div>
             </div>
         </div>
-
-            @php
-                $varInfo = $this->stageVarianceInfo;
-            @endphp
+        @endif
 
             @if($varInfo['has_shortfall'])
                 <!-- VARIANCE ALERT CARD -->
@@ -1805,12 +1560,12 @@
                     </div>
 
                     @if($this->isSelectedStageCompleted)
-                        <button type="button" disabled class="bg-secondary/20 text-secondary border border-secondary/40 px-8 py-3.5 rounded-xl font-bold text-xs cursor-not-allowed flex items-center gap-2 shrink-0">
-                            <span class="material-symbols-outlined text-[20px]">check_circle</span>
-                            Stage Completed & Locked
+                        <button type="button" wire:click="completeStageAndProgress" class="bg-emerald-600 text-white hover:bg-emerald-700 px-8 py-3.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 shrink-0">
+                            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+                            Go to Next Work Step
                         </button>
                     @else
-                        <button type="button" wire:click="completeStageAndProgress" class="bg-secondary text-on-secondary hover:bg-secondary-container px-8 py-3.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 shrink-0">
+                        <button type="button" wire:click="completeStageAndProgress" class="bg-emerald-600 text-white hover:bg-emerald-700 px-8 py-3.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 shrink-0">
                             <span class="material-symbols-outlined text-[20px]">task_alt</span>
                             Complete Stage & Progress Workflow
                         </button>
@@ -1818,17 +1573,70 @@
                 </div>
             </div>
 
-            <!-- OUTPUT STEP FOOTER NAVIGATION -->
+            <!-- WASTAGE STEP FOOTER NAVIGATION -->
             <div class="mt-8 flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
-                <button type="button" wire:click="setWizardStep({{ $hasMat ? 2 : 1 }})" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
+                <button type="button" wire:click="setWizardStep({{ $hasMat ? 3 : 2 }})" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Back: Record Workers
+                    Back: Product Output
                 </button>
-                <span class="text-xs font-bold text-on-surface-variant">Step {{ $maxSteps }} of {{ $maxSteps }}: Product Output & Stage Completion</span>
+                <span class="text-xs font-bold text-on-surface-variant">Step {{ $maxSteps }} of {{ $maxSteps }}: Wastage & Stage Completion</span>
+            </div>
+        @endif
+        @endif
+        </div>
+
+        <!-- RIGHT COLUMN: STAGE NAVIGATION SIDEBAR (1 SPAN) -->
+        <div class="lg:col-span-1 space-y-4 order-1 lg:order-first">
+            <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 shadow-xs sticky top-6">
+                <div class="flex items-center gap-2 mb-4 pb-3 border-b border-outline-variant/40">
+                    <span class="material-symbols-outlined text-primary text-[20px]">layers</span>
+                    <h4 class="font-headline-sm text-sm font-extrabold text-primary uppercase tracking-wider">Production Stages</h4>
+                </div>
+
+                <div class="space-y-3">
+                    @php
+                        $visibleStageExecutions = (!$job->manufacturing_product_id)
+                            ? $job->stageExecutions->where('sequence_number', 1)
+                            : $job->stageExecutions;
+                    @endphp
+                    @foreach($visibleStageExecutions as $idx => $stageExec)
+                        @php
+                            $task = $stageExec->task;
+                            $stageOutputSum = $stageExec->completed_quantity;
+                            $stageMax = (int)$stageExec->target_quantity;
+                            $stagePending = $stageExec->pending_quantity;
+                            $isSelected = ($selectedTaskId == $task?->id);
+                        @endphp
+                        <button type="button" wire:click="selectTask({{ $task?->id }})" class="w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-2 relative overflow-hidden group {{ $isSelected ? 'bg-primary text-on-primary border-primary shadow-md' : 'bg-surface-container-low text-on-surface border-outline-variant/60 hover:bg-surface-container-high hover:border-primary/40' }}">
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-xs tracking-tight flex items-center gap-1.5">
+                                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black {{ $isSelected ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary' }}">
+                                        {{ $idx + 1 }}
+                                    </span>
+                                    {{ $task?->name }}
+                                </span>
+                                @if($stageExec->status === 'completed')
+                                    <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider {{ $isSelected ? 'bg-white/20 text-white' : 'bg-secondary/15 text-secondary' }}">
+                                        Completed
+                                    </span>
+                                @elseif($isSelected)
+                                    <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                                @endif
+                            </div>
+
+                            <div class="flex items-center justify-between text-[11px] {{ $isSelected ? 'text-white/80' : 'text-on-surface-variant' }}">
+                                <span class="font-medium">Yield Output</span>
+                                <span class="font-mono font-bold">{{ number_format($stageOutputSum) }} / {{ number_format($stageMax) }} Pcs</span>
+                            </div>
+
+                            <div class="w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
+                                <div class="h-full rounded-full transition-all {{ $isSelected ? 'bg-white' : 'bg-primary' }}" style="width: {{ min(100, $stageMax > 0 ? ($stageOutputSum / $stageMax) * 100 : 0) }}%"></div>
+                            </div>
+                        </button>
+                    @endforeach
+                </div>
             </div>
         </div>
-        @endif
-    @endif
     </div>
 
     <!-- Final Task Completion Modal -->

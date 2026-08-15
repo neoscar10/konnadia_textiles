@@ -29,12 +29,11 @@ class AddManufacturingProductForm extends Component
     public bool $is_fabric_used = false;
     public $standard_fabric_width = '';
     public $standard_fabric_length = '';
-    public string $fabric_width_unit = 'inch';
-    public string $fabric_length_unit = 'meter';
+    public string $fabric_width_unit = 'in';
+    public string $fabric_length_unit = 'm';
+    public string $fabric_width_group_id = '';
+    public string $fabric_length_group_id = '';
 
-    // Storefront Product Mapping (Section 10)
-    public $mapped_product_id = '';
-    public $mapped_product_combination_id = '';
 
     // Subsidiary material configuration properties
     public bool $is_subsidiary_used = false;
@@ -51,6 +50,10 @@ class AddManufacturingProductForm extends Component
     // Manufacturing Task Sequence / Routing Repeater
     public array $routingTasksList = []; // [['task_id' => '', 'standard_labor_rate' => '15.00', 'is_final_step' => false]]
 
+    // Wizard State
+    public int $wizardStep = 1;
+    public int $maxSteps = 5;
+
     protected function rules()
     {
         $rules = [
@@ -65,17 +68,15 @@ class AddManufacturingProductForm extends Component
             'routingTasksList'                  => 'required|array|min:1',
             'routingTasksList.*.task_id'        => 'required|exists:tasks,id',
             'routingTasksList.*.standard_labor_rate' => 'nullable|numeric|min:0',
-            'mapped_product_id'                 => 'nullable|exists:products,id',
-            'mapped_product_combination_id'     => 'nullable|exists:product_combinations,id',
             'imageUpload'                       => 'nullable|image|max:10240',
         ];
 
-        if ($this->is_fabric_used) {
-            $rules['standard_fabric_width']  = 'required|numeric|min:0.01';
-            $rules['standard_fabric_length'] = 'required|numeric|min:0.01';
-            $rules['fabric_width_unit']      = 'required|in:inch,cm';
-            $rules['fabric_length_unit']     = 'required|in:meter,yard';
-        }
+            if ($this->is_fabric_used) {
+                $rules['standard_fabric_width']  = 'required|numeric|min:0.01';
+                $rules['standard_fabric_length'] = 'required|numeric|min:0.01';
+                $rules['fabric_width_unit']      = 'required|string';
+                $rules['fabric_length_unit']     = 'required|string';
+            }
 
         if ($this->is_subsidiary_used) {
             $rules['subsidiaryMaterialsList']                               = 'array';
@@ -197,6 +198,11 @@ class AddManufacturingProductForm extends Component
 
     public function removeRoutingRow(int $index): void
     {
+        if ($index === 0) {
+            // Cannot remove the first mandatory stage (Cutting)
+            return;
+        }
+
         $wasFinal = $this->routingTasksList[$index]['is_final_step'] ?? false;
         array_splice($this->routingTasksList, $index, 1);
         $this->routingTasksList = array_values($this->routingTasksList);
@@ -241,13 +247,17 @@ class AddManufacturingProductForm extends Component
             $this->manufacturing_product_category_id = $product->manufacturing_product_category_id ?? '';
             $this->status                            = $product->status ?? 'active';
             $this->standard_labor_rate               = $product->standard_labor_rate ?? 15.00;
-            $this->mapped_product_id                 = $product->product_id ?? '';
-            $this->mapped_product_combination_id     = $product->product_combination_id ?? '';
             $this->is_fabric_used                    = (bool)($product->is_fabric_used ?? false);
             $this->standard_fabric_width             = $product->standard_fabric_width ?? '';
             $this->standard_fabric_length            = $product->standard_fabric_length ?? '';
-            $this->fabric_width_unit                 = $product->fabric_width_unit ?? 'inch';
-            $this->fabric_length_unit                = $product->fabric_length_unit ?? 'meter';
+            $this->fabric_width_unit                 = $product->fabric_width_unit ?? 'in';
+            $this->fabric_length_unit                = $product->fabric_length_unit ?? 'm';
+
+            $widthUnit = \App\Models\Unit::where('short_code', $this->fabric_width_unit)->first();
+            $this->fabric_width_group_id = $widthUnit ? $widthUnit->unit_group_id : '';
+            
+            $lengthUnit = \App\Models\Unit::where('short_code', $this->fabric_length_unit)->first();
+            $this->fabric_length_group_id = $lengthUnit ? $lengthUnit->unit_group_id : '';
 
             // Subsidiary materials
             $this->is_subsidiary_used = (bool)($product->is_subsidiary_used ?? false);
@@ -303,23 +313,86 @@ class AddManufacturingProductForm extends Component
 
             // Default task sequence from Task Master
             $this->loadDefaultRoutingTasks();
+            
+            $lengthGroupId = \App\Models\UnitGroup::where('code', 'LENGTH')->value('id') ?? '';
+            $this->fabric_width_group_id = $lengthGroupId;
+            $this->fabric_length_group_id = $lengthGroupId;
         }
     }
 
     private function loadDefaultRoutingTasks(): void
     {
-        $allTasks = Task::where('status', true)->get();
-        if ($allTasks->isNotEmpty()) {
-            $total = $allTasks->count();
-            $this->routingTasksList = $allTasks->values()->map(fn($t, $idx) => [
-                'task_id'             => (string)$t->id,
-                'standard_labor_rate' => (string)($this->standard_labor_rate ?: 15.00),
-                'is_final_step'       => ($idx === $total - 1),
-            ])->toArray();
+        $cuttingTask = Task::where('name', 'Cutting')->orWhere('code', 'TSK-001')->first();
+        if (!$cuttingTask) {
+            $cuttingTask = Task::where('status', true)->first();
+        }
+
+        if ($cuttingTask) {
+            $this->routingTasksList = [
+                [
+                    'task_id'             => (string)$cuttingTask->id,
+                    'standard_labor_rate' => (string)($this->standard_labor_rate ?: 15.00),
+                    'is_final_step'       => true,
+                ]
+            ];
         } else {
             $this->routingTasksList = [
                 ['task_id' => '', 'standard_labor_rate' => '15.00', 'is_final_step' => true]
             ];
+        }
+    }
+
+    public function setWizardStep(int $step): void
+    {
+        if ($step >= 1 && $step <= $this->maxSteps) {
+            $this->wizardStep = $step;
+        }
+    }
+
+    public function nextStep(): void
+    {
+        if ($this->wizardStep === 1) {
+            $rules = [
+                'name'                              => 'required|string|max:255',
+                'manufacturing_product_category_id' => 'required|exists:manufacturing_product_categories,id',
+                'standard_labor_rate'               => 'nullable|numeric|min:0',
+            ];
+            if ($this->is_fabric_used) {
+                $rules['standard_fabric_width']  = 'required|numeric|min:0.01';
+                $rules['standard_fabric_length'] = 'required|numeric|min:0.01';
+                $rules['fabric_width_unit']      = 'required|string';
+                $rules['fabric_length_unit']     = 'required|string';
+            }
+            $this->validate($rules);
+        } elseif ($this->wizardStep === 2) {
+            if ($this->is_subsidiary_used) {
+                $this->validate([
+                    'subsidiaryMaterialsList.*.raw_material_id'      => 'required|exists:raw_materials,id',
+                    'subsidiaryMaterialsList.*.consumption_quantity' => 'required|numeric|min:0.0001',
+                ]);
+            }
+        } elseif ($this->wizardStep === 3) {
+            // Stitching validation (none required to proceed)
+        } elseif ($this->wizardStep === 4) {
+            if ($this->is_packaging_used) {
+                $this->validate([
+                    'packagingMaterialsList.*.raw_material_id'   => 'required|exists:raw_materials,id',
+                    'packagingMaterialsList.*.required_quantity' => 'required|numeric|min:0.0001',
+                ]);
+            }
+        }
+
+        if ($this->wizardStep < $this->maxSteps) {
+            $this->wizardStep++;
+            $this->dispatch('scroll-to-top');
+        }
+    }
+
+    public function previousStep(): void
+    {
+        if ($this->wizardStep > 1) {
+            $this->wizardStep--;
+            $this->dispatch('scroll-to-top');
         }
     }
 
@@ -404,8 +477,8 @@ class AddManufacturingProductForm extends Component
         ];
 
         $mappingData = [
-            'product_id' => $this->mapped_product_id ?: null,
-            'product_combination_id' => $this->mapped_product_combination_id ?: null,
+            'product_id' => null,
+            'product_combination_id' => null,
         ];
 
         $imageData = [];
@@ -506,10 +579,8 @@ class AddManufacturingProductForm extends Component
             ->orderBy('name')
             ->get();
 
-        $storefrontProducts = \App\Models\Product::where('is_active', true)->orderBy('title')->get();
-        $storefrontCombinations = $this->mapped_product_id 
-            ? \App\Models\ProductCombination::where('product_id', $this->mapped_product_id)->where('is_active', true)->get() 
-            : collect();
+
+        $allUnitGroups = \App\Models\UnitGroup::with('units')->active()->orderBy('name')->get();
 
         return view('livewire.factory.add-manufacturing-product-form', [
             'categories'             => $activeCategories,
@@ -517,8 +588,7 @@ class AddManufacturingProductForm extends Component
             'subsidiaryRawMaterials' => $subsidiaryRawMaterials,
             'stitchingRawMaterials'  => $stitchingRawMaterials,
             'packagingRawMaterials'  => $packagingRawMaterials,
-            'storefrontProducts'     => $storefrontProducts,
-            'storefrontCombinations' => $storefrontCombinations,
+            'allUnitGroups'          => $allUnitGroups,
         ])->title($this->productId ? 'Edit Manufacturing Product' : 'Add Manufacturing Product');
     }
 }

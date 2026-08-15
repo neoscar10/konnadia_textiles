@@ -207,6 +207,14 @@ class FinishedGoodsConversionService
 
                 // Resolve batch ID or auto-create batch for standalone jobs if missing
                 $batchId = $job->production_batch_db_id ?: ($job->batch?->id);
+                if (!$batchId && $job->production_batch_id) {
+                    // Try to find existing batch by batch_code first
+                    $existingBatch = \App\Models\ProductionBatch::where('batch_code', $job->production_batch_id)->first();
+                    if ($existingBatch) {
+                        $batchId = $existingBatch->id;
+                        $job->update(['production_batch_db_id' => $existingBatch->id]);
+                    }
+                }
                 if (!$batchId && $job->manufacturing_product_id) {
                     $batch = \App\Models\ProductionBatch::create([
                         'batch_code' => $job->production_batch_id ?: ('PB-JOB-' . $job->id),
@@ -215,7 +223,8 @@ class FinishedGoodsConversionService
                         'total_finished_quantity' => $job->target_quantity ?: 1,
                         'unconverted_quantity' => $job->target_quantity ?: 1,
                         'status' => 'Completed',
-                        'supervisor_id' => $job->supervisor_id,
+                        'supervisor_id' => $job->supervisor_id ?: auth()->id(),
+                        'batch_date' => $job->created_at ?? now(),
                     ]);
                     $batchId = $batch->id;
                     $job->update([

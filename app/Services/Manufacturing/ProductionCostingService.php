@@ -186,6 +186,102 @@ class ProductionCostingService
     }
 
     /**
+     * Fetch a 360-degree cost rollup breakdown for a specific production job.
+     */
+    public function getJobCostSummary(int $jobId): array
+    {
+        $job = \App\Models\ProductionJob::with(['batch', 'materialConsumptions', 'allocations', 'wastages'])->findOrFail($jobId);
+        $batchId = $job->production_batch_db_id;
+        $batch = $job->batch;
+
+        // 1. Fabric cost (Job specific)
+        $fabricCost = (float) $job->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
+            ->sum('total_cost');
+
+        // 2. Subsidiary cost (Job specific)
+        $subsidiaryCost = (float) $job->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-SUB'))
+            ->sum('total_cost');
+
+        // 3. Packaging cost (Job specific)
+        $packagingCost = (float) $job->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-PKG'))
+            ->sum('total_cost');
+
+        // For Overhead and Stitching, we fetch the batch summary and apportion it
+        $batchSummary = $this->getBatchCostSummary($batchId);
+        
+        $jobQty = (int) $job->target_quantity;
+        $batchQty = (int) ($batch->planned_quantity ?: 1);
+        $apportionRatio = min(1.0, $jobQty / $batchQty);
+
+        // 4. General Overheads (Apportioned)
+        $overheadCost = round($batchSummary['overhead_cost'] * $apportionRatio, 2);
+
+        // 5. Stitching cost (Apportioned)
+        $stitchingCost = round($batchSummary['stitching_cost'] * $apportionRatio, 2);
+
+        $totalMaterialCost = $fabricCost + $subsidiaryCost + $stitchingCost + $packagingCost + $overheadCost;
+
+        // 6. Labor Wages (Job specific)
+        $totalLaborCost = (float) $job->allocations()->sum('calculated_wage');
+
+        // 7. Wastage Log (Job specific)
+        $wastageLog = [];
+        $totalCuttingWastageCost = (float) $job->materialConsumptions()->sum('allocated_wastage_cost');
+        if ($totalCuttingWastageCost > 0) {
+            $wastageLog[] = [
+                'product_name' => 'Cutting Fabric Wastage',
+                'task_name' => 'Cutting',
+                'quantity_wasted' => (float) $job->wastages()->sum('quantity_wasted') ?: 1.0,
+                'total_cost' => $totalCuttingWastageCost,
+            ];
+        }
+
+        $wastages = $job->wastages()->with(['manufacturingProduct', 'task'])->get();
+        foreach ($wastages as $w) {
+            $unitCost = 150.00; // fallback estimation per wasted piece
+            $wCost = (float) $w->quantity_wasted * $unitCost;
+            $wastageLog[] = [
+                'product_name' => $w->manufacturingProduct?->name ?? 'Damaged Item',
+                'task_name' => $w->task?->name ?? 'Production',
+                'quantity_wasted' => (float) $w->quantity_wasted,
+                'total_cost' => $wCost,
+            ];
+        }
+        $totalWastageCost = array_sum(array_column($wastageLog, 'total_cost'));
+
+        $totalManufacturingCost = $totalMaterialCost + $totalLaborCost;
+
+        $finishedUnits = (int) $job->total_produced_quantity;
+        if ($finishedUnits <= 0) $finishedUnits = $jobQty; // fallback to target if none produced yet
+        $averageCostPerUnit = $finishedUnits > 0 ? round($totalManufacturingCost / $finishedUnits, 2) : 0.00;
+
+        $laborAllocations = $job->allocations()->with(['labor', 'task'])->get();
+
+        return [
+            'total_material_cost' => $totalMaterialCost,
+            'fabric_cost' => $fabricCost,
+            'subsidiary_cost' => $subsidiaryCost,
+            'stitching_cost' => $stitchingCost,
+            'packaging_cost' => $packagingCost,
+            'overhead_cost' => $overheadCost,
+            'total_labor_cost' => $totalLaborCost,
+            'total_wastage_cost' => $totalWastageCost,
+            'total_manufacturing_cost' => $totalManufacturingCost,
+            'average_cost_per_unit' => $averageCostPerUnit,
+            'finished_units' => $finishedUnits,
+            'labor_details' => [
+                'allocations' => $laborAllocations,
+            ],
+            'wastage_details' => [
+                'wastage_log' => $wastageLog,
+            ],
+        ];
+    }
+
+    /**
      * Cache batch costing metrics directly in production_batches columns.
      */
     public function cacheBatchCostSummary(int $batchId): void

@@ -83,111 +83,80 @@
         </div>
     </div>
 
-    <!-- Data Table -->
+    <!-- Data List: Pure Production Batches Hub -->
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 overflow-hidden shadow-xs">
         <table class="w-full text-left border-collapse font-body-md">
             <thead>
-                <tr class="bg-surface-container-low border-b border-outline-variant/60">
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Job Code</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Batch ID</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Product</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center">Output Progress</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Stage Status</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Storefront Conversion</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
+                <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
+                    <th class="px-6 py-4 font-bold">Production Batch ID</th>
+                    <th class="px-6 py-4 font-bold">Manufacturing Product</th>
+                    <th class="px-6 py-4 font-bold text-center">Total Jobs</th>
+                    <th class="px-6 py-4 font-bold text-center">Batch Target Qty</th>
+                    <th class="px-6 py-4 font-bold text-center">Unconverted Stock</th>
+                    <th class="px-6 py-4 font-bold text-right">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant/40">
-                @forelse($jobs as $job)
+                @forelse($paginatedBatches as $batchCode => $batchJobs)
+                    @php
+                        $firstJob = $batchJobs->first();
+                        $product = $firstJob?->manufacturingProduct;
+                        $supervisor = $firstJob?->supervisor;
+                        $batchUnconvertedSum = $batchJobs->sum(fn($j) => $j->remaining_unconverted_quantity);
+                        $plannedTargetQty = $batchJobs->sum(fn($j) => $j->target_quantity);
+                        $batchDbId = $firstJob?->production_batch_db_id;
+                    @endphp
                     <tr class="hover:bg-surface-container/50 transition-colors">
                         <td class="px-6 py-4">
-                            <p class="font-bold text-primary text-base">{{ $job->job_code }}</p>
-                            <span class="text-xs text-outline">{{ $job->created_at ? $job->created_at->format('d M Y') : '' }}</span>
-                        </td>
-                        <td class="px-6 py-4 font-mono font-bold text-sm text-on-surface">
-                            {{ $job->production_batch_id ?? '-' }}
-                        </td>
-                        <td class="px-6 py-4">
-                            <p class="font-bold text-on-surface text-sm">{{ $job->manufacturingProduct?->name ?? 'Unassigned' }}</p>
-                            <span class="text-xs text-outline">{{ $job->manufacturingProduct?->code }}</span>
-                        </td>
-                        <td class="px-6 py-4 text-center">
-                            <div class="w-40 mx-auto">
-                                <div class="flex justify-between items-center text-xs font-extrabold mb-1">
-                                    <span class="text-on-surface-variant uppercase tracking-wider text-[10px]">Progress</span>
-                                    <span class="text-secondary font-black">{{ $job->progress_percentage }}%</span>
-                                </div>
-                                <div class="w-full bg-surface-container-high h-2.5 rounded-full overflow-hidden border border-outline-variant/30">
-                                    <div class="bg-primary h-full transition-all duration-500 rounded-full" style="width: {{ $job->progress_percentage }}%"></div>
-                                </div>
-                            </div>
+                            <a href="{{ route('admin.production.batches.jobs', $batchCode) }}" wire:navigate class="font-bold text-primary text-base font-mono hover:underline flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">layers</span>
+                                {{ $batchCode }}
+                            </a>
+                            <span class="text-xs text-outline block">Supervisor: {{ $supervisor?->name ?? 'Unassigned' }}</span>
                         </td>
                         <td class="px-6 py-4">
-                            @if($job->status === 'completed')
-                                <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-secondary"></span> COMPLETED
-                                </span>
-                            @elseif($job->status === 'in_progress')
-                                <span class="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> IN PROGRESS
-                                </span>
-                            @else
-                                <span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-outline"></span> {{ strtoupper($job->status) }}
-                                </span>
+                            <p class="font-bold text-on-surface text-sm">{{ $product?->name ?? 'Custom Batch' }}</p>
+                            @if($product?->code)
+                                <span class="text-xs text-outline font-mono">{{ $product->code }}</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4">
-                            @php
-                                $status = $job->conversion_status;
-                                $converted = $job->converted_quantity;
-                                $total = $job->total_produced_quantity;
-                                $remaining = $job->remaining_unconverted_quantity;
-                            @endphp
-                            @if($status === 'fully_converted')
-                                <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[14px]">check_circle</span>
-                                    Fully Converted ({{ $converted }}/{{ $total }})
+                        <td class="px-6 py-4 text-center font-bold text-on-surface">
+                            <span class="px-3 py-1 bg-primary/10 text-primary font-black rounded-full text-xs font-mono">
+                                {{ $batchJobs->count() }} Job(s)
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center font-black text-on-surface text-sm">
+                            {{ number_format($plannedTargetQty) }} Pcs
+                        </td>
+                        <td class="px-6 py-4 text-center font-black text-sm">
+                            @if($batchUnconvertedSum > 0)
+                                <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold font-mono">
+                                    {{ number_format($batchUnconvertedSum) }} Pcs
                                 </span>
-                            @elseif($status === 'partially_converted')
-                                <div class="space-y-1">
-                                    <span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[14px]">pie_chart</span>
-                                        Partial ({{ $converted }}/{{ $total }})
-                                    </span>
-                                    <p class="text-[11px] font-bold text-amber-700">{{ $remaining }} Pcs remaining</p>
-                                </div>
                             @else
-                                @if($total > 0)
-                                    <span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[14px]">storefront</span>
-                                        Unconverted ({{ $remaining }} Available)
-                                    </span>
-                                @else
-                                    <span class="text-xs text-outline font-semibold">Not Completed</span>
-                                @endif
+                                <span class="text-xs text-outline">0 Pcs</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 text-right space-x-2">
-                            @if($job->remaining_unconverted_quantity > 0)
-                                <button type="button" wire:click="openConversionModal({{ $job->id }})" class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border border-emerald-200">
-                                    <span class="material-symbols-outlined text-[14px]">shopping_cart_checkout</span>
-                                    Convert
-                                </button>
-                            @endif
-                            <a href="{{ route('admin.production.jobs.show', $job->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary hover:text-on-primary px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95">
-                                Manage
+
+                            <a href="{{ route('admin.production.batches.jobs', $batchCode) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary text-on-primary hover:bg-primary-container px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95">
+                                View Jobs
                                 <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
                             </a>
+                            @if($batchDbId)
+                                <a href="{{ route('admin.production.batches.ledger', $batchDbId) }}" wire:navigate class="inline-flex items-center gap-1 bg-surface border border-outline-variant/60 text-on-surface hover:bg-surface-container px-3 py-1.5 rounded-xl text-xs font-bold transition-all">
+                                    360 Ledger
+                                </a>
+                            @endif
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-on-surface-variant">
+                        <td colspan="6" class="px-6 py-12 text-center text-on-surface-variant">
                             <span class="material-symbols-outlined text-4xl text-outline mb-2">assignment_late</span>
-                            <p class="font-body-lg text-body-lg">No production jobs found.</p>
+                            <p class="font-body-lg text-body-lg">No production batches found.</p>
                             <button type="button" wire:click="openCreateModal" class="mt-3 text-primary font-bold text-sm hover:underline">
-                                + Create your first production job
+                                + Create your first production batch
                             </button>
                         </td>
                     </tr>
@@ -195,9 +164,9 @@
             </tbody>
         </table>
 
-        @if($jobs->hasPages())
+        @if($paginatedBatches->hasPages())
             <div class="px-6 py-4 bg-surface-container-low border-t border-outline-variant/60">
-                {{ $jobs->links() }}
+                {{ $paginatedBatches->links() }}
             </div>
         @endif
     </div>

@@ -7,11 +7,15 @@ use App\Services\Manufacturing\ProductionBatchService;
 use App\Services\Manufacturing\ProductionCostingService;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 
 #[Layout('components.admin.layout')]
 class ProductionBatchLedger extends Component
 {
     public ProductionBatch $batch;
+
+    #[Url]
+    public $selectedJobId = '';
 
     public function mount($id, ProductionCostingService $costingService)
     {
@@ -21,6 +25,7 @@ class ProductionBatchLedger extends Component
             'parentBatch',
             'childBatches.manufacturingProduct',
             'jobs.task',
+            'jobs.manufacturingProduct',
             'jobs.supervisor',
             'jobs.allocations.labor',
             'jobs.materialConsumptions.inventoryBatch.rawMaterial.category',
@@ -49,7 +54,11 @@ class ProductionBatchLedger extends Component
 
     public function render(ProductionCostingService $costingService)
     {
-        $costSummary = $costingService->getBatchCostSummary($this->batch->id);
+        if (!empty($this->selectedJobId)) {
+            $costSummary = $costingService->getJobCostSummary((int)$this->selectedJobId);
+        } else {
+            $costSummary = $costingService->getBatchCostSummary($this->batch->id);
+        }
 
         return view('livewire.admin.production.production-batch-ledger', [
             'batch' => $this->batch,

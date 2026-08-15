@@ -3,9 +3,9 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <div class="flex items-center gap-2 mb-1">
-                <a href="{{ route('admin.production.batches.create') }}" wire:navigate class="text-primary font-bold text-xs flex items-center gap-1 hover:underline">
+                <a href="{{ route('admin.production.batches.jobs', $batch->batch_code) }}" wire:navigate class="text-primary font-bold text-xs flex items-center gap-1 hover:underline">
                     <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Back to Production Batches Hub
+                    Back to Batch Jobs
                 </a>
                 <span class="text-outline text-xs font-bold">• 360-Degree Cost & Batch Ledger</span>
             </div>
@@ -22,10 +22,20 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div class="flex items-center gap-2 bg-surface border border-outline-variant/60 rounded-xl px-3 py-1.5 shadow-xs">
+                <span class="material-symbols-outlined text-on-surface-variant text-[18px]">filter_list</span>
+                <select wire:model.live="selectedJobId" class="bg-transparent border-none text-xs font-bold text-primary focus:ring-0 p-0 cursor-pointer outline-none">
+                    <option value="">Overall Batch Ledger</option>
+                    @foreach($batch->jobs as $j)
+                        <option value="{{ $j->id }}">{{ $j->job_code }} - {{ $j->manufacturingProduct?->name ?? 'Product' }} ({{ $j->task?->name ?? 'Stage' }})</option>
+                    @endforeach
+                </select>
+            </div>
+
             <button type="button" wire:click="evaluateBatchCompletion" class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-primary text-on-primary shadow-xs hover:bg-primary-container transition-all active:scale-95">
                 <span class="material-symbols-outlined text-[18px]">verified</span>
-                Recalculate Costs & Evaluate Completion
+                Recalculate & Evaluate
             </button>
         </div>
     </div>
@@ -263,6 +273,7 @@
         </div>
     </div>
 
+    @if(empty($selectedJobId))
     <!-- LINKED JOBS STAGE EXECUTION AUDIT TABLE -->
     <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
         <div class="flex justify-between items-center mb-5">
@@ -321,7 +332,11 @@
                             <td class="px-4 py-3.5 text-right font-bold text-primary text-sm">
                                 ₹{{ number_format($jobMatCost, 2) }}
                             </td>
-                            <td class="px-4 py-3.5 text-center">
+                            <td class="px-4 py-3.5 text-center space-x-2">
+                                <a href="#" wire:click.prevent="$set('selectedJobId', '{{ $job->id }}')" class="inline-flex items-center gap-1 text-xs font-bold text-amber-600 hover:underline">
+                                    <span class="material-symbols-outlined text-[16px]">receipt_long</span>
+                                    <span>Ledger</span>
+                                </a>
                                 <a href="{{ route('admin.production.jobs.show', $job->id) }}" wire:navigate class="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
                                     <span>Terminal</span>
                                     <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -403,4 +418,5 @@
             </table>
         </div>
     </div>
+    @endif
 </div>

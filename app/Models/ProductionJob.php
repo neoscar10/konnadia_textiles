@@ -110,6 +110,14 @@ class ProductionJob extends Model
     }
 
     /**
+     * Get the task for this job.
+     */
+    public function task()
+    {
+        return $this->belongsTo(Task::class);
+    }
+
+    /**
      * Get all labor allocations for this job.
      */
     public function allocations()

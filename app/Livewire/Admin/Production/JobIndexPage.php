@@ -221,9 +221,40 @@ class JobIndexPage extends Component
         redirect()->route('admin.production.jobs.show', $job->id);
     }
 
+    // Batch Conversion Properties
+    public ?int $selectedBatchDbId = null;
+
+    public function openBatchConversionModal(string $batchCode): void
+    {
+        $this->resetValidation();
+        $this->target_product_id = null;
+        $this->conversion_notes = '';
+        $this->conversionComponents = [];
+
+        $jobs = ProductionJob::where('production_batch_id', $batchCode)
+            ->orWhere('job_code', $batchCode)
+            ->get();
+
+        foreach ($jobs as $job) {
+            if ($job->status === 'completed' && $job->remaining_unconverted_quantity > 0) {
+                $this->conversionComponents[] = [
+                    'production_job_id' => $job->id,
+                    'quantity_per_set' => 1,
+                    'total_pieces_input' => $job->remaining_unconverted_quantity,
+                ];
+            }
+        }
+
+        if (empty($this->conversionComponents)) {
+            $this->addConversionComponentRow();
+        }
+
+        $this->dispatch('open-modal', 'storefront-conversion-modal');
+    }
+
     public function render()
     {
-        $query = ProductionJob::with(['manufacturingProduct', 'stageExecutions.task', 'allocations']);
+        $query = ProductionJob::with(['manufacturingProduct', 'supervisor', 'stageExecutions.task', 'allocations']);
 
         if (!empty($this->search)) {
             $query->where(function ($q) {
@@ -237,7 +268,25 @@ class JobIndexPage extends Component
             $query->where('status', $this->statusFilter);
         }
 
-        $jobs = $query->orderBy('created_at', 'desc')->paginate(10);
+        $allJobs = $query->orderBy('created_at', 'desc')->get();
+
+        // Group jobs by production_batch_id (or job_code if empty)
+        $groupedBatches = $allJobs->groupBy(function ($job) {
+            return !empty($job->production_batch_id) ? $job->production_batch_id : $job->job_code;
+        });
+
+        // Paginate grouped batches manually
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+        $perPage = 10;
+        $currentPageBatches = $groupedBatches->slice(($page - 1) * $perPage, $perPage);
+        $paginatedBatches = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentPageBatches,
+            $groupedBatches->count(),
+            $perPage,
+            $page,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+        );
+
         $allProducts = ManufacturingProduct::all();
 
         // Eligible Completed Jobs for Conversion Picker
@@ -255,7 +304,7 @@ class JobIndexPage extends Component
         $availableUnconvertedPoolUnits = max(0, $totalFinishedUnitsProduced - $totalStorefrontConvertedUnits);
 
         return view('livewire.admin.production.job-index-page', [
-            'jobs' => $jobs,
+            'paginatedBatches' => $paginatedBatches,
             'allProducts' => $allProducts,
             'completedJobsForPicker' => $completedJobsForPicker,
             'storefrontProducts' => $storefrontProducts,
