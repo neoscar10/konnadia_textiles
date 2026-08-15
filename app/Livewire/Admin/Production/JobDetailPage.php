@@ -614,7 +614,7 @@ class JobDetailPage extends Component
     {
         $this->selectedTaskId = $taskId;
         $this->activeStep = 'workers';
-        $this->wizardStep = ($this->selectedTask && ($this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001')) ? 2 : ($this->hasMaterialStep ? 2 : 1);
+        $this->wizardStep = 1;
         $this->resetValidation();
 
         // Refresh job relationships to reflect latest stage state
