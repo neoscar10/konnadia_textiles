@@ -207,7 +207,7 @@ class BatchJobsDetailPage extends Component
             ->get();
 
         $completedJobsForPicker = $jobs->filter(fn($j) => $j->status === 'completed' && $j->remaining_unconverted_quantity > 0);
-        $storefrontProducts = Product::where('is_active', true)->with('combinations')->orderBy('name')->get();
+        $storefrontProducts = Product::where('is_active', true)->with('combinations')->orderBy('title')->get();
 
         $firstJob = $jobs->first();
         $product = $firstJob?->manufacturingProduct;

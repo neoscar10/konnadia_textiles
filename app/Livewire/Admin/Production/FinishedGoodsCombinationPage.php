@@ -168,7 +168,7 @@ class FinishedGoodsCombinationPage extends Component
             ->get()
             ->filter(fn($b) => $b->remaining_unconverted_quantity > 0);
 
-        $storefrontProducts = Product::where('is_active', true)->with('combinations')->orderBy('name')->get();
+        $storefrontProducts = Product::where('is_active', true)->with('combinations')->orderBy('title')->get();
         $recentBundles = StorefrontProductBundle::with(['product', 'productCombination', 'items.productionBatch', 'items.manufacturingProduct'])->latest()->take(10)->get();
 
         return view('livewire.admin.production.finished-goods-combination-page', [
