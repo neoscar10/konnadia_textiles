@@ -839,6 +839,14 @@ class JobDetailPage extends Component
         }
     }
 
+    public function setAllLaborQuantity(int $index): void
+    {
+        $pending = $this->stagePendingQuantity;
+        if ($pending > 0) {
+            $this->laborAllocations[$index]['quantity'] = $pending;
+        }
+    }
+
     /**
      * Bulk Allocate 100% of a product's output quantity to a single worker.
      */
