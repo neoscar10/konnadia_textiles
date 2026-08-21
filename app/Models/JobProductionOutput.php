@@ -16,6 +16,7 @@ class JobProductionOutput extends Model
         'task_id',
         'quantity_produced',
         'inventory_batch_id',
+        'inventory_bale_roll_id',
         'fabric_width',
         'fabric_length',
         'fabric_width_unit',
@@ -28,12 +29,21 @@ class JobProductionOutput extends Model
     protected $casts = [
         'quantity_produced' => 'integer',
         'inventory_batch_id' => 'integer',
+        'inventory_bale_roll_id' => 'integer',
         'fabric_width' => 'decimal:4',
         'fabric_length' => 'decimal:4',
         'calculated_base_cost' => 'decimal:2',
         'allocated_wastage_cost' => 'decimal:2',
         'total_fabric_cost' => 'decimal:2',
     ];
+
+    /**
+     * Get the fabric inventory bale roll consumed for this output.
+     */
+    public function inventoryBaleRoll()
+    {
+        return $this->belongsTo(InventoryBaleRoll::class, 'inventory_bale_roll_id');
+    }
 
     /**
      * Get the fabric inventory batch consumed for this output.

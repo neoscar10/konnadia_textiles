@@ -14,6 +14,7 @@ class JobLaborAllocation extends Model
         'job_id',
         'labor_id',
         'manufacturing_product_id',
+        'inventory_bale_roll_id',
         'task_id',
         'quantity_processed',
         'calculated_wage',
@@ -22,7 +23,16 @@ class JobLaborAllocation extends Model
     protected $casts = [
         'quantity_processed' => 'integer',
         'calculated_wage' => 'decimal:2',
+        'inventory_bale_roll_id' => 'integer',
     ];
+
+    /**
+     * Get the inventory bale roll.
+     */
+    public function inventoryBaleRoll()
+    {
+        return $this->belongsTo(InventoryBaleRoll::class, 'inventory_bale_roll_id');
+    }
 
     /**
      * Get the labor assigned to this allocation.

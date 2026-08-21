@@ -13,6 +13,7 @@ class JobMaterialConsumption extends Model
         'job_code',
         'production_job_id',
         'inventory_batch_id',
+        'inventory_bale_roll_id',
         'task_id',
         'quantity_consumed',
         'unit_cost',
@@ -31,7 +32,16 @@ class JobMaterialConsumption extends Model
         'calculated_base_cost' => 'decimal:2',
         'allocated_wastage_cost' => 'decimal:2',
         'total_fabric_cost' => 'decimal:2',
+        'inventory_bale_roll_id' => 'integer',
     ];
+
+    /**
+     * Get the inventory bale roll consumed.
+     */
+    public function inventoryBaleRoll()
+    {
+        return $this->belongsTo(InventoryBaleRoll::class, 'inventory_bale_roll_id');
+    }
 
     /**
      * Get the inventory batch consumed.

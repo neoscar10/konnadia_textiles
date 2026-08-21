@@ -336,10 +336,10 @@
                                                             </button>
                                                         </div>
                                                     @elseif($rowBale->status === 'opened')
-                                                        <div class="p-3.5 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-3">
+                                                        <div class="p-4 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-4">
                                                             <div class="flex justify-between items-center pb-2 border-b border-outline-variant/30">
-                                                                <span class="text-[11px] font-extrabold text-primary uppercase tracking-wider">
-                                                                    Opened Rolls in {{ $rowBale->bale_number }} (Remaining Bale Stock: {{ number_format($rowBale->current_balance_length, 2) }}m)
+                                                                <span class="text-xs font-extrabold text-primary uppercase tracking-wider">
+                                                                    Select Rolls in {{ $rowBale->bale_number }} (Remaining Bale Stock: {{ number_format($rowBale->current_balance_length, 2) }}m)
                                                                 </span>
                                                             </div>
 
@@ -351,31 +351,88 @@
                                                                             'roll_id' => $r->id,
                                                                             'roll_number' => $r->roll_number,
                                                                             'max_length' => (float) $r->current_balance_length,
+                                                                            'is_selected' => false,
                                                                             'cut_length' => '',
+                                                                            'wastage_length' => '0',
+                                                                            'outputs' => [
+                                                                                ['manufacturing_product_id' => $job->manufacturing_product_id ?? '', 'quantity' => '']
+                                                                            ]
                                                                         ];
                                                                     }
                                                                 }
                                                             @endphp
 
                                                             @if(!empty($activeRollsList))
-                                                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                                <div class="space-y-4">
                                                                     @foreach($activeRollsList as $rId => $rData)
-                                                                        <div class="p-3 bg-surface border border-outline-variant/50 rounded-xl space-y-2">
-                                                                            <div class="flex justify-between items-center">
-                                                                                <span class="font-bold text-xs text-primary">Roll #{{ $rData['roll_number'] }}</span>
-                                                                                <span class="text-[10px] font-bold text-secondary bg-secondary/10 px-2 py-0.5 rounded-md">Bal: {{ number_format($rData['max_length'], 2) }}m</span>
+                                                                        <div class="p-4 bg-surface border border-outline-variant/50 rounded-2xl space-y-4 @if(!empty($rData['is_selected'])) ring-2 ring-primary/25 border-primary/50 @else opacity-90 @endif">
+                                                                            <div class="flex justify-between items-center pb-2 border-b border-outline-variant/30">
+                                                                                <label class="flex items-center gap-3 cursor-pointer">
+                                                                                    <input type="checkbox" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.is_selected" @if($this->isSelectedStageCompleted) disabled @endif class="w-4 h-4 rounded text-primary border-outline-variant/60 focus:ring-primary/20">
+                                                                                    <span class="font-extrabold text-sm text-primary">Roll #{{ $rData['roll_number'] }}</span>
+                                                                                </label>
+                                                                                <span class="text-[11px] font-bold text-secondary bg-secondary/15 px-3 py-1 rounded-xl">Available: {{ number_format($rData['max_length'], 2) }}m</span>
                                                                             </div>
 
-                                                                            <div class="space-y-1">
-                                                                                <div class="flex items-center gap-1">
-                                                                                    <input type="number" step="0.01" min="0" max="{{ $rData['max_length'] }}" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.cut_length" @if($this->isSelectedStageCompleted) disabled @endif placeholder="Cut length (m)" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-primary focus:ring-1 focus:ring-primary @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
-                                                                                    @if(!$this->isSelectedStageCompleted)
-                                                                                        <button type="button" wire:click="useFullRoll({{ $bIndex }}, {{ $rId }})" class="px-2.5 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-black text-[10px] rounded-lg shrink-0 transition-all" title="Use full roll length">
-                                                                                            Use All
-                                                                                        </button>
-                                                                                    @endif
+                                                                            @if(!empty($rData['is_selected']))
+                                                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                                    <div>
+                                                                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Cut Length (Meters) *</label>
+                                                                                        <div class="flex items-center gap-1.5">
+                                                                                            <input type="number" step="0.01" min="0.01" max="{{ $rData['max_length'] }}" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.cut_length" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:ring-2 focus:ring-primary/25">
+                                                                                            @if(!$this->isSelectedStageCompleted)
+                                                                                                <button type="button" wire:click="useFullRoll({{ $bIndex }}, {{ $rId }})" class="px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-black text-[10px] rounded-xl shrink-0 transition-all">
+                                                                                                    Use All
+                                                                                                </button>
+                                                                                            @endif
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <label class="block text-[10px] font-bold text-error uppercase tracking-wider mb-1.5">Roll Wastage Length *</label>
+                                                                                        <input type="number" step="0.01" min="0" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.wastage_length" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-error focus:ring-2 focus:ring-error/25">
+                                                                                    </div>
                                                                                 </div>
-                                                                            </div>
+
+                                                                                <!-- Product Output Grid for this Roll -->
+                                                                                <div class="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/40 space-y-3 mt-2">
+                                                                                    <div class="flex justify-between items-center pb-2 border-b border-outline-variant/30">
+                                                                                        <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Product Output on this Roll</span>
+                                                                                        @if(!$this->isSelectedStageCompleted)
+                                                                                            <button type="button" wire:click="addRollOutputRow({{ $bIndex }}, {{ $rId }})" class="text-[10px] font-black text-secondary hover:text-secondary-container bg-secondary/10 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                                                                                <span class="material-symbols-outlined text-[12px]">add</span> Add SKU
+                                                                                            </button>
+                                                                                        @endif
+                                                                                    </div>
+
+                                                                                    <div class="space-y-2">
+                                                                                        @foreach($rData['outputs'] ?? [] as $oIdx => $outItem)
+                                                                                            <div class="flex items-center gap-3">
+                                                                                                <div class="flex-1">
+                                                                                                    <select wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.outputs.{{ $oIdx }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-2 text-xs font-semibold text-on-surface focus:ring-1 focus:ring-primary">
+                                                                                                        <option value="">-- Choose Product SKU --</option>
+                                                                                                        @php
+                                                                                                            $cuttingProductOptions = $job->manufacturingProduct ? collect([$job->manufacturingProduct]) : $allManufacturingProducts;
+                                                                                                        @endphp
+                                                                                                        @foreach($cuttingProductOptions as $prod)
+                                                                                                            <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
+                                                                                                        @endforeach
+                                                                                                    </select>
+                                                                                                </div>
+                                                                                                <div class="w-24">
+                                                                                                    <input type="number" min="1" placeholder="Pcs" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.outputs.{{ $oIdx }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-2 text-xs font-bold text-center text-primary focus:ring-1 focus:ring-primary">
+                                                                                                </div>
+                                                                                                @if(!$this->isSelectedStageCompleted && count($rData['outputs'] ?? []) > 1)
+                                                                                                    <button type="button" wire:click="removeRollOutputRow({{ $bIndex }}, {{ $rId }}, {{ $oIdx }})" class="p-1.5 text-error hover:bg-error-container/20 rounded-lg transition-colors shrink-0">
+                                                                                                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                                                                                                    </button>
+                                                                                                @endif
+                                                                                            </div>
+                                                                                        @endforeach
+                                                                                    </div>
+                                                                                </div>
+                                                                            @else
+                                                                                <p class="text-xs text-outline italic">Roll is currently ignored. Toggle the checkbox to record cut output for this roll.</p>
+                                                                            @endif
                                                                         </div>
                                                                     @endforeach
                                                                 </div>
@@ -391,13 +448,13 @@
                                 @endif
 
                                 <!-- Fabric Dimensions & Consumed -->
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                                     <div>
                                         <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 flex items-center gap-1">
                                             Total Consumed Length * <span class="material-symbols-outlined text-[14px] text-primary" title="Auto-computed from selected roll cut lengths">lock</span>
                                         </label>
                                         <div class="relative">
-                                            <input type="number" step="0.01" min="0.01" wire:model.live="cuttingConsumedLength" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-primary/40 rounded-xl pl-4 pr-12 py-3 text-sm font-black text-primary focus:ring-2 focus:ring-primary/20 focus:border-primary @if($this->isSelectedStageCompleted) opacity-75 bg-surface-container-low cursor-not-allowed @endif">
+                                            <input type="number" step="0.01" readonly wire:model.live="cuttingConsumedLength" placeholder="0.00" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl pl-4 pr-12 py-3 text-sm font-black text-primary cursor-not-allowed">
                                             <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-primary font-extrabold uppercase">
                                                 {{ $selectedBatch ? $selectedBatch->unit : 'Meters' }}
                                             </span>
@@ -415,143 +472,177 @@
                                         </div>
                                         <p class="text-[10px] text-outline font-medium mt-1">Pre-defined in Raw Material Master.</p>
                                     </div>
-
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-error uppercase tracking-wider mb-2">Fabric Wastage Length *</label>
-                                        <div class="relative">
-                                            <input type="number" step="0.01" min="0" wire:model.live="cuttingWastageLength" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface border border-error/30 rounded-xl pl-4 pr-12 py-3 text-sm font-bold text-error focus:ring-2 focus:ring-error/20 focus:border-error @if($this->isSelectedStageCompleted) opacity-75 bg-surface-container-low cursor-not-allowed @endif">
-                                            <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-error font-bold uppercase">
-                                                {{ $selectedBatch ? $selectedBatch->unit : 'Meters' }}
-                                            </span>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
 
                             <!-- STEP 1 FOOTER NAVIGATION -->
                             <div class="flex justify-end pt-4 border-t border-outline-variant/40">
                                 <button type="button" wire:click="setWizardStep(2)" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
-                                    Next Step: Cut Yields & Labor
+                                    Next Step: Labor Assignments
                                     <span class="material-symbols-outlined text-lg">arrow_forward</span>
                                 </button>
                             </div>
                         </div>
                     @endif
 
-                    {{-- STEP 2: CUT YIELDS & LABOR --}}
+                    {{-- STEP 2: LABOR ALLOCATION --}}
                     @if($wizardStep === 2)
                         <div class="space-y-6">
-                            <!-- Cut Piece Output Grid Card -->
+                            <!-- Bulk Labor Allocation Card -->
                             <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
-                                <div class="flex justify-between items-center pb-4 border-b border-outline-variant/40">
-                                    <div>
-                                        <h4 class="font-headline-sm text-headline-sm text-primary font-bold">Step 2: Cut Piece Output Grid</h4>
-                                        <p class="text-xs text-on-surface-variant mt-0.5">Select target manufacturing product SKU(s) and specify total cut pieces.</p>
-                                    </div>
-                                    <button type="button" wire:click="addCuttingOutputRow" class="flex items-center gap-1 bg-secondary text-on-secondary px-4 py-2 rounded-xl text-xs font-bold shadow-xs hover:bg-secondary-container transition-all active:scale-95">
-                                        <span class="material-symbols-outlined text-[16px]">add</span> Add Output Row
-                                    </button>
+                                <div class="pb-3 border-b border-outline-variant/40">
+                                    <h4 class="font-headline-sm text-headline-sm text-primary font-bold">Bulk Labor Allocation</h4>
+                                    <p class="text-xs text-on-surface-variant mt-0.5">Quickly allocate worker(s) to multiple rolls or entire bales to save time.</p>
                                 </div>
 
-                                <div class="space-y-3">
-                                    @foreach($cuttingOutputs as $index => $output)
-                                        <div class="flex items-center gap-4 p-4 bg-surface rounded-xl border border-outline-variant/60 shadow-xs">
-                                            <!-- Product Select -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Bulk Assign All Rolls -->
+                                    <div class="p-4 bg-surface rounded-xl border border-outline-variant/50 space-y-3">
+                                        <label class="block text-[11px] font-bold text-primary uppercase tracking-wider">Assign Worker to ALL Rolls</label>
+                                        <div class="flex items-center gap-3">
                                             <div class="flex-1">
-                                                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Target Product SKU *</label>
-                                                <select wire:model.live="cuttingOutputs.{{ $index }}.manufacturing_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                                                    <option value="">-- Choose Product SKU --</option>
-                                                    @php
-                                                        $cuttingProductOptions = $job->manufacturingProduct ? collect([$job->manufacturingProduct]) : $allManufacturingProducts;
-                                                    @endphp
-                                                    @foreach($cuttingProductOptions as $prod)
-                                                        <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-
-                                            <!-- Quantity (Pcs) -->
-                                            <div class="w-36">
-                                                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Cut Output (Pcs) *</label>
-                                                <input type="number" min="1" wire:model.live="cuttingOutputs.{{ $index }}.quantity" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-black text-primary text-center focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                                            </div>
-
-                                            <!-- Delete button -->
-                                            @if(count($cuttingOutputs) > 1)
-                                                <button type="button" wire:click="removeCuttingOutputRow({{ $index }})" class="p-2 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 self-center" title="Remove Row">
-                                                    <span class="material-symbols-outlined text-[20px]">delete</span>
-                                                </button>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-
-                            <!-- Cutting Labor Assignment Card -->
-                            <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
-                                <div class="flex justify-between items-center pb-4 border-b border-outline-variant/40">
-                                    <div>
-                                        <h4 class="font-headline-sm text-headline-sm text-primary font-bold">Cutting Labor Assignment</h4>
-                                        <p class="text-xs text-on-surface-variant mt-0.5">Assign cutter factory workers and record piece-rate labor wages for cutting.</p>
-                                    </div>
-                                    @if(!$this->isSelectedStageCompleted)
-                                        <button type="button" wire:click="addLaborRow" class="flex items-center gap-1 bg-primary text-on-primary px-4 py-2 rounded-xl text-xs font-bold shadow-xs hover:bg-primary-container transition-all active:scale-95">
-                                            <span class="material-symbols-outlined text-[16px]">person_add</span> Add Cutter Worker
-                                        </button>
-                                    @endif
-                                </div>
-
-                                <div class="space-y-3">
-                                    @foreach($laborAllocations as $index => $allocation)
-                                        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-surface rounded-xl border border-outline-variant/60 shadow-xs">
-                                            <div class="flex-1 w-full">
-                                                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Cutter Worker *</label>
-                                                <select wire:model="laborAllocations.{{ $index }}.labor_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
-                                                    <option value="">-- Select Factory Cutter --</option>
+                                                <select wire:model="allRollsBulkLabor" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                                                    <option value="">-- Select Worker --</option>
                                                     @foreach($this->authorizedLabors as $lab)
-                                                        <option value="{{ $lab->id }}">{{ $lab->name }} ({{ $lab->labor_code }}) — {{ $lab->payment_method === 'monthly_salary' ? 'Monthly' : 'Piece-Rate' }}</option>
+                                                        <option value="{{ $lab->id }}">{{ $lab->name }} ({{ $lab->labor_code }})</option>
                                                     @endforeach
                                                 </select>
                                             </div>
-
-                                            <div class="flex-1 w-full">
-                                                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Target Product SKU *</label>
-                                                <select wire:model="laborAllocations.{{ $index }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
-                                                    <option value="">-- Choose Cut Product SKU --</option>
-                                                    @php
-                                                        $selectedOutputProductIds = collect($cuttingOutputs)->pluck('manufacturing_product_id')->filter()->unique()->toArray();
-                                                        $outputProducts = $allManufacturingProducts->whereIn('id', $selectedOutputProductIds);
-                                                        $dropdownProducts = $outputProducts->isNotEmpty() ? $outputProducts : ($job->manufacturingProduct ? collect([$job->manufacturingProduct]) : $allManufacturingProducts);
-                                                    @endphp
-                                                    @foreach($dropdownProducts as $prod)
-                                                        <option value="{{ $prod->id }}">{{ $prod->name }} ({{ $prod->code }})</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-
-                                            <div class="w-full md:w-32">
-                                                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Processed (Pcs) *</label>
-                                                <input type="number" min="1" wire:model="laborAllocations.{{ $index }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-black text-primary text-center">
-                                            </div>
-
-                                            @if(!$this->isSelectedStageCompleted && count($laborAllocations) > 1)
-                                                <button type="button" wire:click="removeLaborRow({{ $index }})" class="p-2 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 self-center" title="Remove Row">
-                                                    <span class="material-symbols-outlined text-[20px]">delete</span>
-                                                </button>
-                                            @endif
+                                            <button type="button" wire:click="applyAllRollsBulkLabor" class="bg-primary text-on-primary px-4 py-2 rounded-xl text-xs font-bold shadow-xs hover:bg-primary-container transition-all">
+                                                Apply
+                                            </button>
                                         </div>
-                                    @endforeach
+                                    </div>
+
+                                    <!-- Bulk Assign Per Bale -->
+                                    <div class="p-4 bg-surface rounded-xl border border-outline-variant/50 space-y-3">
+                                        <label class="block text-[11px] font-bold text-secondary uppercase tracking-wider">Assign Worker Per Bale</label>
+                                        <div class="space-y-3">
+                                            @foreach($cuttingBaleRows as $bIndex => $bRow)
+                                                @php
+                                                    $bale = !empty($bRow['bale_id']) ? \App\Models\InventoryBale::find($bRow['bale_id']) : null;
+                                                @endphp
+                                                @if($bale)
+                                                    <div class="flex items-center gap-3 justify-between">
+                                                        <span class="text-xs font-bold text-on-surface font-mono">Bale {{ $bale->bale_number }}</span>
+                                                        <div class="flex-1 max-w-[200px]">
+                                                            <select wire:model="baleBulkLabor.{{ $bale->id }}" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-1.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                                                                <option value="">-- Select Worker --</option>
+                                                                @foreach($this->authorizedLabors as $lab)
+                                                                    <option value="{{ $lab->id }}">{{ $lab->name }} ({{ $lab->labor_code }})</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                        <button type="button" wire:click="applyBaleBulkLabor({{ $bIndex }})" class="bg-secondary text-on-secondary px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-secondary-container transition-all">
+                                                            Apply
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            @error('laborAllocations')
-                                <div class="p-4 bg-error-container/30 border border-error/40 text-error rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs">
-                                    <span class="material-symbols-outlined text-[20px] text-error shrink-0">error</span>
-                                    <span>{{ $message }}</span>
-                                </div>
-                            @enderror
+                            <!-- Individual Roll Labor Assignments -->
+                            <div class="space-y-4">
+                                <h4 class="font-headline-sm text-headline-sm text-primary font-bold px-1">Roll-Level Labor Assignment</h4>
+                                @foreach($cuttingBaleRows as $bIndex => $bRow)
+                                    @foreach($bRow['selected_rolls'] ?? [] as $rId => $rData)
+                                        @if(!empty($rData['is_selected']))
+                                            @php
+                                                $rollOutputs = [];
+                                                foreach ($rData['outputs'] ?? [] as $out) {
+                                                    if (!empty($out['manufacturing_product_id']) && !empty($out['quantity'])) {
+                                                        $pId = (int)$out['manufacturing_product_id'];
+                                                        $rollOutputs[$pId] = ($rollOutputs[$pId] ?? 0) + (int)$out['quantity'];
+                                                    }
+                                                }
+                                            @endphp
+                                            <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 shadow-xs space-y-4">
+                                                <div class="flex justify-between items-start pb-3 border-b border-outline-variant/40">
+                                                    <div>
+                                                        <span class="font-extrabold text-sm text-primary">Roll #{{ $rData['roll_number'] }} Labor Assignment</span>
+                                                        <div class="flex flex-wrap gap-2 mt-1.5">
+                                                            <span class="text-[10px] font-bold text-outline uppercase">Products Cut:</span>
+                                                            @if(!empty($rollOutputs))
+                                                                @foreach($rollOutputs as $pId => $qty)
+                                                                    @php
+                                                                        $prod = \App\Models\ManufacturingProduct::find($pId);
+                                                                    @endphp
+                                                                    <span class="px-2 py-0.5 bg-primary/10 text-primary rounded-lg text-[10px] font-black">
+                                                                        {{ $prod ? $prod->name : "Product #{$pId}" }} x{{ $qty }} Pcs
+                                                                    </span>
+                                                                @endforeach
+                                                            @else
+                                                                <span class="text-[10px] text-error font-black">No products defined on Step 1</span>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                    @if(!$this->isSelectedStageCompleted)
+                                                        <button type="button" wire:click="addCuttingLaborRow({{ $rId }})" class="flex items-center gap-1 bg-primary text-on-primary px-3 py-1.5 rounded-xl text-[10px] font-bold shadow-xs hover:bg-primary-container transition-all">
+                                                            <span class="material-symbols-outlined text-[14px]">person_add</span> Add Cutter Worker
+                                                        </button>
+                                                    @endif
+                                                </div>
 
-                            @error('cuttingOutputs')
+                                                <div class="space-y-3">
+                                                    @php
+                                                        $allocs = $cuttingLaborAllocations[$rId] ?? [];
+                                                    @endphp
+                                                    @if(!empty($allocs))
+                                                        @foreach($allocs as $aIdx => $alloc)
+                                                            <div class="flex flex-col md:flex-row items-center gap-3 p-3 bg-surface rounded-xl border border-outline-variant/60 shadow-2xs">
+                                                                <!-- Worker Dropdown -->
+                                                                <div class="flex-1 w-full">
+                                                                    <label class="block text-[9px] font-bold text-on-surface-variant uppercase mb-1">Cutter Worker *</label>
+                                                                    <select wire:model="cuttingLaborAllocations.{{ $rId }}.{{ $aIdx }}.labor_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-2.5 py-2 text-xs font-semibold text-on-surface">
+                                                                        <option value="">-- Select Factory Cutter --</option>
+                                                                        @foreach($this->authorizedLabors as $lab)
+                                                                            <option value="{{ $lab->id }}">{{ $lab->name }} ({{ $lab->labor_code }})</option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                </div>
+
+                                                                <!-- Product Dropdown -->
+                                                                <div class="flex-1 w-full">
+                                                                    <label class="block text-[9px] font-bold text-on-surface-variant uppercase mb-1">Target Product SKU *</label>
+                                                                    <select wire:model="cuttingLaborAllocations.{{ $rId }}.{{ $aIdx }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-2.5 py-2 text-xs font-semibold text-on-surface">
+                                                                        <option value="">-- Choose Cut Product SKU --</option>
+                                                                        @foreach($rollOutputs as $pId => $qty)
+                                                                            @php
+                                                                                $prod = \App\Models\ManufacturingProduct::find($pId);
+                                                                            @endphp
+                                                                            <option value="{{ $pId }}">{{ $prod ? $prod->name : "Product #{$pId}" }}</option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                </div>
+
+                                                                <!-- Quantity -->
+                                                                <div class="w-full md:w-28">
+                                                                    <label class="block text-[9px] font-bold text-on-surface-variant uppercase mb-1 text-center">Processed (Pcs) *</label>
+                                                                    <input type="number" min="1" wire:model="cuttingLaborAllocations.{{ $rId }}.{{ $aIdx }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-2.5 py-2 text-xs font-bold text-primary text-center">
+                                                                </div>
+
+                                                                <!-- Delete -->
+                                                                @if(!$this->isSelectedStageCompleted)
+                                                                    <button type="button" wire:click="removeCuttingLaborRow({{ $rId }}, {{ $aIdx }})" class="p-2 text-error hover:bg-error-container/20 rounded-xl transition-colors shrink-0 md:self-end">
+                                                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                                                    </button>
+                                                                @endif
+                                                            </div>
+                                                        @endforeach
+                                                    @else
+                                                        <p class="text-xs text-outline italic">No cutter workers assigned yet for this roll. Assign a worker above or use bulk allocation.</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                @endforeach
+                            </div>
+
+                            @error('cuttingLaborAllocations')
                                 <div class="p-4 bg-error-container/30 border border-error/40 text-error rounded-xl text-xs font-bold flex items-center gap-2.5 shadow-xs">
                                     <span class="material-symbols-outlined text-[20px] text-error shrink-0">error</span>
                                     <span>{{ $message }}</span>

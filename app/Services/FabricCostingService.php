@@ -56,6 +56,7 @@ class FabricCostingService
      * @param array $cutPiecesArray [ ['manufacturing_product_id' => X, 'width' => W, 'length' => L, 'width_unit' => 'inch', 'length_unit' => 'meter', 'quantity' => Q], ... ]
      * @param float $wastageLength
      * @param float $fabricWidth (Default 60.00 inches)
+     * @param int|null $rollId
      * @return array
      */
     public function calculateFabricCostAllocation(
@@ -64,9 +65,10 @@ class FabricCostingService
         float $consumedLength,
         array $cutPiecesArray,
         float $wastageLength,
-        float $fabricWidth = 60.00
+        float $fabricWidth = 60.00,
+        ?int $rollId = null
     ): array {
-        return DB::transaction(function () use ($jobId, $fabricBatchId, $consumedLength, $cutPiecesArray, $wastageLength, $fabricWidth) {
+        return DB::transaction(function () use ($jobId, $fabricBatchId, $consumedLength, $cutPiecesArray, $wastageLength, $fabricWidth, $rollId) {
             $job = ProductionJob::findOrFail($jobId);
             $batch = InventoryBatch::with('rawMaterial.category')->findOrFail($fabricBatchId);
 
@@ -148,6 +150,7 @@ class FabricCostingService
                         'production_job_id' => $jobId,
                         'manufacturing_product_id' => $item['manufacturing_product_id'],
                         'task_id' => Task::where('name', 'Cutting')->first()->id ?? 1,
+                        'inventory_bale_roll_id' => $rollId,
                     ],
                     [
                         'job_code' => $job->job_code,
@@ -173,6 +176,7 @@ class FabricCostingService
                     'production_job_id' => $jobId,
                     'inventory_batch_id' => $fabricBatchId,
                     'task_id' => Task::where('name', 'Cutting')->first()->id ?? 1,
+                    'inventory_bale_roll_id' => $rollId,
                 ],
                 [
                     'job_code' => $job->job_code,
@@ -186,10 +190,21 @@ class FabricCostingService
                 ]
             );
 
-            // Decrement the inventory batch balance
-            // Note: Defer decrement logic to the controller/Livewire component or manage here.
-            // Since we use updateOrCreate, if this is called multiple times we must be careful not to double-decrement.
-            // Let's assume the controller or Livewire component handles decrements when recording.
+            // 8. Record/Update the JobWastage details
+            if ($wastageLength > 0) {
+                \App\Models\JobWastage::updateOrCreate(
+                    [
+                        'production_job_id' => $jobId,
+                        'task_id' => Task::where('name', 'Cutting')->first()->id ?? 1,
+                        'inventory_bale_roll_id' => $rollId,
+                    ],
+                    [
+                        'job_code' => $job->job_code,
+                        'quantity_wasted' => $wastageLength,
+                        'reason' => 'Fabric Cutting Roll Wastage',
+                    ]
+                );
+            }
 
             return [
                 'total_fabric_cost_consumed' => $totalFabricCost,

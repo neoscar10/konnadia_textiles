@@ -373,9 +373,90 @@ class ProductionWorkflowService
                 ->where('manufacturing_product_id', $pId)
                 ->update(['production_job_id' => $childJob->id]);
 
-            \App\Models\JobLaborAllocation::where('job_id', $job->job_code)
+            \App\Models\JobLaborAllocation::where('production_job_id', $job->id)
                 ->where('manufacturing_product_id', $pId)
-                ->update(['job_id' => $childJob->job_code]);
+                ->update([
+                    'production_job_id' => $childJob->id,
+                    'job_id' => $childJob->job_code,
+                ]);
+
+            // Move and split JobMaterialConsumption and JobWastage for child jobs
+            $childOutputs = \App\Models\JobProductionOutput::where('production_job_id', $childJob->id)->get();
+            foreach ($childOutputs as $cOut) {
+                if ($cOut->inventory_bale_roll_id) {
+                    $parentConsumption = \App\Models\JobMaterialConsumption::where('production_job_id', $job->id)
+                        ->where('inventory_bale_roll_id', $cOut->inventory_bale_roll_id)
+                        ->first();
+
+                    if ($parentConsumption) {
+                        $shareRatio = $parentConsumption->total_fabric_cost > 0 
+                            ? ((float)$cOut->total_fabric_cost / (float)$parentConsumption->total_fabric_cost) 
+                            : 0;
+
+                        $childConsQty = round((float)$parentConsumption->quantity_consumed * $shareRatio, 4);
+                        $childTotalCost = round((float)$parentConsumption->total_cost * $shareRatio, 2);
+
+                        \App\Models\JobMaterialConsumption::create([
+                            'job_code' => $childJob->job_code,
+                            'production_job_id' => $childJob->id,
+                            'inventory_batch_id' => $parentConsumption->inventory_batch_id,
+                            'inventory_bale_roll_id' => $parentConsumption->inventory_bale_roll_id,
+                            'task_id' => $parentConsumption->task_id,
+                            'quantity_consumed' => $childConsQty,
+                            'unit_cost' => $parentConsumption->unit_cost,
+                            'total_cost' => $childTotalCost,
+                            'consumed_length' => $childConsQty,
+                            'calculated_base_cost' => $cOut->calculated_base_cost,
+                            'allocated_wastage_cost' => $cOut->allocated_wastage_cost,
+                            'total_fabric_cost' => $cOut->total_fabric_cost,
+                        ]);
+
+                        $parentConsQty = max(0, (float)$parentConsumption->quantity_consumed - $childConsQty);
+                        $parentTotalCost = max(0, (float)$parentConsumption->total_cost - $childTotalCost);
+                        $parentBaseCost = max(0, (float)$parentConsumption->calculated_base_cost - (float)$cOut->calculated_base_cost);
+                        $parentWastageCost = max(0, (float)$parentConsumption->allocated_wastage_cost - (float)$cOut->allocated_wastage_cost);
+
+                        $parentConsumption->update([
+                            'quantity_consumed' => $parentConsQty,
+                            'total_cost' => $parentTotalCost,
+                            'consumed_length' => $parentConsQty,
+                            'calculated_base_cost' => $parentBaseCost,
+                            'allocated_wastage_cost' => $parentWastageCost,
+                            'total_fabric_cost' => $parentTotalCost,
+                        ]);
+                    }
+
+                    $parentWastage = \App\Models\JobWastage::where('production_job_id', $job->id)
+                        ->where('inventory_bale_roll_id', $cOut->inventory_bale_roll_id)
+                        ->first();
+
+                    if ($parentWastage) {
+                        $purchaseRate = $parentConsumption ? (float)$parentConsumption->unit_cost : 1;
+                        $childWastageQty = $purchaseRate > 0 ? round((float)$cOut->allocated_wastage_cost / $purchaseRate, 4) : 0;
+
+                        if ($childWastageQty > 0) {
+                            \App\Models\JobWastage::create([
+                                'job_code' => $childJob->job_code,
+                                'production_job_id' => $childJob->id,
+                                'manufacturing_product_id' => $childJob->manufacturing_product_id,
+                                'inventory_bale_roll_id' => $cOut->inventory_bale_roll_id,
+                                'task_id' => $parentWastage->task_id,
+                                'quantity_wasted' => $childWastageQty,
+                                'reason' => $parentWastage->reason,
+                            ]);
+
+                            $parentWastageQty = max(0, (float)$parentWastage->quantity_wasted - $childWastageQty);
+                            if ($parentWastageQty <= 0) {
+                                $parentWastage->delete();
+                            } else {
+                                $parentWastage->update([
+                                    'quantity_wasted' => $parentWastageQty,
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
 
             $allFlowJobs[] = $childJob;
         }

@@ -94,9 +94,39 @@ class JobDetailPage extends Component
                     $this->dispatch('toast', message: 'Please select a fabric inventory batch before proceeding.', type: 'error');
                     return;
                 }
-                if (empty($this->cuttingConsumedLength) || (float)$this->cuttingConsumedLength <= 0) {
-                    $this->addError('cuttingConsumedLength', 'Please record consumed fabric roll length before proceeding.');
-                    $this->dispatch('toast', message: 'Please record consumed fabric roll length before proceeding.', type: 'error');
+
+                $hasSelectedRoll = false;
+                foreach ($this->cuttingBaleRows as $bRow) {
+                    foreach ($bRow['selected_rolls'] ?? [] as $rId => $rData) {
+                        if (empty($rData['is_selected'])) continue;
+                        $hasSelectedRoll = true;
+                        $cutLen = floatval($rData['cut_length'] ?? 0);
+                        $maxLen = floatval($rData['max_length'] ?? 0);
+                        $wastageLen = floatval($rData['wastage_length'] ?? 0);
+
+                        if ($cutLen <= 0 || $cutLen > $maxLen) {
+                            $this->addError("cuttingBaleRows", "Cut length for Roll #{$rData['roll_number']} must be between 0.01 and {$maxLen}m.");
+                            $this->dispatch('toast', message: "Cut length for Roll #{$rData['roll_number']} must be between 0.01 and {$maxLen}m.", type: 'error');
+                            return;
+                        }
+
+                        $hasOutput = false;
+                        foreach ($rData['outputs'] ?? [] as $out) {
+                            if (!empty($out['manufacturing_product_id']) && !empty($out['quantity']) && (int)$out['quantity'] > 0) {
+                                $hasOutput = true;
+                            }
+                        }
+                        if (!$hasOutput) {
+                            $this->addError("cuttingBaleRows", "Please add at least one product output with quantity greater than 0 for Roll #{$rData['roll_number']}.");
+                            $this->dispatch('toast', message: "Please add at least one product output with quantity greater than 0 for Roll #{$rData['roll_number']}.", type: 'error');
+                            return;
+                        }
+                    }
+                }
+
+                if (!$hasSelectedRoll) {
+                    $this->addError("cuttingBaleRows", "Please select at least one roll to cut.");
+                    $this->dispatch('toast', message: 'Please select at least one roll to cut.', type: 'error');
                     return;
                 }
             }
@@ -131,84 +161,56 @@ class JobDetailPage extends Component
 
     public function validateCuttingStep2(): bool
     {
-        $this->resetErrorBag(['cuttingOutputs', 'laborAllocations']);
+        $this->resetErrorBag(['cuttingLaborAllocations']);
 
-        if (empty($this->cuttingOutputs)) {
-            $this->addError('cuttingOutputs', 'Please specify at least one target product cut output.');
-            $this->dispatch('toast', message: 'Please specify at least one target product cut output.', type: 'error');
-            return false;
-        }
+        foreach ($this->cuttingBaleRows as $bIndex => $bRow) {
+            foreach ($bRow['selected_rolls'] ?? [] as $rId => $rData) {
+                if (empty($rData['is_selected'])) continue;
 
-        $cutTotalsPerProduct = [];
-        foreach ($this->cuttingOutputs as $idx => $out) {
-            if (empty($out['manufacturing_product_id'])) {
-                $this->addError("cuttingOutputs.{$idx}.manufacturing_product_id", 'Please select a target product SKU.');
-                $this->dispatch('toast', message: 'Please select a target product SKU for all output rows.', type: 'error');
-                return false;
-            }
-            $qty = (int) ($out['quantity'] ?? 0);
-            if ($qty <= 0) {
-                $this->addError("cuttingOutputs.{$idx}.quantity", 'Cut output quantity must be at least 1.');
-                $this->dispatch('toast', message: 'Cut output quantity must be at least 1.', type: 'error');
-                return false;
-            }
-            $pId = (int) $out['manufacturing_product_id'];
-            $cutTotalsPerProduct[$pId] = ($cutTotalsPerProduct[$pId] ?? 0) + $qty;
-        }
-
-        $filledLaborAllocations = array_filter($this->laborAllocations, function ($alloc) {
-            return !empty($alloc['labor_id']);
-        });
-
-        if (!empty($filledLaborAllocations)) {
-            $laborTotalsPerProduct = [];
-            foreach ($filledLaborAllocations as $idx => $alloc) {
-                if (empty($alloc['manufacturing_product_id'])) {
-                    $this->addError("laborAllocations.{$idx}.manufacturing_product_id", 'Please select the target product SKU for worker assignment.');
-                    $this->dispatch('toast', message: 'Please select the target product SKU for worker assignment.', type: 'error');
-                    return false;
-                }
-                $qty = (int) ($alloc['quantity'] ?? 0);
-                if ($qty <= 0) {
-                    $this->addError("laborAllocations.{$idx}.quantity", 'Processed quantity must be at least 1.');
-                    $this->dispatch('toast', message: 'Processed quantity must be at least 1.', type: 'error');
-                    return false;
+                $rollNum = $rData['roll_number'];
+                $rollOutputs = [];
+                foreach ($rData['outputs'] ?? [] as $out) {
+                    if (empty($out['manufacturing_product_id']) || empty($out['quantity'])) continue;
+                    $pId = (int) $out['manufacturing_product_id'];
+                    $rollOutputs[$pId] = ($rollOutputs[$pId] ?? 0) + (int) $out['quantity'];
                 }
 
-                $pId = (int) $alloc['manufacturing_product_id'];
-                if (!isset($cutTotalsPerProduct[$pId])) {
-                    $prod = ManufacturingProduct::find($pId);
-                    $prodName = $prod ? "{$prod->name} ({$prod->code})" : "product SKU #{$pId}";
-                    $msg = "Cutter labor assigned to {$prodName}, but this SKU is not listed in the Cut Piece Output Grid.";
-                    $this->addError('laborAllocations', $msg);
-                    $this->dispatch('toast', message: $msg, type: 'error');
-                    return false;
+                $rollAllocations = $this->cuttingLaborAllocations[$rId] ?? [];
+                $rollAllocatedTotals = [];
+                foreach ($rollAllocations as $allocIdx => $alloc) {
+                    if (empty($alloc['labor_id'])) {
+                        $this->addError("cuttingLaborAllocations.{$rId}", "Please select a worker for Roll #{$rollNum}.");
+                        $this->dispatch('toast', message: "Please select a worker for Roll #{$rollNum}.", type: 'error');
+                        return false;
+                    }
+                    if (empty($alloc['manufacturing_product_id'])) {
+                        $this->addError("cuttingLaborAllocations.{$rId}", "Please select a product for worker on Roll #{$rollNum}.");
+                        $this->dispatch('toast', message: "Please select a product for worker on Roll #{$rollNum}.", type: 'error');
+                        return false;
+                    }
+                    $qty = (int) ($alloc['quantity'] ?? 0);
+                    if ($qty <= 0) {
+                        $this->addError("cuttingLaborAllocations.{$rId}", "Quantity must be at least 1 for worker on Roll #{$rollNum}.");
+                        $this->dispatch('toast', message: "Quantity must be at least 1 for worker on Roll #{$rollNum}.", type: 'error');
+                        return false;
+                    }
+                    $pId = (int) $alloc['manufacturing_product_id'];
+                    $rollAllocatedTotals[$pId] = ($rollAllocatedTotals[$pId] ?? 0) + $qty;
                 }
 
-                $laborTotalsPerProduct[$pId] = ($laborTotalsPerProduct[$pId] ?? 0) + $qty;
-            }
-
-            foreach ($cutTotalsPerProduct as $pId => $cutQty) {
-                $prod = ManufacturingProduct::find($pId);
-                $prodName = $prod ? "{$prod->name} ({$prod->code})" : "Product SKU #{$pId}";
-                $assignedLaborQty = $laborTotalsPerProduct[$pId] ?? 0;
-
-                if ($assignedLaborQty > 0 && $assignedLaborQty > $cutQty) {
-                    $msg = "Total labor processed pieces ({$assignedLaborQty} Pcs) for {$prodName} exceeds total cut output ({$cutQty} Pcs). Assigned labor pieces must match cut output exactly.";
-                    $this->addError('laborAllocations', $msg);
-                    $this->dispatch('toast', message: $msg, type: 'error');
-                    return false;
-                }
-
-                if ($assignedLaborQty > 0 && $assignedLaborQty < $cutQty) {
-                    $msg = "Total labor processed pieces ({$assignedLaborQty} Pcs) for {$prodName} is less than total cut output ({$cutQty} Pcs). All {$cutQty} cut pieces must be assigned to workers.";
-                    $this->addError('laborAllocations', $msg);
-                    $this->dispatch('toast', message: $msg, type: 'error');
-                    return false;
+                // Check that all product outputs on this roll are fully allocated to workers
+                foreach ($rollOutputs as $pId => $outQty) {
+                    $allocatedQty = $rollAllocatedTotals[$pId] ?? 0;
+                    if ($allocatedQty !== $outQty) {
+                        $prod = ManufacturingProduct::find($pId);
+                        $prodName = $prod ? $prod->name : "Product #{$pId}";
+                        $this->dispatch('toast', message: "Labor allocation mismatch on Roll #{$rollNum} for {$prodName}. Allocated: {$allocatedQty} Pcs, Output: {$outQty} Pcs.", type: 'error');
+                        $this->addError("cuttingLaborAllocations.{$rId}", "Total labor allocated ({$allocatedQty} Pcs) does not match total output ({$outQty} Pcs) for {$prodName} on Roll #{$rollNum}.");
+                        return false;
+                    }
                 }
             }
         }
-
         return true;
     }
 
@@ -384,6 +386,9 @@ class JobDetailPage extends Component
     public $cuttingWastageLength = 0;
     public $cuttingFabricWidth = 60.00;
     public array $cuttingOutputs = [];
+    public array $cuttingLaborAllocations = [];
+    public array $baleBulkLabor = [];
+    public $allRollsBulkLabor = '';
 
     // Unopened Bale Modal State
     public bool $showOpenBaleModal = false;
@@ -503,7 +508,12 @@ class JobDetailPage extends Component
                         'roll_id' => $roll->id,
                         'roll_number' => $roll->roll_number,
                         'max_length' => (float) $roll->current_balance_length,
+                        'is_selected' => false,
                         'cut_length' => '',
+                        'wastage_length' => '0',
+                        'outputs' => [
+                            ['manufacturing_product_id' => $this->job->manufacturing_product_id ?? '', 'quantity' => '']
+                        ]
                     ];
                 }
             }
@@ -676,6 +686,78 @@ class JobDetailPage extends Component
                 if ($batch) {
                     $this->cuttingFabricWidth = (string) ($batch->width ?? 60.0);
                 }
+            }
+
+            // Reconstruct cuttingBaleRows, cuttingLaborAllocations from DB records
+            $this->cuttingBaleRows = [];
+            $this->cuttingLaborAllocations = [];
+            
+            $groupedByBale = $cuttingConsumptions->groupBy(function($c) {
+                return $c->inventoryBaleRoll?->inventory_bale_id;
+            });
+
+            foreach ($groupedByBale as $baleId => $baleConsumptions) {
+                if (!$baleId) continue;
+                $selectedRolls = [];
+                foreach ($baleConsumptions as $c) {
+                    $roll = $c->inventoryBaleRoll;
+                    if (!$roll) continue;
+
+                    $rollOutputs = \App\Models\JobProductionOutput::where('production_job_id', $this->job->id)
+                        ->where('task_id', $this->selectedTaskId)
+                        ->where('inventory_bale_roll_id', $roll->id)
+                        ->get();
+
+                    $outputs = [];
+                    foreach ($rollOutputs as $ro) {
+                        $outputs[] = [
+                            'manufacturing_product_id' => $ro->manufacturing_product_id,
+                            'quantity' => $ro->quantity_produced,
+                        ];
+                    }
+                    if (empty($outputs)) {
+                        $outputs[] = ['manufacturing_product_id' => $this->job->manufacturing_product_id ?? '', 'quantity' => ''];
+                    }
+
+                    $wastageQty = \App\Models\JobWastage::where('production_job_id', $this->job->id)
+                        ->where('task_id', $this->selectedTaskId)
+                        ->where('inventory_bale_roll_id', $roll->id)
+                        ->value('quantity_wasted') ?? 0.0;
+
+                    $selectedRolls[$roll->id] = [
+                        'roll_id' => $roll->id,
+                        'roll_number' => $roll->roll_number,
+                        'max_length' => (float) $roll->current_balance_length + (float)$c->quantity_consumed,
+                        'is_selected' => true,
+                        'cut_length' => $c->quantity_consumed,
+                        'wastage_length' => $wastageQty,
+                        'outputs' => $outputs,
+                    ];
+
+                    // Load labor allocations for this roll
+                    $rollLabors = \App\Models\JobLaborAllocation::where('production_job_id', $this->job->id)
+                        ->where('task_id', $this->selectedTaskId)
+                        ->where('inventory_bale_roll_id', $roll->id)
+                        ->get();
+
+                    $this->cuttingLaborAllocations[$roll->id] = [];
+                    foreach ($rollLabors as $rl) {
+                        $this->cuttingLaborAllocations[$roll->id][] = [
+                            'labor_id' => $rl->labor_id,
+                            'manufacturing_product_id' => $rl->manufacturing_product_id,
+                            'quantity' => $rl->quantity_processed,
+                        ];
+                    }
+                }
+
+                $this->cuttingBaleRows[] = [
+                    'bale_id' => $baleId,
+                    'selected_rolls' => $selectedRolls,
+                ];
+            }
+
+            if (empty($this->cuttingBaleRows)) {
+                $this->cuttingBaleRows = [['bale_id' => '', 'selected_rolls' => []]];
             }
 
             $cuttingOutputs = $this->job->productOutputs->where('task_id', $this->selectedTaskId);
@@ -1751,7 +1833,12 @@ class JobDetailPage extends Component
                                 'roll_id' => $roll->id,
                                 'roll_number' => $roll->roll_number,
                                 'max_length' => (float) $roll->current_balance_length,
+                                'is_selected' => false,
                                 'cut_length' => '',
+                                'wastage_length' => '0',
+                                'outputs' => [
+                                    ['manufacturing_product_id' => $this->job->manufacturing_product_id ?? '', 'quantity' => '']
+                                ]
                             ];
                         }
                     }
@@ -1778,6 +1865,7 @@ class JobDetailPage extends Component
         foreach ($this->cuttingBaleRows as $row) {
             if (!empty($row['selected_rolls'])) {
                 foreach ($row['selected_rolls'] as $r) {
+                    if (empty($r['is_selected'])) continue;
                     $val = floatval($r['cut_length'] ?? 0);
                     if ($val > 0) {
                         $total += $val;
@@ -1849,7 +1937,12 @@ class JobDetailPage extends Component
                         'roll_id' => $roll->id,
                         'roll_number' => $roll->roll_number,
                         'max_length' => (float) $roll->current_balance_length,
+                        'is_selected' => false,
                         'cut_length' => '',
+                        'wastage_length' => '0',
+                        'outputs' => [
+                            ['manufacturing_product_id' => $this->job->manufacturing_product_id ?? '', 'quantity' => '']
+                        ]
                     ];
                 }
             }
@@ -1933,7 +2026,7 @@ class JobDetailPage extends Component
 
     public function getCuttingCostPreviewProperty()
     {
-        if (empty($this->cuttingFabricBatchId) || empty($this->cuttingConsumedLength)) {
+        if (empty($this->cuttingFabricBatchId)) {
             return null;
         }
 
@@ -1943,40 +2036,146 @@ class JobDetailPage extends Component
         }
 
         $purchaseRate = (float) $batch->unit_cost;
-        $totalFabricCost = (float) $this->cuttingConsumedLength * $purchaseRate;
-        $totalWastageCost = (float) $this->cuttingWastageLength * $purchaseRate;
-
-        $totalCutQty = (int) array_sum(array_column($this->cuttingOutputs, 'quantity'));
+        $totalFabricCostSum = 0.0;
+        $totalWastageCostSum = 0.0;
         $preview = [];
 
-        foreach ($this->cuttingOutputs as $output) {
-            if (empty($output['manufacturing_product_id']) || empty($output['quantity'])) {
-                continue;
+        foreach ($this->cuttingBaleRows as $bRow) {
+            if (empty($bRow['selected_rolls'])) continue;
+            foreach ($bRow['selected_rolls'] as $rId => $rData) {
+                if (empty($rData['is_selected'])) continue;
+                $cutLen = floatval($rData['cut_length'] ?? 0);
+                $wastageLen = floatval($rData['wastage_length'] ?? 0);
+                if ($cutLen <= 0) continue;
+
+                $rollFabricCost = $cutLen * $purchaseRate;
+                $rollWastageCost = $wastageLen * $purchaseRate;
+                $totalFabricCostSum += $rollFabricCost;
+                $totalWastageCostSum += $rollWastageCost;
+
+                $totalCutQtyOnRoll = (int) array_sum(array_column($rData['outputs'] ?? [], 'quantity'));
+                
+                foreach ($rData['outputs'] ?? [] as $output) {
+                    if (empty($output['manufacturing_product_id']) || empty($output['quantity'])) {
+                        continue;
+                    }
+                    $qty = (int) $output['quantity'];
+                    $prod = ManufacturingProduct::find($output['manufacturing_product_id']);
+                    $shareRatio = $totalCutQtyOnRoll > 0 ? ($qty / $totalCutQtyOnRoll) : (1 / count($rData['outputs']));
+
+                    $baseCost = round($rollFabricCost * $shareRatio, 2);
+                    $allocatedWastage = round($rollWastageCost * $shareRatio, 2);
+                    $totalCost = $baseCost + $allocatedWastage;
+
+                    $key = $prod ? $prod->id : 'unknown';
+                    if (!isset($preview[$key])) {
+                        $preview[$key] = [
+                            'product_name' => $prod ? $prod->name : 'Unknown Product',
+                            'quantity' => 0,
+                            'base_cost' => 0.0,
+                            'allocated_wastage' => 0.0,
+                            'total_cost' => 0.0,
+                        ];
+                    }
+                    $preview[$key]['quantity'] += $qty;
+                    $preview[$key]['base_cost'] += $baseCost;
+                    $preview[$key]['allocated_wastage'] += $allocatedWastage;
+                    $preview[$key]['total_cost'] += $totalCost;
+                }
             }
-            $qty = (int) $output['quantity'];
-            $prod = ManufacturingProduct::find($output['manufacturing_product_id']);
-            $shareRatio = $totalCutQty > 0 ? ($qty / $totalCutQty) : (1 / count($this->cuttingOutputs));
+        }
 
-            $baseCost = round($totalFabricCost * $shareRatio, 2);
-            $allocatedWastage = round($totalWastageCost * $shareRatio, 2);
-            $totalCost = $baseCost + $allocatedWastage;
-
-            $preview[] = [
-                'product_name' => $prod ? $prod->name : 'Unknown Product',
-                'quantity' => $qty,
-                'base_cost' => $baseCost,
-                'allocated_wastage' => $allocatedWastage,
-                'total_cost' => $totalCost,
-                'cost_per_unit' => $qty > 0 ? ($totalCost / $qty) : 0.0,
-            ];
+        foreach ($preview as $key => &$pItem) {
+            $pItem['cost_per_unit'] = $pItem['quantity'] > 0 ? ($pItem['total_cost'] / $pItem['quantity']) : 0.0;
         }
 
         return [
-            'total_fabric_cost' => $totalFabricCost,
-            'total_wastage_cost' => $totalWastageCost,
-            'consolidated_fabric_valuation' => $totalFabricCost + $totalWastageCost,
-            'preview_items' => $preview,
+            'total_fabric_cost' => $totalFabricCostSum,
+            'total_wastage_cost' => $totalWastageCostSum,
+            'consolidated_fabric_valuation' => $totalFabricCostSum + $totalWastageCostSum,
+            'preview_items' => array_values($preview),
         ];
+    }
+
+    public function addRollOutputRow(int $bIndex, int $rollId): void
+    {
+        $this->cuttingBaleRows[$bIndex]['selected_rolls'][$rollId]['outputs'][] = [
+            'manufacturing_product_id' => $this->job->manufacturing_product_id ?? '',
+            'quantity' => '',
+        ];
+    }
+
+    public function removeRollOutputRow(int $bIndex, int $rollId, int $outIndex): void
+    {
+        unset($this->cuttingBaleRows[$bIndex]['selected_rolls'][$rollId]['outputs'][$outIndex]);
+        $this->cuttingBaleRows[$bIndex]['selected_rolls'][$rollId]['outputs'] = array_values($this->cuttingBaleRows[$bIndex]['selected_rolls'][$rollId]['outputs']);
+    }
+
+    public function applyBaleBulkLabor(int $bIndex): void
+    {
+        $bRow = $this->cuttingBaleRows[$bIndex] ?? null;
+        if (!$bRow) return;
+        $baleId = $bRow['bale_id'];
+        $laborId = $this->baleBulkLabor[$baleId] ?? '';
+        if (!$laborId) return;
+
+        foreach ($bRow['selected_rolls'] ?? [] as $rId => $rData) {
+            if (empty($rData['is_selected'])) continue;
+            
+            $allocations = [];
+            foreach ($rData['outputs'] ?? [] as $out) {
+                if (empty($out['manufacturing_product_id']) || empty($out['quantity'])) continue;
+                $allocations[] = [
+                    'labor_id' => $laborId,
+                    'manufacturing_product_id' => $out['manufacturing_product_id'],
+                    'quantity' => $out['quantity']
+                ];
+            }
+            $this->cuttingLaborAllocations[$rId] = $allocations;
+        }
+        $this->dispatch('toast', message: 'Bulk labor applied to bale rolls successfully!', type: 'success');
+    }
+
+    public function applyAllRollsBulkLabor(): void
+    {
+        $laborId = $this->allRollsBulkLabor;
+        if (!$laborId) return;
+
+        foreach ($this->cuttingBaleRows as $bRow) {
+            foreach ($bRow['selected_rolls'] ?? [] as $rId => $rData) {
+                if (empty($rData['is_selected'])) continue;
+                
+                $allocations = [];
+                foreach ($rData['outputs'] ?? [] as $out) {
+                    if (empty($out['manufacturing_product_id']) || empty($out['quantity'])) continue;
+                    $allocations[] = [
+                        'labor_id' => $laborId,
+                        'manufacturing_product_id' => $out['manufacturing_product_id'],
+                        'quantity' => $out['quantity']
+                    ];
+                }
+                $this->cuttingLaborAllocations[$rId] = $allocations;
+            }
+        }
+        $this->dispatch('toast', message: 'Bulk labor applied to all selected rolls successfully!', type: 'success');
+    }
+
+    public function addCuttingLaborRow(int $rollId): void
+    {
+        if (!isset($this->cuttingLaborAllocations[$rollId])) {
+            $this->cuttingLaborAllocations[$rollId] = [];
+        }
+        $this->cuttingLaborAllocations[$rollId][] = [
+            'labor_id' => '',
+            'manufacturing_product_id' => '',
+            'quantity' => '',
+        ];
+    }
+
+    public function removeCuttingLaborRow(int $rollId, int $idx): void
+    {
+        unset($this->cuttingLaborAllocations[$rollId][$idx]);
+        $this->cuttingLaborAllocations[$rollId] = array_values($this->cuttingLaborAllocations[$rollId]);
     }
 
     public function saveCuttingSession(\App\Services\FabricCostingService $costingService)
@@ -1992,84 +2191,141 @@ class JobDetailPage extends Component
 
         $this->validate([
             'cuttingFabricBatchId' => 'required|exists:inventory_batches,id',
-            'cuttingConsumedLength' => 'required|numeric|gt:0',
-            'cuttingWastageLength' => 'required|numeric|min:0',
-            'cuttingOutputs' => 'required|array|min:1',
-            'cuttingOutputs.*.manufacturing_product_id' => 'required|exists:manufacturing_products,id',
-            'cuttingOutputs.*.quantity' => 'required|integer|min:1',
         ], [
             'cuttingFabricBatchId.required' => 'Please select a fabric inventory batch.',
-            'cuttingConsumedLength.required' => 'Consumed length is required.',
-            'cuttingConsumedLength.gt' => 'Consumed length must be greater than 0.',
-            'cuttingWastageLength.required' => 'Wastage length is required.',
-            'cuttingOutputs.*.manufacturing_product_id.required' => 'Product is required.',
-            'cuttingOutputs.*.quantity.required' => 'Quantity is required.',
         ]);
 
         $batch = InventoryBatch::findOrFail($this->cuttingFabricBatchId);
-        if ($this->cuttingConsumedLength > (float)$batch->balance_quantity) {
-            $this->addError('cuttingConsumedLength', "Consumed length exceeds available stock ({$batch->balance_quantity} {$batch->unit}).");
+
+        // Validate roll inputs on Step 1
+        $hasSelectedRoll = false;
+        $totalConsumed = 0.0;
+        foreach ($this->cuttingBaleRows as $bRow) {
+            foreach ($bRow['selected_rolls'] ?? [] as $rId => $rData) {
+                if (empty($rData['is_selected'])) continue;
+                $hasSelectedRoll = true;
+                $cutLen = floatval($rData['cut_length'] ?? 0);
+                $maxLen = floatval($rData['max_length'] ?? 0);
+                $wastageLen = floatval($rData['wastage_length'] ?? 0);
+
+                if ($cutLen <= 0 || $cutLen > $maxLen) {
+                    $this->addError("cuttingBaleRows", "Cut length for Roll #{$rData['roll_number']} must be between 0.01 and {$maxLen}m.");
+                    return;
+                }
+                if ($wastageLen < 0) {
+                    $this->addError("cuttingBaleRows", "Wastage length for Roll #{$rData['roll_number']} cannot be negative.");
+                    return;
+                }
+
+                $totalConsumed += $cutLen;
+
+                $hasOutput = false;
+                foreach ($rData['outputs'] ?? [] as $out) {
+                    if (!empty($out['manufacturing_product_id']) && !empty($out['quantity']) && (int)$out['quantity'] > 0) {
+                        $hasOutput = true;
+                    }
+                }
+                if (!$hasOutput) {
+                    $this->addError("cuttingBaleRows", "Please add at least one product output with quantity greater than 0 for Roll #{$rData['roll_number']}.");
+                    return;
+                }
+            }
+        }
+
+        if (!$hasSelectedRoll) {
+            $this->addError("cuttingBaleRows", "Please select at least one roll to cut.");
             return;
         }
 
+        if ($totalConsumed > (float)$batch->balance_quantity) {
+            $this->addError('cuttingConsumedLength', "Total consumed length ({$totalConsumed}m) exceeds available batch stock ({$batch->balance_quantity} {$batch->unit}).");
+            return;
+        }
+
+        // Validate labor allocations on Step 2
         if (!$this->validateCuttingStep2()) {
             return;
         }
 
-        $totalCutOutputQty = (int) array_sum(array_column($this->cuttingOutputs, 'quantity'));
+        // Aggregate outputs for downstream updates & spawn distinct product jobs
+        $aggregatedOutputs = [];
+        foreach ($this->cuttingBaleRows as $bRow) {
+            foreach ($bRow['selected_rolls'] ?? [] as $rId => $rData) {
+                if (empty($rData['is_selected'])) continue;
+                foreach ($rData['outputs'] ?? [] as $out) {
+                    if (empty($out['manufacturing_product_id']) || empty($out['quantity'])) continue;
+                    $pId = (int) $out['manufacturing_product_id'];
+                    $qty = (int) $out['quantity'];
+                    $aggregatedOutputs[$pId] = ($aggregatedOutputs[$pId] ?? 0) + $qty;
+                }
+            }
+        }
+
+        $cuttingOutputsFormatted = [];
+        foreach ($aggregatedOutputs as $pId => $qty) {
+            $cuttingOutputsFormatted[] = [
+                'manufacturing_product_id' => $pId,
+                'quantity' => $qty,
+            ];
+        }
+
+        $totalCutOutputQty = (int) array_sum(array_column($cuttingOutputsFormatted, 'quantity'));
         $targetQty = (int) $this->job->target_quantity;
         if ($targetQty > 0 && $totalCutOutputQty > $targetQty) {
             $this->addError('cuttingOutputs', "Total cut piece output ({$totalCutOutputQty} Pcs) cannot exceed the job target quantity ({$targetQty} Pcs).");
             return;
         }
 
-        DB::transaction(function () use ($costingService, $batch, $totalCutOutputQty) {
-            $costingService->calculateFabricCostAllocation(
-                $this->job->id,
-                $batch->id,
-                (float) $this->cuttingConsumedLength,
-                $this->cuttingOutputs,
-                (float) $this->cuttingWastageLength,
-                (float) $this->cuttingFabricWidth
-            );
-
-            // Decrement the inventory batch balance
-            $batch->deductQuantity((float) $this->cuttingConsumedLength);
-
-            // Deduct lengths from selected rolls & bales across all rows
+        DB::transaction(function () use ($costingService, $batch, $totalConsumed, $cuttingOutputsFormatted, $totalCutOutputQty) {
+            
+            // Loop and process cost allocation per-roll
             foreach ($this->cuttingBaleRows as $bRow) {
-                $baleId = $bRow['bale_id'] ?? null;
-                $bale = $baleId ? \App\Models\InventoryBale::find($baleId) : null;
-                $baleTotalCut = 0.0;
+                foreach ($bRow['selected_rolls'] ?? [] as $rId => $rData) {
+                    if (empty($rData['is_selected'])) continue;
+                    $cLen = floatval($rData['cut_length'] ?? 0);
+                    $wLen = floatval($rData['wastage_length'] ?? 0);
+                    if ($cLen <= 0) continue;
 
-                if (!empty($bRow['selected_rolls'])) {
-                    foreach ($bRow['selected_rolls'] as $rId => $rData) {
-                        $cLen = floatval($rData['cut_length'] ?? 0);
-                        if ($cLen > 0) {
-                            $baleTotalCut += $cLen;
-                            $roll = \App\Models\InventoryBaleRoll::find($rId);
-                            if ($roll) {
-                                $roll->deductLength($cLen);
-                            }
-                        }
+                    $cutPieces = [];
+                    foreach ($rData['outputs'] ?? [] as $out) {
+                        if (empty($out['manufacturing_product_id']) || empty($out['quantity'])) continue;
+                        $cutPieces[] = [
+                            'manufacturing_product_id' => $out['manufacturing_product_id'],
+                            'quantity' => (int) $out['quantity'],
+                        ];
                     }
-                }
 
-                if ($bale && $baleTotalCut > 0) {
-                    $bale->deductLength($baleTotalCut);
-                } elseif ($bale && empty($bRow['selected_rolls']) && (float)$this->cuttingConsumedLength > 0) {
-                    $bale->deductLength((float) $this->cuttingConsumedLength);
+                    if (empty($cutPieces)) continue;
+
+                    $costingService->calculateFabricCostAllocation(
+                        $this->job->id,
+                        $batch->id,
+                        $cLen,
+                        $cutPieces,
+                        $wLen,
+                        (float) $this->cuttingFabricWidth,
+                        $rId
+                    );
+
+                    // Deduct length from physical roll
+                    $roll = \App\Models\InventoryBaleRoll::find($rId);
+                    if ($roll) {
+                        $roll->deductLength($cLen);
+                    }
                 }
             }
 
-            InventoryBatchLogger::log($batch->id, 'consumed', (float) $this->cuttingConsumedLength, $this->job->production_batch_db_id ?? $this->job->production_batch_id, 'Cutting session fabric consumption recorded');
+            // Decrement the inventory batch balance
+            $batch->deductQuantity((float) $totalConsumed);
+
+            InventoryBatchLogger::log($batch->id, 'consumed', (float) $totalConsumed, $this->job->production_batch_db_id ?? $this->job->production_batch_id, 'Cutting session fabric consumption recorded');
 
             if ($this->job->status === 'pending') {
                 $this->job->update(['status' => 'in_progress']);
             }
 
             // Assign primary product and set target quantity if initiated without them
-            $firstOutputProdId = $this->cuttingOutputs[0]['manufacturing_product_id'] ?? null;
+            $firstOutputProdId = $cuttingOutputsFormatted[0]['manufacturing_product_id'] ?? null;
             $updateData = [];
             if (!$this->job->manufacturing_product_id && $firstOutputProdId) {
                 $updateData['manufacturing_product_id'] = $firstOutputProdId;
@@ -2081,9 +2337,9 @@ class JobDetailPage extends Component
                 $this->job->update($updateData);
             }
 
-            // Save cutter labor allocations if provided
-            if (!empty($this->laborAllocations)) {
-                foreach ($this->laborAllocations as $alloc) {
+            // Save cutter labor allocations per roll if provided
+            foreach ($this->cuttingLaborAllocations as $rId => $allocations) {
+                foreach ($allocations as $alloc) {
                     if (empty($alloc['labor_id']) || empty($alloc['quantity'])) {
                         continue;
                     }
@@ -2092,7 +2348,7 @@ class JobDetailPage extends Component
                         continue;
                     }
 
-                    $prodId = $alloc['manufacturing_product_id'] ?? ($this->job->manufacturing_product_id ?? $firstOutputProdId);
+                    $prodId = $alloc['manufacturing_product_id'];
                     $product = $prodId ? ManufacturingProduct::find($prodId) : null;
                     
                     $pivotRate = null;
@@ -2110,6 +2366,7 @@ class JobDetailPage extends Component
                         'task_id' => $this->selectedTaskId,
                         'labor_id' => $labor->id,
                         'manufacturing_product_id' => $prodId,
+                        'inventory_bale_roll_id' => $rId,
                         'quantity_processed' => (int)$alloc['quantity'],
                         'piece_rate' => $pieceRate,
                         'calculated_wage' => $calculatedWage,
@@ -2131,7 +2388,7 @@ class JobDetailPage extends Component
 
             // Spawn distinct downstream ProductionJob flows per cut product SKU
             $workflowService = resolve(\App\Services\Manufacturing\ProductionWorkflowService::class);
-            $spawnedFlows = $workflowService->spawnDistinctProductFlowsFromCutting($this->job, $this->cuttingOutputs);
+            $spawnedFlows = $workflowService->spawnDistinctProductFlowsFromCutting($this->job, $cuttingOutputsFormatted);
         });
 
         $this->job->load([
@@ -2146,7 +2403,7 @@ class JobDetailPage extends Component
 
         $this->resetErrorBag();
 
-        $flowCount = count($this->cuttingOutputs);
+        $flowCount = count($cuttingOutputsFormatted);
         $msg = "Cutting session saved! Created {$flowCount} distinct production flow(s) for the cut product SKUs.";
 
         $this->dispatch('toast', message: $msg, type: 'success');

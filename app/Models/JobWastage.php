@@ -13,6 +13,7 @@ class JobWastage extends Model
         'job_code',
         'production_job_id',
         'manufacturing_product_id',
+        'inventory_bale_roll_id',
         'task_id',
         'quantity_wasted',
         'reason',
@@ -20,7 +21,16 @@ class JobWastage extends Model
 
     protected $casts = [
         'quantity_wasted' => 'decimal:2',
+        'inventory_bale_roll_id' => 'integer',
     ];
+
+    /**
+     * Get the inventory bale roll.
+     */
+    public function inventoryBaleRoll()
+    {
+        return $this->belongsTo(InventoryBaleRoll::class, 'inventory_bale_roll_id');
+    }
 
     /**
      * Get the manufacturing product (if specific product damaged).
