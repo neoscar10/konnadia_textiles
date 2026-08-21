@@ -2418,7 +2418,8 @@ class JobDetailPage extends Component
                     $calculatedWage = $labor->payment_method === 'job_work' ? round((float)$alloc['quantity'] * $pieceRate, 2) : 0.0;
 
                     JobLaborAllocation::create([
-                        'production_job_id' => $this->job->id,
+                        'job_id' => $this->job->job_code,
+                        'production_batch_id' => $this->job->batch?->batch_code ?? $this->job->production_batch_id,
                         'task_id' => $this->selectedTaskId,
                         'labor_id' => $labor->id,
                         'manufacturing_product_id' => $prodId,

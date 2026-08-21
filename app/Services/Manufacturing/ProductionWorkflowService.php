@@ -373,10 +373,9 @@ class ProductionWorkflowService
                 ->where('manufacturing_product_id', $pId)
                 ->update(['production_job_id' => $childJob->id]);
 
-            \App\Models\JobLaborAllocation::where('production_job_id', $job->id)
+            \App\Models\JobLaborAllocation::where('job_id', $job->job_code)
                 ->where('manufacturing_product_id', $pId)
                 ->update([
-                    'production_job_id' => $childJob->id,
                     'job_id' => $childJob->job_code,
                 ]);
 
