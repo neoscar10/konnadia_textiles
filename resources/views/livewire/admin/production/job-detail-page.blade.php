@@ -197,7 +197,7 @@
                     @php $wastageStepNum = $hasMat ? 4 : 3; @endphp
                     <button type="button" wire:click="setActiveStep('wastage')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'wastage' ? 'bg-error text-on-error border-error shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">report_problem</span>
-                        <span>{{ $wastageStepNum }}. Wastage & Alterations</span>
+                        <span>{{ $wastageStepNum }}. Alterations</span>
                     </button>
                 </div>
             @endif
@@ -1383,7 +1383,7 @@
                 Back: Record Workers
             </button>
             <button type="button" wire:click="setWizardStep({{ $hasMat ? 4 : 3 }})" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
-                Next Step: Wastage & Alterations
+                Next Step: Alterations
                 <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
         </div>
