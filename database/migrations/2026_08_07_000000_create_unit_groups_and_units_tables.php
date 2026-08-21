@@ -53,13 +53,17 @@ return new class extends Migration
         }
 
         // 5. Add purchase_unit_id and base_quantity to inventory_batches
-        if (!Schema::hasColumn('inventory_batches', 'purchase_unit_id')) {
-            Schema::table('inventory_batches', function (Blueprint $table) {
+        Schema::table('inventory_batches', function (Blueprint $table) {
+            if (!Schema::hasColumn('inventory_batches', 'purchase_unit_id')) {
                 $table->foreignId('purchase_unit_id')->nullable()->after('unit')->constrained('units')->nullOnDelete();
+            }
+            if (!Schema::hasColumn('inventory_batches', 'base_quantity')) {
                 $table->decimal('base_quantity', 16, 4)->nullable()->after('received_quantity');
+            }
+            if (!Schema::hasColumn('inventory_batches', 'base_current_balance')) {
                 $table->decimal('base_current_balance', 16, 4)->nullable()->after('balance_quantity');
-            });
-        }
+            }
+        });
     }
 
     /**
