@@ -483,7 +483,9 @@
                                 </button>
                             </div>
                         </div>
-                                  {{-- STEP 2: LABOR ALLOCATION --}}
+                        @endif
+
+                    {{-- STEP 2: LABOR ALLOCATION --}}
                     @if($wizardStep === 2)
                         <div class="space-y-6">
                             <!-- Global Bulk Labor Allocation Card -->
