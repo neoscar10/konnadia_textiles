@@ -389,6 +389,9 @@ class JobDetailPage extends Component
     public array $cuttingLaborAllocations = [];
     public array $baleBulkLabor = [];
     public $allRollsBulkLabor = '';
+    public array $subsidiaryConsumptions = [
+        ['inventory_batch_id' => '', 'actual_consumed' => '']
+    ];
 
     // Unopened Bale Modal State
     public bool $showOpenBaleModal = false;
@@ -2413,5 +2416,38 @@ class JobDetailPage extends Component
         ]);
 
         return redirect()->route('admin.production.jobs.index');
+    }
+
+    public function saveSubsidiaryConsumption()
+    {
+        $this->validate([
+            'subsidiaryConsumptions.*.inventory_batch_id' => 'required|exists:inventory_batches,id',
+            'subsidiaryConsumptions.*.actual_consumed' => 'required|numeric|gt:0',
+        ]);
+
+        foreach ($this->subsidiaryConsumptions as $idx => $row) {
+            $batch = InventoryBatch::find($row['inventory_batch_id']);
+            if (!$batch) continue;
+            $consumed = (float) $row['actual_consumed'];
+            if ($consumed > (float) $batch->balance_quantity) {
+                $this->addError("subsidiaryConsumptions.{$idx}.actual_consumed", "Consumed exceeds available stock.");
+                return;
+            }
+            
+            DB::transaction(function () use ($batch, $consumed) {
+                $totalCost = $consumed * (float) $batch->unit_cost;
+                JobMaterialConsumption::create([
+                    'job_code'           => $this->job->job_code,
+                    'production_job_id'  => $this->job->id,
+                    'inventory_batch_id' => $batch->id,
+                    'task_id'            => $this->selectedTaskId,
+                    'quantity_consumed'  => $consumed,
+                    'unit_cost'          => $batch->unit_cost,
+                    'total_cost'         => $totalCost,
+                ]);
+
+                $batch->deductQuantity($consumed);
+            });
+        }
     }
 }
