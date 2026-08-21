@@ -33,6 +33,7 @@ class JobIndexPage extends Component
     public ?int $target_product_id = null;
     public string $conversion_notes = '';
     public array $conversionComponents = [];
+    public array $conversionPackaging = [];
 
     public function updatingSearch(): void
     {
@@ -58,6 +59,8 @@ class JobIndexPage extends Component
         $this->target_product_id = null;
         $this->conversion_notes = '';
         $this->conversionComponents = [];
+        $this->conversionPackaging = [];
+        $this->addConversionPackagingRow();
 
         if ($preSelectedJobId) {
             $job = ProductionJob::find($preSelectedJobId);
@@ -86,6 +89,20 @@ class JobIndexPage extends Component
     {
         unset($this->conversionComponents[$index]);
         $this->conversionComponents = array_values($this->conversionComponents);
+    }
+
+    public function addConversionPackagingRow(): void
+    {
+        $this->conversionPackaging[] = [
+            'raw_material_id' => '',
+            'quantity_used' => '',
+        ];
+    }
+
+    public function removeConversionPackagingRow(int $index): void
+    {
+        unset($this->conversionPackaging[$index]);
+        $this->conversionPackaging = array_values($this->conversionPackaging);
     }
 
     public function updatedConversionComponents($value, $key): void
@@ -170,6 +187,14 @@ class JobIndexPage extends Component
             }
         }
 
+        foreach ($this->conversionPackaging as $idx => $pkg) {
+            if (!empty($pkg['raw_material_id'])) {
+                if (empty($pkg['quantity_used']) || floatval($pkg['quantity_used']) <= 0) {
+                    $this->addError("conversionPackaging.{$idx}.quantity_used", 'Quantity must be greater than 0.');
+                }
+            }
+        }
+
         if ($this->getErrorBag()->isNotEmpty()) {
             return;
         }
@@ -184,11 +209,14 @@ class JobIndexPage extends Component
 
         try {
             $conversionService = resolve(FinishedGoodsConversionService::class);
+            $filteredPackaging = array_filter($this->conversionPackaging, fn($p) => !empty($p['raw_material_id']));
+
             $bundle = $conversionService->convertJobsToStorefrontBundle(
                 intval($this->target_product_id),
                 $maxSets,
                 $this->conversionComponents,
-                $this->conversion_notes ?: "Converted from Production Jobs Hub"
+                $this->conversion_notes ?: "Converted from Production Jobs Hub",
+                $filteredPackaging
             );
 
             $this->dispatch('close-modal', 'storefront-conversion-modal');
@@ -296,6 +324,9 @@ class JobIndexPage extends Component
 
         // Storefront Products & Variants for Target Picker
         $storefrontProducts = Product::where('is_active', true)->with('combinations')->orderBy('title')->get();
+        $packagingRawMaterials = \App\Models\RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
+            ->orderBy('name')
+            ->get();
 
         // Summary Statistics
         $totalCompletedJobsCount = ProductionJob::all()->filter(fn($j) => $j->status === 'completed')->count();
@@ -312,6 +343,7 @@ class JobIndexPage extends Component
             'totalFinishedUnitsProduced' => $totalFinishedUnitsProduced,
             'totalStorefrontConvertedUnits' => $totalStorefrontConvertedUnits,
             'availableUnconvertedPoolUnits' => $availableUnconvertedPoolUnits,
+            'packagingRawMaterials' => $packagingRawMaterials,
         ])->title('Production Jobs Hub');
     }
 }

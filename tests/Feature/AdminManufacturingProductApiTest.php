@@ -114,10 +114,7 @@ class AdminManufacturingProductApiTest extends TestCase
             ],
             'is_stitching_used' => true,
             'stitching_materials' => [$this->stitchMaterial->id],
-            'is_packaging_used' => true,
-            'packaging_materials' => [
-                ['raw_material_id' => $this->pkgMaterial->id, 'required_quantity' => 1.0],
-            ],
+            'is_packaging_used' => false,
             'tasks' => [
                 ['task_id' => $this->cuttingTask->id, 'sequence_number' => 1, 'standard_labor_rate' => 10.00, 'is_final_step' => false],
                 ['task_id' => $this->stitchingTask->id, 'sequence_number' => 2, 'standard_labor_rate' => 15.00, 'is_final_step' => false],
@@ -147,7 +144,7 @@ class AdminManufacturingProductApiTest extends TestCase
         $this->assertCount(3, $product->tasks);
         $this->assertCount(1, $product->subsidiaryMaterials);
         $this->assertCount(1, $product->stitchingMaterials);
-        $this->assertCount(1, $product->packagingMaterials);
+        $this->assertCount(0, $product->packagingMaterials);
     }
 
     /** @test */

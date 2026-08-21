@@ -52,7 +52,7 @@ class AddManufacturingProductForm extends Component
 
     // Wizard State
     public int $wizardStep = 1;
-    public int $maxSteps = 5;
+    public int $maxSteps = 4;
 
     protected function rules()
     {
@@ -64,7 +64,6 @@ class AddManufacturingProductForm extends Component
             'is_fabric_used'                    => 'boolean',
             'is_subsidiary_used'                => 'boolean',
             'is_stitching_used'                 => 'boolean',
-            'is_packaging_used'                 => 'boolean',
             'routingTasksList'                  => 'required|array|min:1',
             'routingTasksList.*.task_id'        => 'required|exists:tasks,id',
             'routingTasksList.*.standard_labor_rate' => 'nullable|numeric|min:0',
@@ -84,12 +83,6 @@ class AddManufacturingProductForm extends Component
             $rules['subsidiaryMaterialsList.*.consumption_quantity']       = 'required|numeric|min:0.0001';
         }
 
-        if ($this->is_packaging_used) {
-            $rules['packagingMaterialsList']                                = 'array';
-            $rules['packagingMaterialsList.*.raw_material_id']             = 'required|exists:raw_materials,id';
-            $rules['packagingMaterialsList.*.required_quantity']            = 'required|numeric|min:0.0001';
-        }
-
         return $rules;
     }
 
@@ -106,9 +99,6 @@ class AddManufacturingProductForm extends Component
             'subsidiaryMaterialsList.*.raw_material_id.required'      => 'Please select a subsidiary material.',
             'subsidiaryMaterialsList.*.consumption_quantity.required'  => 'Consumption quantity is required.',
             'subsidiaryMaterialsList.*.consumption_quantity.min'       => 'Consumption quantity must be greater than 0.',
-            'packagingMaterialsList.*.raw_material_id.required'       => 'Please select a packaging material.',
-            'packagingMaterialsList.*.required_quantity.required'      => 'Required quantity is required.',
-            'packagingMaterialsList.*.required_quantity.min'           => 'Required quantity must be greater than 0.',
             'routingTasksList.required'                  => 'At least one task sequence must be configured for the product routing.',
             'routingTasksList.min'                       => 'At least one task sequence must be configured for the product routing.',
             'routingTasksList.*.task_id.required'        => 'Please select a task for each routing step.',
@@ -373,13 +363,6 @@ class AddManufacturingProductForm extends Component
             }
         } elseif ($this->wizardStep === 3) {
             // Stitching validation (none required to proceed)
-        } elseif ($this->wizardStep === 4) {
-            if ($this->is_packaging_used) {
-                $this->validate([
-                    'packagingMaterialsList.*.raw_material_id'   => 'required|exists:raw_materials,id',
-                    'packagingMaterialsList.*.required_quantity' => 'required|numeric|min:0.0001',
-                ]);
-            }
         }
 
         if ($this->wizardStep < $this->maxSteps) {
@@ -406,16 +389,6 @@ class AddManufacturingProductForm extends Component
             $selectedSubIds = array_filter($selectedSubIds);
             if (count($selectedSubIds) !== count(array_unique($selectedSubIds))) {
                 $this->addError('subsidiaryMaterialsList', 'Duplicate subsidiary materials selected. Each material must only appear once per product.');
-                return;
-            }
-        }
-
-        // 2. Ensure no duplicate packaging materials
-        if ($this->is_packaging_used && count($this->packagingMaterialsList) > 0) {
-            $selectedPkgIds = array_column($this->packagingMaterialsList, 'raw_material_id');
-            $selectedPkgIds = array_filter($selectedPkgIds);
-            if (count($selectedPkgIds) !== count(array_unique($selectedPkgIds))) {
-                $this->addError('packagingMaterialsList', 'Duplicate packaging materials selected. Each material must only appear once per product.');
                 return;
             }
         }
@@ -473,7 +446,7 @@ class AddManufacturingProductForm extends Component
         $materialData = [
             'is_subsidiary_used' => $this->is_subsidiary_used,
             'is_stitching_used'  => $this->is_stitching_used,
-            'is_packaging_used'  => $this->is_packaging_used,
+            'is_packaging_used'  => false,
         ];
 
         $mappingData = [
@@ -529,20 +502,8 @@ class AddManufacturingProductForm extends Component
             $product->stitchingMaterials()->detach();
         }
 
-        // Sync packaging materials pivot
-        if ($this->is_packaging_used) {
-            $syncPkgData = [];
-            foreach ($this->packagingMaterialsList as $row) {
-                if (!empty($row['raw_material_id'])) {
-                    $syncPkgData[$row['raw_material_id']] = [
-                        'required_quantity' => $row['required_quantity'],
-                    ];
-                }
-            }
-            $product->packagingMaterials()->sync($syncPkgData);
-        } else {
-            $product->packagingMaterials()->detach();
-        }
+        // Sync packaging materials pivot (unconditionally detach since packaging is not configured here anymore)
+        $product->packagingMaterials()->detach();
 
         // Sync manufacturing_product_task pivot (Task Sequence / Routing)
         $taskSyncData = [];

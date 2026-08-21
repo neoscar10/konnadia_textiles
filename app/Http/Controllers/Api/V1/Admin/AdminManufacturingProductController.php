@@ -175,7 +175,7 @@ class AdminManufacturingProductController extends Controller
                 'fabric_length_unit' => ($validated['is_fabric_used'] ?? false) ? $validated['fabric_length_unit'] : null,
                 'is_subsidiary_used' => $validated['is_subsidiary_used'] ?? false,
                 'is_stitching_used' => $validated['is_stitching_used'] ?? false,
-                'is_packaging_used' => $validated['is_packaging_used'] ?? false,
+                'is_packaging_used' => false,
                 'product_id' => $validated['product_id'] ?? null,
                 'product_combination_id' => $validated['product_combination_id'] ?? null,
             ]);
@@ -227,7 +227,7 @@ class AdminManufacturingProductController extends Controller
                 'fabric_length_unit' => ($validated['is_fabric_used'] ?? false) ? $validated['fabric_length_unit'] : null,
                 'is_subsidiary_used' => $validated['is_subsidiary_used'] ?? false,
                 'is_stitching_used' => $validated['is_stitching_used'] ?? false,
-                'is_packaging_used' => $validated['is_packaging_used'] ?? false,
+                'is_packaging_used' => false,
                 'product_id' => $validated['product_id'] ?? null,
                 'product_combination_id' => $validated['product_combination_id'] ?? null,
             ]);
@@ -396,18 +396,8 @@ class AdminManufacturingProductController extends Controller
             $product->stitchingMaterials()->detach();
         }
 
-        // Sync Packaging Materials
-        if (!empty($validated['is_packaging_used']) && !empty($validated['packaging_materials'])) {
-            $syncPkg = [];
-            foreach ($validated['packaging_materials'] as $row) {
-                $syncPkg[$row['raw_material_id']] = [
-                    'required_quantity' => $row['required_quantity'],
-                ];
-            }
-            $product->packagingMaterials()->sync($syncPkg);
-        } else {
-            $product->packagingMaterials()->detach();
-        }
+        // Sync Packaging Materials (unconditionally detach since packaging is not configured here anymore)
+        $product->packagingMaterials()->detach();
 
         // Sync Task Routing Sequence
         $taskSync = [];

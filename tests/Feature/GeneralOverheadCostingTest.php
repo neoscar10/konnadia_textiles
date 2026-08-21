@@ -237,6 +237,9 @@ class GeneralOverheadCostingTest extends TestCase
             'productId' => $this->storefrontProduct->id,
             'lotNumber' => 'LOT-CUSH-001',
             'targetWarehouse' => 'Packaging Warehouse',
+            'packaging' => [
+                ['raw_material_id' => $this->boxMaterial->id, 'quantity_used' => 10.0],
+            ],
         ]);
 
         // Since planned_quantity = 10, and required_quantity = 1.0 per unit, it should deduct 10 boxes

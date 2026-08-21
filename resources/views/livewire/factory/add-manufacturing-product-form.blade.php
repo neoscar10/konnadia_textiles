@@ -29,10 +29,7 @@
                     3. Stitching
                 </button>
                 <button type="button" wire:click="setWizardStep(4)" class="px-6 py-4 font-label-md whitespace-nowrap font-bold text-sm flex-1 {{ $wizardStep === 4 ? 'text-primary border-b-2 border-primary bg-surface-container-low/50' : 'text-on-surface-variant hover:text-primary transition-colors' }}">
-                    4. Packaging
-                </button>
-                <button type="button" wire:click="setWizardStep(5)" class="px-6 py-4 font-label-md whitespace-nowrap font-bold text-sm flex-1 {{ $wizardStep === 5 ? 'text-primary border-b-2 border-primary bg-surface-container-low/50' : 'text-on-surface-variant hover:text-primary transition-colors' }}">
-                    5. Task Routing
+                    4. Task Routing
                 </button>
             </div>
 
@@ -405,126 +402,6 @@
             @endif
 
             @if($wizardStep === 4)
-            <!-- ═══════════════ CARD: PACKAGING MATERIAL CONFIG ═══════════════ -->
-            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/60 bg-surface-container-low/30">
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                            <span class="material-symbols-outlined text-lg">box</span>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-sm">Packaging Material Configuration</h3>
-                            <p class="text-on-surface-variant text-xs">Unit packaging materials (Poly Bags, Cartons, Hangers…)</p>
-                        </div>
-                    </div>
-                    <label class="relative inline-flex inline-flex items-center cursor-pointer gap-2">
-                        <input type="checkbox" wire:model.live="is_packaging_used" class="sr-only peer"/>
-                        <div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        <span class="font-label-md text-xs font-bold {{ $is_packaging_used ? 'text-primary' : 'text-on-surface-variant' }}">
-                            {{ $is_packaging_used ? 'Enabled' : 'Disabled' }}
-                        </span>
-                    </label>
-                </div>
-
-                @if($is_packaging_used)
-                    <div class="p-6 space-y-4">
-                        <!-- Column Headers -->
-                        <div class="grid grid-cols-12 gap-3 px-1">
-                            <div class="col-span-5 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Material (CAT-PKG)</div>
-                            <div class="col-span-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Qty / Unit of Product</div>
-                            <div class="col-span-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Auto-Derived Unit</div>
-                            <div class="col-span-1"></div>
-                        </div>
-
-                        @error('packagingMaterialsList')
-                            <div class="text-error text-xs font-semibold bg-error-container/20 border border-error/20 rounded-lg px-4 py-2">{{ $message }}</div>
-                        @enderror
-
-                        <!-- Repeater Rows -->
-                        @foreach($packagingMaterialsList as $index => $row)
-                            <div class="grid grid-cols-12 gap-3 items-start bg-surface-container-low/30 rounded-xl p-3 border border-outline-variant/40 group hover:border-primary/40 transition-colors">
-                                <!-- Raw Material Dropdown -->
-                                <div class="col-span-5">
-                                    <select
-                                        wire:model.live="packagingMaterialsList.{{ $index }}.raw_material_id"
-                                        class="w-full rounded-lg border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-3 py-2.5 bg-surface text-sm font-semibold"
-                                    >
-                                        <option value="">-- Select Material --</option>
-                                        @foreach($packagingRawMaterials as $mat)
-                                            <option value="{{ $mat->id }}">
-                                                {{ $mat->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error("packagingMaterialsList.{$index}.raw_material_id")
-                                        <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span>
-                                    @enderror
-                                </div>
-
-                                <!-- Required Quantity -->
-                                <div class="col-span-3">
-                                    <input
-                                        wire:model.blur="packagingMaterialsList.{{ $index }}.required_quantity"
-                                        type="number"
-                                        step="0.0001"
-                                        min="0"
-                                        placeholder="e.g. 1.0000"
-                                        class="w-full rounded-lg border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-3 py-2.5 bg-surface text-sm font-bold"
-                                    />
-                                    @error("packagingMaterialsList.{$index}.required_quantity")
-                                        <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span>
-                                    @enderror
-                                </div>
-
-                                <!-- Auto-Derived Unit Badge -->
-                                <div class="col-span-3 flex items-center h-full pt-0.5">
-                                    @if(!empty($row['unit']))
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-container/20 text-primary font-bold text-xs border border-primary/20">
-                                            <span class="material-symbols-outlined text-[14px]">verified</span>
-                                            {{ $row['unit'] }}
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-high text-on-surface-variant/50 text-xs border border-outline-variant/30 italic">
-                                            <span class="material-symbols-outlined text-[14px]">hourglass_empty</span>
-                                            Select material
-                                        </span>
-                                    @endif
-                                </div>
-
-                                <!-- Delete Row Button -->
-                                <div class="col-span-1 flex items-center justify-center h-full pt-0.5">
-                                    <button
-                                        type="button"
-                                        wire:click="removePackagingRow({{ $index }})"
-                                        class="w-8 h-8 flex items-center justify-center rounded-lg text-error/60 hover:text-error hover:bg-error-container/20 transition-colors"
-                                        title="Remove row"
-                                    >
-                                        <span class="material-symbols-outlined text-[18px]">delete_outline</span>
-                                    </button>
-                                </div>
-                            </div>
-                        @endforeach
-
-                        <!-- Add Row Button -->
-                        <button
-                            type="button"
-                            wire:click="addPackagingRow"
-                            class="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary font-bold text-xs hover:border-primary hover:bg-primary-container/20 transition-all w-full justify-center"
-                        >
-                            <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                            Add Packaging Material Row
-                        </button>
-                    </div>
-                @else
-                    <div class="px-6 py-8 flex flex-col items-center justify-center text-center">
-                        <span class="material-symbols-outlined text-4xl text-outline mb-2">box</span>
-                        <p class="text-sm text-on-surface-variant">Enable the toggle above to configure Bill of Materials for packaging items (poly bags, boxes, brand tags, etc.)</p>
-                    </div>
-                @endif
-            </div>
-            @endif
-
-            @if($wizardStep === 5)
             <!-- ═══════════════ CARD 4: TASK SEQUENCE & ROUTING CONFIGURATION ═══════════════ -->
             <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/60 bg-surface-container-low/30">

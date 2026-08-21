@@ -48,21 +48,27 @@ class FinishedGoodsConversionService
                 throw new Exception("Cannot convert batch: Good units available for conversion must be greater than zero.");
             }
 
-            if ($product->is_packaging_used) {
+            if (!empty($data['packaging'])) {
                 $finalTask = $product->getFinalTask();
                 $finalJob = $batch->job;
 
-                foreach ($product->packagingMaterials as $pkgMat) {
-                    $requiredQty = $goodUnits * (float) $pkgMat->pivot->required_quantity;
+                foreach ($data['packaging'] as $pkg) {
+                    $pkgMatId = intval($pkg['raw_material_id'] ?? 0);
+                    $qtyUsed = floatval($pkg['quantity_used'] ?? 0);
+                    if ($pkgMatId <= 0 || $qtyUsed <= 0) {
+                        continue;
+                    }
+
+                    $pkgMat = \App\Models\RawMaterial::findOrFail($pkgMatId);
 
                     // Fetch active batches for the packaging material using FIFO
                     $invBatches = \App\Models\InventoryBatch::active()
-                        ->byMaterial($pkgMat->id)
+                        ->byMaterial($pkgMatId)
                         ->orderBy('purchase_date', 'asc')
                         ->orderBy('id', 'asc')
                         ->get();
 
-                    $remaining = $requiredQty;
+                    $remaining = $qtyUsed;
                     foreach ($invBatches as $invBatch) {
                         if ($remaining <= 0) {
                             break;
@@ -84,7 +90,7 @@ class FinishedGoodsConversionService
                             'total_cost' => $allocatedCost,
                         ]);
 
-                        \App\Services\InventoryBatchLogger::log($invBatch->id, 'consumed', $deduct, $batch->id, 'Packaging material auto-consumed during finished goods conversion');
+                        \App\Services\InventoryBatchLogger::log($invBatch->id, 'consumed', $deduct, $batch->id, 'Packaging material consumed during finished goods conversion');
 
                         $remaining -= $deduct;
                     }
@@ -145,7 +151,7 @@ class FinishedGoodsConversionService
      * @return \App\Models\StorefrontProductBundle
      * @throws Exception
      */
-    public function convertJobsToStorefrontBundle(int $targetProductId, int $assembledSets, array $jobComponents, ?string $notes = null): \App\Models\StorefrontProductBundle
+    public function convertJobsToStorefrontBundle(int $targetProductId, int $assembledSets, array $jobComponents, ?string $notes = null, array $packaging = []): \App\Models\StorefrontProductBundle
     {
         if (empty($targetProductId)) {
             throw new Exception("Please select a Storefront Product.");
@@ -159,7 +165,7 @@ class FinishedGoodsConversionService
             throw new Exception("Please select at least one completed production job component.");
         }
 
-        return DB::transaction(function () use ($targetProductId, $assembledSets, $jobComponents, $notes) {
+        return DB::transaction(function () use ($targetProductId, $assembledSets, $jobComponents, $notes, $packaging) {
             // 1. Create StorefrontProductBundle record
             $bundle = \App\Models\StorefrontProductBundle::create([
                 'product_id' => $targetProductId,
@@ -242,11 +248,62 @@ class FinishedGoodsConversionService
                 ]);
             }
 
-            // 3. Increment Storefront Product Stock
+            // 3. FIFO Deduct packaging materials if provided
+            if (!empty($packaging)) {
+                foreach ($packaging as $pkg) {
+                    $pkgMatId = intval($pkg['raw_material_id'] ?? 0);
+                    $qtyUsed = floatval($pkg['quantity_used'] ?? 0);
+                    if ($pkgMatId <= 0 || $qtyUsed <= 0) {
+                        continue;
+                    }
+
+                    $pkgMat = \App\Models\RawMaterial::findOrFail($pkgMatId);
+
+                    // Fetch active batches for the packaging material using FIFO
+                    $invBatches = \App\Models\InventoryBatch::active()
+                        ->byMaterial($pkgMatId)
+                        ->orderBy('purchase_date', 'asc')
+                        ->orderBy('id', 'asc')
+                        ->get();
+
+                    $remaining = $qtyUsed;
+                    foreach ($invBatches as $invBatch) {
+                        if ($remaining <= 0) {
+                            break;
+                        }
+
+                        $deduct = min($remaining, (float) $invBatch->balance_quantity);
+                        $invBatch->deductQuantity($deduct);
+
+                        $allocatedCost = $deduct * (float) ($invBatch->purchase_rate ?: $invBatch->unit_cost);
+
+                        // Log packaging material consumption
+                        \App\Models\JobMaterialConsumption::create([
+                            'job_code' => 'CONVERSION',
+                            'production_job_id' => null,
+                            'inventory_batch_id' => $invBatch->id,
+                            'task_id' => null,
+                            'quantity_consumed' => $deduct,
+                            'unit_cost' => $invBatch->purchase_rate ?: $invBatch->unit_cost,
+                            'total_cost' => $allocatedCost,
+                        ]);
+
+                        \App\Services\InventoryBatchLogger::log($invBatch->id, 'consumed', $deduct, null, 'Packaging material consumed during storefront conversion');
+
+                        $remaining -= $deduct;
+                    }
+
+                    if ($remaining > 0) {
+                        throw new Exception("Insufficient inventory for packaging material: {$pkgMat->name}. Shortage: {$remaining}");
+                    }
+                }
+            }
+
+            // 4. Increment Storefront Product Stock
             $targetEntity = Product::findOrFail($targetProductId);
             $targetEntity->increment('stock_quantity', $assembledSets);
 
-            // 4. Record Immutable Stock Movement Log
+            // 5. Record Immutable Stock Movement Log
             InventoryMovement::create([
                 'product_id' => $targetEntity->id,
                 'product_combination_id' => null,

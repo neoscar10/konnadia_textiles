@@ -15,6 +15,7 @@ class FinishedGoodsConversion extends Component
     public string $targetWarehouse = 'Finished Goods WH - Zone A';
     public string $lotNumber = '';
     public int $goodUnits = 0;
+    public array $conversionPackaging = [];
 
     public function mount($id)
     {
@@ -51,6 +52,22 @@ class FinishedGoodsConversion extends Component
                 $this->productId = $firstProduct->id;
             }
         }
+
+        $this->addConversionPackagingRow();
+    }
+
+    public function addConversionPackagingRow(): void
+    {
+        $this->conversionPackaging[] = [
+            'raw_material_id' => '',
+            'quantity_used' => '',
+        ];
+    }
+
+    public function removeConversionPackagingRow(int $index): void
+    {
+        unset($this->conversionPackaging[$index]);
+        $this->conversionPackaging = array_values($this->conversionPackaging);
     }
 
     public function convert(\App\Services\Manufacturing\FinishedGoodsConversionService $conversionService)
@@ -63,11 +80,26 @@ class FinishedGoodsConversion extends Component
             'productId.required' => 'Please select a sales product to map finished goods to.',
         ]);
 
+        foreach ($this->conversionPackaging as $idx => $pkg) {
+            if (!empty($pkg['raw_material_id'])) {
+                if (empty($pkg['quantity_used']) || floatval($pkg['quantity_used']) <= 0) {
+                    $this->addError("conversionPackaging.{$idx}.quantity_used", 'Quantity must be greater than 0.');
+                }
+            }
+        }
+
+        if ($this->getErrorBag()->isNotEmpty()) {
+            return;
+        }
+
         try {
+            $filteredPackaging = array_filter($this->conversionPackaging, fn($p) => !empty($p['raw_material_id']));
+
             $conversionService->convertBatchToFinishedGoods($this->batch, [
                 'productId' => $this->productId,
                 'targetWarehouse' => $this->targetWarehouse,
                 'lotNumber' => $this->lotNumber,
+                'packaging' => $filteredPackaging,
             ]);
 
             session()->flash('toast', ['message' => "Successfully converted {$this->goodUnits} units to storefront stock!", 'type' => 'success']);
@@ -80,9 +112,13 @@ class FinishedGoodsConversion extends Component
     public function render()
     {
         $products = Product::where('is_active', true)->orderBy('title')->get();
+        $packagingRawMaterials = \App\Models\RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
+            ->orderBy('name')
+            ->get();
 
         return view('livewire.admin.production.finished-goods-conversion', [
             'products' => $products,
+            'packagingRawMaterials' => $packagingRawMaterials,
         ])->title('Finished Goods Conversion');
     }
 }

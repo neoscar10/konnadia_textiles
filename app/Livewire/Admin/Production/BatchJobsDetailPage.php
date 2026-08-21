@@ -20,6 +20,7 @@ class BatchJobsDetailPage extends Component
     public int $target_sets_desired = 1;
     public string $conversion_notes = '';
     public array $conversionComponents = [];
+    public array $conversionPackaging = [];
 
     public function mount(string $batchCode)
     {
@@ -33,6 +34,8 @@ class BatchJobsDetailPage extends Component
         $this->target_sets_desired = 1;
         $this->conversion_notes = '';
         $this->conversionComponents = [];
+        $this->conversionPackaging = [];
+        $this->addConversionPackagingRow();
 
         $jobs = ProductionJob::where('production_batch_id', $this->batchCode)
             ->orWhere('job_code', $this->batchCode)
@@ -64,6 +67,8 @@ class BatchJobsDetailPage extends Component
         $this->conversionComponents = [];
 
         $job = ProductionJob::find($jobId);
+        $this->conversionPackaging = [];
+        $this->addConversionPackagingRow();
         if ($job && $job->status === 'completed' && $job->remaining_unconverted_quantity > 0) {
             $this->conversionComponents[] = [
                 'production_job_id' => $job->id,
@@ -90,6 +95,20 @@ class BatchJobsDetailPage extends Component
     {
         unset($this->conversionComponents[$index]);
         $this->conversionComponents = array_values($this->conversionComponents);
+    }
+
+    public function addConversionPackagingRow(): void
+    {
+        $this->conversionPackaging[] = [
+            'raw_material_id' => '',
+            'quantity_used' => '',
+        ];
+    }
+
+    public function removeConversionPackagingRow(int $index): void
+    {
+        unset($this->conversionPackaging[$index]);
+        $this->conversionPackaging = array_values($this->conversionPackaging);
     }
 
     public function getConversionSummaryProperty(): array
@@ -169,6 +188,14 @@ class BatchJobsDetailPage extends Component
             }
         }
 
+        foreach ($this->conversionPackaging as $idx => $pkg) {
+            if (!empty($pkg['raw_material_id'])) {
+                if (empty($pkg['quantity_used']) || floatval($pkg['quantity_used']) <= 0) {
+                    $this->addError("conversionPackaging.{$idx}.quantity_used", 'Quantity must be greater than 0.');
+                }
+            }
+        }
+
         if ($this->getErrorBag()->isNotEmpty()) {
             return;
         }
@@ -183,11 +210,16 @@ class BatchJobsDetailPage extends Component
 
         try {
             $conversionService = resolve(FinishedGoodsConversionService::class);
+            
+            // Filter out empty packaging rows
+            $filteredPackaging = array_filter($this->conversionPackaging, fn($p) => !empty($p['raw_material_id']));
+
             $bundle = $conversionService->convertJobsToStorefrontBundle(
                 intval($this->target_product_id),
                 $desiredSets,
                 $this->conversionComponents,
-                $this->conversion_notes ?: "Converted {$desiredSets} set(s) from Production Batch {$this->batchCode}"
+                $this->conversion_notes ?: "Converted {$desiredSets} set(s) from Production Batch {$this->batchCode}",
+                $filteredPackaging
             );
 
             $this->dispatch('close-modal', 'storefront-conversion-modal');
@@ -208,6 +240,9 @@ class BatchJobsDetailPage extends Component
 
         $completedJobsForPicker = $jobs->filter(fn($j) => $j->status === 'completed' && $j->remaining_unconverted_quantity > 0);
         $storefrontProducts = Product::where('is_active', true)->with('combinations')->orderBy('title')->get();
+        $packagingRawMaterials = \App\Models\RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
+            ->orderBy('name')
+            ->get();
 
         $firstJob = $jobs->first();
         $product = $firstJob?->manufacturingProduct;
@@ -231,6 +266,7 @@ class BatchJobsDetailPage extends Component
             'convertedSum' => $convertedSum,
             'completedJobsForPicker' => $completedJobsForPicker,
             'storefrontProducts' => $storefrontProducts,
+            'packagingRawMaterials' => $packagingRawMaterials,
         ])->title("Batch Jobs — {$this->batchCode}");
     }
 }

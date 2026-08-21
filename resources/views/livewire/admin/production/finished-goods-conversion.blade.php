@@ -166,6 +166,43 @@
                 @endif
             </section>
 
+            <!-- Record Packaging Materials Used Section -->
+            <section class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-4">
+                <div class="flex items-center justify-between border-b border-outline-variant/30 pb-3">
+                    <h3 class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Record Packaging Materials Used (Optional)</h3>
+                    <button type="button" wire:click="addConversionPackagingRow" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">add_circle</span> Add Packaging Material
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    @foreach($conversionPackaging as $index => $pkg)
+                        <div class="grid grid-cols-12 gap-3 items-center">
+                            <div class="col-span-7">
+                                <select wire:model.live="conversionPackaging.{{ $index }}.raw_material_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <option value="">-- Select Packaging Material --</option>
+                                    @foreach($packagingRawMaterials as $mat)
+                                        <option value="{{ $mat->id }}">{{ $mat->name }} ({{ $mat->code }} · {{ $mat->unit }})</option>
+                                    @endforeach
+                                </select>
+                                @error("conversionPackaging.{$index}.raw_material_id") <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div class="col-span-4">
+                                <input type="number" step="0.0001" min="0.0001" placeholder="Quantity Used" wire:model.blur="conversionPackaging.{{ $index }}.quantity_used" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary focus:border-primary">
+                                @error("conversionPackaging.{$index}.quantity_used") <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div class="col-span-1 flex items-center justify-center">
+                                <button type="button" wire:click="removeConversionPackagingRow({{ $index }})" class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors">
+                                    <span class="material-symbols-outlined text-base">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+
         </div>
 
         <!-- Sticky Right Sidebar (3 Cols) -->
