@@ -53,8 +53,8 @@
                         </div>
                     </div>
 
-                    <!-- Row 2: Category -->
-                    <div class="grid grid-cols-1 gap-4">
+                    <!-- Row 2: Category & Is Fabric Used? -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                         <!-- Category Selection -->
                         <div>
                             <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Category *</label>
@@ -66,12 +66,9 @@
                             </select>
                             @error('manufacturing_product_category_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                         </div>
-                    </div>
 
-                    <!-- Row 3: Is Fabric Used? Toggle -->
-                    <div class="grid grid-cols-1 gap-4">
                         <!-- Is Fabric Used? Toggle -->
-                        <div class="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/30">
+                        <div class="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/30 h-[50px]">
                             <div>
                                 <p class="font-body-md font-bold text-sm">Is Fabric Used?</p>
                                 <p class="font-label-sm text-on-surface-variant text-xs">Enable if fabric mapping is required.</p>
