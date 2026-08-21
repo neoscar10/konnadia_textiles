@@ -642,6 +642,7 @@
                                             </div>
                                         </div>
                                     @endif
+                                @endforeach
                             </div>
 
                             @error('cuttingLaborAllocations')
