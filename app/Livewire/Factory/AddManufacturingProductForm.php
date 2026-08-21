@@ -178,11 +178,14 @@ class AddManufacturingProductForm extends Component
 
     public function addRoutingRow(): void
     {
-        $isFirst = empty($this->routingTasksList);
+        foreach ($this->routingTasksList as $i => &$row) {
+            $row['is_final_step'] = false;
+        }
+
         $this->routingTasksList[] = [
             'task_id'             => '',
             'standard_labor_rate' => '',
-            'is_final_step'       => $isFirst,
+            'is_final_step'       => true,
         ];
     }
 
