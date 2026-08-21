@@ -170,11 +170,7 @@
                     </button>
                     <button type="button" wire:click="setWizardStep(3)" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 3 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">payments</span>
-                        <span>3. Cost Valuation</span>
-                    </button>
-                    <button type="button" wire:click="setWizardStep(4)" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 4 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
-                        <span class="material-symbols-outlined text-[18px]">published_with_changes</span>
-                        <span>4. Save & Progress</span>
+                        <span>3. Cost Valuation & Save</span>
                     </button>
                 </div>
             @else
@@ -733,55 +729,42 @@
                                 </div>
                             @endif
 
+                            <!-- STEP 3 CONFIRMATION BANNER -->
+                            <div class="mt-6 pt-4 border-t border-outline-variant/30">
+                                @if($this->isSelectedStageCompleted)
+                                    <div class="p-4 bg-surface-container-low border border-outline-variant/60 rounded-2xl text-center text-xs text-on-surface-variant font-medium">
+                                        This cutting stage is completed and locked from further entry. Recorded sessions and yields are archived in the audit log below.
+                                    </div>
+                                @else
+                                    <div class="p-4 bg-primary/5 border border-primary/20 text-on-surface-variant rounded-2xl text-xs space-y-1.5 shadow-2xs">
+                                        <p class="font-bold text-primary flex items-center gap-1.5">
+                                            <span class="material-symbols-outlined text-[16px]">info</span>
+                                            Confirmation & Progress Action
+                                        </p>
+                                        <p class="text-[11px] leading-relaxed text-on-surface-variant">
+                                            Ensure all pieces, measurements, and fabric wastes are logged accurately. Saving this cutting session will deduct bale lengths from stock and allocate unit costs downstream.
+                                        </p>
+                                    </div>
+                                @endif
+                            </div>
+
                             <!-- STEP 3 FOOTER NAVIGATION -->
                             <div class="flex justify-between items-center pt-4 border-t border-outline-variant/40">
                                 <button type="button" wire:click="setWizardStep(2)" class="bg-surface-container-high text-on-surface border border-outline-variant/60 px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-all flex items-center gap-2 shadow-xs cursor-pointer">
                                     <span class="material-symbols-outlined text-lg">arrow_back</span>
                                     Back to Cut Yields & Labor
                                 </button>
-                                <button type="button" wire:click="setWizardStep(4)" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
-                                    Next Step: Save & Progress
-                                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
-                                </button>
-                            </div>
-                        </div>
-                    @endif
-
-                    {{-- STEP 4: SAVE & PROGRESS STAGE --}}
-                    @if($wizardStep === 4)
-                        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-6">
-                            <div class="flex items-center gap-3 pb-4 border-b border-outline-variant/40">
-                                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                                    <span class="material-symbols-outlined text-[22px]">published_with_changes</span>
-                                </div>
-                                <div>
-                                    <h3 class="font-headline-sm text-headline-sm text-primary font-bold">Step 4: Save & Progress Workflow</h3>
-                                    <p class="text-xs text-on-surface-variant font-medium mt-0.5">Finalize cutting session, deduct fabric inventory, assign product routing, and trigger downstream task execution.</p>
-                                </div>
-                            </div>
-
-                            <div class="bg-surface-container-low border border-outline-variant/60 rounded-2xl p-6 shadow-xs text-center space-y-4">
                                 @if($this->isSelectedStageCompleted)
-                                    <p class="text-xs text-on-surface-variant leading-relaxed">This cutting stage is completed and locked from further entry. Recorded sessions and yields are archived in the audit log below.</p>
-                                    <button type="button" disabled class="w-full bg-outline-variant/40 text-on-surface-variant/60 py-4 rounded-xl font-bold text-base cursor-not-allowed shadow-xs flex items-center justify-center gap-2">
-                                        <span class="material-symbols-outlined text-[20px]">lock</span>
+                                    <button type="button" disabled class="bg-outline-variant/40 text-on-surface-variant/60 px-7 py-3.5 rounded-xl font-bold text-sm cursor-not-allowed shadow-xs flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-lg">lock</span>
                                         Stage Completed (Locked)
                                     </button>
                                 @else
-                                    <p class="text-xs text-on-surface-variant leading-relaxed">Ensure all pieces, measurements, and fabric wastes are logged accurately. Saving this cutting session will deduct bale lengths from stock and allocate unit costs downstream.</p>
-                                    <button type="submit" class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold text-base hover:bg-primary-container shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
-                                        <span class="material-symbols-outlined">save</span>
-                                        Save Cutting Session & Progress Workflow
+                                    <button type="submit" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
+                                        Save & Progress
+                                        <span class="material-symbols-outlined text-lg">save</span>
                                     </button>
                                 @endif
-                            </div>
-
-                            <!-- STEP 4 FOOTER NAVIGATION -->
-                            <div class="flex justify-start pt-4 border-t border-outline-variant/40">
-                                <button type="button" wire:click="setWizardStep(3)" class="bg-surface-container-high text-on-surface border border-outline-variant/60 px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-all flex items-center gap-2 shadow-xs cursor-pointer">
-                                    <span class="material-symbols-outlined text-lg">arrow_back</span>
-                                    Back to Cost Valuation
-                                </button>
                             </div>
                         </div>
                     @endif

@@ -79,6 +79,10 @@ class JobDetailPage extends Component
 
     public function getMaxWizardStepsProperty(): int
     {
+        $isCutting = $this->selectedTask && ($this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001');
+        if ($isCutting) {
+            return 3;
+        }
         return $this->hasMaterialStep ? 4 : 3;
     }
 
