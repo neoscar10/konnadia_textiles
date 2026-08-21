@@ -53,8 +53,8 @@
                         </div>
                     </div>
 
-                    <!-- Row 2: Category & Standard Labor Rate -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Row 2: Category -->
+                    <div class="grid grid-cols-1 gap-4">
                         <!-- Category Selection -->
                         <div>
                             <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Category *</label>
@@ -66,17 +66,10 @@
                             </select>
                             @error('manufacturing_product_category_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                         </div>
-
-                        <!-- Standard Labor Rate -->
-                        <div>
-                            <label class="block font-label-md text-on-surface-variant text-xs font-bold uppercase tracking-wider mb-2">Default Standard Labor Rate (₹) *</label>
-                            <input wire:model.blur="standard_labor_rate" class="w-full rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-body-md px-4 py-3 bg-surface font-bold text-sm" type="number" step="0.01" placeholder="15.00"/>
-                            @error('standard_labor_rate') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                        </div>
                     </div>
 
-                    <!-- Row 3: Is Fabric Used? & Product Status Toggles -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Row 3: Is Fabric Used? Toggle -->
+                    <div class="grid grid-cols-1 gap-4">
                         <!-- Is Fabric Used? Toggle -->
                         <div class="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/30">
                             <div>
@@ -85,23 +78,6 @@
                             </div>
                             <div class="flex items-center">
                                 <input type="checkbox" wire:model.live="is_fabric_used" class="w-6 h-6 rounded border-outline-variant text-primary focus:ring-primary"/>
-                            </div>
-                        </div>
-
-                        <!-- Product Status Toggle -->
-                        <div class="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/30">
-                            <div>
-                                <p class="font-body-md font-bold text-sm">Product Status</p>
-                                <p class="font-label-sm text-on-surface-variant text-xs">
-                                    @if($status === 'active') Active in scheduler
-                                    @else Inactive & hidden @endif
-                                </p>
-                            </div>
-                            <div class="flex items-center">
-                                <select wire:model="status" class="bg-surface border border-outline-variant/60 rounded-xl font-label-sm text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold">
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
                             </div>
                         </div>
                     </div>

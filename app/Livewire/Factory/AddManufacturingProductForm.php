@@ -21,7 +21,7 @@ class AddManufacturingProductForm extends Component
     public string $code = '';
     public $manufacturing_product_category_id = '';
     public string $status = 'active';
-    public $standard_labor_rate = 15.00;
+    public $standard_labor_rate = 0.00;
     public $imageUpload = null;
     public $existing_image_path = '';
 
@@ -181,7 +181,7 @@ class AddManufacturingProductForm extends Component
         $isFirst = empty($this->routingTasksList);
         $this->routingTasksList[] = [
             'task_id'             => '',
-            'standard_labor_rate' => $this->standard_labor_rate ?: '15.00',
+            'standard_labor_rate' => '',
             'is_final_step'       => $isFirst,
         ];
     }
@@ -236,7 +236,7 @@ class AddManufacturingProductForm extends Component
             $this->existing_image_path               = $product->image_path ?? '';
             $this->manufacturing_product_category_id = $product->manufacturing_product_category_id ?? '';
             $this->status                            = $product->status ?? 'active';
-            $this->standard_labor_rate               = $product->standard_labor_rate ?? 15.00;
+            $this->standard_labor_rate               = $product->standard_labor_rate ?? 0.00;
             $this->is_fabric_used                    = (bool)($product->is_fabric_used ?? false);
             $this->standard_fabric_width             = $product->standard_fabric_width ?? '';
             $this->standard_fabric_length            = $product->standard_fabric_length ?? '';
@@ -321,13 +321,13 @@ class AddManufacturingProductForm extends Component
             $this->routingTasksList = [
                 [
                     'task_id'             => (string)$cuttingTask->id,
-                    'standard_labor_rate' => (string)($this->standard_labor_rate ?: 15.00),
+                    'standard_labor_rate' => '',
                     'is_final_step'       => true,
                 ]
             ];
         } else {
             $this->routingTasksList = [
-                ['task_id' => '', 'standard_labor_rate' => '15.00', 'is_final_step' => true]
+                ['task_id' => '', 'standard_labor_rate' => '', 'is_final_step' => true]
             ];
         }
     }
@@ -467,7 +467,7 @@ class AddManufacturingProductForm extends Component
                 'name'                              => $this->name,
                 'manufacturing_product_category_id' => $this->manufacturing_product_category_id,
                 'status'                            => $this->status,
-                'standard_labor_rate'               => $this->standard_labor_rate ?: 15.00,
+                'standard_labor_rate'               => $this->standard_labor_rate ?: 0.00,
             ], $fabricData, $materialData, $mappingData, $imageData));
             $message = "Manufacturing Product {$product->name} updated successfully!";
         } else {
@@ -475,7 +475,7 @@ class AddManufacturingProductForm extends Component
                 'name'                              => $this->name,
                 'manufacturing_product_category_id' => $this->manufacturing_product_category_id,
                 'status'                            => $this->status,
-                'standard_labor_rate'               => $this->standard_labor_rate ?: 15.00,
+                'standard_labor_rate'               => $this->standard_labor_rate ?: 0.00,
             ], $fabricData, $materialData, $mappingData, $imageData));
             $message = "Manufacturing Product {$product->name} created successfully!";
         }
@@ -510,7 +510,7 @@ class AddManufacturingProductForm extends Component
         foreach ($this->routingTasksList as $seqIndex => $rRow) {
             $taskSyncData[$rRow['task_id']] = [
                 'sequence_number'     => $seqIndex + 1,
-                'standard_labor_rate' => !empty($rRow['standard_labor_rate']) ? $rRow['standard_labor_rate'] : ($this->standard_labor_rate ?: 15.00),
+                'standard_labor_rate' => !empty($rRow['standard_labor_rate']) ? $rRow['standard_labor_rate'] : ($this->standard_labor_rate ?: 0.00),
                 'is_final_step'       => !empty($rRow['is_final_step']),
             ];
         }
