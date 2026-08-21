@@ -2181,6 +2181,26 @@ class JobDetailPage extends Component
         $this->cuttingLaborAllocations[$rollId] = array_values($this->cuttingLaborAllocations[$rollId]);
     }
 
+    public function setLaborQuantityToMax(int $rollId, int $aIdx): void
+    {
+        $alloc = $this->cuttingLaborAllocations[$rollId][$aIdx] ?? null;
+        if (!$alloc) return;
+        $prodId = $alloc['manufacturing_product_id'];
+        if (!$prodId) return;
+
+        foreach ($this->cuttingBaleRows as $bRow) {
+            if (isset($bRow['selected_rolls'][$rollId])) {
+                $rData = $bRow['selected_rolls'][$rollId];
+                foreach ($rData['outputs'] ?? [] as $out) {
+                    if ((int)$out['manufacturing_product_id'] == (int)$prodId) {
+                        $this->cuttingLaborAllocations[$rollId][$aIdx]['quantity'] = $out['quantity'];
+                        break 2;
+                    }
+                }
+            }
+        }
+    }
+
     public function saveCuttingSession(\App\Services\FabricCostingService $costingService)
     {
         if (!auth()->user()->hasAnyRole(['super_admin', 'admin', 'Factory Supervisor']) && !auth()->user()->can('manage_labor')) {
