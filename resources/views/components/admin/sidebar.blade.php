@@ -18,7 +18,7 @@
              scrollToActive() {
                  this.$nextTick(() => {
                      setTimeout(() => {
-                         const activeLink = this.$el.querySelector('a[class*=\"bg-primary-container\"]');
+                         const activeLink = this.$el.querySelector('a.is-active-link');
                          if (activeLink) {
                              activeLink.scrollIntoView({ block: 'nearest', behavior: 'auto' });
                          }
@@ -34,11 +34,11 @@
                 <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Overview</p>
             </div>
             <nav class="flex flex-col gap-xs px-sm">
-                <a href="{{ route('admin.dashboard') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.dashboard') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                <a href="{{ route('admin.dashboard') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.dashboard') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                     <span class="material-symbols-outlined shrink-0" data-icon="dashboard">dashboard</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Dashboard</span>
                 </a>
-                <a href="{{ route('admin.contact-messages.index') }}" wire:navigate class="flex items-center justify-between rounded-lg transition-all duration-200 {{ request()->routeIs('admin.contact-messages.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs relative'">
+                <a href="{{ route('admin.contact-messages.index') }}" wire:navigate class="flex items-center justify-between rounded-lg transition-all duration-200 {{ request()->routeIs('admin.contact-messages.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs relative'">
                     <div class="flex items-center gap-md">
                         <span class="material-symbols-outlined shrink-0" data-icon="mail">mail</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Contact Messages</span>
@@ -63,13 +63,13 @@
             </div>
             <nav class="flex flex-col gap-xs px-sm">
                 @can('access customers')
-                    <a href="{{ route('admin.customers.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.customers.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.customers.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.customers.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="group">group</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Customers</span>
                     </a>
                 @endcan
                 @can('access customer-levels')
-                    <a href="{{ route('admin.customer-levels.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.customer-levels.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.customer-levels.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.customer-levels.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="stars">stars</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Customer Levels</span>
                     </a>
@@ -84,43 +84,43 @@
             </div>
             <nav class="flex flex-col gap-xs px-sm">
                 @can('access products')
-                    <a href="{{ route('admin.products.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.products.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.products.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.products.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="inventory_2">inventory_2</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Products</span>
                     </a>
                 @endcan
                 @can('access design-catalog')
-                    <a href="{{ route('admin.design-catalog.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.design-catalog.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.design-catalog.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.design-catalog.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="collections">collections</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Design Catalog</span>
                     </a>
                 @endcan
                 @can('access categories')
-                    <a href="{{ route('admin.categories.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.categories.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.categories.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.categories.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="category">category</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Categories</span>
                     </a>
                 @endcan
                 @can('access tags')
-                    <a href="{{ route('admin.tags.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.tags.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.tags.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.tags.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="sell">sell</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Tags</span>
                     </a>
                 @endcan
                 @can('access inventory')
-                    <a href="{{ route('admin.inventory.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.inventory.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.inventory.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.inventory.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="warehouse">warehouse</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Inventory</span>
                     </a>
                 @endcan
                 @can('access retail-shops')
-                    <a href="{{ route('admin.retail-shops.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.retail-shops.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.retail-shops.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.retail-shops.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="storefront">storefront</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Retail Shops</span>
                     </a>
                 @endcan
                 @can('access product-transfers')
-                    <a href="{{ route('admin.product-transfers.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.product-transfers.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.product-transfers.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.product-transfers.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="sync_alt">sync_alt</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Product Transfers</span>
                     </a>
@@ -134,7 +134,7 @@
                 <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">Orders</p>
             </div>
             <nav class="flex flex-col gap-xs px-sm">
-                <a href="{{ route('admin.orders.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.orders.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                <a href="{{ route('admin.orders.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.orders.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                     <span class="material-symbols-outlined shrink-0" data-icon="shopping_cart">shopping_cart</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Orders</span>
                 </a>
@@ -147,7 +147,7 @@
                 <p class="font-label-md text-on-primary/50 uppercase tracking-wider text-[10px]">CMS</p>
             </div>
             <nav class="flex flex-col gap-xs px-sm">
-                <a href="{{ route('admin.home-content.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.home-content.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                <a href="{{ route('admin.home-content.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.home-content.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                     <span class="material-symbols-outlined shrink-0" data-icon="dashboard_customize">dashboard_customize</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Home Content</span>
                 </a>
@@ -162,32 +162,32 @@
             <nav class="flex flex-col gap-xs px-sm">
                 
                 <!-- Production Jobs (Standalone) -->
-                <a href="{{ route('admin.production.jobs.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.jobs.*') || request()->routeIs('admin.production.batches.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                <a href="{{ route('admin.production.jobs.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.jobs.*') || request()->routeIs('admin.production.batches.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                     <span class="material-symbols-outlined shrink-0" data-icon="precision_manufacturing">precision_manufacturing</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Production Jobs</span>
                 </a>
 
                 <!-- Task Master (Standalone) -->
-                <a href="{{ route('factory.tasks.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.tasks.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                <a href="{{ route('factory.tasks.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.tasks.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                     <span class="material-symbols-outlined shrink-0" data-icon="task_alt">task_alt</span>
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Task Master</span>
                 </a>
 
-                <!-- Manufacturing Products Group -->
+                <!-- Manufacturing Prod Group -->
                 <div x-data="{ open: {{ request()->routeIs('factory.products.*') || request()->routeIs('admin.production.product-categories.*') ? 'true' : 'false' }} }" class="flex flex-col">
                     <button @click="open = !open; if(!sidebarOpen && open) sidebarOpen = true;" type="button" class="flex items-center justify-between rounded-lg transition-all duration-200 text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30 w-full" :class="sidebarOpen ? 'px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <div class="flex items-center gap-md">
                             <span class="material-symbols-outlined shrink-0" data-icon="inventory_2">inventory_2</span>
-                            <span class="font-label-md text-label-md" x-show="sidebarOpen">Manufacturing Products</span>
+                            <span class="font-label-md text-label-md" x-show="sidebarOpen">Manufacturing Prod</span>
                         </div>
                         <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="open ? 'rotate-180' : ''" x-show="sidebarOpen">expand_more</span>
                     </button>
                     <div x-show="open && sidebarOpen" x-collapse x-cloak>
                         <div class="flex flex-col gap-1 pl-11 pr-2 py-1 relative before:absolute before:left-[22px] before:top-0 before:bottom-0 before:w-px before:bg-on-primary/10">
-                            <a href="{{ route('factory.products.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.products.*') ? 'bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                            <a href="{{ route('factory.products.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.products.*') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Products
                             </a>
-                            <a href="{{ route('admin.production.product-categories.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.production.product-categories.*') ? 'bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                            <a href="{{ route('admin.production.product-categories.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.production.product-categories.*') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Categories
                             </a>
                         </div>
@@ -205,16 +205,16 @@
                     </button>
                     <div x-show="open && sidebarOpen" x-collapse x-cloak>
                         <div class="flex flex-col gap-1 pl-11 pr-2 py-1 relative before:absolute before:left-[22px] before:top-0 before:bottom-0 before:w-px before:bg-on-primary/10">
-                            <a href="{{ route('factory.raw-materials.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.raw-materials.index') ? 'bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                            <a href="{{ route('factory.raw-materials.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.raw-materials.index') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Directory
                             </a>
-                            <a href="{{ route('factory.raw-materials.purchase') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.raw-materials.purchase') ? 'bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                            <a href="{{ route('factory.raw-materials.purchase') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.raw-materials.purchase') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Purchase Entry
                             </a>
-                            <a href="{{ route('factory.raw-materials.batches') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.raw-materials.batches') ? 'bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                            <a href="{{ route('factory.raw-materials.batches') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.raw-materials.batches') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Inventory Batches
                             </a>
-                            <a href="{{ route('admin.units.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.units.*') || request()->routeIs('factory.units.*') ? 'bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                            <a href="{{ route('admin.units.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.units.*') || request()->routeIs('factory.units.*') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Units Management
                             </a>
                         </div>
@@ -232,10 +232,10 @@
                     </button>
                     <div x-show="open && sidebarOpen" x-collapse x-cloak>
                         <div class="flex flex-col gap-1 pl-11 pr-2 py-1 relative before:absolute before:left-[22px] before:top-0 before:bottom-0 before:w-px before:bg-on-primary/10">
-                            <a href="{{ route('admin.labor.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.labor.*') ? 'bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                            <a href="{{ route('admin.labor.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.labor.*') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Directory & Wages
                             </a>
-                            <a href="{{ route('admin.production.tracking-history') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.production.tracking-history') ? 'bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                            <a href="{{ route('admin.production.tracking-history') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.production.tracking-history') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Tracking History
                             </a>
                         </div>
@@ -252,13 +252,13 @@
             </div>
             <nav class="flex flex-col gap-xs px-sm pb-xl">
                 @if(auth()->user()->hasRole('super_admin'))
-                    <a href="{{ route('admin.admins.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.admins.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.admins.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.admins.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="manage_accounts">manage_accounts</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Admins</span>
                     </a>
                 @endif
                 @can('access settings')
-                    <a href="{{ route('admin.settings.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.settings.*') ? 'bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <a href="{{ route('admin.settings.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.settings.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="settings">settings</span>
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Settings</span>
                     </a>
