@@ -15,25 +15,6 @@
         </a>
     </div>
 
-    <!-- Bento-card Summary Header -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs">
-            <span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block">Total Batches</span>
-            <p class="text-2xl font-black text-primary mt-1">{{ $totalBatches }}</p>
-        </div>
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs">
-            <span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block">Active Batches</span>
-            <p class="text-2xl font-black text-secondary mt-1">{{ $activeBatches }}</p>
-        </div>
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs">
-            <span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block">Depleted Batches</span>
-            <p class="text-2xl font-black text-on-surface mt-1">{{ $depletedBatches }}</p>
-        </div>
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs">
-            <span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block">Total Value (Active)</span>
-            <p class="text-2xl font-black text-tertiary mt-1">₹{{ number_format($totalInventoryValue, 2) }}</p>
-        </div>
-    </div>
 
     <!-- Filter Bar -->
     <div class="bg-surface-container-lowest border border-outline-variant/60 p-4 rounded-2xl mb-6 shadow-xs flex flex-wrap items-center gap-4">

@@ -11,18 +11,6 @@
         </button>
     </div>
 
-    <!-- Summary Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant hover:border-primary transition-colors cursor-default group">
-            <div class="flex justify-between items-start mb-4">
-                <div class="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center text-primary">
-                    <span class="material-symbols-outlined">groups</span>
-                </div>
-            </div>
-            <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Total Workers</p>
-            <h3 class="font-headline-lg text-headline-lg text-on-surface">{{ $labors->total() }}</h3>
-        </div>
-    </div>
 
     <!-- Filter Bar -->
     <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant mb-6 flex flex-wrap items-center gap-4">

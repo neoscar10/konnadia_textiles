@@ -23,36 +23,6 @@
         </div>
     </div>
 
-    <!-- Stats Bar -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs flex items-center gap-4">
-            <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-[22px]">category</span>
-            </div>
-            <div>
-                <p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Total Categories</p>
-                <p class="text-xl font-black text-primary">{{ $categories->total() }}</p>
-            </div>
-        </div>
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs flex items-center gap-4">
-            <div class="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
-                <span class="material-symbols-outlined text-[22px]">check_circle</span>
-            </div>
-            <div>
-                <p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Active</p>
-                <p class="text-xl font-black text-secondary">{{ $categories->getCollection()->where('status', true)->count() }}</p>
-            </div>
-        </div>
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs flex items-center gap-4">
-            <div class="w-10 h-10 rounded-xl bg-error/10 text-error flex items-center justify-center">
-                <span class="material-symbols-outlined text-[22px]">cancel</span>
-            </div>
-            <div>
-                <p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Inactive</p>
-                <p class="text-xl font-black text-error">{{ $categories->getCollection()->where('status', false)->count() }}</p>
-            </div>
-        </div>
-    </div>
 
     <!-- Search Bar -->
     <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/60 mb-6 shadow-xs">

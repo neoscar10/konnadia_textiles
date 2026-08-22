@@ -47,28 +47,6 @@
         </select>
     </div>
 
-    <!-- Summary Stat Cards -->
-    @php
-        $totalMaterials = $materials->total();
-        $activeMaterials = \App\Models\RawMaterial::where('is_active', true)->count();
-        $categoryCounts = \App\Models\RawMaterialCategory::withCount('materials')->active()->get();
-    @endphp
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs">
-            <span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block">Total Materials</span>
-            <p class="text-2xl font-black text-primary mt-1">{{ $totalMaterials }}</p>
-        </div>
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs">
-            <span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block">Active</span>
-            <p class="text-2xl font-black text-secondary mt-1">{{ $activeMaterials }}</p>
-        </div>
-        @foreach($categoryCounts->take(2) as $catCount)
-            <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs">
-                <span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block">{{ $catCount->code }}</span>
-                <p class="text-2xl font-black text-on-surface mt-1">{{ $catCount->materials_count }}</p>
-            </div>
-        @endforeach
-    </div>
 
     <!-- Data Table Card -->
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
