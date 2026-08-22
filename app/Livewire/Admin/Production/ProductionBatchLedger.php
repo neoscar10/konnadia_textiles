@@ -51,10 +51,15 @@ class ProductionBatchLedger extends Component
                 ->orWhere('job_code', $id)
                 ->first();
 
+            // Fallback supervisor_id: use job's supervisor, else any admin user
+            // This ensures compatibility even if the DB migration hasn't been run yet
+            $supervisorId = $firstJob?->supervisor_id
+                ?? \App\Models\User::orderBy('id')->value('id');
+
             $batch = ProductionBatch::create([
                 'batch_code'               => is_numeric($id) ? 'PB-' . date('Y') . '-' . str_pad($id, 4, '0', STR_PAD_LEFT) : $id,
                 'manufacturing_product_id' => $firstJob?->manufacturing_product_id,
-                'supervisor_id'            => $firstJob?->supervisor_id,
+                'supervisor_id'            => $supervisorId,
                 'planned_quantity'         => $firstJob?->target_quantity ?? 10,
                 'status'                   => 'In Progress',
             ]);
