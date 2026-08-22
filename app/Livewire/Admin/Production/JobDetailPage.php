@@ -355,7 +355,6 @@ class JobDetailPage extends Component
         if ($uncompletedCount === 0 && $this->job->stageExecutions()->count() > 0) {
             $this->job->update(['status' => 'completed']);
         }
-        }
 
         $this->job->unsetRelation('stageExecutions');
     }
