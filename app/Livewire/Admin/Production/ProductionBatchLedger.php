@@ -96,33 +96,35 @@ class ProductionBatchLedger extends Component
             $costSummary = $costingService->getBatchCostSummary($this->batch->id);
         }
 
-        $jobIds = $this->batch->jobs->pluck('id');
+        // job_labor_allocations uses job_id (string job_code), other tables use production_job_id (integer)
+        $jobIds       = $this->batch->jobs->pluck('id');        // integer IDs for most tables
+        $jobCodes     = $this->batch->jobs->pluck('job_code');   // string codes for labor allocations
 
-        // Worker analysis
-        $batchWorkers = \App\Models\Labor::whereHas('allocations', function ($q) use ($jobIds) {
-            $q->whereIn('production_job_id', $jobIds);
+        // Worker analysis — labor allocations are keyed by job_code via job_id
+        $batchWorkers = \App\Models\Labor::whereHas('allocations', function ($q) use ($jobCodes) {
+            $q->whereIn('job_id', $jobCodes);
         })->get();
 
         $workerData = null;
         if (!empty($this->filterWorkerId)) {
             $worker = \App\Models\Labor::find($this->filterWorkerId);
             if ($worker) {
-                $allocations = \App\Models\JobLaborAllocation::whereIn('production_job_id', $jobIds)
+                $allocations = \App\Models\JobLaborAllocation::whereIn('job_id', $jobCodes)
                     ->where('labor_id', $this->filterWorkerId)
                     ->with(['productionJob.task', 'productionJob.manufacturingProduct'])
                     ->get();
 
                 $workerData = [
-                    'worker' => $worker,
-                    'allocations' => $allocations,
-                    'total_earnings' => $allocations->sum('calculated_wage'),
-                    'total_pieces' => $allocations->sum('quantity_processed'),
+                    'worker'          => $worker,
+                    'allocations'     => $allocations,
+                    'total_earnings'  => $allocations->sum('calculated_wage'),
+                    'total_pieces'    => $allocations->sum('quantity_processed'),
                 ];
             }
         }
 
-        // Roll analysis
-        $rollIds = \App\Models\JobLaborAllocation::whereIn('production_job_id', $jobIds)
+        // Roll analysis — labor side uses job_id (codes), other tables use production_job_id (ids)
+        $rollIds = \App\Models\JobLaborAllocation::whereIn('job_id', $jobCodes)
             ->whereNotNull('inventory_bale_roll_id')
             ->pluck('inventory_bale_roll_id')
             ->merge(
@@ -137,7 +139,7 @@ class ProductionBatchLedger extends Component
         if (!empty($this->filterRollId)) {
             $roll = \App\Models\InventoryBaleRoll::with('bale')->find($this->filterRollId);
             if ($roll) {
-                $rollAllocations = \App\Models\JobLaborAllocation::whereIn('production_job_id', $jobIds)
+                $rollAllocations = \App\Models\JobLaborAllocation::whereIn('job_id', $jobCodes)
                     ->where('inventory_bale_roll_id', $this->filterRollId)
                     ->with(['labor', 'productionJob.task'])
                     ->get();
@@ -163,16 +165,16 @@ class ProductionBatchLedger extends Component
                 $rollWastageCost = $rollWastages->sum('quantity_wasted') * $rate;
 
                 $rollData = [
-                    'roll' => $roll,
-                    'allocations' => $rollAllocations,
-                    'consumptions' => $rollConsumptions,
-                    'wastages' => $rollWastages,
-                    'outputs' => $rollOutputs,
-                    'labor_cost' => $rollAllocations->sum('calculated_wage'),
+                    'roll'          => $roll,
+                    'allocations'   => $rollAllocations,
+                    'consumptions'  => $rollConsumptions,
+                    'wastages'      => $rollWastages,
+                    'outputs'       => $rollOutputs,
+                    'labor_cost'    => $rollAllocations->sum('calculated_wage'),
                     'material_cost' => $rollConsumptions->sum('total_cost'),
-                    'wastage_cost' => $rollWastageCost,
-                    'total_cost' => $rollAllocations->sum('calculated_wage') + $rollConsumptions->sum('total_cost') + $rollWastageCost,
-                    'total_produced' => $rollOutputs->sum('quantity_produced'),
+                    'wastage_cost'  => $rollWastageCost,
+                    'total_cost'    => $rollAllocations->sum('calculated_wage') + $rollConsumptions->sum('total_cost') + $rollWastageCost,
+                    'total_produced'=> $rollOutputs->sum('quantity_produced'),
                 ];
             }
         }
@@ -183,13 +185,13 @@ class ProductionBatchLedger extends Component
             ->get();
 
         return view('livewire.admin.production.production-batch-ledger', [
-            'batch' => $this->batch,
-            'costSummary' => $costSummary,
+            'batch'        => $this->batch,
+            'costSummary'  => $costSummary,
             'batchWorkers' => $batchWorkers,
-            'workerData' => $workerData,
-            'batchRolls' => $batchRolls,
-            'rollData' => $rollData,
-            'wastageLog' => $wastageLog,
+            'workerData'   => $workerData,
+            'batchRolls'   => $batchRolls,
+            'rollData'     => $rollData,
+            'wastageLog'   => $wastageLog,
         ])->title("Production Batch 360 Ledger — {$this->batch->batch_code}");
     }
 }
