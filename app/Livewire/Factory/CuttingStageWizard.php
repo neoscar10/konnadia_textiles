@@ -521,23 +521,9 @@ class CuttingStageWizard extends Component
     public function render()
     {
         $fabricMaterials = RawMaterial::active()
-            ->where(function ($query) {
-                $query->whereHas('category', function ($q) {
-                    $q->where('unit_type', 'length_based')
-                      ->orWhere('unit_type', \App\Enums\RawMaterialUnitType::LENGTH_BASED)
-                      ->orWhere('code', 'like', '%FAB%')
-                      ->orWhere('name', 'like', '%Fabric%');
-                })
-                ->orWhereHas('batches', function ($q) {
-                    $q->where('balance_quantity', '>', 0);
-                });
-            })
+            ->fabricsOnly()
             ->orderBy('name')
             ->get();
-
-        if ($fabricMaterials->isEmpty()) {
-            $fabricMaterials = RawMaterial::active()->orderBy('name')->get();
-        }
 
         $manufacturingProducts = ManufacturingProduct::active()->orderBy('name')->get();
         $supervisors = User::where('is_active', true)->get();

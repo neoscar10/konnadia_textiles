@@ -1955,26 +1955,10 @@ class JobDetailPage extends Component
 
     public function getFabricMaterialsListProperty()
     {
-        $materials = \App\Models\RawMaterial::active()
-            ->where(function ($query) {
-                $query->whereHas('category', function ($q) {
-                    $q->where('unit_type', 'length_based')
-                      ->orWhere('unit_type', \App\Enums\RawMaterialUnitType::LENGTH_BASED)
-                      ->orWhere('code', 'like', '%FAB%')
-                      ->orWhere('name', 'like', '%Fabric%');
-                })
-                ->orWhereHas('batches', function ($q) {
-                    $q->where('balance_quantity', '>', 0);
-                });
-            })
+        return \App\Models\RawMaterial::active()
+            ->fabricsOnly()
             ->orderBy('name')
             ->get();
-
-        if ($materials->isEmpty()) {
-            $materials = \App\Models\RawMaterial::active()->orderBy('name')->get();
-        }
-
-        return $materials;
     }
 
     public function getBatchesForSelectedFabricProperty()

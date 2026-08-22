@@ -122,4 +122,21 @@ class RawMaterial extends Model
     {
         return $this->category ? $this->category->isOverhead() : false;
     }
+
+    /**
+     * Scope: filter only fabric materials (length-based or fabric categories).
+     */
+    public function scopeFabricsOnly($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereHas('category', function ($cq) {
+                $cq->where('unit_type', 'length_based')
+                   ->orWhere('unit_type', RawMaterialUnitType::LENGTH_BASED)
+                   ->orWhere('code', 'CAT-FAB')
+                   ->orWhere('code', 'like', '%FAB%')
+                   ->orWhere('name', 'like', '%Fabric%');
+            })
+            ->orWhereIn('unit', ['Meters', 'Yards', 'Feet', 'Inches']);
+        });
+    }
 }
