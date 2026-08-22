@@ -248,8 +248,11 @@ class BatchJobsDetailPage extends Component
         $product = $firstJob?->manufacturingProduct;
         $supervisor = $firstJob?->supervisor;
         
-        $batch = \App\Models\ProductionBatch::where('batch_code', $this->batchCode)->first();
-        $batchDbId = $batch?->id;
+        $batchDbId = $firstJob?->production_batch_db_id;
+        if (!$batchDbId) {
+            $batch = \App\Models\ProductionBatch::where('batch_code', $this->batchCode)->first();
+            $batchDbId = $batch?->id;
+        }
 
         $unconvertedSum = $jobs->sum(fn($j) => $j->remaining_unconverted_quantity);
         $totalProducedSum = $jobs->sum(fn($j) => $j->total_produced_quantity);
