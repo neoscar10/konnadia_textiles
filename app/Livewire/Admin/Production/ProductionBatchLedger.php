@@ -179,19 +179,56 @@ class ProductionBatchLedger extends Component
             }
         }
 
+        // Summary list for ALL rolls used in this batch
+        $allRollsSummary = [];
+        foreach ($batchRolls as $roll) {
+            $rConsumptions = \App\Models\JobMaterialConsumption::whereIn('production_job_id', $jobIds)
+                ->where('inventory_bale_roll_id', $roll->id)
+                ->get();
+            $rWastages = \App\Models\JobWastage::whereIn('production_job_id', $jobIds)
+                ->where('inventory_bale_roll_id', $roll->id)
+                ->get();
+            $rOutputs = \App\Models\JobProductionOutput::whereIn('production_job_id', $jobIds)
+                ->where('inventory_bale_roll_id', $roll->id)
+                ->get();
+            $rAllocations = \App\Models\JobLaborAllocation::whereIn('job_id', $jobCodes)
+                ->where('inventory_bale_roll_id', $roll->id)
+                ->get();
+
+            $rate = $roll->bale?->unit_cost ?? ($rConsumptions->first()?->unit_cost ?? 150.00);
+            $wastedQty = (float) $rWastages->sum('quantity_wasted');
+            $wastageCost = round($wastedQty * (float)$rate, 2);
+            $matCost = (float) $rConsumptions->sum('total_cost');
+            $laborCost = (float) $rAllocations->sum('calculated_wage');
+
+            $allRollsSummary[] = [
+                'roll_id'         => $roll->id,
+                'bale_number'     => $roll->bale?->bale_number ?? 'N/A',
+                'roll_number'     => $roll->roll_number,
+                'consumed_qty'    => (float) $rConsumptions->sum('quantity_consumed'),
+                'produced_qty'    => (int) $rOutputs->sum('quantity_produced'),
+                'wasted_qty'      => $wastedQty,
+                'material_cost'   => $matCost,
+                'labor_cost'      => $laborCost,
+                'wastage_cost'    => $wastageCost,
+                'total_cost'      => $matCost + $laborCost + $wastageCost,
+            ];
+        }
+
         // Wastage Audit breakdown
         $wastageLog = \App\Models\JobWastage::whereIn('production_job_id', $jobIds)
             ->with(['manufacturingProduct', 'task', 'inventoryBaleRoll.bale'])
             ->get();
 
         return view('livewire.admin.production.production-batch-ledger', [
-            'batch'        => $this->batch,
-            'costSummary'  => $costSummary,
-            'batchWorkers' => $batchWorkers,
-            'workerData'   => $workerData,
-            'batchRolls'   => $batchRolls,
-            'rollData'     => $rollData,
-            'wastageLog'   => $wastageLog,
+            'batch'           => $this->batch,
+            'costSummary'     => $costSummary,
+            'batchWorkers'    => $batchWorkers,
+            'workerData'      => $workerData,
+            'batchRolls'      => $batchRolls,
+            'rollData'        => $rollData,
+            'allRollsSummary' => $allRollsSummary,
+            'wastageLog'      => $wastageLog,
         ])->title("Production Batch 360 Ledger — {$this->batch->batch_code}");
     }
 }
