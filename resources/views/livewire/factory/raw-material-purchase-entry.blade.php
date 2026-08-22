@@ -233,8 +233,8 @@
                             </div>
                         @endif
 
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <div class="md:col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                            <div class="md:col-span-5">
                                 <label for="qty-received" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
                                     {{ $unitType === 'length_based' ? 'Total Length Calculated' : 'Quantity Received' }} <span class="text-error">*</span>
                                 </label>
@@ -254,8 +254,8 @@
                                 @error('quantity_received') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                             </div>
 
-                            <div>
-                                <label for="purchase-rate" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
+                            <div class="md:col-span-4">
+                                <label for="purchase-rate" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 whitespace-nowrap">
                                     {{ $unitType === 'length_based' ? 'Rate per ' . rtrim($unitName, 's') : 'Rate per Unit' }} <span class="text-error">*</span>
                                 </label>
                                 <div class="relative">
@@ -272,8 +272,8 @@
                                 @error('purchase_rate') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                             </div>
 
-                            <div>
-                                <label class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Total Value</label>
+                            <div class="md:col-span-3">
+                                <label class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 whitespace-nowrap">Total Value</label>
                                 <div class="relative">
                                     <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary">₹</span>
                                     <input
