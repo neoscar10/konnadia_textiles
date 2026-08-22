@@ -23,7 +23,7 @@ class ProductionBatchLedger extends Component
 
     public function mount($id, ProductionCostingService $costingService)
     {
-        $this->batch = ProductionBatch::with([
+        $query = ProductionBatch::with([
             'manufacturingProduct.tasks',
             'supervisor',
             'parentBatch',
@@ -38,7 +38,50 @@ class ProductionBatchLedger extends Component
             'jobs.alterations.sourceProduct',
             'jobs.alterations.targetProduct',
             'jobs.alterations.childBatch',
-        ])->findOrFail($id);
+        ]);
+
+        if (is_numeric($id)) {
+            $this->batch = $query->where('id', $id)->orWhere('batch_code', $id)->first();
+        } else {
+            $this->batch = $query->where('batch_code', $id)->orWhere('id', $id)->first();
+        }
+
+        if (!$this->batch) {
+            $firstJob = \App\Models\ProductionJob::where('production_batch_id', $id)
+                ->orWhere('job_code', $id)
+                ->first();
+
+            $prodId = $firstJob?->manufacturing_product_id;
+            $superId = $firstJob?->supervisor_id;
+
+            $this->batch = ProductionBatch::create([
+                'batch_code' => is_numeric($id) ? "PB-" . date('Y') . "-" . str_pad($id, 4, '0', STR_PAD_LEFT) : $id,
+                'manufacturing_product_id' => $prodId,
+                'supervisor_id' => $superId,
+                'planned_quantity' => $firstJob?->target_quantity ?? 10,
+                'status' => 'In Progress',
+            ]);
+
+            \App\Models\ProductionJob::where('production_batch_id', $this->batch->batch_code)
+                ->update(['production_batch_db_id' => $this->batch->id]);
+
+            $this->batch->load([
+                'manufacturingProduct.tasks',
+                'supervisor',
+                'parentBatch',
+                'childBatches.manufacturingProduct',
+                'jobs.task',
+                'jobs.manufacturingProduct',
+                'jobs.supervisor',
+                'jobs.allocations.labor',
+                'jobs.materialConsumptions.inventoryBatch.rawMaterial.category',
+                'jobs.productOutputs.manufacturingProduct',
+                'jobs.wastages.manufacturingProduct',
+                'jobs.alterations.sourceProduct',
+                'jobs.alterations.targetProduct',
+                'jobs.alterations.childBatch',
+            ]);
+        }
 
         // Cache latest cost metrics into DB columns
         $costingService->cacheBatchCostSummary($this->batch->id);

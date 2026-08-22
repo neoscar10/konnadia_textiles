@@ -24,12 +24,10 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 shrink-0">
-            @if($batchDbId)
-                <a href="{{ route('admin.production.batches.ledger', $batchDbId) }}" wire:navigate class="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
-                    <span class="material-symbols-outlined text-[20px]">menu_book</span>
-                    Batch Cost & Breakdown Ledger
-                </a>
-            @endif
+            <a href="{{ route('admin.production.batches.ledger', $batchDbId ?? $batchCode) }}" wire:navigate class="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
+                <span class="material-symbols-outlined text-[20px]">menu_book</span>
+                Batch Cost & Breakdown Ledger
+            </a>
 
             @if($unconvertedSum > 0)
                 <button type="button" wire:click="openBatchConversionModal" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
@@ -169,12 +167,10 @@
                                         Convert
                                     </button>
                                 @endif
-                                @if($job->production_batch_db_id || $batchDbId)
-                                    <a href="{{ route('admin.production.batches.ledger', ['id' => $job->production_batch_db_id ?? $batchDbId, 'selectedJobId' => $job->id]) }}" wire:navigate class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border border-amber-200">
-                                        <span class="material-symbols-outlined text-[14px]">receipt_long</span>
-                                        Ledger
-                                    </a>
-                                @endif
+                                <a href="{{ route('admin.production.batches.ledger', ['id' => $job->production_batch_db_id ?? $batchDbId ?? $batchCode, 'selectedJobId' => $job->id]) }}" wire:navigate class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border border-amber-200">
+                                    <span class="material-symbols-outlined text-[14px]">receipt_long</span>
+                                    Ledger
+                                </a>
                                 <a href="{{ route('admin.production.jobs.show', $job->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary hover:text-on-primary px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95">
                                     Terminal
                                     <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
