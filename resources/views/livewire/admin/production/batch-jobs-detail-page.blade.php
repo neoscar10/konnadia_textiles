@@ -20,7 +20,6 @@
                 @if($product?->code)
                     <span class="text-outline font-mono text-xs">({{ $product->code }})</span>
                 @endif
-                • Supervisor: <strong class="text-on-surface">{{ $supervisor?->name ?? 'Unassigned' }}</strong>
             </p>
         </div>
 
