@@ -211,6 +211,7 @@ class ProductionBatchLedger extends Component
                 'material_cost'   => $matCost,
                 'labor_cost'      => $laborCost,
                 'wastage_cost'    => $wastageCost,
+                'total_roll_cost' => $matCost + $laborCost + $wastageCost,
                 'total_cost'      => $matCost + $laborCost + $wastageCost,
             ];
         }

@@ -608,7 +608,7 @@
                                     ₹{{ number_format($rSum['wastage_cost'], 2) }}
                                 </td>
                                 <td class="px-4 py-3 text-right font-black text-primary">
-                                    ₹{{ number_format($rSum['total_roll_cost'], 2) }}
+                                    ₹{{ number_format($rSum['total_roll_cost'] ?? $rSum['total_cost'] ?? 0, 2) }}
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <button type="button" wire:click="$set('filterRollId', {{ $rSum['roll_id'] }})" class="px-3 py-1 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg text-[11px] font-bold transition-all">
