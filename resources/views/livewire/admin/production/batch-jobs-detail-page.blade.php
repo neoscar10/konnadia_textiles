@@ -339,8 +339,8 @@
 
                 <div class="space-y-3">
                     @foreach($conversionPackaging as $index => $pkg)
-                        <div class="grid grid-cols-12 gap-3 items-center">
-                            <div class="col-span-7">
+                        <div class="flex items-start gap-2 w-full">
+                            <div class="flex-1 min-w-0">
                                 <select wire:model.live="conversionPackaging.{{ $index }}.raw_material_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
                                     <option value="">-- Select Packaging Material --</option>
                                     @foreach($packagingRawMaterials as $mat)
@@ -350,12 +350,12 @@
                                 @error("conversionPackaging.{$index}.raw_material_id") <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="col-span-4">
-                                <input type="number" step="0.0001" min="0.0001" placeholder="Quantity Used" wire:model.blur="conversionPackaging.{{ $index }}.quantity_used" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
+                            <div class="w-36 shrink-0">
+                                <input type="number" step="0.0001" min="0.0001" placeholder="Qty Used" wire:model.blur="conversionPackaging.{{ $index }}.quantity_used" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
                                 @error("conversionPackaging.{$index}.quantity_used") <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="col-span-1 flex items-center justify-center">
+                            <div class="shrink-0 flex items-center pt-1">
                                 <button type="button" wire:click="removeConversionPackagingRow({{ $index }})" class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors">
                                     <span class="material-symbols-outlined text-base">delete</span>
                                 </button>
