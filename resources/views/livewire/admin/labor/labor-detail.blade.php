@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <div class="flex items-center gap-2 mb-1">
-                <a href="{{ route('labor.index') }}" wire:navigate class="text-primary font-bold text-xs flex items-center gap-1 hover:underline">
+                <a href="{{ route('admin.labor.index') }}" wire:navigate class="text-primary font-bold text-xs flex items-center gap-1 hover:underline">
                     <span class="material-symbols-outlined text-[16px]">arrow_back</span>
                     Back to Labor Directory
                 </a>

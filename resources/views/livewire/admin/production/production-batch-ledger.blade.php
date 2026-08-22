@@ -503,7 +503,7 @@
                     <span class="material-symbols-outlined text-[18px]">badge</span>
                     Selected Worker: {{ $workerData['worker']->name }} ({{ $workerData['worker']->code }}) · {{ $workerData['worker']->payment_method === 'monthly_salary' ? 'Monthly Salary' : 'Piece Rate' }}
                 </span>
-                <a href="{{ route('labor.show', $workerData['worker']->id) }}" wire:navigate class="px-3.5 py-1.5 bg-primary text-white rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-primary-container transition-all">
+                <a href="{{ route('admin.labor.show', $workerData['worker']->id) }}" wire:navigate class="px-3.5 py-1.5 bg-primary text-white rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-primary-container transition-all">
                     <span>View Full 360 Worker Profile & Earnings</span>
                     <span class="material-symbols-outlined text-[14px]">open_in_new</span>
                 </a>

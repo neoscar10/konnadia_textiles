@@ -63,13 +63,13 @@
                 @forelse ($labors as $labor)
                     <tr class="hover:bg-surface-container transition-colors">
                         <td class="px-6 py-5 font-label-md text-label-md font-bold text-primary">
-                            <a href="{{ route('labor.show', $labor->id) }}" wire:navigate class="hover:underline inline-flex items-center gap-1 font-mono">
+                            <a href="{{ route('admin.labor.show', $labor->id) }}" wire:navigate class="hover:underline inline-flex items-center gap-1 font-mono">
                                 {{ $labor->code }}
                                 <span class="material-symbols-outlined text-[14px]">open_in_new</span>
                             </a>
                         </td>
                         <td class="px-6 py-5">
-                            <a href="{{ route('labor.show', $labor->id) }}" wire:navigate class="font-body-md text-body-md font-semibold text-on-surface hover:text-primary hover:underline">
+                            <a href="{{ route('admin.labor.show', $labor->id) }}" wire:navigate class="font-body-md text-body-md font-semibold text-on-surface hover:text-primary hover:underline">
                                 {{ $labor->name }}
                             </a>
                         </td>
@@ -99,7 +99,7 @@
                             @endif
                         </td>
                         <td class="px-6 py-5 text-right flex justify-end gap-2 items-center">
-                            <a href="{{ route('labor.show', $labor->id) }}" wire:navigate class="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors" title="View Full Audit & Earnings Profile">
+                            <a href="{{ route('admin.labor.show', $labor->id) }}" wire:navigate class="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors" title="View Full Audit & Earnings Profile">
                                 <span class="material-symbols-outlined text-[20px]">visibility</span>
                             </a>
                             <button type="button" wire:click="edit({{ $labor->id }})" class="p-2 rounded-lg text-outline hover:bg-surface-container transition-colors" title="Edit Configuration">
