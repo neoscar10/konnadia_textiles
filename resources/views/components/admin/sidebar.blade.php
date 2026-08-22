@@ -15,19 +15,27 @@
     <!-- Navigation Menu -->
     <div class="flex-1 overflow-y-auto py-lg flex flex-col gap-sm admin-sidebar-scroll"
          x-data="{
-             scrollToActive() {
+             saveScroll() {
+                 sessionStorage.setItem('admin_sidebar_scroll_pos', this.$el.scrollTop);
+             },
+             restoreScroll() {
                  this.$nextTick(() => {
                      setTimeout(() => {
+                         const savedPos = sessionStorage.getItem('admin_sidebar_scroll_pos');
                          const activeLink = this.$el.querySelector('a.is-active-link');
-                         if (activeLink) {
-                             activeLink.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+                         if (savedPos !== null && savedPos !== '') {
+                             this.$el.scrollTop = parseInt(savedPos, 10);
+                         } else if (activeLink) {
+                             activeLink.scrollIntoView({ block: 'center', behavior: 'auto' });
                          }
-                     }, 100);
+                     }, 50);
                  });
              }
          }"
-         x-init="scrollToActive()"
-         x-on:livewire:navigated.window="scrollToActive()">
+         x-init="restoreScroll()"
+         x-on:scroll.debounce.150ms="saveScroll()"
+         x-on:click="if ($event.target.closest('a')) saveScroll();"
+         x-on:livewire:navigated.window="restoreScroll()">
         <!-- Overview Group -->
         @can('access dashboard')
             <div class="px-md mb-xs" x-show="sidebarOpen">
