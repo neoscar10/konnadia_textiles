@@ -184,9 +184,11 @@
                                                     step="0.01"
                                                     wire:model.live="declared_bale_length"
                                                     placeholder="e.g., 300"
-                                                    class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-4 pr-16 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold text-right"
+                                                    class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-4 pr-36 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold text-left"
                                                 />
-                                                <span class="absolute right-4 top-3 text-xs font-bold text-on-surface-variant/60 pointer-events-none">{{ $unitName }} / Bale</span>
+                                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20 pointer-events-none whitespace-nowrap">
+                                                    {{ $unitName }} / Bale
+                                                </span>
                                             </div>
                                             @error('declared_bale_length') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                                         </div>
@@ -216,9 +218,9 @@
                                                             step="0.01"
                                                             wire:model.live="individual_bale_lengths.{{ $i }}"
                                                             placeholder="0.00"
-                                                            class="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-3 pr-10 py-2 font-body-md text-xs font-bold text-right focus:border-primary focus:outline-none"
+                                                            class="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-3 pr-16 py-2 font-body-md text-xs font-bold text-left focus:border-primary focus:outline-none"
                                                         />
-                                                        <span class="absolute right-2 top-2 text-[10px] font-bold text-on-surface-variant/60 pointer-events-none">{{ $unitName }}</span>
+                                                        <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 pointer-events-none whitespace-nowrap">{{ $unitName }}</span>
                                                     </div>
                                                     @error("individual_bale_lengths.{$i}")
                                                         <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
@@ -244,10 +246,10 @@
                                         wire:model.live="quantity_received"
                                         {{ $unitType === 'length_based' ? 'readonly' : '' }}
                                         placeholder="0.0000"
-                                        class="w-full border rounded-xl pl-4 pr-16 py-3 font-body-md text-sm text-right focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none
-                                            {{ $unitType === 'length_based' ? 'bg-surface-container border-outline-variant/40 font-bold text-primary cursor-not-allowed' : 'bg-surface border-outline-variant/60' }}"
+                                        class="w-full border rounded-xl pl-4 pr-28 py-3 font-body-md text-sm text-left focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none
+                                            {{ $unitType === 'length_based' ? 'bg-surface-container border-outline-variant/40 font-black text-primary cursor-not-allowed' : 'bg-surface border-outline-variant/60 font-bold' }}"
                                     />
-                                    <span class="absolute right-4 top-3 text-xs font-bold text-on-surface-variant/60 pointer-events-none">{{ $unitName }}</span>
+                                    <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20 pointer-events-none whitespace-nowrap">{{ $unitName }}</span>
                                 </div>
                                 @error('quantity_received') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -257,14 +259,14 @@
                                     {{ $unitType === 'length_based' ? 'Rate per ' . rtrim($unitName, 's') : 'Rate per Unit' }} <span class="text-error">*</span>
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-3.5 text-xs font-bold text-on-surface-variant/60">₹</span>
+                                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant/70">₹</span>
                                     <input
                                         id="purchase-rate"
                                         type="number"
                                         step="0.01"
                                         wire:model.live="purchase_rate"
                                         placeholder="0.00"
-                                        class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-8 pr-4 py-3 font-body-md text-sm text-right focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                                        class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-8 pr-4 py-3 font-body-md text-sm font-bold text-left focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
                                     />
                                 </div>
                                 @error('purchase_rate') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
@@ -273,12 +275,12 @@
                             <div>
                                 <label class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Total Value</label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-3.5 text-xs font-bold text-on-surface-variant/60">₹</span>
+                                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary">₹</span>
                                     <input
                                         type="text"
                                         readonly
                                         value="{{ number_format($total_amount, 2) }}"
-                                        class="w-full bg-surface-container border border-outline-variant/30 rounded-xl pl-8 pr-4 py-3 font-body-md text-sm font-bold text-primary text-right outline-none cursor-not-allowed"
+                                        class="w-full bg-surface-container border border-outline-variant/30 rounded-xl pl-8 pr-4 py-3 font-body-md text-sm font-black text-primary text-left outline-none cursor-not-allowed"
                                     />
                                 </div>
                             </div>
