@@ -265,12 +265,37 @@
                 </h4>
                 <div class="overflow-y-auto max-h-[280px] space-y-2 pr-1">
                     @forelse($costSummary['labor_details']['allocations'] as $alloc)
+                        @php
+                            $isSalaried = $alloc->labor?->payment_method === 'monthly_salary';
+                            $rate = (float)$alloc->piece_rate;
+                            if ($rate <= 0 && $alloc->manufacturingProduct) {
+                                $rate = (float)$alloc->manufacturingProduct->getStandardLaborRateForTask($alloc->task_id);
+                            }
+                            $equiv = (float)$alloc->quantity_processed * $rate;
+                        @endphp
                         <div class="p-3 rounded-xl bg-surface border border-outline-variant/40 flex justify-between items-center text-xs">
                             <div>
-                                <p class="font-bold text-on-surface">{{ $alloc->labor?->name }} ({{ $alloc->labor?->code }})</p>
-                                <p class="text-[10px] text-outline">Stage: {{ $alloc->task?->name }} • {{ number_format($alloc->quantity_processed) }} Pcs</p>
+                                <p class="font-bold text-on-surface flex items-center gap-1.5">
+                                    <span>{{ $alloc->labor?->name }} ({{ $alloc->labor?->code }})</span>
+                                    @if($isSalaried)
+                                        <span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-800 text-[9px] font-bold border border-amber-500/30">Monthly Salary</span>
+                                    @endif
+                                </p>
+                                <p class="text-[10px] text-outline">
+                                    Stage: {{ $alloc->task?->name }} • {{ number_format($alloc->quantity_processed) }} Pcs
+                                    @if($isSalaried)
+                                        <span class="text-amber-800 font-semibold">• Job Value @ std rate: ₹{{ number_format($equiv, 2) }}</span>
+                                    @endif
+                                </p>
                             </div>
-                            <span class="font-black text-secondary text-sm">₹{{ number_format((float)$alloc->calculated_wage, 2) }}</span>
+                            <div class="text-right">
+                                @if($isSalaried)
+                                    <span class="font-black text-amber-800 text-sm">₹0.00</span>
+                                    <span class="block text-[9px] text-outline">Fixed Salary</span>
+                                @else
+                                    <span class="font-black text-secondary text-sm">₹{{ number_format((float)$alloc->calculated_wage, 2) }}</span>
+                                @endif
+                            </div>
                         </div>
                     @empty
                         <p class="text-xs text-outline italic text-center py-6">No labor wage allocations recorded yet.</p>
@@ -463,43 +488,63 @@
             
             <div class="flex items-center gap-2 bg-surface border border-outline-variant/60 rounded-xl px-3 py-1.5 shadow-xs w-full sm:w-auto">
                 <span class="material-symbols-outlined text-on-surface-variant text-[18px]">person</span>
-                <select wire:model.live="filterWorkerId" class="bg-transparent border-none text-xs font-bold text-primary focus:ring-0 p-0 cursor-pointer outline-none w-full sm:w-64">
+                <select wire:model.live="filterWorkerId" class="bg-transparent border-none text-xs font-bold text-primary focus:ring-0 p-0 cursor-pointer outline-none w-full sm:w-72">
                     <option value="">-- Select Worker --</option>
                     @foreach($batchWorkers as $worker)
-                        <option value="{{ $worker->id }}">{{ $worker->name }} ({{ $worker->code }})</option>
+                        <option value="{{ $worker->id }}">{{ $worker->name }} ({{ $worker->code }}) · {{ $worker->payment_method === 'monthly_salary' ? 'Monthly Salary' : 'Piece Rate' }}</option>
                     @endforeach
                 </select>
             </div>
         </div>
 
         @if($workerData)
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Earning Card -->
-                <div class="bg-secondary-container/10 border border-secondary/20 p-5 rounded-2xl flex items-center justify-between">
+                <div class="bg-secondary-container/10 border border-secondary/20 p-4 rounded-2xl flex items-center justify-between">
                     <div>
-                        <span class="text-[10px] uppercase font-bold text-secondary tracking-widest block">Total Wages Earned</span>
-                        <span class="text-3xl font-black text-secondary block mt-1">₹{{ number_format($workerData['total_earnings'], 2) }}</span>
+                        <span class="text-[10px] uppercase font-bold text-secondary tracking-wider block">Direct Wages Paid</span>
+                        <span class="text-2xl font-black text-secondary block mt-0.5">₹{{ number_format($workerData['total_earnings'], 2) }}</span>
+                        <span class="text-[9px] text-outline font-medium block mt-1">
+                            @if($workerData['worker']->payment_method === 'monthly_salary')
+                                <span class="text-amber-700 font-bold">Monthly Salary Earner (Fixed)</span>
+                            @else
+                                Piece-Rate Job Work Outflow
+                            @endif
+                        </span>
                     </div>
-                    <div class="w-12 h-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
-                        <span class="material-symbols-outlined text-2xl">payments</span>
+                    <div class="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-xl">payments</span>
+                    </div>
+                </div>
+
+                <!-- Job Production Value Card (Equivalent Valuation) -->
+                <div class="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-amber-800 tracking-wider block">Job Production Value</span>
+                        <span class="text-2xl font-black text-amber-900 block mt-0.5">₹{{ number_format($workerData['total_equivalent_value'], 2) }}</span>
+                        <span class="text-[9px] text-amber-700 font-medium block mt-1">Valuation @ standard piece rates</span>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-900 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-xl">calculate</span>
                     </div>
                 </div>
 
                 <!-- Performance Card -->
-                <div class="bg-primary/5 border border-primary/20 p-5 rounded-2xl flex items-center justify-between">
+                <div class="bg-primary/5 border border-primary/20 p-4 rounded-2xl flex items-center justify-between">
                     <div>
-                        <span class="text-[10px] uppercase font-bold text-primary tracking-widest block">Total Pieces Processed</span>
-                        <span class="text-3xl font-black text-primary block mt-1">{{ number_format($workerData['total_pieces']) }} Pcs</span>
+                        <span class="text-[10px] uppercase font-bold text-primary tracking-wider block">Total Pieces Processed</span>
+                        <span class="text-2xl font-black text-primary block mt-0.5">{{ number_format($workerData['total_pieces']) }} Pcs</span>
+                        <span class="text-[9px] text-outline font-medium block mt-1">Pay Type: {{ $workerData['worker']->payment_method === 'monthly_salary' ? 'Monthly Salary' : 'Piece Rate' }}</span>
                     </div>
-                    <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                        <span class="material-symbols-outlined text-2xl">engineering</span>
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-xl">engineering</span>
                     </div>
                 </div>
             </div>
 
             <!-- Detail Allocations Table -->
             <div class="pt-4">
-                <h4 class="font-bold text-sm text-primary mb-3">Itemized Allocations & Wages</h4>
+                <h4 class="font-bold text-sm text-primary mb-3">Itemized Stage Allocations, Valuation & Wages</h4>
                 <div class="overflow-x-auto border border-outline-variant/60 rounded-xl">
                     <table class="w-full text-left border-collapse font-body-md">
                         <thead>
@@ -507,25 +552,35 @@
                                 <th class="px-4 py-3 font-bold">Job Stage</th>
                                 <th class="px-4 py-3 font-bold text-center">Product SKU</th>
                                 <th class="px-4 py-3 font-bold text-center">Quantity Processed</th>
-                                <th class="px-4 py-3 font-bold text-right">Wage Calculation</th>
+                                <th class="px-4 py-3 font-bold text-center">Piece Rate</th>
+                                <th class="px-4 py-3 font-bold text-right">Job Cost Value</th>
+                                <th class="px-4 py-3 font-bold text-right">Direct Wage Paid</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-outline-variant/40">
+                        <tbody class="divide-y divide-outline-variant/40 text-xs">
                             @foreach($workerData['allocations'] as $alloc)
                                 <tr class="hover:bg-surface-container/50 transition-colors">
                                     <td class="px-4 py-3.5">
                                         <p class="font-bold text-on-surface text-sm">{{ $alloc->productionJob?->task?->name ?? 'Stage' }}</p>
-                                        <span class="text-xs text-outline font-mono">Job: {{ $alloc->productionJob?->job_code }}</span>
+                                        <span class="text-[10px] text-outline font-mono">Job: {{ $alloc->productionJob?->job_code }}</span>
                                     </td>
-                                    <td class="px-4 py-3.5 text-center font-semibold text-xs text-on-surface-variant">
+                                    <td class="px-4 py-3.5 text-center font-semibold text-on-surface-variant">
                                         {{ $alloc->productionJob?->manufacturingProduct?->name }} ({{ $alloc->productionJob?->manufacturingProduct?->code }})
                                     </td>
                                     <td class="px-4 py-3.5 text-center font-bold text-sm text-primary">
                                         {{ number_format($alloc->quantity_processed) }} Pcs
                                     </td>
+                                    <td class="px-4 py-3.5 text-center font-semibold text-outline">
+                                        ₹{{ number_format($alloc->equivalent_rate, 2) }} / Pc
+                                    </td>
+                                    <td class="px-4 py-3.5 text-right font-bold text-amber-800">
+                                        ₹{{ number_format($alloc->equivalent_value, 2) }}
+                                    </td>
                                     <td class="px-4 py-3.5 text-right font-black text-secondary text-sm">
-                                        @if(is_null($alloc->calculated_wage))
-                                            <span class="text-xs text-outline italic font-normal">Salaried (Fixed)</span>
+                                        @if($workerData['worker']->payment_method === 'monthly_salary')
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-800 text-[11px] font-bold border border-amber-500/30">
+                                                ₹0.00 <span class="font-normal text-[10px] text-amber-700">(Monthly Salary)</span>
+                                            </span>
                                         @else
                                             ₹{{ number_format($alloc->calculated_wage, 2) }}
                                         @endif

@@ -114,11 +114,23 @@ class ProductionBatchLedger extends Component
                     ->with(['productionJob.task', 'productionJob.manufacturingProduct'])
                     ->get();
 
+                $totalEquivalentValue = 0.0;
+                foreach ($allocations as $alloc) {
+                    $rate = (float) $alloc->piece_rate;
+                    if ($rate <= 0 && $alloc->productionJob?->manufacturingProduct) {
+                        $rate = (float) $alloc->productionJob->manufacturingProduct->getStandardLaborRateForTask($alloc->task_id);
+                    }
+                    $alloc->equivalent_rate = $rate;
+                    $alloc->equivalent_value = round((float)$alloc->quantity_processed * $rate, 2);
+                    $totalEquivalentValue += $alloc->equivalent_value;
+                }
+
                 $workerData = [
-                    'worker'          => $worker,
-                    'allocations'     => $allocations,
-                    'total_earnings'  => $allocations->sum('calculated_wage'),
-                    'total_pieces'    => $allocations->sum('quantity_processed'),
+                    'worker'                 => $worker,
+                    'allocations'            => $allocations,
+                    'total_earnings'         => $allocations->sum('calculated_wage'),
+                    'total_pieces'           => $allocations->sum('quantity_processed'),
+                    'total_equivalent_value' => $totalEquivalentValue,
                 ];
             }
         }
