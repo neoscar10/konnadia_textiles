@@ -27,6 +27,10 @@ class RawMaterialPurchaseEntry extends Component
     public bool $all_bales_equal_length = true;
     public array $individual_bale_lengths = [];
 
+    // GST properties
+    public bool $gst_included = true;
+    public $gst_percent = 18.0;
+
     // View helper variables
     public ?string $unitType = null; // 'length_based' or 'other'
     public ?string $unitName = null; // e.g. Meters, Pieces
@@ -35,6 +39,31 @@ class RawMaterialPurchaseEntry extends Component
     {
         $this->purchase_date = Carbon::now()->format('Y-m-d');
         $this->individual_bale_lengths = [''];
+    }
+
+    public function updatedGstIncluded()
+    {
+        $this->recalculateTotal();
+    }
+
+    public function updatedGstPercent()
+    {
+        $this->recalculateTotal();
+    }
+
+    public function getGstAmountProperty(): float
+    {
+        if ($this->gst_included) {
+            return 0.00;
+        }
+
+        $rate = floatval($this->gst_percent ?: 0);
+        return round($this->total_amount * ($rate / 100), 2);
+    }
+
+    public function getGrandTotalProperty(): float
+    {
+        return round($this->total_amount + $this->gstAmount, 2);
     }
 
     public function updatedRawMaterialId($value)
@@ -159,6 +188,10 @@ class RawMaterialPurchaseEntry extends Component
             $rules['purchase_rate'] = 'required|numeric|gt:0';
         }
 
+        if (!$this->gst_included) {
+            $rules['gst_percent'] = 'required|numeric|min:0|max:100';
+        }
+
         return $rules;
     }
 
@@ -179,6 +212,9 @@ class RawMaterialPurchaseEntry extends Component
             'quantity_received.gt' => 'Quantity Received must be greater than zero.',
             'purchase_rate.required' => 'Purchase Rate is required.',
             'purchase_rate.gt' => 'Purchase Rate must be greater than zero.',
+            'gst_percent.required' => 'GST percentage is required when GST is not included.',
+            'gst_percent.min' => 'GST percentage cannot be negative.',
+            'gst_percent.max' => 'GST percentage cannot exceed 100%.',
         ];
     }
 
@@ -209,6 +245,9 @@ class RawMaterialPurchaseEntry extends Component
             }
             $avgDeclaredLength = is_array($declaredLengthArg) ? (array_sum($declaredLengthArg) / max(1, count($declaredLengthArg))) : $declaredLengthArg;
 
+            $effectiveTotal = $this->grandTotal;
+            $effectiveRate = $qtyReceived > 0 ? round($effectiveTotal / $qtyReceived, 4) : floatval($this->purchase_rate);
+
             $batch = InventoryBatch::create([
                 'raw_material_id' => $this->raw_material_id,
                 'supplier_name' => $this->supplier_name,
@@ -219,8 +258,8 @@ class RawMaterialPurchaseEntry extends Component
                 'base_quantity' => $baseQty,
                 'base_current_balance' => $baseQty,
                 'quantity_consumed' => 0.0000,
-                'purchase_rate' => floatval($this->purchase_rate),
-                'total_amount' => $this->total_amount,
+                'purchase_rate' => $effectiveRate,
+                'total_amount' => $effectiveTotal,
                 'unit' => $material->unit,
                 'purchase_unit_id' => $material->unit_id,
                 'num_bales' => $numBales,

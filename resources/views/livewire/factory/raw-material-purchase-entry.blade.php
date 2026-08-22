@@ -225,6 +225,45 @@
                             </div>
                         @endif
 
+                        <!-- GST Pricing Mode & Config -->
+                        <div class="bg-surface-container-low rounded-xl p-4 border border-outline-variant/40 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <span class="text-xs font-bold text-on-surface uppercase tracking-wider block">GST Tax Mode</span>
+                                <p class="text-[11px] text-on-surface-variant font-medium mt-0.5">Toggle whether the entered purchase rate includes GST taxes by default.</p>
+                            </div>
+                            
+                            <div class="flex flex-wrap items-center gap-4">
+                                <label class="flex items-center gap-2.5 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        wire:model.live="gst_included"
+                                        class="sr-only peer"
+                                    />
+                                    <div class="relative w-11 h-6 bg-outline-variant/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                    <span class="font-label-md text-xs font-extrabold text-on-surface">
+                                        {{ $gst_included ? 'GST Included in Price' : 'GST Excluded (Add GST %)' }}
+                                    </span>
+                                </label>
+
+                                @if(!$gst_included)
+                                    <div class="flex items-center gap-1.5 bg-surface border border-outline-variant/60 rounded-xl px-3 py-1.5 shadow-2xs">
+                                        <label for="gst-percent" class="text-xs font-bold text-on-surface-variant shrink-0">GST %:</label>
+                                        <input
+                                            id="gst-percent"
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="100"
+                                            wire:model.live="gst_percent"
+                                            placeholder="18"
+                                            class="w-16 bg-transparent border-none text-xs font-bold text-primary focus:ring-0 p-0 text-right outline-none"
+                                        />
+                                        <span class="text-xs font-bold text-on-surface-variant">%</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                             <div class="md:col-span-5">
                                 <label for="qty-received" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
@@ -306,7 +345,7 @@
                                         <th class="px-6 py-3">Material</th>
                                         <th class="px-6 py-3">Date</th>
                                         <th class="px-6 py-3 text-right">Qty Received</th>
-                                        <th class="px-6 py-3 text-right">Unit Rate</th>
+                                        <th class="px-6 py-3 text-right">Effective Rate</th>
                                         <th class="px-6 py-3 text-center">Status</th>
                                     </tr>
                                 </thead>
@@ -324,8 +363,8 @@
                                         <td class="px-6 py-4 text-right font-bold text-on-surface">
                                             {{ number_format(floatval($quantity_received), 2) }} {{ $unitName }}
                                         </td>
-                                        <td class="px-6 py-4 text-right text-on-surface-variant">
-                                            ₹{{ number_format(floatval($purchase_rate), 2) }}
+                                        <td class="px-6 py-4 text-right text-on-surface-variant font-bold">
+                                            ₹{{ number_format(floatval($quantity_received) > 0 ? $this->grandTotal / floatval($quantity_received) : floatval($purchase_rate), 2) }}
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                             <span class="bg-secondary-container text-on-secondary-container px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-secondary/20 font-mono">
@@ -386,12 +425,24 @@
                                 <span class="font-bold">₹{{ number_format($total_amount, 2) }}</span>
                             </div>
                             <div class="flex justify-between items-center border-b border-on-primary/10 pb-4">
-                                <span class="opacity-80">GST (18% Estimated)</span>
-                                <span class="font-bold">₹{{ number_format($total_amount * 0.18, 2) }}</span>
+                                <span class="opacity-80">
+                                    @if($gst_included)
+                                        GST (Included)
+                                    @else
+                                        GST ({{ floatval($gst_percent) }}%)
+                                    @endif
+                                </span>
+                                <span class="font-bold">
+                                    @if($gst_included)
+                                        ₹0.00 <span class="text-[10px] font-normal opacity-70">(Included)</span>
+                                    @else
+                                        ₹{{ number_format($this->gstAmount, 2) }}
+                                    @endif
+                                </span>
                             </div>
                             <div class="flex justify-between items-end pt-2">
                                 <span class="text-base font-extrabold">Grand Total</span>
-                                <span class="text-xl font-black text-secondary-fixed">₹{{ number_format($total_amount * 1.18, 2) }}</span>
+                                <span class="text-xl font-black text-secondary-fixed">₹{{ number_format($this->grandTotal, 2) }}</span>
                             </div>
                         </div>
                     </div>
@@ -399,6 +450,7 @@
                     <div class="absolute -bottom-6 -right-6 opacity-10 rotate-12">
                         <span class="material-symbols-outlined text-[120px] font-bold">payments</span>
                     </div>
+                </section>
                 </section>
 
                 <!-- Stats Panel -->
