@@ -158,4 +158,46 @@ class StorefrontFinishedGoodsConversionTest extends TestCase
         // Job Pillow Case: 100 consumed out of 200 (105 entered, 100 consumed) -> 100 remaining
         $this->assertEquals(100, $this->jobPillowCase->fresh()->remaining_unconverted_quantity);
     }
+
+    /** @test */
+    public function it_converts_with_packaging_materials_successfully()
+    {
+        $rawCat = \App\Models\RawMaterialCategory::create(['name' => 'Packaging', 'code' => 'PKG']);
+        $rawMat = \App\Models\RawMaterial::create([
+            'raw_material_category_id' => $rawCat->id,
+            'name' => 'Polybag 12x18',
+            'code' => 'RM-PKG-001',
+            'unit' => 'Pieces',
+        ]);
+
+        $invBatch = \App\Models\InventoryBatch::create([
+            'raw_material_id' => $rawMat->id,
+            'batch_number' => 'BATCH-PKG-001',
+            'received_quantity' => 100,
+            'balance_quantity' => 100,
+            'unit' => 'Pieces',
+            'unit_cost' => 10.00,
+        ]);
+
+        $service = new FinishedGoodsConversionService();
+
+        $bundle = $service->convertJobsToStorefrontBundle(
+            $this->storefrontSetProduct->id,
+            10,
+            [
+                ['production_job_id' => $this->jobBedSheet->id, 'quantity_per_set' => 1],
+            ],
+            'Notes',
+            [
+                ['raw_material_id' => $rawMat->id, 'quantity_used' => 20],
+            ]
+        );
+
+        $this->assertNotNull($bundle);
+        $this->assertEquals(80, $invBatch->fresh()->balance_quantity);
+        $this->assertDatabaseHas('job_material_consumptions', [
+            'inventory_batch_id' => $invBatch->id,
+            'quantity_consumed' => 20,
+        ]);
+    }
 }

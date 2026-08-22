@@ -17,7 +17,7 @@ class BatchJobsDetailPage extends Component
 
     // Storefront Conversion Modal Properties
     public ?int $target_product_id = null;
-    public int $target_sets_desired = 1;
+    public $target_sets_desired = 1;
     public string $conversion_notes = '';
     public array $conversionComponents = [];
     public array $conversionPackaging = [];
@@ -113,11 +113,12 @@ class BatchJobsDetailPage extends Component
 
     public function getConversionSummaryProperty(): array
     {
+        $desiredSets = max(1, intval($this->target_sets_desired ?? 1));
+
         if (empty($this->conversionComponents)) {
-            return ['max_sets' => 0, 'rows' => [], 'desired_sets' => $this->target_sets_desired, 'can_fulfill' => false];
+            return ['max_sets' => 0, 'rows' => [], 'desired_sets' => $desiredSets, 'can_fulfill' => false];
         }
 
-        $desiredSets = max(1, intval($this->target_sets_desired));
         $possibleSets = [];
         $rowDetails = [];
 

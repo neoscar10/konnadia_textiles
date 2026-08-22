@@ -80,11 +80,15 @@ class FinishedGoodsConversionService
                         $allocatedCost = $deduct * (float) ($invBatch->purchase_rate ?: $invBatch->unit_cost);
 
                         // Log packaging material consumption
+                        $taskId = $finalTask?->id
+                            ?? ($finalJob?->task_id)
+                            ?? \App\Models\Task::orderBy('id')->value('id');
+
                         \App\Models\JobMaterialConsumption::create([
                             'job_code' => $finalJob?->job_code ?? 'CONVERSION',
                             'production_job_id' => $finalJob?->id,
                             'inventory_batch_id' => $invBatch->id,
-                            'task_id' => $finalTask?->id ?? ($finalJob?->task_id),
+                            'task_id' => $taskId,
                             'quantity_consumed' => $deduct,
                             'unit_cost' => $invBatch->purchase_rate ?: $invBatch->unit_cost,
                             'total_cost' => $allocatedCost,
@@ -278,11 +282,15 @@ class FinishedGoodsConversionService
                         $allocatedCost = $deduct * (float) ($invBatch->purchase_rate ?: $invBatch->unit_cost);
 
                         // Log packaging material consumption
+                        $firstJobId = intval($jobComponents[0]['production_job_id'] ?? 0);
+                        $firstJob = $firstJobId ? \App\Models\ProductionJob::find($firstJobId) : null;
+                        $taskId = $firstJob?->task_id ?? \App\Models\Task::orderBy('id')->value('id');
+
                         \App\Models\JobMaterialConsumption::create([
-                            'job_code' => 'CONVERSION',
-                            'production_job_id' => null,
+                            'job_code' => $firstJob?->job_code ?? 'CONVERSION',
+                            'production_job_id' => $firstJob?->id,
                             'inventory_batch_id' => $invBatch->id,
-                            'task_id' => null,
+                            'task_id' => $taskId,
                             'quantity_consumed' => $deduct,
                             'unit_cost' => $invBatch->purchase_rate ?: $invBatch->unit_cost,
                             'total_cost' => $allocatedCost,
