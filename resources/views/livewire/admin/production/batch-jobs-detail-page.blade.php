@@ -24,19 +24,19 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-3 shrink-0">
+        <div class="flex flex-wrap items-center gap-3 shrink-0">
+            @if($batchDbId)
+                <a href="{{ route('admin.production.batches.ledger', $batchDbId) }}" wire:navigate class="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
+                    <span class="material-symbols-outlined text-[20px]">menu_book</span>
+                    Batch Cost & Breakdown Ledger
+                </a>
+            @endif
+
             @if($unconvertedSum > 0)
                 <button type="button" wire:click="openBatchConversionModal" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
                     <span class="material-symbols-outlined text-[20px]">shopping_cart_checkout</span>
                     Convert Batch Goods ({{ number_format($unconvertedSum) }} Pcs Available)
                 </button>
-            @endif
-
-            @if($batchDbId)
-                <a href="{{ route('admin.production.batches.ledger', $batchDbId) }}" wire:navigate class="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/60 text-on-surface px-4 py-3 rounded-xl font-label-md text-label-md font-bold shadow-xs hover:bg-surface-container transition-all whitespace-nowrap">
-                    <span class="material-symbols-outlined text-[20px]">menu_book</span>
-                    View 360 Cost Ledger
-                </a>
             @endif
         </div>
     </div>
