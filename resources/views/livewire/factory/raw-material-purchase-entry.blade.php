@@ -175,21 +175,16 @@
                                     @if($all_bales_equal_length)
                                         <div>
                                             <label for="declared-bale-length" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                                Declared Length Written on Bale <span class="text-error">*</span>
+                                                Declared Length Written on Bale (in {{ $unitName }} / Bale) <span class="text-error">*</span>
                                             </label>
-                                            <div class="relative">
-                                                <input
-                                                    id="declared-bale-length"
-                                                    type="number"
-                                                    step="0.01"
-                                                    wire:model.live="declared_bale_length"
-                                                    placeholder="e.g., 300"
-                                                    class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-4 pr-36 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold text-left"
-                                                />
-                                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20 pointer-events-none whitespace-nowrap">
-                                                    {{ $unitName }} / Bale
-                                                </span>
-                                            </div>
+                                            <input
+                                                id="declared-bale-length"
+                                                type="number"
+                                                step="0.01"
+                                                wire:model.live="declared_bale_length"
+                                                placeholder="e.g., 300"
+                                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold text-left"
+                                            />
                                             @error('declared_bale_length') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                                         </div>
                                     @endif
@@ -209,19 +204,16 @@
                                             @for($i = 0; $i < intval($num_bales ?: 1); $i++)
                                                 <div class="bg-surface rounded-xl p-3 border border-outline-variant/60">
                                                     <label for="bale-len-{{ $i }}" class="block font-mono text-[11px] font-extrabold text-primary mb-1">
-                                                        Bale #{{ $i + 1 }} Length
+                                                        Bale #{{ $i + 1 }} Length ({{ $unitName }})
                                                     </label>
-                                                    <div class="relative">
-                                                        <input
-                                                            id="bale-len-{{ $i }}"
-                                                            type="number"
-                                                            step="0.01"
-                                                            wire:model.live="individual_bale_lengths.{{ $i }}"
-                                                            placeholder="0.00"
-                                                            class="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg pl-3 pr-16 py-2 font-body-md text-xs font-bold text-left focus:border-primary focus:outline-none"
-                                                        />
-                                                        <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 pointer-events-none whitespace-nowrap">{{ $unitName }}</span>
-                                                    </div>
+                                                    <input
+                                                        id="bale-len-{{ $i }}"
+                                                        type="number"
+                                                        step="0.01"
+                                                        wire:model.live="individual_bale_lengths.{{ $i }}"
+                                                        placeholder="0.00"
+                                                        class="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg px-3 py-2 font-body-md text-xs font-bold text-left focus:border-primary focus:outline-none"
+                                                    />
                                                     @error("individual_bale_lengths.{$i}")
                                                         <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
                                                     @enderror
@@ -236,27 +228,24 @@
                         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                             <div class="md:col-span-5">
                                 <label for="qty-received" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
-                                    {{ $unitType === 'length_based' ? 'Total Length Calculated' : 'Quantity Received' }} <span class="text-error">*</span>
+                                    {{ $unitType === 'length_based' ? 'Total Length Calculated (' . strtoupper($unitName) . ')' : 'Quantity Received (' . strtoupper($unitName) . ')' }} <span class="text-error">*</span>
                                 </label>
-                                <div class="relative">
-                                    <input
-                                        id="qty-received"
-                                        type="number"
-                                        step="0.0001"
-                                        wire:model.live="quantity_received"
-                                        {{ $unitType === 'length_based' ? 'readonly' : '' }}
-                                        placeholder="0.0000"
-                                        class="w-full border rounded-xl pl-4 pr-28 py-3 font-body-md text-sm text-left focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none
-                                            {{ $unitType === 'length_based' ? 'bg-surface-container border-outline-variant/40 font-black text-primary cursor-not-allowed' : 'bg-surface border-outline-variant/60 font-bold' }}"
-                                    />
-                                    <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20 pointer-events-none whitespace-nowrap">{{ $unitName }}</span>
-                                </div>
+                                <input
+                                    id="qty-received"
+                                    type="number"
+                                    step="0.0001"
+                                    wire:model.live="quantity_received"
+                                    {{ $unitType === 'length_based' ? 'readonly' : '' }}
+                                    placeholder="0.0000"
+                                    class="w-full border rounded-xl px-4 py-3 font-body-md text-sm text-left focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none
+                                        {{ $unitType === 'length_based' ? 'bg-surface-container border-outline-variant/40 font-black text-primary cursor-not-allowed' : 'bg-surface border-outline-variant/60 font-bold' }}"
+                                />
                                 @error('quantity_received') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                             </div>
 
                             <div class="md:col-span-4">
-                                <label for="purchase-rate" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 whitespace-nowrap">
-                                    {{ $unitType === 'length_based' ? 'Rate per ' . rtrim($unitName, 's') : 'Rate per Unit' }} <span class="text-error">*</span>
+                                <label for="purchase-rate" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
+                                    {{ $unitType === 'length_based' ? 'Rate per ' . strtoupper(rtrim($unitName, 's')) . ' (₹)' : 'Rate per Unit (₹)' }} <span class="text-error">*</span>
                                 </label>
                                 <div class="relative">
                                     <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant/70">₹</span>
@@ -273,7 +262,7 @@
                             </div>
 
                             <div class="md:col-span-3">
-                                <label class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 whitespace-nowrap">Total Value</label>
+                                <label class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Total Value (₹)</label>
                                 <div class="relative">
                                     <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary">₹</span>
                                     <input
