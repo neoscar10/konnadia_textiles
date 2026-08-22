@@ -809,7 +809,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant/40">
-                            @foreach($stageConsumptions as $consumption)
+                            @foreach($stageConsumptions->where('quantity_consumed', '>', 0) as $consumption)
                                 @php
                                     $matchedOutputs = $stageOutputs->where('inventory_batch_id', $consumption->inventory_batch_id);
                                 @endphp

@@ -704,18 +704,23 @@
                 <table class="w-full text-left border-collapse font-body-md">
                     <thead>
                         <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
-                            <th class="px-4 py-3 font-bold">Wastage Source / Stage</th>
+                            <th class="px-4 py-3 font-bold">Wastage Description & Stage</th>
                             <th class="px-4 py-3 font-bold text-center">Bale / Roll</th>
                             <th class="px-4 py-3 font-bold text-center">Quantity Wasted</th>
-                            <th class="px-4 py-3 font-bold text-right">Reason</th>
+                            <th class="px-4 py-3 font-bold text-right">Calculated Loss</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-outline-variant/40">
                         @forelse($wastageLog as $w)
                             <tr class="hover:bg-error-container/5 transition-colors">
                                 <td class="px-4 py-3.5">
-                                    <p class="font-bold text-on-surface text-sm">{{ $w->manufacturingProduct?->name ?? 'General Fabric Scraps' }}</p>
-                                    <span class="text-xs text-outline font-mono">Stage: {{ $w->task?->name }}</span>
+                                    <p class="font-bold text-on-surface text-sm">{{ $w->reason ?: ($w->manufacturingProduct?->name ? 'Defective Piece - ' . $w->manufacturingProduct->name : 'General Fabric Scraps') }}</p>
+                                    <div class="flex items-center gap-2 text-xs text-outline font-mono mt-0.5">
+                                        <span>Stage: {{ $w->task?->name ?? 'Production' }}</span>
+                                        @if($w->manufacturingProduct)
+                                            <span>• Product: {{ $w->manufacturingProduct->name }}</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3.5 text-center text-xs font-semibold text-on-surface-variant">
                                     @if($w->inventoryBaleRoll)
@@ -725,10 +730,14 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3.5 text-center font-bold text-error text-sm">
-                                    {{ number_format($w->quantity_wasted, 2) }} Pcs
+                                    {{ number_format((float)$w->quantity_wasted, 2) }}
                                 </td>
-                                <td class="px-4 py-3.5 text-right text-xs font-medium text-on-surface-variant">
-                                    {{ $w->reason ?: '-- No Reason Stated --' }}
+                                <td class="px-4 py-3.5 text-right font-black text-error text-sm">
+                                    @php
+                                        $rate = $w->inventoryBaleRoll?->bale?->unit_cost ?: ($batch->materialConsumptions->where('inventoryBatch.rawMaterial.category.code', 'CAT-FAB')->avg('unit_cost') ?: 150.00);
+                                        $loss = (float)$w->quantity_wasted * (float)$rate;
+                                    @endphp
+                                    ₹{{ number_format($loss, 2) }}
                                 </td>
                             </tr>
                         @empty

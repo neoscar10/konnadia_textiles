@@ -129,27 +129,43 @@ class ProductionCostingService
         // Labor Wages
         $totalLaborCost = (float) $batch->laborAllocations()->sum('calculated_wage');
 
-        // Wastage Log and Costs
-        $wastageLog = [];
-        $totalCuttingWastageCost = (float) $batch->materialConsumptions()->sum('allocated_wastage_cost');
-        if ($totalCuttingWastageCost > 0) {
-            $wastageLog[] = [
-                'product_name' => 'Cutting Fabric Wastage',
-                'task_name' => 'Cutting',
-                'quantity_wasted' => (float) $batch->wastageRecords()->sum('quantity_wasted') ?: 1.0,
-                'total_cost' => $totalCuttingWastageCost,
-            ];
-        }
+        // Wastage Log and Costs (Single-source audit without double counting)
+        $defaultFabricRate = (float) $batch->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
+            ->avg('unit_cost') ?: 150.00;
 
-        $wastages = $batch->wastageRecords()->with(['manufacturingProduct', 'task'])->get();
+        $wastageLog = [];
+        $wastages = $batch->wastageRecords()->with(['manufacturingProduct', 'task', 'inventoryBaleRoll.bale'])->get();
+
         foreach ($wastages as $w) {
-            $unitCost = 150.00; // fallback estimation per wasted piece
-            $wCost = (float) $w->quantity_wasted * $unitCost;
+            // Determine unit cost for this wastage entry
+            $unitCost = $defaultFabricRate;
+            if ($w->inventoryBaleRoll?->bale?->unit_cost) {
+                $unitCost = (float) $w->inventoryBaleRoll->bale->unit_cost;
+            }
+
+            $qty = (float) $w->quantity_wasted;
+            $wCost = round($qty * $unitCost, 2);
+
+            // Construct descriptive title
+            $reason = trim($w->reason ?? '');
+            $prodName = $w->manufacturingProduct?->name;
+
+            if (!empty($reason)) {
+                $title = $reason;
+                if ($prodName && !str_contains(strtolower($reason), strtolower($prodName))) {
+                    $title .= " ({$prodName})";
+                }
+            } else {
+                $title = $prodName ? "Defective Piece - {$prodName}" : "Damaged Material / Scrap";
+            }
+
             $wastageLog[] = [
-                'product_name' => $w->manufacturingProduct?->name ?? 'Damaged Item',
-                'task_name' => $w->task?->name ?? 'Production',
-                'quantity_wasted' => (float) $w->quantity_wasted,
-                'total_cost' => $wCost,
+                'product_name'    => $title,
+                'task_name'       => $w->task?->name ?? 'Production',
+                'quantity_wasted' => $qty,
+                'unit_cost'       => $unitCost,
+                'total_cost'      => $wCost,
             ];
         }
 
@@ -227,27 +243,41 @@ class ProductionCostingService
         // 6. Labor Wages (Job specific)
         $totalLaborCost = (float) $job->allocations()->sum('calculated_wage');
 
-        // 7. Wastage Log (Job specific)
-        $wastageLog = [];
-        $totalCuttingWastageCost = (float) $job->materialConsumptions()->sum('allocated_wastage_cost');
-        if ($totalCuttingWastageCost > 0) {
-            $wastageLog[] = [
-                'product_name' => 'Cutting Fabric Wastage',
-                'task_name' => 'Cutting',
-                'quantity_wasted' => (float) $job->wastages()->sum('quantity_wasted') ?: 1.0,
-                'total_cost' => $totalCuttingWastageCost,
-            ];
-        }
+        // 7. Wastage Log (Job specific, single source audit without double counting)
+        $defaultJobFabricRate = (float) $job->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
+            ->avg('unit_cost') ?: 150.00;
 
-        $wastages = $job->wastages()->with(['manufacturingProduct', 'task'])->get();
+        $wastageLog = [];
+        $wastages = $job->wastages()->with(['manufacturingProduct', 'task', 'inventoryBaleRoll.bale'])->get();
+
         foreach ($wastages as $w) {
-            $unitCost = 150.00; // fallback estimation per wasted piece
-            $wCost = (float) $w->quantity_wasted * $unitCost;
+            $unitCost = $defaultJobFabricRate;
+            if ($w->inventoryBaleRoll?->bale?->unit_cost) {
+                $unitCost = (float) $w->inventoryBaleRoll->bale->unit_cost;
+            }
+
+            $qty = (float) $w->quantity_wasted;
+            $wCost = round($qty * $unitCost, 2);
+
+            $reason = trim($w->reason ?? '');
+            $prodName = $w->manufacturingProduct?->name;
+
+            if (!empty($reason)) {
+                $title = $reason;
+                if ($prodName && !str_contains(strtolower($reason), strtolower($prodName))) {
+                    $title .= " ({$prodName})";
+                }
+            } else {
+                $title = $prodName ? "Defective Piece - {$prodName}" : "Damaged Material / Scrap";
+            }
+
             $wastageLog[] = [
-                'product_name' => $w->manufacturingProduct?->name ?? 'Damaged Item',
-                'task_name' => $w->task?->name ?? 'Production',
-                'quantity_wasted' => (float) $w->quantity_wasted,
-                'total_cost' => $wCost,
+                'product_name'    => $title,
+                'task_name'       => $w->task?->name ?? 'Production',
+                'quantity_wasted' => $qty,
+                'unit_cost'       => $unitCost,
+                'total_cost'      => $wCost,
             ];
         }
         $totalWastageCost = array_sum(array_column($wastageLog, 'total_cost'));
