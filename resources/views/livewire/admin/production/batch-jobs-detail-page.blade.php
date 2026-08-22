@@ -24,10 +24,6 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 shrink-0">
-            <a href="{{ route('admin.production.batches.ledger', $batchDbId ?? $batchCode) }}" wire:navigate class="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
-                <span class="material-symbols-outlined text-[20px]">menu_book</span>
-                Batch Cost & Breakdown Ledger
-            </a>
 
             @if($unconvertedSum > 0)
                 <button type="button" wire:click="openBatchConversionModal" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
@@ -78,6 +74,10 @@
                 <span class="material-symbols-outlined text-primary">assignment</span>
                 Jobs in Batch {{ $batchCode }}
             </h3>
+            <a href="{{ route('admin.production.batches.ledger', $batchDbId ?? $batchCode) }}" wire:navigate class="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
+                <span class="material-symbols-outlined text-[18px]">menu_book</span>
+                Batch Cost & Breakdown Ledger
+            </a>
         </div>
 
         <div class="overflow-x-auto">
