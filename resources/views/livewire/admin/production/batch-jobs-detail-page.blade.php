@@ -88,8 +88,7 @@
                         <th class="px-6 py-4 font-bold">Target Product</th>
                         <th class="px-6 py-4 font-bold text-center">Output Progress</th>
                         <th class="px-6 py-4 font-bold">Stage Status</th>
-                        <th class="px-6 py-4 font-bold">Storefront Conversion</th>
-                        <th class="px-6 py-4 font-bold text-right">Actions</th>
+                        <th class="px-6 py-4 font-bold text-right"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/40">
@@ -129,57 +128,17 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4">
-                                @php
-                                    $status = $job->conversion_status;
-                                    $converted = $job->converted_quantity;
-                                    $total = $job->total_produced_quantity;
-                                    $remaining = $job->remaining_unconverted_quantity;
-                                @endphp
-                                @if($status === 'fully_converted')
-                                    <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[14px]">check_circle</span>
-                                        Fully Converted ({{ $converted }}/{{ $total }})
-                                    </span>
-                                @elseif($status === 'partially_converted')
-                                    <div class="space-y-1">
-                                        <span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
-                                            <span class="material-symbols-outlined text-[14px]">pie_chart</span>
-                                            Partial ({{ $converted }}/{{ $total }})
-                                        </span>
-                                        <p class="text-[11px] font-bold text-amber-700">{{ $remaining }} Pcs remaining</p>
-                                    </div>
-                                @else
-                                    @if($total > 0)
-                                        <span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
-                                            <span class="material-symbols-outlined text-[14px]">storefront</span>
-                                            Unconverted ({{ $remaining }} Available)
-                                        </span>
-                                    @else
-                                        <span class="text-xs text-outline font-semibold">Not Completed</span>
-                                    @endif
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-right space-x-2">
-                                @if($job->remaining_unconverted_quantity > 0)
-                                    <button type="button" wire:click="openJobConversionModal({{ $job->id }})" class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border border-emerald-200">
-                                        <span class="material-symbols-outlined text-[14px]">shopping_cart_checkout</span>
-                                        Convert
-                                    </button>
-                                @endif
-                                <a href="{{ route('admin.production.batches.ledger', ['id' => $job->production_batch_db_id ?? $batchDbId ?? $batchCode, 'selectedJobId' => $job->id]) }}" wire:navigate class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border border-amber-200">
-                                    <span class="material-symbols-outlined text-[14px]">receipt_long</span>
-                                    Ledger
-                                </a>
-                                <a href="{{ route('admin.production.jobs.show', $job->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary hover:text-on-primary px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95">
-                                    Terminal
+
+                            <td class="px-6 py-4 text-right">
+                                <a href="{{ route('admin.production.jobs.show', $job->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary hover:text-on-primary px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95">
+                                    View Terminal
                                     <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
                                 </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-on-surface-variant">
+                            <td colspan="5" class="px-6 py-12 text-center text-on-surface-variant">
                                 <span class="material-symbols-outlined text-4xl text-outline mb-2">assignment_late</span>
                                 <p class="font-body-lg text-body-lg">No jobs found in batch {{ $batchCode }}.</p>
                             </td>
