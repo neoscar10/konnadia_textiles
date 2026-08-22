@@ -68,74 +68,78 @@
     </div>
 
     <!-- Date Range & Criteria Filter Bar -->
-    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 shadow-xs mb-6 space-y-4">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-outline-variant/30">
+    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-xs mb-6 space-y-3">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2.5 border-b border-outline-variant/30">
             <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-[20px]">filter_alt</span>
-                <h3 class="font-bold text-sm text-primary uppercase tracking-wider">Audit Date Range & Criteria Filters</h3>
+                <span class="material-symbols-outlined text-primary text-[18px]">filter_alt</span>
+                <h3 class="font-bold text-xs text-primary uppercase tracking-wider">Audit Date Range & Criteria Filters</h3>
             </div>
             
             <!-- Quick Preset Buttons -->
-            <div class="flex flex-wrap items-center gap-1.5 bg-surface-container-low p-1 rounded-xl border border-outline-variant/40">
-                <button type="button" wire:click="setPresetFilter('this_month')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all {{ $date_from === \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d') ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface' }}">
+            <div class="flex flex-wrap items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-outline-variant/40">
+                <button type="button" wire:click="setPresetFilter('this_month')" class="px-2.5 py-0.5 text-[11px] font-bold rounded-lg transition-all {{ $date_from === \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d') ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface' }}">
                     This Month
                 </button>
-                <button type="button" wire:click="setPresetFilter('last_30')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all {{ $date_from === \Carbon\Carbon::now()->subDays(30)->format('Y-m-d') ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface' }}">
+                <button type="button" wire:click="setPresetFilter('last_30')" class="px-2.5 py-0.5 text-[11px] font-bold rounded-lg transition-all {{ $date_from === \Carbon\Carbon::now()->subDays(30)->format('Y-m-d') ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface' }}">
                     Last 30 Days
                 </button>
-                <button type="button" wire:click="setPresetFilter('this_year')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all {{ $date_from === \Carbon\Carbon::now()->startOfYear()->format('Y-m-d') ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface' }}">
+                <button type="button" wire:click="setPresetFilter('this_year')" class="px-2.5 py-0.5 text-[11px] font-bold rounded-lg transition-all {{ $date_from === \Carbon\Carbon::now()->startOfYear()->format('Y-m-d') ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface' }}">
                     This Year
                 </button>
-                <button type="button" wire:click="setPresetFilter('all')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all {{ empty($date_from) && empty($date_to) ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface' }}">
+                <button type="button" wire:click="setPresetFilter('all')" class="px-2.5 py-0.5 text-[11px] font-bold rounded-lg transition-all {{ empty($date_from) && empty($date_to) ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface' }}">
                     All Time
                 </button>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 pt-1">
-            <!-- Date From -->
-            <div>
-                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">From Date</label>
-                <input type="date" wire:model.live="date_from" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end pt-1">
+            <!-- 3/12 Col: Date Range (From & To Date) -->
+            <div class="lg:col-span-3 grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">From Date</label>
+                    <input type="date" wire:model.live="date_from" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-1.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">To Date</label>
+                    <input type="date" wire:model.live="date_to" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-1.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
             </div>
 
-            <!-- Date To -->
-            <div>
-                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">To Date</label>
-                <input type="date" wire:model.live="date_to" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+            <!-- 3/12 Col: Batch & Task Stage Dropdowns -->
+            <div class="lg:col-span-3 grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Filter Batch</label>
+                    <select wire:model.live="batch_filter" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-1.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary truncate">
+                        <option value="">-- All Batches --</option>
+                        @foreach($availableBatches as $bCode)
+                            <option value="{{ $bCode }}">{{ $bCode }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Filter Stage</label>
+                    <select wire:model.live="task_filter" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-1.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary truncate">
+                        <option value="">-- All Stages --</option>
+                        @foreach($availableTasks as $t)
+                            <option value="{{ $t->id }}">{{ $t->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
-            <!-- Batch Filter -->
-            <div>
-                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Filter Batch</label>
-                <select wire:model.live="batch_filter" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="">-- All Batches --</option>
-                    @foreach($availableBatches as $bCode)
-                        <option value="{{ $bCode }}">{{ $bCode }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <!-- Task/Stage Filter -->
-            <div>
-                <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Filter Task Stage</label>
-                <select wire:model.live="task_filter" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="">-- All Stages --</option>
-                    @foreach($availableTasks as $t)
-                        <option value="{{ $t->id }}">{{ $t->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <!-- Search input & Reset -->
-            <div class="flex items-end gap-2">
-                <div class="flex-1">
+            <!-- 6/12 Col: Search Keyword & Action Button -->
+            <div class="lg:col-span-6 flex items-end gap-2">
+                <div class="flex-1 relative">
                     <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Search Keyword</label>
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Batch, Job, Product..." class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+                        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by Batch Code, Job Code, Product SKU..." class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-9 pr-3 py-1.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
                 </div>
                 @if($date_from || $date_to || $batch_filter || $task_filter || $search)
-                    <button type="button" wire:click="resetFilters" class="p-2 bg-surface-container-high text-error hover:bg-error-container/40 rounded-xl transition-all" title="Reset Filters">
-                        <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
+                    <button type="button" wire:click="resetFilters" class="px-3 py-1.5 bg-surface-container-high text-error hover:bg-error-container/40 rounded-xl transition-all font-bold text-xs flex items-center gap-1 shrink-0 h-[34px]" title="Reset All Filters">
+                        <span class="material-symbols-outlined text-[16px]">filter_alt_off</span>
+                        <span>Reset</span>
                     </button>
                 @endif
             </div>
