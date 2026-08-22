@@ -299,10 +299,9 @@ class JobDetailPage extends Component
             $this->selectTask($nextStageExec->task_id);
             $this->dispatch('toast', message: 'Stage marked completed! Progressed workflow to ' . ($nextStageExec->task?->name ?? 'next stage') . '.', type: 'success');
         } else {
-            // All stages completed! Mark job as completed and redirect to Production Jobs Hub
+            // All stages completed! Mark job as completed
             $this->job->update(['status' => 'completed']);
-            session()->flash('success', "Production Job {$this->job->job_code} completed all stages successfully (100% target achieved)!");
-            return $this->redirect(route('admin.production.jobs.index'), navigate: true);
+            $this->dispatch('toast', message: "Production Job {$this->job->job_code} completed all stages successfully (100% target achieved)!", type: 'success');
         }
     }
 
@@ -355,9 +354,7 @@ class JobDetailPage extends Component
         $uncompletedCount = $this->job->stageExecutions()->where('status', '!=', 'completed')->count();
         if ($uncompletedCount === 0 && $this->job->stageExecutions()->count() > 0) {
             $this->job->update(['status' => 'completed']);
-            session()->flash('success', "Production Job {$this->job->job_code} completed all stages successfully (100% target achieved)!");
-            $this->redirect(route('admin.production.jobs.index'), navigate: true);
-            return;
+        }
         }
 
         $this->job->unsetRelation('stageExecutions');
@@ -558,14 +555,7 @@ class JobDetailPage extends Component
         $this->job->ensureStageExecutionsExist();
         $this->job->unsetRelation('stageExecutions');
 
-        // If job is 100% completed, redirect immediately to production jobs hub
-        $uncompletedCount = $this->job->stageExecutions->where('status', '!=', 'completed')->count();
-        if ($this->job->status === 'completed' || ($this->job->stageExecutions->count() > 0 && $uncompletedCount === 0)) {
-            session()->flash('success', "Production Job {$this->job->job_code} is 100% completed.");
-            return $this->redirect(route('admin.production.jobs.index'), navigate: true);
-        }
-
-        // Auto-select the current active (first uncompleted) stage execution
+        // Auto-select the current active (first uncompleted) stage execution, or default to first stage
         $activeStageExec = $this->job->stageExecutions
             ->filter(fn($se) => $se->status !== 'completed')
             ->first();
@@ -573,8 +563,8 @@ class JobDetailPage extends Component
         if ($activeStageExec) {
             $this->selectedTaskId = $activeStageExec->task_id;
         } else {
-            $lastStageExec = $this->job->stageExecutions->last();
-            $this->selectedTaskId = $lastStageExec ? $lastStageExec->task_id : ($this->routingTasks->first()?->id);
+            $firstStageExec = $this->job->stageExecutions->first();
+            $this->selectedTaskId = $firstStageExec ? $firstStageExec->task_id : ($this->routingTasks->first()?->id);
         }
 
         $this->activeStep = $this->hasMaterialStep ? 'material' : 'workers';

@@ -3,10 +3,17 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <div class="flex items-center gap-2 mb-1">
-                <a href="{{ route('admin.production.jobs.index') }}" wire:navigate class="text-primary font-bold text-xs flex items-center gap-1 hover:underline">
-                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Back to Production Jobs Hub
-                </a>
+                @if($job->production_batch_id)
+                    <a href="{{ route('admin.production.batches.jobs', $job->production_batch_id) }}" wire:navigate class="text-primary font-bold text-xs flex items-center gap-1 hover:underline">
+                        <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                        Back to Batch {{ $job->production_batch_id }}
+                    </a>
+                @else
+                    <a href="{{ route('admin.production.jobs.index') }}" wire:navigate class="text-primary font-bold text-xs flex items-center gap-1 hover:underline">
+                        <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                        Back to Production Jobs Hub
+                    </a>
+                @endif
                 <span class="text-outline text-xs font-bold">• Work Order Detail</span>
             </div>
             <div class="flex items-center gap-3">
