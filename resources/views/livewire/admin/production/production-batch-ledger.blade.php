@@ -498,6 +498,16 @@
         </div>
 
         @if($workerData)
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-primary/5 p-3.5 rounded-xl border border-primary/20">
+                <span class="text-xs font-bold text-primary flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[18px]">badge</span>
+                    Selected Worker: {{ $workerData['worker']->name }} ({{ $workerData['worker']->code }}) · {{ $workerData['worker']->payment_method === 'monthly_salary' ? 'Monthly Salary' : 'Piece Rate' }}
+                </span>
+                <a href="{{ route('labor.show', $workerData['worker']->id) }}" wire:navigate class="px-3.5 py-1.5 bg-primary text-white rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-primary-container transition-all">
+                    <span>View Full 360 Worker Profile & Earnings</span>
+                    <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                </a>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Earning Card -->
                 <div class="bg-secondary-container/10 border border-secondary/20 p-4 rounded-2xl flex items-center justify-between">

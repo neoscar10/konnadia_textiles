@@ -62,16 +62,27 @@
             <tbody class="divide-y divide-outline-variant">
                 @forelse ($labors as $labor)
                     <tr class="hover:bg-surface-container transition-colors">
-                        <td class="px-6 py-5 font-label-md text-label-md font-bold text-primary">{{ $labor->code }}</td>
+                        <td class="px-6 py-5 font-label-md text-label-md font-bold text-primary">
+                            <a href="{{ route('labor.show', $labor->id) }}" wire:navigate class="hover:underline inline-flex items-center gap-1 font-mono">
+                                {{ $labor->code }}
+                                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                            </a>
+                        </td>
                         <td class="px-6 py-5">
-                            <p class="font-body-md text-body-md font-semibold text-on-surface">{{ $labor->name }}</p>
+                            <a href="{{ route('labor.show', $labor->id) }}" wire:navigate class="font-body-md text-body-md font-semibold text-on-surface hover:text-primary hover:underline">
+                                {{ $labor->name }}
+                            </a>
                         </td>
                         <td class="px-6 py-5 font-body-sm text-body-sm text-on-surface-variant">{{ $labor->mobile_number ?? '-' }}</td>
                         <td class="px-6 py-5">
                             @if($labor->payment_method === 'monthly_salary')
-                                <span class="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full font-label-sm text-label-sm">Monthly Salary</span>
+                                <span class="bg-amber-500/10 text-amber-900 border border-amber-500/30 px-3 py-1 rounded-full font-label-sm text-label-sm font-bold">
+                                    Monthly Salary (₹{{ number_format($labor->monthly_salary, 2) }})
+                                </span>
                             @else
-                                <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-sm text-label-sm">Job Work</span>
+                                <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-sm text-label-sm font-bold">
+                                    Job Work / Piece Rate
+                                </span>
                             @endif
                         </td>
                         <td class="px-6 py-5">
@@ -87,9 +98,12 @@
                                 </div>
                             @endif
                         </td>
-                        <td class="px-6 py-5 text-right flex justify-end gap-2">
-                            <button type="button" wire:click="edit({{ $labor->id }})" class="text-primary hover:text-primary-container transition-colors">
-                                <span class="material-symbols-outlined">edit</span>
+                        <td class="px-6 py-5 text-right flex justify-end gap-2 items-center">
+                            <a href="{{ route('labor.show', $labor->id) }}" wire:navigate class="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors" title="View Full Audit & Earnings Profile">
+                                <span class="material-symbols-outlined text-[20px]">visibility</span>
+                            </a>
+                            <button type="button" wire:click="edit({{ $labor->id }})" class="p-2 rounded-lg text-outline hover:bg-surface-container transition-colors" title="Edit Configuration">
+                                <span class="material-symbols-outlined text-[20px]">edit</span>
                             </button>
                         </td>
                     </tr>
