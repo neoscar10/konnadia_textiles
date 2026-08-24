@@ -105,7 +105,7 @@
                 </div>
             </div>
 
-            <!-- 3/12 Col: Batch & Task Stage Dropdowns -->
+            <!-- 3/12 Col: Batch & Task Dropdowns -->
             <div class="lg:col-span-3 grid grid-cols-2 gap-2">
                 <div>
                     <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Filter Batch</label>
@@ -117,9 +117,9 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Filter Stage</label>
+                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Filter Task</label>
                     <select wire:model.live="task_filter" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-1.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary truncate">
-                        <option value="">-- All Stages --</option>
+                        <option value="">-- All Tasks --</option>
                         @foreach($availableTasks as $t)
                             <option value="{{ $t->id }}">{{ $t->name }}</option>
                         @endforeach
@@ -221,44 +221,6 @@
         </div>
     </div>
 
-    <!-- Batch Performance Breakdown Cards -->
-    @if(count($batchBreakdown) > 0)
-        <div class="mb-8 space-y-3">
-            <h3 class="font-bold text-sm text-primary uppercase tracking-wider flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-[18px]">view_list</span>
-                Production Batches Contribution Breakdown ({{ count($batchBreakdown) }} Batches)
-            </h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                @foreach($batchBreakdown as $bData)
-                    <div class="bg-surface-container-lowest border border-outline-variant/60 p-4 rounded-2xl shadow-xs hover:border-primary/50 transition-colors">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="font-mono font-black text-primary text-sm">{{ $bData['batch_code'] }}</span>
-                            <span class="text-[10px] font-bold text-outline uppercase">{{ $bData['jobs_count'] }} Job(s)</span>
-                        </div>
-                        <div class="space-y-1 my-3">
-                            <div class="flex justify-between text-xs font-semibold">
-                                <span class="text-on-surface-variant">Output Yield:</span>
-                                <span class="font-bold text-primary">{{ number_format($bData['total_pieces']) }} Pcs</span>
-                            </div>
-                            <div class="flex justify-between text-xs font-semibold">
-                                <span class="text-on-surface-variant">Job Cost Value:</span>
-                                <span class="font-bold text-amber-800">₹{{ number_format($bData['total_valuation'], 2) }}</span>
-                            </div>
-                            <div class="flex justify-between text-xs font-semibold">
-                                <span class="text-on-surface-variant">Direct Wage Paid:</span>
-                                <span class="font-bold text-secondary">₹{{ number_format($bData['total_wages'], 2) }}</span>
-                            </div>
-                        </div>
-                        <a href="{{ route('admin.production.batches.ledger', $bData['batch_code']) }}" wire:navigate class="w-full text-center block py-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl text-xs font-bold transition-all">
-                            View 360 Ledger →
-                        </a>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    @endif
-
     <!-- Detailed Itemized Activity & Wage Allocation Table -->
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 overflow-hidden shadow-xs mb-8">
         <div class="p-5 bg-surface-container-low border-b border-outline-variant/60 flex justify-between items-center">
@@ -280,7 +242,7 @@
                     <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
                         <th class="px-4 py-3 font-bold">Date & Time</th>
                         <th class="px-4 py-3 font-bold">Batch & Work Order</th>
-                        <th class="px-4 py-3 font-bold">Task Stage</th>
+                        <th class="px-4 py-3 font-bold">Task</th>
                         <th class="px-4 py-3 font-bold text-center">Product SKU</th>
                         <th class="px-4 py-3 font-bold text-center">Qty Processed</th>
                         <th class="px-4 py-3 font-bold text-center">Piece Rate</th>
@@ -308,7 +270,7 @@
                                 <span class="text-[10px] text-outline font-mono">Job: {{ $alloc->job_id }}</span>
                             </td>
                             <td class="px-4 py-3.5 font-bold text-on-surface">
-                                {{ $alloc->productionJob?->task?->name ?? 'Stage' }}
+                                {{ $alloc->task?->name ?? $alloc->productionJob?->task?->name ?? 'Task' }}
                             </td>
                             <td class="px-4 py-3.5 text-center font-semibold text-on-surface-variant">
                                 {{ $alloc->manufacturingProduct?->name ?? $alloc->productionJob?->manufacturingProduct?->name }} 
@@ -325,8 +287,8 @@
                             </td>
                             <td class="px-4 py-3.5 text-right font-black text-secondary text-sm">
                                 @if($labor->payment_method === 'monthly_salary')
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-800 text-[11px] font-bold border border-amber-500/30">
-                                        ₹0.00 <span class="font-normal text-[10px] text-amber-700">(Monthly Salary)</span>
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-800 text-[11px] font-bold border border-amber-500/30">
+                                        Monthly Salary
                                     </span>
                                 @else
                                     ₹{{ number_format((float)$alloc->calculated_wage, 2) }}

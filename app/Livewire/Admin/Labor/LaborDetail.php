@@ -65,7 +65,7 @@ class LaborDetail extends Component
         $labor = Labor::with('tasks')->findOrFail($this->laborId);
 
         $query = JobLaborAllocation::where('labor_id', $this->laborId)
-            ->with(['productionJob.task', 'productionJob.manufacturingProduct', 'inventoryBaleRoll.bale', 'manufacturingProduct']);
+            ->with(['task', 'productionJob', 'inventoryBaleRoll.bale', 'manufacturingProduct']);
 
         if ($this->date_from) {
             $query->whereDate('created_at', '>=', $this->date_from);
