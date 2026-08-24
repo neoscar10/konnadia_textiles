@@ -378,9 +378,12 @@
                                                                             </div>
 
                                                                             @if(!empty($rData['is_selected']))
+                                                                                @php
+                                                                                    $rBreakdown = $this->cuttingRollAreaBreakdowns[$rId] ?? null;
+                                                                                @endphp
                                                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                                     <div>
-                                                                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Cut Length (Meters) *</label>
+                                                                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Cut Length *</label>
                                                                                         <div class="flex items-center gap-1.5">
                                                                                             <input type="number" step="0.01" min="0.01" max="{{ $rData['max_length'] }}" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.cut_length" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:ring-2 focus:ring-primary/25">
                                                                                             @if(!$this->isSelectedStageCompleted)
@@ -391,10 +394,35 @@
                                                                                         </div>
                                                                                     </div>
                                                                                     <div>
-                                                                                        <label class="block text-[10px] font-bold text-error uppercase tracking-wider mb-1.5">Roll Wastage Length *</label>
-                                                                                        <input type="number" step="0.01" min="0" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.wastage_length" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-error focus:ring-2 focus:ring-error/25">
+                                                                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Auto-Calculated Wastage Length</label>
+                                                                                        <div class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-extrabold text-error flex items-center justify-between">
+                                                                                            <span>{{ number_format($rBreakdown['wastage_length'] ?? floatval($rData['wastage_length'] ?? 0), 2) }}</span>
+                                                                                            <span class="text-[10px] font-semibold opacity-70 bg-error/10 px-2 py-0.5 rounded">Auto-Calculated</span>
+                                                                                        </div>
                                                                                     </div>
                                                                                 </div>
+
+                                                                                <!-- Live Fabric Area Utilization Breakdown -->
+                                                                                @if($rBreakdown)
+                                                                                    <div class="mt-3 p-3 rounded-xl border {{ $rBreakdown['is_over_capacity'] ? 'bg-error-container/20 border-error/40' : 'bg-surface-container-low/60 border-outline-variant/40' }} space-y-1.5 text-xs">
+                                                                                        <div class="flex flex-wrap justify-between items-center font-semibold text-on-surface">
+                                                                                            <span>Cut Fabric Area: <strong class="text-primary">{{ $rBreakdown['cut_area_base'] }} m²</strong></span>
+                                                                                            <span>Used Area: <strong class="{{ $rBreakdown['is_over_capacity'] ? 'text-error font-black' : 'text-emerald-700' }}">{{ $rBreakdown['used_area_base'] }} m² ({{ $rBreakdown['usage_percentage'] }}%)</strong></span>
+                                                                                        </div>
+                                                                                        <div class="flex flex-wrap justify-between items-center text-[11px] pt-1 border-t border-outline-variant/20">
+                                                                                            <span class="text-on-surface-variant">Remaining Unused Area: <strong class="text-on-surface">{{ $rBreakdown['remaining_area_base'] }} m²</strong></span>
+                                                                                            @if($rBreakdown['is_over_capacity'])
+                                                                                                <span class="text-error font-extrabold flex items-center gap-1">
+                                                                                                    <span class="material-symbols-outlined text-[14px]">warning</span> Exceeds Cut Area by {{ $rBreakdown['over_capacity_diff_base'] }} m²!
+                                                                                                </span>
+                                                                                            @else
+                                                                                                <span class="text-emerald-700 font-bold flex items-center gap-1">
+                                                                                                    <span class="material-symbols-outlined text-[14px]">check_circle</span> Within Cut Area Capacity
+                                                                                                </span>
+                                                                                            @endif
+                                                                                        </div>
+                                                                                    </div>
+                                                                                @endif
 
                                                                                 <!-- Product Output Grid for this Roll -->
                                                                                 <div class="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/40 space-y-3 mt-2">
@@ -409,6 +437,10 @@
 
                                                                                     <div class="space-y-2">
                                                                                         @foreach($rData['outputs'] ?? [] as $oIdx => $outItem)
+                                                                                            @php
+                                                                                                $pId = $outItem['manufacturing_product_id'] ?? null;
+                                                                                                $maxAllowedPcs = $pId && isset($rBreakdown['max_quantities'][$pId]) ? $rBreakdown['max_quantities'][$pId] : null;
+                                                                                            @endphp
                                                                                             <div class="flex items-center gap-3">
                                                                                                 <div class="flex-1">
                                                                                                     <select wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.outputs.{{ $oIdx }}.manufacturing_product_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-2 text-xs font-semibold text-on-surface focus:ring-1 focus:ring-primary">
@@ -421,8 +453,13 @@
                                                                                                         @endforeach
                                                                                                     </select>
                                                                                                 </div>
-                                                                                                <div class="w-24">
-                                                                                                    <input type="number" min="1" placeholder="Pcs" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.outputs.{{ $oIdx }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-2 text-xs font-bold text-center text-primary focus:ring-1 focus:ring-primary">
+                                                                                                <div class="w-32">
+                                                                                                    <div class="relative">
+                                                                                                        <input type="number" min="1" @if($maxAllowedPcs !== null && $maxAllowedPcs > 0) max="{{ $maxAllowedPcs }}" @endif placeholder="Pcs" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.outputs.{{ $oIdx }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface border border-outline-variant/60 rounded-xl px-2.5 py-2 text-xs font-bold text-center text-primary focus:ring-1 focus:ring-primary">
+                                                                                                        @if($maxAllowedPcs !== null)
+                                                                                                            <span class="block text-[9px] font-bold text-center text-on-surface-variant/70 mt-0.5">Max: {{ $maxAllowedPcs }} Pcs</span>
+                                                                                                        @endif
+                                                                                                    </div>
                                                                                                 </div>
                                                                                                 @if(!$this->isSelectedStageCompleted && count($rData['outputs'] ?? []) > 1)
                                                                                                     <button type="button" wire:click="removeRollOutputRow({{ $bIndex }}, {{ $rId }}, {{ $oIdx }})" class="p-1.5 text-error hover:bg-error-container/20 rounded-lg transition-colors shrink-0">

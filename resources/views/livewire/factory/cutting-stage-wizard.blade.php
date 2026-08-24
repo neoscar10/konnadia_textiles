@@ -397,11 +397,55 @@
                     </button>
                 </div>
 
+                @php
+                    $cBreakdown = $this->fabricCuttingBreakdown;
+                @endphp
+                @if(!empty($cBreakdown))
+                    <div class="bg-surface-container-low/60 border rounded-2xl p-5 shadow-xs border-outline-variant/60">
+                        <div class="flex items-center justify-between mb-3 border-b border-outline-variant/30 pb-2">
+                            <span class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[18px]">aspect_ratio</span>
+                                Fabric Area & Auto-Calculated Wastage Summary
+                            </span>
+                            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full {{ $cBreakdown['is_over_capacity'] ? 'bg-error/10 text-error' : 'bg-emerald-100 text-emerald-800' }}">
+                                {{ $cBreakdown['usage_percentage'] }}% Area Utilized
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold">
+                            <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30">
+                                <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Total Cut Area</span>
+                                <span class="text-base font-extrabold text-primary">{{ $cBreakdown['cut_area_base'] }} m²</span>
+                            </div>
+                            <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30">
+                                <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Used Area by Products</span>
+                                <span class="text-base font-extrabold {{ $cBreakdown['is_over_capacity'] ? 'text-error' : 'text-emerald-700' }}">{{ $cBreakdown['used_area_base'] }} m²</span>
+                            </div>
+                            <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30">
+                                <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Auto-Calculated Wastage</span>
+                                <span class="text-base font-extrabold text-error">{{ $cBreakdown['wastage_length'] }} {{ $cBreakdown['unit_name'] ?? 'Meters' }}</span>
+                                <span class="text-[10px] text-on-surface-variant block">({{ $cBreakdown['remaining_area_base'] }} m² remaining)</span>
+                            </div>
+                        </div>
+
+                        @if($cBreakdown['is_over_capacity'])
+                            <div class="mt-3 bg-error-container/20 border border-error/40 text-error rounded-xl p-3 text-xs font-bold flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">error</span>
+                                <span>Required product fabric area exceeds cut fabric area by {{ $cBreakdown['over_capacity_diff_base'] }} m²! Please reduce target quantities.</span>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 @foreach($targetProducts as $tIdx => $tpRow)
+                    @php
+                        $mpId = $tpRow['manufacturing_product_id'] ?? null;
+                        $maxPcs = $mpId && isset($cBreakdown['max_quantities'][$mpId]) ? $cBreakdown['max_quantities'][$mpId] : null;
+                    @endphp
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-surface-container-low/30 rounded-2xl p-5 border border-outline-variant/40 items-center">
                         <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Target Manufacturing Product <span class="text-error">*</span></label>
-                            <select wire:model="targetProducts.{{ $tIdx }}.manufacturing_product_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-body-md focus:border-primary focus:outline-none">
+                            <select wire:model.live="targetProducts.{{ $tIdx }}.manufacturing_product_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-body-md focus:border-primary focus:outline-none">
                                 <option value="">— Select Target Product —</option>
                                 @foreach($manufacturingProducts as $mProd)
                                     <option value="{{ $mProd->id }}">{{ $mProd->name }} ({{ $mProd->code }})</option>
@@ -414,7 +458,10 @@
 
                         <div>
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Planned Qty <span class="text-error">*</span></label>
-                            <input type="number" min="1" wire:model="targetProducts.{{ $tIdx }}.planned_quantity" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-bold text-right" />
+                            <input type="number" min="1" @if($maxPcs !== null && $maxPcs > 0) max="{{ $maxPcs }}" @endif wire:model.live="targetProducts.{{ $tIdx }}.planned_quantity" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-bold text-right" />
+                            @if($maxPcs !== null)
+                                <span class="block text-[10px] font-bold text-right text-on-surface-variant/80 mt-1">Max allowed: {{ $maxPcs }} Pcs</span>
+                            @endif
                             @error("targetProducts.{$tIdx}.planned_quantity")
                                 <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
                             @enderror

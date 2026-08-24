@@ -246,6 +246,99 @@ class CuttingStageWizard extends Component
         $this->laborAllocations = array_values($this->laborAllocations);
     }
 
+    public function getFabricCuttingBreakdownProperty(): array
+    {
+        if (empty($this->selectedFabrics)) {
+            return [];
+        }
+
+        $totalCutAreaBase = 0.0;
+        $firstRawMaterial = null;
+
+        foreach ($this->selectedFabrics as $fab) {
+            $matId = $fab['raw_material_id'] ?? null;
+            if (!$matId) continue;
+
+            $rawMaterial = RawMaterial::with(['unitGroup', 'unitModel'])->find($matId);
+            if (!$rawMaterial) continue;
+
+            if (!$firstRawMaterial) {
+                $firstRawMaterial = $rawMaterial;
+            }
+
+            foreach ($fab['selected_rolls'] ?? [] as $rollId => $rData) {
+                $cutLen = floatval($rData['cut_length'] ?? 0);
+                if ($cutLen <= 0) continue;
+
+                $totalCutAreaBase += \App\Services\FabricCuttingAreaService::calculateCutArea($cutLen, $rawMaterial);
+            }
+        }
+
+        if (!$firstRawMaterial) {
+            return [];
+        }
+
+        $unitGroupId = $firstRawMaterial->unit_group_id;
+        $widthBase = \App\Services\FabricCuttingAreaService::convertToBaseUnit((float) ($firstRawMaterial->standard_width ?: 0), $firstRawMaterial->width_unit ?: 'Centimeters', $unitGroupId);
+
+        $totalUsedAreaBase = 0.0;
+        $productDetails = [];
+
+        foreach ($this->targetProducts as $tp) {
+            $productId = $tp['manufacturing_product_id'] ?? null;
+            $qty = floatval($tp['planned_quantity'] ?? 0);
+
+            if (!$productId) continue;
+
+            $product = ManufacturingProduct::find($productId);
+            if (!$product) continue;
+
+            $pieceAreaBase = \App\Services\FabricCuttingAreaService::calculateProductPieceArea($product, $unitGroupId);
+            $itemTotalUsedAreaBase = $pieceAreaBase * $qty;
+            $totalUsedAreaBase += $itemTotalUsedAreaBase;
+
+            $productDetails[$productId] = [
+                'product_id' => $product->id,
+                'name' => $product->name,
+                'piece_area_base' => $pieceAreaBase,
+                'quantity' => $qty,
+                'total_used_area_base' => $itemTotalUsedAreaBase,
+            ];
+        }
+
+        $remainingAreaBase = max(0.0, $totalCutAreaBase - $totalUsedAreaBase);
+        $isOverCapacity = $totalUsedAreaBase > ($totalCutAreaBase + 0.0001);
+
+        $wastageLengthBase = $widthBase > 0 ? ($remainingAreaBase / $widthBase) : 0.0;
+        $wastageLengthDisplay = \App\Services\FabricCuttingAreaService::convertFromBaseUnit($wastageLengthBase, $firstRawMaterial->unitModel ?? $firstRawMaterial->unit, $unitGroupId);
+
+        $maxQuantities = [];
+        foreach ($productDetails as $pId => $details) {
+            $pieceArea = $details['piece_area_base'];
+            if ($pieceArea > 0) {
+                $availableAreaForThis = $remainingAreaBase + $details['total_used_area_base'];
+                $maxQuantities[$pId] = max(0, (int) floor($availableAreaForThis / $pieceArea));
+            } else {
+                $maxQuantities[$pId] = 999999;
+            }
+        }
+
+        $usagePercentage = $totalCutAreaBase > 0 ? round(($totalUsedAreaBase / $totalCutAreaBase) * 100, 1) : 0;
+
+        return [
+            'cut_area_base' => round($totalCutAreaBase, 4),
+            'used_area_base' => round($totalUsedAreaBase, 4),
+            'remaining_area_base' => round($remainingAreaBase, 4),
+            'wastage_length' => round($wastageLengthDisplay, 2),
+            'usage_percentage' => $usagePercentage,
+            'is_over_capacity' => $isOverCapacity,
+            'over_capacity_diff_base' => $isOverCapacity ? round($totalUsedAreaBase - $totalCutAreaBase, 4) : 0.0,
+            'product_details' => $productDetails,
+            'max_quantities' => $maxQuantities,
+            'unit_name' => $firstRawMaterial->unit,
+        ];
+    }
+
     public function goToStep($step)
     {
         if ($step === 2) {
@@ -321,6 +414,12 @@ class CuttingStageWizard extends Component
         }
 
         if ($this->getErrorBag()->isNotEmpty()) {
+            return;
+        }
+
+        $breakdown = $this->fabricCuttingBreakdown;
+        if (!empty($breakdown) && !empty($breakdown['is_over_capacity'])) {
+            $this->addError('targetProducts', "Cannot submit cutting stage: Required fabric area ({$breakdown['used_area_base']} m²) exceeds available cut fabric area ({$breakdown['cut_area_base']} m²). Please adjust target product quantities.");
             return;
         }
 

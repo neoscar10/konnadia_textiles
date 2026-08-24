@@ -2012,6 +2012,33 @@ class JobDetailPage extends Component
         ];
     }
 
+    public function getCuttingRollAreaBreakdownsProperty(): array
+    {
+        if (empty($this->cuttingFabricBatchId)) {
+            return [];
+        }
+
+        $batch = InventoryBatch::with(['rawMaterial.unitGroup', 'rawMaterial.unitModel'])->find($this->cuttingFabricBatchId);
+        if (!$batch || !$batch->rawMaterial) {
+            return [];
+        }
+
+        $rawMaterial = $batch->rawMaterial;
+        $breakdowns = [];
+
+        foreach ($this->cuttingBaleRows as $bIndex => $bRow) {
+            foreach ($bRow['selected_rolls'] ?? [] as $rId => $rData) {
+                if (empty($rData['is_selected'])) continue;
+                $cutLen = floatval($rData['cut_length'] ?? 0);
+                $outputs = $rData['outputs'] ?? [];
+
+                $breakdowns[$rId] = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMaterial, $outputs);
+            }
+        }
+
+        return $breakdowns;
+    }
+
     public function getCuttingCostPreviewProperty()
     {
         if (empty($this->cuttingFabricBatchId)) {
@@ -2208,24 +2235,19 @@ class JobDetailPage extends Component
         // Validate roll inputs on Step 1
         $hasSelectedRoll = false;
         $totalConsumed = 0.0;
-        foreach ($this->cuttingBaleRows as $bRow) {
+        $rawMaterial = $batch->rawMaterial;
+
+        foreach ($this->cuttingBaleRows as $bIndex => $bRow) {
             foreach ($bRow['selected_rolls'] ?? [] as $rId => $rData) {
                 if (empty($rData['is_selected'])) continue;
                 $hasSelectedRoll = true;
                 $cutLen = floatval($rData['cut_length'] ?? 0);
                 $maxLen = floatval($rData['max_length'] ?? 0);
-                $wastageLen = floatval($rData['wastage_length'] ?? 0);
 
                 if ($cutLen <= 0 || $cutLen > $maxLen) {
                     $this->addError("cuttingBaleRows", "Cut length for Roll #{$rData['roll_number']} must be between 0.01 and {$maxLen}m.");
                     return;
                 }
-                if ($wastageLen < 0) {
-                    $this->addError("cuttingBaleRows", "Wastage length for Roll #{$rData['roll_number']} cannot be negative.");
-                    return;
-                }
-
-                $totalConsumed += $cutLen;
 
                 $hasOutput = false;
                 foreach ($rData['outputs'] ?? [] as $out) {
@@ -2237,6 +2259,20 @@ class JobDetailPage extends Component
                     $this->addError("cuttingBaleRows", "Please add at least one product output with quantity greater than 0 for Roll #{$rData['roll_number']}.");
                     return;
                 }
+
+                // Auto-calculate wastage and enforce fabric area capacity limits
+                if ($rawMaterial) {
+                    $breakdown = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMaterial, $rData['outputs'] ?? []);
+                    if ($breakdown['is_over_capacity']) {
+                        $this->addError("cuttingBaleRows", "Cannot save cutting session: For Roll #{$rData['roll_number']}, required fabric area ({$breakdown['used_area_base']} m²) exceeds cut fabric area ({$breakdown['cut_area_base']} m²). Please reduce product output quantities.");
+                        return;
+                    }
+
+                    // Set auto-calculated wastage length
+                    $this->cuttingBaleRows[$bIndex]['selected_rolls'][$rId]['wastage_length'] = $breakdown['wastage_length'];
+                }
+
+                $totalConsumed += $cutLen;
             }
         }
 
