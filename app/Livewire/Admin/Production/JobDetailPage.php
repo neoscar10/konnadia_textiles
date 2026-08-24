@@ -144,6 +144,7 @@ class JobDetailPage extends Component
         }
 
         $this->wizardStep = $targetStep;
+        $this->dispatch('scroll-to-top');
 
         $isCutting = $this->selectedTask && ($this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001');
         if (!$isCutting) {
@@ -625,6 +626,7 @@ class JobDetailPage extends Component
         $this->wizardStep = 1;
         $this->activeStep = $this->hasMaterialStep ? 'material' : 'workers';
         $this->resetValidation();
+        $this->dispatch('scroll-to-top');
 
         // Refresh job relationships to reflect latest stage state
         $this->job->unsetRelation('stageExecutions');

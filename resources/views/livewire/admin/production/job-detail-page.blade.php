@@ -1,4 +1,4 @@
-<div>
+<div x-data x-on:scroll-to-top.window="window.scrollTo({ top: 0, behavior: 'smooth' })">
     <!-- Back Navigation & Header -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
@@ -148,7 +148,7 @@
 
                 <!-- Navigation Controls -->
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                    <button type="button" wire:click="previousWizardStep" @if($wizardStep <= 1) disabled @endif class="px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 text-on-surface rounded-xl text-xs font-bold hover:bg-surface-container transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <button type="button" wire:click="previousWizardStep" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" @if($wizardStep <= 1) disabled @endif class="px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 text-on-surface rounded-xl text-xs font-bold hover:bg-surface-container transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
                         <span class="material-symbols-outlined text-[16px]">arrow_back</span>
                         Back
                     </button>
@@ -157,7 +157,7 @@
                         Step {{ $wizardStep }} / {{ $maxSteps }}
                     </div>
 
-                    <button type="button" wire:click="nextWizardStep" @if($wizardStep >= $maxSteps) disabled @endif class="px-3.5 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold hover:bg-primary-container transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-xs">
+                    <button type="button" wire:click="nextWizardStep" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" @if($wizardStep >= $maxSteps) disabled @endif class="px-3.5 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold hover:bg-primary-container transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-xs">
                         Next
                         <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                     </button>
@@ -167,15 +167,15 @@
             <!-- DYNAMIC ACTIVE-STEP SUB-TABS -->
             @if($isCuttingStage)
                 <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                    <button type="button" wire:click="setWizardStep(1)" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 1 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                    <button type="button" wire:click="setWizardStep(1)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 1 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">content_cut</span>
                         <span>1. Fabric & Roll Selection</span>
                     </button>
-                    <button type="button" wire:click="setWizardStep(2)" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 2 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                    <button type="button" wire:click="setWizardStep(2)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 2 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">inventory_2</span>
                         <span>2. Cut Yields & Labor</span>
                     </button>
-                    <button type="button" wire:click="setWizardStep(3)" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 3 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                    <button type="button" wire:click="setWizardStep(3)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $wizardStep === 3 ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">payments</span>
                         <span>3. Cost Valuation & Save</span>
                     </button>
@@ -183,26 +183,26 @@
             @else
                 <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                     @if($hasMat)
-                        <button type="button" wire:click="setActiveStep('material')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'material' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                        <button type="button" wire:click="setActiveStep('material')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'material' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                             <span class="material-symbols-outlined text-[18px]">inventory_2</span>
                             <span>1. Material Selection</span>
                         </button>
                     @endif
 
                     @php $workerStepNum = $hasMat ? 2 : 1; @endphp
-                    <button type="button" wire:click="setActiveStep('workers')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'workers' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                    <button type="button" wire:click="setActiveStep('workers')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'workers' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">group</span>
                         <span>{{ $workerStepNum }}. Workers & Allocation</span>
                     </button>
 
                     @php $outputStepNum = $hasMat ? 3 : 2; @endphp
-                    <button type="button" wire:click="setActiveStep('output')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'output' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                    <button type="button" wire:click="setActiveStep('output')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'output' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">inventory_2</span>
                         <span>{{ $outputStepNum }}. Product Output Yields</span>
                     </button>
 
                     @php $wastageStepNum = $hasMat ? 4 : 3; @endphp
-                    <button type="button" wire:click="setActiveStep('wastage')" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'wastage' ? 'bg-error text-on-error border-error shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                    <button type="button" wire:click="setActiveStep('wastage')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'wastage' ? 'bg-error text-on-error border-error shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">report_problem</span>
                         <span>{{ $wastageStepNum }}. Alterations</span>
                     </button>
@@ -517,7 +517,7 @@
 
                             <!-- STEP 1 FOOTER NAVIGATION -->
                             <div class="flex justify-end pt-4 border-t border-outline-variant/40">
-                                <button type="button" wire:click="setWizardStep(2)" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
+                                <button type="button" wire:click="setWizardStep(2)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
                                     Next Step: Labor Assignments
                                     <span class="material-symbols-outlined text-lg">arrow_forward</span>
                                 </button>
@@ -696,11 +696,11 @@
 
                             <!-- STEP 2 FOOTER NAVIGATION -->
                             <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs">
-                                <button type="button" wire:click="setWizardStep(1)" class="bg-surface-container-high text-on-surface border border-outline-variant/60 px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-all flex items-center gap-2 shadow-xs cursor-pointer">
+                                <button type="button" wire:click="setWizardStep(1)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-surface-container-high text-on-surface border border-outline-variant/60 px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-all flex items-center gap-2 shadow-xs cursor-pointer">
                                     <span class="material-symbols-outlined text-lg">arrow_back</span>
                                     Back to Fabric Selection
                                 </button>
-                                <button type="button" wire:click="setWizardStep(3)" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
+                                <button type="button" wire:click="setWizardStep(3)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-primary text-on-primary px-7 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
                                     Next Step: Cost Valuation
                                     <span class="material-symbols-outlined text-lg">arrow_forward</span>
                                 </button>
@@ -794,7 +794,7 @@
 
                             <!-- STEP 3 FOOTER NAVIGATION -->
                             <div class="flex justify-between items-center pt-4 border-t border-outline-variant/40">
-                                <button type="button" wire:click="setWizardStep(2)" class="bg-surface-container-high text-on-surface border border-outline-variant/60 px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-all flex items-center gap-2 shadow-xs cursor-pointer">
+                                <button type="button" wire:click="setWizardStep(2)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-surface-container-high text-on-surface border border-outline-variant/60 px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-all flex items-center gap-2 shadow-xs cursor-pointer">
                                     <span class="material-symbols-outlined text-lg">arrow_back</span>
                                     Back to Cut Yields & Labor
                                 </button>
@@ -1744,7 +1744,7 @@
                             $stagePending = $stageExec->pending_quantity;
                             $isSelected = ($selectedTaskId == $task?->id);
                         @endphp
-                        <button type="button" wire:click="selectTask({{ $task?->id }})" class="w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-2 relative overflow-hidden group {{ $isSelected ? 'bg-primary text-on-primary border-primary shadow-md' : 'bg-surface-container-low text-on-surface border-outline-variant/60 hover:bg-surface-container-high hover:border-primary/40' }}">
+                        <button type="button" wire:click="selectTask({{ $task?->id }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-2 relative overflow-hidden group {{ $isSelected ? 'bg-primary text-on-primary border-primary shadow-md' : 'bg-surface-container-low text-on-surface border-outline-variant/60 hover:bg-surface-container-high hover:border-primary/40' }}">
                             <div class="flex items-center justify-between">
                                 <span class="font-extrabold text-xs tracking-tight flex items-center gap-1.5">
                                     <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black {{ $isSelected ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary' }}">
