@@ -1471,7 +1471,8 @@
                             Production Loss & Wastage Entry: {{ $selectedTask ? $selectedTask->name : 'Stage' }}
                         </h3>
                         <p class="text-xs text-on-surface-variant font-medium mt-0.5">
-                            Record raw material fabric scraps or damaged units (permanently deducted from downstream stage processing).
+                            Record raw material fabric scraps or damaged units. 
+                            <span class="font-bold text-error">Max Allowed Unaccounted Wastage: {{ $this->stageUnaccountedCapacity }} Pcs</span> (out of {{ $this->stageMaxAllowedOutput }} Pcs total stage input).
                         </p>
                     </div>
                 </div>

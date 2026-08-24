@@ -1095,6 +1095,20 @@ class JobDetailPage extends Component
             ->sum('quantity_produced');
     }
 
+    public function getStageUnaccountedCapacityProperty(): int
+    {
+        if (!$this->selectedTaskId) {
+            return 0;
+        }
+
+        $stageInput = (float) $this->stageMaxAllowedOutput;
+        $alreadyLoggedOutput = (float) $this->stageAlreadyLoggedOutput;
+        $alreadyLoggedWastage = (float) $this->job->wastages()->where('task_id', $this->selectedTaskId)->sum('quantity_wasted');
+        $alreadyLoggedAlterations = (float) $this->job->alterations()->where('production_job_id', $this->job->id)->sum('source_quantity');
+
+        return (int) max(0, $stageInput - $alreadyLoggedOutput - $alreadyLoggedWastage - $alreadyLoggedAlterations);
+    }
+
     public function getStageRemainingOutputYieldProperty(): int
     {
         if (!$this->selectedTaskId) {
@@ -1543,15 +1557,19 @@ class JobDetailPage extends Component
         ]);
 
         $wastedSum = (float) array_sum(array_column($this->wastageRecords, 'quantity_wasted'));
-        $maxAllowed = $this->stageMaxAllowedOutput;
+        $remainingCapacity = $this->stageUnaccountedCapacity;
+        $stageInput = $this->stageMaxAllowedOutput;
+        $loggedOutput = $this->stageAlreadyLoggedOutput;
 
-        if ($maxAllowed <= 0) {
-            $this->addError('wastageRecords', 'No pending/allowed quantity available for wastage entry for this stage.');
+        if ($remainingCapacity <= 0) {
+            $this->addError('wastageRecords', "Cannot record wastage. All {$stageInput} Pcs entering this stage have already been accounted for (Recorded Output: {$loggedOutput} Pcs).");
+            $this->dispatch('toast', message: "No unaccounted units remaining for wastage entry.", type: 'error');
             return;
         }
 
-        if ($wastedSum > $maxAllowed) {
-            $this->addError('wastageRecords', "Total wasted quantity ({$wastedSum} Pcs) cannot exceed maximum allowed stage quantity ({$maxAllowed} Pcs).");
+        if ($wastedSum > $remainingCapacity) {
+            $this->addError('wastageRecords', "Total wasted quantity ({$wastedSum} Pcs) exceeds remaining unaccounted stage capacity ({$remainingCapacity} Pcs). Only {$remainingCapacity} Pc(s) remain unaccounted out of {$stageInput} Pcs total stage input (Recorded Output: {$loggedOutput} Pcs).");
+            $this->dispatch('toast', message: "Wastage quantity ({$wastedSum} Pcs) exceeds remaining capacity ({$remainingCapacity} Pcs).", type: 'error');
             return;
         }
 
@@ -1612,6 +1630,23 @@ class JobDetailPage extends Component
             'alterationRecords.*.target_quantity.numeric' => 'Quantity converted must be a number.',
             'alterationRecords.*.target_quantity.min' => 'Quantity converted must be at least 1 unit.',
         ]);
+
+        $alterationSum = (float) array_sum(array_column($this->alterationRecords, 'target_quantity'));
+        $remainingCapacity = $this->stageUnaccountedCapacity;
+        $stageInput = $this->stageMaxAllowedOutput;
+        $loggedOutput = $this->stageAlreadyLoggedOutput;
+
+        if ($remainingCapacity <= 0) {
+            $this->addError('alterationRecords', "Cannot record alteration. All {$stageInput} Pcs entering this stage have already been accounted for (Recorded Output: {$loggedOutput} Pcs).");
+            $this->dispatch('toast', message: 'No unaccounted units remaining for alteration entry.', type: 'error');
+            return;
+        }
+
+        if ($alterationSum > $remainingCapacity) {
+            $this->addError('alterationRecords', "Total alteration quantity ({$alterationSum} Pcs) exceeds remaining unaccounted stage capacity ({$remainingCapacity} Pcs). Only {$remainingCapacity} Pc(s) remain unaccounted out of {$stageInput} Pcs total stage input (Recorded Output: {$loggedOutput} Pcs).");
+            $this->dispatch('toast', message: "Alteration quantity ({$alterationSum} Pcs) exceeds remaining capacity ({$remainingCapacity} Pcs).", type: 'error');
+            return;
+        }
 
         $lastChildBatchCode = '';
 
