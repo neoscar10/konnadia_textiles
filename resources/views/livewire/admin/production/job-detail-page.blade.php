@@ -1082,9 +1082,9 @@
         <!-- STEP 1 FOOTER NAVIGATION -->
         <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
             <span class="text-xs font-bold text-on-surface-variant">Step 1 of 4: Material & Subsidiary BOM Entry</span>
-            <button type="button" wire:click="setWizardStep(2)" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+            <button type="button" wire:click="setWizardStep(2)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
                 Next Step: Record Workers & Allocations
-                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                <span class="material-symbols-outlined text-lg">arrow_forward</span>
             </button>
         </div>
         @endif
@@ -1290,16 +1290,16 @@
         <!-- WORKER STEP FOOTER NAVIGATION -->
         <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
             @if($hasMat)
-                <button type="button" wire:click="setWizardStep(1)" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                <button type="button" wire:click="setWizardStep(1)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container transition-all flex items-center gap-2 cursor-pointer">
+                    <span class="material-symbols-outlined text-lg">arrow_back</span>
                     Back: Material Entry
                 </button>
             @else
                 <span class="text-xs font-bold text-on-surface-variant">Step 1 of {{ $maxSteps }}: Record Workers</span>
             @endif
-            <button type="button" wire:click="setWizardStep({{ $hasMat ? 3 : 2 }})" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+            <button type="button" wire:click="setWizardStep({{ $hasMat ? 3 : 2 }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
                 Next Step: Record Product Output Yield
-                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                <span class="material-symbols-outlined text-lg">arrow_forward</span>
             </button>
         </div>
         @endif
@@ -1442,13 +1442,13 @@
 
         <!-- OUTPUT STEP FOOTER NAVIGATION -->
         <div class="mt-8 flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
-            <button type="button" wire:click="setWizardStep({{ $hasMat ? 2 : 1 }})" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+            <button type="button" wire:click="setWizardStep({{ $hasMat ? 2 : 1 }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container transition-all flex items-center gap-2 cursor-pointer">
+                <span class="material-symbols-outlined text-lg">arrow_back</span>
                 Back: Record Workers
             </button>
-            <button type="button" wire:click="setWizardStep({{ $hasMat ? 4 : 3 }})" class="bg-primary text-on-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-xs hover:bg-primary-container transition-all flex items-center gap-1.5 active:scale-95">
+            <button type="button" wire:click="setWizardStep({{ $hasMat ? 4 : 3 }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
                 Next Step: Alterations
-                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                <span class="material-symbols-outlined text-lg">arrow_forward</span>
             </button>
         </div>
         @endif
