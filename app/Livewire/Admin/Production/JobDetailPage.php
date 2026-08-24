@@ -389,6 +389,7 @@ class JobDetailPage extends Component
     public array $cuttingOutputs = [];
     public array $cuttingLaborAllocations = [];
     public array $baleBulkLabor = [];
+    public array $rollBulkLabor = [];
     public $allRollsBulkLabor = '';
     public array $subsidiaryConsumptions = [
         ['inventory_batch_id' => '', 'actual_consumed' => '']
@@ -2173,6 +2174,34 @@ class JobDetailPage extends Component
             }
         }
         $this->dispatch('toast', message: 'Bulk labor applied to all selected rolls successfully!', type: 'success');
+    }
+
+    public function applyRollBulkLabor(int $rollId): void
+    {
+        $laborId = $this->rollBulkLabor[$rollId] ?? '';
+        if (!$laborId) return;
+
+        $foundRollData = null;
+        foreach ($this->cuttingBaleRows as $bRow) {
+            if (isset($bRow['selected_rolls'][$rollId])) {
+                $foundRollData = $bRow['selected_rolls'][$rollId];
+                break;
+            }
+        }
+
+        if (!$foundRollData) return;
+
+        $allocations = [];
+        foreach ($foundRollData['outputs'] ?? [] as $out) {
+            if (empty($out['manufacturing_product_id']) || empty($out['quantity'])) continue;
+            $allocations[] = [
+                'labor_id' => $laborId,
+                'manufacturing_product_id' => $out['manufacturing_product_id'],
+                'quantity' => $out['quantity']
+            ];
+        }
+        $this->cuttingLaborAllocations[$rollId] = $allocations;
+        $this->dispatch('toast', message: "Worker applied to Roll #{$foundRollData['roll_number']} outputs successfully!", type: 'success');
     }
 
     public function addCuttingLaborRow(int $rollId): void
