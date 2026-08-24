@@ -300,9 +300,18 @@ class JobDetailPage extends Component
             $this->selectTask($nextStageExec->task_id);
             $this->dispatch('toast', message: 'Stage marked completed! Progressed workflow to ' . ($nextStageExec->task?->name ?? 'next stage') . '.', type: 'success');
         } else {
-            // All stages completed! Mark job as completed
+            // All stages completed! Mark job as completed and redirect to Batch Jobs page
             $this->job->update(['status' => 'completed']);
-            $this->dispatch('toast', message: "Production Job {$this->job->job_code} completed all stages successfully (100% target achieved)!", type: 'success');
+            $batchCode = $this->job->production_batch_id ?: ($this->job->batch?->batch_code);
+            session()->flash('toast', [
+                'message' => "Production Job {$this->job->job_code} completed all stages successfully (100% target achieved)!",
+                'type' => 'success'
+            ]);
+
+            if ($batchCode) {
+                return redirect()->route('admin.production.batches.jobs', $batchCode);
+            }
+            return redirect()->route('admin.production.jobs.index');
         }
     }
 
@@ -574,6 +583,19 @@ class JobDetailPage extends Component
         $this->resetFormRows();
         $this->resetCuttingForm();
 
+        // If job is 100% completed, redirect to the batch jobs list page
+        if ($this->job->status === 'completed') {
+            $batchCode = $this->job->production_batch_id ?: ($this->job->batch?->batch_code);
+            session()->flash('toast', [
+                'message' => "Job {$this->job->job_code} is 100% completed!",
+                'type' => 'success'
+            ]);
+
+            if ($batchCode) {
+                return redirect()->route('admin.production.batches.jobs', $batchCode);
+            }
+            return redirect()->route('admin.production.jobs.index');
+        }
     }
 
     public function getIsSelectedStageCompletedProperty(): bool

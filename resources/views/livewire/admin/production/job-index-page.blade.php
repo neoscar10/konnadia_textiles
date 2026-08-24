@@ -104,6 +104,19 @@
                         $batchUnconvertedSum = $batchJobs->sum(fn($j) => $j->remaining_unconverted_quantity);
                         $plannedTargetQty = $batchJobs->sum(fn($j) => $j->target_quantity);
                         $batchDbId = $firstJob?->production_batch_db_id;
+                        if (!$batchDbId && !empty($batchCode)) {
+                            $batchObj = \App\Models\ProductionBatch::where('batch_code', $batchCode)->first();
+                            if (!$batchObj) {
+                                $batchObj = \App\Models\ProductionBatch::create([
+                                    'batch_code' => $batchCode,
+                                    'manufacturing_product_id' => $firstJob?->manufacturing_product_id,
+                                    'planned_quantity' => $plannedTargetQty,
+                                    'status' => 'In Progress',
+                                    'supervisor_id' => $supervisor?->id ?: auth()->id(),
+                                ]);
+                            }
+                            $batchDbId = $batchObj->id;
+                        }
                         $uniqueProducts = $batchJobs->map(fn($j) => $j->manufacturingProduct)->filter()->unique('id');
                     @endphp
                     <tr class="hover:bg-surface-container/50 transition-colors">
