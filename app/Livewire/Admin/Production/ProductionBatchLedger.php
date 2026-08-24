@@ -67,6 +67,10 @@ class ProductionBatchLedger extends Component
             // Link any orphaned jobs to the new batch DB record
             \App\Models\ProductionJob::where('production_batch_id', $batch->batch_code)
                 ->update(['production_batch_db_id' => $batch->id]);
+        } else {
+            \App\Models\ProductionJob::where('production_batch_id', $batch->batch_code)
+                ->whereNull('production_batch_db_id')
+                ->update(['production_batch_db_id' => $batch->id]);
         }
 
         $batch->load($withRelations);

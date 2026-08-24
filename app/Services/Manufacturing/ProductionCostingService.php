@@ -79,23 +79,38 @@ class ProductionCostingService
     {
         $batch = ProductionBatch::findOrFail($batchId);
 
+        // Auto-link any jobs matching this batch_code that have empty production_batch_db_id
+        if (!empty($batch->batch_code)) {
+            \App\Models\ProductionJob::where('production_batch_id', $batch->batch_code)
+                ->whereNull('production_batch_db_id')
+                ->update(['production_batch_db_id' => $batch->id]);
+        }
+
+        // Get all job IDs and job codes for this batch
+        $batchJobs = \App\Models\ProductionJob::where('production_batch_db_id', $batch->id)
+            ->orWhere('production_batch_id', $batch->batch_code)
+            ->get();
+
+        $jobIds   = $batchJobs->pluck('id');
+        $jobCodes = $batchJobs->pluck('job_code');
+
         // 1. Fabric cost
-        $fabricCost = (float) $batch->materialConsumptions()
+        $fabricCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
             ->sum('total_cost');
 
         // 2. Subsidiary cost
-        $subsidiaryCost = (float) $batch->materialConsumptions()
+        $subsidiaryCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-SUB'))
             ->sum('total_cost');
 
         // 3. Packaging cost
-        $packagingCost = (float) $batch->materialConsumptions()
+        $packagingCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-PKG'))
             ->sum('total_cost');
 
         // 4. General Overheads cost (CAT-OHD)
-        $overheadDirectCost = (float) $batch->materialConsumptions()
+        $overheadDirectCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-OHD'))
             ->sum('total_cost');
         $overheadAllocatedCost = (float) DB::table('overhead_cost_allocations')
@@ -104,7 +119,7 @@ class ProductionCostingService
         $overheadCost = $overheadDirectCost + $overheadAllocatedCost;
 
         // 5. Stitching cost (allocates pro-rata from pool if no direct consumptions)
-        $stitchingCost = (float) $batch->materialConsumptions()
+        $stitchingCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-STITCH'))
             ->sum('total_cost');
         if ($stitchingCost === 0.0) {
@@ -127,15 +142,15 @@ class ProductionCostingService
         $totalMaterialCost = $fabricCost + $subsidiaryCost + $stitchingCost + $packagingCost + $overheadCost;
 
         // Labor Wages
-        $totalLaborCost = (float) $batch->laborAllocations()->sum('calculated_wage');
+        $totalLaborCost = (float) \App\Models\JobLaborAllocation::whereIn('job_id', $jobCodes)->sum('calculated_wage');
 
         // Wastage Log and Costs (Single-source audit without double counting)
-        $defaultFabricRate = (float) $batch->materialConsumptions()
+        $defaultFabricRate = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
             ->avg('unit_cost') ?: 150.00;
 
         $wastageLog = [];
-        $wastages = $batch->wastageRecords()->with(['manufacturingProduct', 'task', 'inventoryBaleRoll.bale'])->get();
+        $wastages = \App\Models\JobWastage::whereIn('production_job_id', $jobIds)->with(['manufacturingProduct', 'task', 'inventoryBaleRoll.bale'])->get();
 
         foreach ($wastages as $w) {
             // Determine unit cost for this wastage entry
@@ -178,7 +193,7 @@ class ProductionCostingService
         $averageCostPerUnit = $finishedUnits > 0 ? round($totalManufacturingCost / $finishedUnits, 2) : 0.00;
 
         // Labor Details
-        $laborAllocations = $batch->laborAllocations()->with(['labor', 'task'])->get();
+        $laborAllocations = \App\Models\JobLaborAllocation::whereIn('job_id', $jobCodes)->with(['labor', 'task'])->get();
 
         return [
             'total_material_cost' => $totalMaterialCost,
