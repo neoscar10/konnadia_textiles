@@ -141,7 +141,8 @@ class FabricCuttingAreaService
             $pieceArea = $details['piece_area_base'];
             if ($pieceArea > 0) {
                 // Available area for this product if other products are kept fixed
-                $availableAreaForThis = $remainingAreaBase + $details['total_used_area_base'];
+                $otherProductsUsedArea = $totalUsedAreaBase - $details['total_used_area_base'];
+                $availableAreaForThis = max(0.0, $cutAreaBase - $otherProductsUsedArea);
                 $maxQuantities[$pId] = max(0, (int) floor($availableAreaForThis / $pieceArea));
             } else {
                 $maxQuantities[$pId] = 999999;

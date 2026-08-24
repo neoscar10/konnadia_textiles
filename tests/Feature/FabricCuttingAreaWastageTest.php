@@ -20,6 +20,7 @@ class FabricCuttingAreaWastageTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        $this->seed(\Database\Seeders\UnitManagementSeeder::class);
     }
 
     public function test_fabric_cutting_area_calculation_and_auto_wastage()
@@ -30,7 +31,7 @@ class FabricCuttingAreaWastageTest extends TestCase
             ['name' => 'Fabric Material', 'unit_type' => 'length_based', 'status' => 'active']
         );
 
-        $lengthGroup = UnitGroup::where('name', 'Length')->first();
+        $lengthGroup = UnitGroup::where('code', 'LENGTH')->first() ?? UnitGroup::where('name', 'like', '%Length%')->first();
         $metersUnit = Unit::where('name', 'Meters')->first();
         $cmsUnit = Unit::where('name', 'Centimeters')->first();
 
@@ -92,7 +93,7 @@ class FabricCuttingAreaWastageTest extends TestCase
             ['name' => 'Fabric Material', 'unit_type' => 'length_based', 'status' => 'active']
         );
 
-        $lengthGroup = UnitGroup::where('name', 'Length')->first();
+        $lengthGroup = UnitGroup::where('code', 'LENGTH')->first() ?? UnitGroup::where('name', 'like', '%Length%')->first();
         $metersUnit = Unit::where('name', 'Meters')->first();
 
         $fabric = RawMaterial::create([
