@@ -189,7 +189,16 @@ class ProductionCostingService
         // Grand total
         $totalManufacturingCost = $totalMaterialCost + $totalLaborCost;
 
-        $finishedUnits = (int) ($batch->total_finished_quantity ?: $batch->planned_quantity);
+        // Sum finished yield across all jobs in the batch (or target quantities)
+        $totalFinished = 0;
+        foreach ($batchJobs as $j) {
+            $q = (int) $j->total_produced_quantity;
+            if ($q <= 0) {
+                $q = (int) $j->target_quantity;
+            }
+            $totalFinished += $q;
+        }
+        $finishedUnits = $totalFinished > 0 ? $totalFinished : (int) ($batch->planned_quantity ?: 1);
         $averageCostPerUnit = $finishedUnits > 0 ? round($totalManufacturingCost / $finishedUnits, 2) : 0.00;
 
         // Labor Details
@@ -222,13 +231,28 @@ class ProductionCostingService
     public function getJobCostSummary(int $jobId): array
     {
         $job = \App\Models\ProductionJob::with(['batch', 'materialConsumptions', 'allocations', 'wastages'])->findOrFail($jobId);
-        $batchId = $job->production_batch_db_id;
-        $batch = $job->batch;
+        $batchId = $job->production_batch_db_id ?: $job->batch?->id;
+        $batch = $job->batch ?: \App\Models\ProductionBatch::find($batchId);
 
-        // 1. Fabric cost (Job specific)
+        // Get batch summary for pro-rata apportionment
+        $batchSummary = $batch ? $this->getBatchCostSummary($batch->id) : [
+            'fabric_cost' => 0.0, 'overhead_cost' => 0.0, 'stitching_cost' => 0.0, 'total_wastage_cost' => 0.0
+        ];
+
+        $batchJobs = $batch ? \App\Models\ProductionJob::where('production_batch_db_id', $batch->id)
+            ->orWhere('production_batch_id', $batch->batch_code)->get() : collect([$job]);
+        $totalBatchTarget = max(1, $batchJobs->sum('target_quantity'));
+        $jobQty = (int) ($job->target_quantity ?: 1);
+        $apportionRatio = min(1.0, $jobQty / $totalBatchTarget);
+
+        // 1. Fabric cost (Job specific or pro-rata from batch if logged on master cutting job)
         $fabricCost = (float) $job->materialConsumptions()
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
             ->sum('total_cost');
+
+        if ($fabricCost === 0.0 && $batchSummary['fabric_cost'] > 0) {
+            $fabricCost = round($batchSummary['fabric_cost'] * $apportionRatio, 2);
+        }
 
         // 2. Subsidiary cost (Job specific)
         $subsidiaryCost = (float) $job->materialConsumptions()
@@ -239,13 +263,6 @@ class ProductionCostingService
         $packagingCost = (float) $job->materialConsumptions()
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-PKG'))
             ->sum('total_cost');
-
-        // For Overhead and Stitching, we fetch the batch summary and apportion it
-        $batchSummary = $this->getBatchCostSummary($batchId);
-        
-        $jobQty = (int) $job->target_quantity;
-        $batchQty = (int) ($batch->planned_quantity ?: 1);
-        $apportionRatio = min(1.0, $jobQty / $batchQty);
 
         // 4. General Overheads (Apportioned)
         $overheadCost = round($batchSummary['overhead_cost'] * $apportionRatio, 2);
@@ -258,7 +275,7 @@ class ProductionCostingService
         // 6. Labor Wages (Job specific)
         $totalLaborCost = (float) $job->allocations()->sum('calculated_wage');
 
-        // 7. Wastage Log (Job specific, single source audit without double counting)
+        // 7. Wastage Log (Job specific or pro-rata if logged on shared roll)
         $defaultJobFabricRate = (float) $job->materialConsumptions()
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
             ->avg('unit_cost') ?: 150.00;
@@ -266,41 +283,56 @@ class ProductionCostingService
         $wastageLog = [];
         $wastages = $job->wastages()->with(['manufacturingProduct', 'task', 'inventoryBaleRoll.bale'])->get();
 
-        foreach ($wastages as $w) {
-            $unitCost = $defaultJobFabricRate;
-            if ($w->inventoryBaleRoll?->bale?->unit_cost) {
-                $unitCost = (float) $w->inventoryBaleRoll->bale->unit_cost;
+        if ($wastages->isEmpty() && $batchSummary['total_wastage_cost'] > 0 && isset($batchSummary['wastage_details']['wastage_log'])) {
+            // Apportion shared batch wastage to job
+            foreach ($batchSummary['wastage_details']['wastage_log'] as $bW) {
+                $apportionedWastageCost = round($bW['total_cost'] * $apportionRatio, 2);
+                $wastageLog[] = [
+                    'product_name'    => $bW['product_name'] . ' (Apportioned)',
+                    'task_name'       => $bW['task_name'],
+                    'quantity_wasted' => round($bW['quantity_wasted'] * $apportionRatio, 2),
+                    'unit_cost'       => $bW['unit_cost'],
+                    'total_cost'      => $apportionedWastageCost,
+                ];
             }
-
-            $qty = (float) $w->quantity_wasted;
-            $wCost = round($qty * $unitCost, 2);
-
-            $reason = trim($w->reason ?? '');
-            $prodName = $w->manufacturingProduct?->name;
-
-            if (!empty($reason)) {
-                $title = $reason;
-                if ($prodName && !str_contains(strtolower($reason), strtolower($prodName))) {
-                    $title .= " ({$prodName})";
+        } else {
+            foreach ($wastages as $w) {
+                $unitCost = $defaultJobFabricRate;
+                if ($w->inventoryBaleRoll?->bale?->unit_cost) {
+                    $unitCost = (float) $w->inventoryBaleRoll->bale->unit_cost;
                 }
-            } else {
-                $title = $prodName ? "Defective Piece - {$prodName}" : "Damaged Material / Scrap";
-            }
 
-            $wastageLog[] = [
-                'product_name'    => $title,
-                'task_name'       => $w->task?->name ?? 'Production',
-                'quantity_wasted' => $qty,
-                'unit_cost'       => $unitCost,
-                'total_cost'      => $wCost,
-            ];
+                $qty = (float) $w->quantity_wasted;
+                $wCost = round($qty * $unitCost, 2);
+
+                $reason = trim($w->reason ?? '');
+                $prodName = $w->manufacturingProduct?->name;
+
+                if (!empty($reason)) {
+                    $title = $reason;
+                    if ($prodName && !str_contains(strtolower($reason), strtolower($prodName))) {
+                        $title .= " ({$prodName})";
+                    }
+                } else {
+                    $title = $prodName ? "Defective Piece - {$prodName}" : "Damaged Material / Scrap";
+                }
+
+                $wastageLog[] = [
+                    'product_name'    => $title,
+                    'task_name'       => $w->task?->name ?? 'Production',
+                    'quantity_wasted' => $qty,
+                    'unit_cost'       => $unitCost,
+                    'total_cost'      => $wCost,
+                ];
+            }
         }
+
         $totalWastageCost = array_sum(array_column($wastageLog, 'total_cost'));
 
         $totalManufacturingCost = $totalMaterialCost + $totalLaborCost;
 
         $finishedUnits = (int) $job->total_produced_quantity;
-        if ($finishedUnits <= 0) $finishedUnits = $jobQty; // fallback to target if none produced yet
+        if ($finishedUnits <= 0) $finishedUnits = (int) $job->target_quantity;
         $averageCostPerUnit = $finishedUnits > 0 ? round($totalManufacturingCost / $finishedUnits, 2) : 0.00;
 
         $laborAllocations = $job->allocations()->with(['labor', 'task'])->get();

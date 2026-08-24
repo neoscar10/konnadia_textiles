@@ -237,7 +237,15 @@ class ProductionBatch extends Model
 
     public function getTotalFinishedQuantityAttribute(): int
     {
-        return (int) $this->productOutputs()->sum('quantity_produced');
+        $total = 0;
+        foreach ($this->jobs as $job) {
+            $q = (int) $job->total_produced_quantity;
+            if ($q <= 0) {
+                $q = (int) $job->target_quantity;
+            }
+            $total += $q;
+        }
+        return $total > 0 ? $total : (int) ($this->planned_quantity ?? 0);
     }
 
     public function getRemainingUnconvertedQuantityAttribute(): int

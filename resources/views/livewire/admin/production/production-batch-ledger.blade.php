@@ -358,9 +358,10 @@
                     <tbody class="divide-y divide-outline-variant/40">
                         @forelse($batch->jobs as $job)
                             @php
-                                $jobWageCost = (float) $job->allocations()->sum('calculated_wage');
-                                $jobMatCost = (float) $job->materialConsumptions()->sum('total_cost');
-                                $jobOutput = (int) $job->allocations()->where('task_id', $job->task_id)->sum('quantity_processed');
+                                $jSum = app(\App\Services\Manufacturing\ProductionCostingService::class)->getJobCostSummary($job->id);
+                                $jobWageCost = $jSum['total_labor_cost'];
+                                $jobMatCost = $jSum['total_material_cost'];
+                                $jobOutput = $jSum['finished_units'];
                             @endphp
                             <tr class="hover:bg-surface-container/50 transition-colors">
                                 <td class="px-4 py-3.5 font-mono font-bold text-primary text-sm">
