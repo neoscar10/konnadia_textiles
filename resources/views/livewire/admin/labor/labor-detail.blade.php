@@ -147,25 +147,7 @@
     </div>
 
     <!-- Summary KPI Cards Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <!-- Direct Wages Card -->
-        <div class="bg-secondary-container/10 border border-secondary/20 p-5 rounded-2xl flex items-center justify-between shadow-xs">
-            <div>
-                <span class="text-[10px] uppercase font-bold text-secondary tracking-wider block">Direct Wages Paid</span>
-                <span class="text-3xl font-black text-secondary block mt-1">₹{{ number_format($totalDirectWages, 2) }}</span>
-                <span class="text-[10px] font-medium text-outline block mt-1">
-                    @if($labor->payment_method === 'monthly_salary')
-                        <span class="text-amber-800 font-bold">Fixed Monthly Salary Worker</span>
-                    @else
-                        Piece-Rate Job Work Outflow
-                    @endif
-                </span>
-            </div>
-            <div class="w-12 h-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
-                <span class="material-symbols-outlined text-2xl">payments</span>
-            </div>
-        </div>
-
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <!-- Job Production Value Card -->
         <div class="bg-amber-500/10 border border-amber-500/30 p-5 rounded-2xl flex items-center justify-between shadow-xs">
             <div>
