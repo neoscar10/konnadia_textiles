@@ -290,8 +290,7 @@
                             </div>
                             <div class="text-right">
                                 @if($isSalaried)
-                                    <span class="font-black text-amber-800 text-sm">₹0.00</span>
-                                    <span class="block text-[9px] text-outline">Fixed Salary</span>
+                                    <span class="font-black text-amber-800 text-xs px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">Monthly Salary</span>
                                 @else
                                     <span class="font-black text-secondary text-sm">₹{{ number_format((float)$alloc->calculated_wage, 2) }}</span>
                                 @endif
@@ -589,7 +588,7 @@
                                     <td class="px-4 py-3.5 text-right font-black text-secondary text-sm">
                                         @if($workerData['worker']->payment_method === 'monthly_salary')
                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-800 text-[11px] font-bold border border-amber-500/30">
-                                                ₹0.00 <span class="font-normal text-[10px] text-amber-700">(Monthly Salary)</span>
+                                                Monthly Salary
                                             </span>
                                         @else
                                             ₹{{ number_format($alloc->calculated_wage, 2) }}

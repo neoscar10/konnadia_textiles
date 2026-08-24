@@ -31,6 +31,7 @@ class JobIndexPage extends Component
 
     // Storefront Conversion Modal Properties
     public ?int $target_product_id = null;
+    public string $productSearch = '';
     public string $conversion_notes = '';
     public array $conversionComponents = [];
     public array $conversionPackaging = [];
@@ -57,6 +58,7 @@ class JobIndexPage extends Component
     {
         $this->resetValidation();
         $this->target_product_id = null;
+        $this->productSearch = '';
         $this->conversion_notes = '';
         $this->conversionComponents = [];
         $this->conversionPackaging = [];
@@ -89,6 +91,9 @@ class JobIndexPage extends Component
     {
         unset($this->conversionComponents[$index]);
         $this->conversionComponents = array_values($this->conversionComponents);
+        if (empty($this->conversionComponents)) {
+            $this->addConversionComponentRow();
+        }
     }
 
     public function addConversionPackagingRow(): void
@@ -256,26 +261,12 @@ class JobIndexPage extends Component
     {
         $this->resetValidation();
         $this->target_product_id = null;
+        $this->productSearch = '';
         $this->conversion_notes = '';
         $this->conversionComponents = [];
-
-        $jobs = ProductionJob::where('production_batch_id', $batchCode)
-            ->orWhere('job_code', $batchCode)
-            ->get();
-
-        foreach ($jobs as $job) {
-            if ($job->status === 'completed' && $job->remaining_unconverted_quantity > 0) {
-                $this->conversionComponents[] = [
-                    'production_job_id' => $job->id,
-                    'quantity_per_set' => 1,
-                    'total_pieces_input' => $job->remaining_unconverted_quantity,
-                ];
-            }
-        }
-
-        if (empty($this->conversionComponents)) {
-            $this->addConversionComponentRow();
-        }
+        $this->conversionPackaging = [];
+        $this->addConversionPackagingRow();
+        $this->addConversionComponentRow();
 
         $this->dispatch('open-modal', 'storefront-conversion-modal');
     }
@@ -323,7 +314,16 @@ class JobIndexPage extends Component
             ->filter(fn($j) => $j->status === 'completed' && $j->remaining_unconverted_quantity > 0);
 
         // Storefront Products & Variants for Target Picker
-        $storefrontProducts = Product::where('is_active', true)->with('combinations')->orderBy('title')->get();
+        $storefrontProducts = Product::where('is_active', true)
+            ->when(!empty($this->productSearch), function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('title', 'like', '%' . $this->productSearch . '%')
+                        ->orWhere('sku', 'like', '%' . $this->productSearch . '%');
+                });
+            })
+            ->with('combinations')
+            ->orderBy('title')
+            ->get();
         $packagingRawMaterials = \App\Models\RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
             ->orderBy('name')
             ->get();

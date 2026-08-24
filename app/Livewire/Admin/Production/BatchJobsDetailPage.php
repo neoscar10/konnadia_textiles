@@ -17,7 +17,8 @@ class BatchJobsDetailPage extends Component
 
     // Storefront Conversion Modal Properties
     public ?int $target_product_id = null;
-    public $target_sets_desired = 1;
+    public string $productSearch = '';
+    public int $target_sets_desired = 1;
     public string $conversion_notes = '';
     public array $conversionComponents = [];
     public array $conversionPackaging = [];
@@ -31,29 +32,13 @@ class BatchJobsDetailPage extends Component
     {
         $this->resetValidation();
         $this->target_product_id = null;
+        $this->productSearch = '';
         $this->target_sets_desired = 1;
         $this->conversion_notes = '';
         $this->conversionComponents = [];
         $this->conversionPackaging = [];
         $this->addConversionPackagingRow();
-
-        $jobs = ProductionJob::where('production_batch_id', $this->batchCode)
-            ->orWhere('job_code', $this->batchCode)
-            ->get();
-
-        foreach ($jobs as $job) {
-            if ($job->status === 'completed' && $job->remaining_unconverted_quantity > 0) {
-                $this->conversionComponents[] = [
-                    'production_job_id' => $job->id,
-                    'quantity_per_set' => 1,
-                    'total_pieces_input' => $job->remaining_unconverted_quantity,
-                ];
-            }
-        }
-
-        if (empty($this->conversionComponents)) {
-            $this->addConversionComponentRow();
-        }
+        $this->addConversionComponentRow();
 
         $this->dispatch('open-modal', 'storefront-conversion-modal');
     }
@@ -62,6 +47,7 @@ class BatchJobsDetailPage extends Component
     {
         $this->resetValidation();
         $this->target_product_id = null;
+        $this->productSearch = '';
         $this->target_sets_desired = 1;
         $this->conversion_notes = '';
         $this->conversionComponents = [];
@@ -109,6 +95,21 @@ class BatchJobsDetailPage extends Component
     {
         unset($this->conversionPackaging[$index]);
         $this->conversionPackaging = array_values($this->conversionPackaging);
+    }
+
+    public function updatedConversionComponents($value, $key): void
+    {
+        if (str_contains($key, 'production_job_id')) {
+            $parts = explode('.', $key);
+            $idx = intval($parts[0]);
+            $jobId = intval($value);
+            if ($jobId) {
+                $job = ProductionJob::find($jobId);
+                if ($job) {
+                    $this->conversionComponents[$idx]['total_pieces_input'] = $job->remaining_unconverted_quantity;
+                }
+            }
+        }
     }
 
     public function getConversionSummaryProperty(): array
@@ -240,7 +241,16 @@ class BatchJobsDetailPage extends Component
             ->get();
 
         $completedJobsForPicker = $jobs->filter(fn($j) => $j->status === 'completed' && $j->remaining_unconverted_quantity > 0);
-        $storefrontProducts = Product::where('is_active', true)->with('combinations')->orderBy('title')->get();
+        $storefrontProducts = Product::where('is_active', true)
+            ->when(!empty($this->productSearch), function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('title', 'like', '%' . $this->productSearch . '%')
+                        ->orWhere('sku', 'like', '%' . $this->productSearch . '%');
+                });
+            })
+            ->with('combinations')
+            ->orderBy('title')
+            ->get();
         $packagingRawMaterials = \App\Models\RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
             ->orderBy('name')
             ->get();

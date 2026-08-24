@@ -168,10 +168,25 @@
                 </h4>
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                    <div class="sm:col-span-8">
-                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Target Storefront Product *</label>
+                    <div class="sm:col-span-8 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Target Storefront Product *</label>
+                            <span class="text-[10px] text-outline font-semibold">({{ count($storefrontProducts) }} available)</span>
+                        </div>
+
+                        <!-- Search Input to filter long list of storefront products -->
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
+                            <input type="text" wire:model.live.debounce.200ms="productSearch" placeholder="Type title or SKU to search products..." class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                            @if(!empty($productSearch))
+                                <button type="button" wire:click="$set('productSearch', '')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-0.5">
+                                    <span class="material-symbols-outlined text-sm">close</span>
+                                </button>
+                            @endif
+                        </div>
+
                         <select wire:model.live="target_product_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                            <option value="">-- Select Storefront Product SKU --</option>
+                            <option value="">-- Select Target Storefront Product --</option>
                             @foreach($storefrontProducts as $sp)
                                 <option value="{{ $sp->id }}">{{ $sp->title ?? $sp->name }} (SKU: {{ $sp->sku ?? 'SKU-'.$sp->id }}) — Current Stock: {{ $sp->stock_quantity }}</option>
                             @endforeach
@@ -212,7 +227,7 @@
                             $neededPcs = $ratioVal * $desiredVal;
                             $isExceed = $selectedJob && ($neededPcs > $maxAvail);
                         @endphp
-                        <div class="p-3.5 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
+                        <div wire:key="batch-conv-comp-row-{{ $index }}" class="p-3.5 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                                 <div class="md:col-span-6">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 whitespace-nowrap">Finished Factory Job Component #{{ $index + 1 }} *</label>

@@ -100,11 +100,11 @@
                 @forelse($paginatedBatches as $batchCode => $batchJobs)
                     @php
                         $firstJob = $batchJobs->first();
-                        $product = $firstJob?->manufacturingProduct;
                         $supervisor = $firstJob?->supervisor;
                         $batchUnconvertedSum = $batchJobs->sum(fn($j) => $j->remaining_unconverted_quantity);
                         $plannedTargetQty = $batchJobs->sum(fn($j) => $j->target_quantity);
                         $batchDbId = $firstJob?->production_batch_db_id;
+                        $uniqueProducts = $batchJobs->map(fn($j) => $j->manufacturingProduct)->filter()->unique('id');
                     @endphp
                     <tr class="hover:bg-surface-container/50 transition-colors">
                         <td class="px-6 py-4">
@@ -114,11 +114,15 @@
                             </a>
                             <span class="text-xs text-outline block">Supervisor: {{ $supervisor?->name ?? 'Unassigned' }}</span>
                         </td>
-                        <td class="px-6 py-4">
-                            <p class="font-bold text-on-surface text-sm">{{ $product?->name ?? 'Custom Batch' }}</p>
-                            @if($product?->code)
-                                <span class="text-xs text-outline font-mono">{{ $product->code }}</span>
-                            @endif
+                        <td class="px-6 py-4 space-y-1.5">
+                            @forelse($uniqueProducts as $prod)
+                                <div>
+                                    <p class="font-bold text-on-surface text-sm">{{ $prod->name }}</p>
+                                    <span class="text-xs text-outline font-mono">{{ $prod->code }}</span>
+                                </div>
+                            @empty
+                                <p class="font-bold text-on-surface text-sm">Custom Batch</p>
+                            @endforelse
                         </td>
                         <td class="px-6 py-4 text-center font-bold text-on-surface">
                             <span class="px-3 py-1 bg-primary/10 text-primary font-black rounded-full text-xs font-mono">
@@ -190,9 +194,24 @@
                 </h4>
 
                 <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Select Target Storefront Product *</label>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Target Storefront Product SKU *</label>
+                        <span class="text-[10px] text-outline font-semibold">({{ count($storefrontProducts) }} available)</span>
+                    </div>
+
+                    <!-- Search Input to filter long list of storefront products -->
+                    <div class="relative mb-2">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
+                        <input type="text" wire:model.live.debounce.200ms="productSearch" placeholder="Type title or SKU to search products..." class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                        @if(!empty($productSearch))
+                            <button type="button" wire:click="$set('productSearch', '')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-0.5">
+                                <span class="material-symbols-outlined text-sm">close</span>
+                            </button>
+                        @endif
+                    </div>
+
                     <select wire:model.live="target_product_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                        <option value="">-- Select Storefront Product SKU --</option>
+                        <option value="">-- Select Target Storefront Product --</option>
                         @foreach($storefrontProducts as $sp)
                             <option value="{{ $sp->id }}">{{ $sp->title ?? $sp->name }} (SKU: {{ $sp->sku ?? 'SKU-'.$sp->id }}) — Current Stock: {{ $sp->stock_quantity }}</option>
                         @endforeach
@@ -221,7 +240,7 @@
                             $inputPcs = intval($comp['total_pieces_input'] ?? 0);
                             $isExceed = $selectedJob && ($inputPcs > $maxAvail);
                         @endphp
-                        <div class="p-3.5 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
+                        <div wire:key="conv-comp-row-{{ $index }}" class="p-3.5 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                                 <div class="md:col-span-5">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 whitespace-nowrap">Source Completed Job #{{ $index + 1 }} *</label>

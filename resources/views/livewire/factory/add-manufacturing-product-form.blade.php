@@ -97,8 +97,13 @@
                                                 <option value="{{ $group->id }}">{{ $group->name }}</option>
                                             @endforeach
                                         </select>
+                                        @php
+                                            $widthGroup = $allUnitGroups->firstWhere('id', (int)$fabric_width_group_id) 
+                                                ?? $allUnitGroups->firstWhere('id', $fabric_width_group_id) 
+                                                ?? $allUnitGroups->first();
+                                        @endphp
                                         <select wire:model.live="fabric_width_unit" class="flex-1 min-w-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs truncate">
-                                            @foreach($allUnitGroups->find($fabric_width_group_id)?->units ?? [] as $unit)
+                                            @foreach($widthGroup?->units ?? [] as $unit)
                                                 <option value="{{ $unit->short_code }}">{{ $unit->name }} ({{ $unit->short_code }})</option>
                                             @endforeach
                                         </select>
@@ -115,8 +120,13 @@
                                                 <option value="{{ $group->id }}">{{ $group->name }}</option>
                                             @endforeach
                                         </select>
+                                        @php
+                                            $lengthGroup = $allUnitGroups->firstWhere('id', (int)$fabric_length_group_id) 
+                                                ?? $allUnitGroups->firstWhere('id', $fabric_length_group_id) 
+                                                ?? $allUnitGroups->first();
+                                        @endphp
                                         <select wire:model.live="fabric_length_unit" class="flex-1 min-w-0 rounded-xl border border-outline-variant/60 font-body-md px-2 py-2.5 bg-surface font-bold text-xs truncate">
-                                            @foreach($allUnitGroups->find($fabric_length_group_id)?->units ?? [] as $unit)
+                                            @foreach($lengthGroup?->units ?? [] as $unit)
                                                 <option value="{{ $unit->short_code }}">{{ $unit->name }} ({{ $unit->short_code }})</option>
                                             @endforeach
                                         </select>
@@ -532,16 +542,15 @@
             </div>
             <div class="flex items-center gap-3">
                 @if($wizardStep < $maxSteps)
-                    <button type="button" wire:click="nextStep" class="px-8 py-2.5 bg-primary text-on-primary rounded-xl font-label-md text-label-md font-bold shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 flex items-center gap-2 text-xs">
+                    <button type="button" wire:click="nextStep" class="px-6 py-2.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl font-label-md text-label-md font-bold transition-all duration-150 flex items-center gap-2 text-xs cursor-pointer">
                         Next Step
                         <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                     </button>
-                @else
-                    <button type="submit" class="px-8 py-2.5 bg-secondary text-white rounded-xl font-label-md text-label-md font-bold shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 flex items-center gap-2 text-xs">
-                        <span class="material-symbols-outlined text-[18px]">bolt</span>
-                        {{ $productId ? 'Save Changes' : 'Save Product' }}
-                    </button>
                 @endif
+                <button type="submit" class="px-8 py-2.5 bg-primary text-on-primary rounded-xl font-label-md text-label-md font-bold shadow-md hover:bg-primary-container active:scale-95 transition-all duration-150 flex items-center gap-2 text-xs cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">bolt</span>
+                    {{ $productId ? 'Save Changes' : 'Save Product' }}
+                </button>
             </div>
         </div>
     </form>

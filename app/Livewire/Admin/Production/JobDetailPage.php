@@ -562,8 +562,8 @@ class JobDetailPage extends Component
         if ($activeStageExec) {
             $this->selectedTaskId = $activeStageExec->task_id;
         } else {
-            $firstStageExec = $this->job->stageExecutions->first();
-            $this->selectedTaskId = $firstStageExec ? $firstStageExec->task_id : ($this->routingTasks->first()?->id);
+            $lastStageExec = $this->job->stageExecutions->last();
+            $this->selectedTaskId = $lastStageExec ? $lastStageExec->task_id : ($this->routingTasks->first()?->id);
         }
 
         $this->activeStep = $this->hasMaterialStep ? 'material' : 'workers';
@@ -1728,15 +1728,13 @@ class JobDetailPage extends Component
         $responseData = $response->getData(true);
 
         if (isset($responseData['success']) && $responseData['success']) {
-            if ($isFinal) {
-                $this->showFinalCompletionModal = true;
-                $this->job->refresh();
-                $this->dispatch('toast', message: 'Final task completed successfully! Batch ready for conversion.', type: 'success');
-                return;
-            }
-
+            $batchCode = $this->job->production_batch_id ?: ($this->job->batch?->batch_code);
             $message = $responseData['message'] ?? 'Job completed and workflow progressed successfully!';
             session()->flash('toast', ['message' => $message, 'type' => 'success']);
+
+            if ($batchCode) {
+                return redirect()->route('admin.production.batches.jobs', $batchCode);
+            }
             return redirect()->route('admin.production.jobs.index');
         } else {
             $errorMessage = $responseData['message'] ?? 'Failed to complete job workflow.';

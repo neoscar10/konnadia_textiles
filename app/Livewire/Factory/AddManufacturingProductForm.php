@@ -111,6 +111,26 @@ class AddManufacturingProductForm extends Component
         $this->validateOnly($propertyName);
     }
 
+    public function updatedFabricWidthGroupId($value): void
+    {
+        if ($value) {
+            $group = \App\Models\UnitGroup::with('units')->find($value);
+            if ($group && $group->units->isNotEmpty()) {
+                $this->fabric_width_unit = $group->units->first()->short_code;
+            }
+        }
+    }
+
+    public function updatedFabricLengthGroupId($value): void
+    {
+        if ($value) {
+            $group = \App\Models\UnitGroup::with('units')->find($value);
+            if ($group && $group->units->isNotEmpty()) {
+                $this->fabric_length_unit = $group->units->first()->short_code;
+            }
+        }
+    }
+
     public function updatedSubsidiaryMaterialsList($value, $key)
     {
         if (str_ends_with($key, '.raw_material_id') && !empty($value)) {
@@ -246,11 +266,31 @@ class AddManufacturingProductForm extends Component
             $this->fabric_width_unit                 = $product->fabric_width_unit ?? 'in';
             $this->fabric_length_unit                = $product->fabric_length_unit ?? 'm';
 
-            $widthUnit = \App\Models\Unit::where('short_code', $this->fabric_width_unit)->first();
-            $this->fabric_width_group_id = $widthUnit ? $widthUnit->unit_group_id : '';
-            
-            $lengthUnit = \App\Models\Unit::where('short_code', $this->fabric_length_unit)->first();
-            $this->fabric_length_group_id = $lengthUnit ? $lengthUnit->unit_group_id : '';
+            $widthUnit = \App\Models\Unit::where('short_code', $this->fabric_width_unit)
+                ->orWhere('name', $this->fabric_width_unit)
+                ->first();
+            if ($widthUnit) {
+                $this->fabric_width_group_id = (string) $widthUnit->unit_group_id;
+                $this->fabric_width_unit = $widthUnit->short_code;
+            } else {
+                $defaultLengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first() 
+                    ?? \App\Models\UnitGroup::where('name', 'like', '%Length%')->first() 
+                    ?? \App\Models\UnitGroup::first();
+                $this->fabric_width_group_id = $defaultLengthGroup ? (string) $defaultLengthGroup->id : '';
+            }
+
+            $lengthUnit = \App\Models\Unit::where('short_code', $this->fabric_length_unit)
+                ->orWhere('name', $this->fabric_length_unit)
+                ->first();
+            if ($lengthUnit) {
+                $this->fabric_length_group_id = (string) $lengthUnit->unit_group_id;
+                $this->fabric_length_unit = $lengthUnit->short_code;
+            } else {
+                $defaultLengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first() 
+                    ?? \App\Models\UnitGroup::where('name', 'like', '%Length%')->first() 
+                    ?? \App\Models\UnitGroup::first();
+                $this->fabric_length_group_id = $defaultLengthGroup ? (string) $defaultLengthGroup->id : '';
+            }
 
             // Subsidiary materials
             $this->is_subsidiary_used = (bool)($product->is_subsidiary_used ?? false);
