@@ -1148,18 +1148,26 @@ class JobDetailPage extends Component
 
     public function getAuthorizedLaborsProperty()
     {
-        if (!$this->selectedTaskId) {
-            return Labor::where('status', true)->get();
+        $task = $this->selectedTask;
+        if (!$task) {
+            return Labor::where('status', true)->orderBy('name')->get();
         }
 
         $labors = Labor::where('status', true)
-            ->whereHas('tasks', function ($q) {
-                $q->where('tasks.id', $this->selectedTaskId);
+            ->whereHas('tasks', function ($q) use ($task) {
+                $q->where('tasks.id', $task->id);
+                if (!empty($task->code)) {
+                    $q->orWhere('tasks.code', $task->code);
+                }
+                if (!empty($task->name)) {
+                    $q->orWhere('tasks.name', $task->name);
+                }
             })
+            ->orderBy('name')
             ->get();
 
         if ($labors->isEmpty()) {
-            return Labor::where('status', true)->get();
+            return Labor::where('status', true)->orderBy('name')->get();
         }
 
         return $labors;
@@ -1653,6 +1661,24 @@ class JobDetailPage extends Component
             'alterationRecords.*.target_quantity.min' => 'Quantity converted must be at least 1 unit.',
         ]);
 
+        // Validate surface area constraint (cannot convert smaller product to larger product)
+        foreach ($this->alterationRecords as $aIdx => $row) {
+            $srcProd = ManufacturingProduct::find($row['source_product_id'] ?? $this->job->manufacturing_product_id);
+            $tgtProd = ManufacturingProduct::find($row['target_product_id'] ?? null);
+
+            if ($srcProd && $tgtProd) {
+                $srcArea = \App\Services\FabricCuttingAreaService::calculateProductPieceArea($srcProd);
+                $tgtArea = \App\Services\FabricCuttingAreaService::calculateProductPieceArea($tgtProd);
+
+                if ($srcArea > 0 && $tgtArea > 0 && $tgtArea > ($srcArea + 0.0001)) {
+                    $msg = "Cannot alter '{$srcProd->name}' into '{$tgtProd->name}'. Target product surface area is larger than source product surface area.";
+                    $this->addError("alterationRecords.{$aIdx}.target_product_id", $msg);
+                    $this->dispatch('toast', message: $msg, type: 'error');
+                    return;
+                }
+            }
+        }
+
         $alterationSum = (float) array_sum(array_column($this->alterationRecords, 'target_quantity'));
         $remainingCapacity = $this->stageUnaccountedCapacity;
         $stageInput = $this->stageMaxAllowedOutput;
@@ -1674,20 +1700,40 @@ class JobDetailPage extends Component
 
         DB::transaction(function () use (&$lastChildBatchCode) {
             $parentBatch = $this->job->batch;
+            if (!$parentBatch && !empty($this->job->production_batch_id)) {
+                $parentBatch = ProductionBatch::where('batch_code', $this->job->production_batch_id)->first();
+            }
+            if (!$parentBatch && !empty($this->job->production_batch_db_id)) {
+                $parentBatch = ProductionBatch::find($this->job->production_batch_db_id);
+            }
             if (!$parentBatch) {
-                $parentBatch = ProductionBatch::create([
-                    'batch_code' => 'PB-2026-' . str_pad($this->job->id, 4, '0', STR_PAD_LEFT),
-                    'manufacturing_product_id' => $this->job->manufacturing_product_id,
-                    'planned_quantity' => $this->job->target_quantity,
-                    'status' => 'In Progress',
-                    'supervisor_id' => $this->job->supervisor_id ?? auth()->id(),
-                ]);
+                $candidateCode = 'PB-' . date('Y') . '-' . str_pad($this->job->id, 4, '0', STR_PAD_LEFT);
+                $parentBatch = ProductionBatch::where('batch_code', $candidateCode)->first();
+                if (!$parentBatch) {
+                    $latestBatchId = (int) (ProductionBatch::max('id') ?? 0);
+                    $candidateCode = 'PB-' . date('Y') . '-' . str_pad($latestBatchId + 1, 4, '0', STR_PAD_LEFT);
+                    while (ProductionBatch::where('batch_code', $candidateCode)->exists()) {
+                        $latestBatchId++;
+                        $candidateCode = 'PB-' . date('Y') . '-' . str_pad($latestBatchId + 1, 4, '0', STR_PAD_LEFT);
+                    }
+                    $parentBatch = ProductionBatch::create([
+                        'batch_code' => $candidateCode,
+                        'manufacturing_product_id' => $this->job->manufacturing_product_id,
+                        'planned_quantity' => $this->job->target_quantity,
+                        'status' => 'In Progress',
+                        'supervisor_id' => $this->job->supervisor_id ?? auth()->id(),
+                    ]);
+                }
                 $this->job->update(['production_batch_db_id' => $parentBatch->id, 'production_batch_id' => $parentBatch->batch_code]);
             }
 
             foreach ($this->alterationRecords as $row) {
                 $childCount = $parentBatch->childBatches()->count() + 1;
                 $childBatchCode = $parentBatch->batch_code . "-A{$childCount}";
+                while (ProductionBatch::where('batch_code', $childBatchCode)->exists()) {
+                    $childCount++;
+                    $childBatchCode = $parentBatch->batch_code . "-A{$childCount}";
+                }
                 $lastChildBatchCode = $childBatchCode;
 
                 $childBatch = ProductionBatch::create([

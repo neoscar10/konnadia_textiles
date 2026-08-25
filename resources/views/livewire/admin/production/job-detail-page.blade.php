@@ -615,21 +615,21 @@
                                                                     </div>
                                                                 </div>
                                                                 @if(!$this->isSelectedStageCompleted)
-                                                                    <div class="flex flex-wrap items-center gap-2">
-                                                                        <div class="flex items-center gap-1.5 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/50">
+                                                                    <div class="flex items-center gap-2 shrink-0">
+                                                                        <div class="flex flex-wrap items-center gap-1.5 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/50">
                                                                             <select wire:model="rollBulkLabor.{{ $rId }}" class="bg-surface border border-outline-variant/60 rounded-lg px-2.5 py-1 text-xs font-bold text-on-surface">
                                                                                 <option value="">-- Worker for Whole Roll --</option>
                                                                                 @foreach($this->authorizedLabors as $lab)
                                                                                     <option value="{{ $lab->id }}">{{ $lab->name }} ({{ $lab->labor_code }})</option>
                                                                                 @endforeach
                                                                             </select>
-                                                                            <button type="button" wire:click="applyRollBulkLabor({{ $rId }})" class="bg-secondary text-on-secondary px-3 py-1 rounded-lg text-xs font-black hover:bg-secondary-container transition-all shrink-0">
+                                                                            <button type="button" wire:click="applyRollBulkLabor({{ $rId }})" class="bg-secondary text-on-secondary px-3 py-1 rounded-lg text-xs font-black hover:bg-secondary-container transition-all shrink-0 whitespace-nowrap">
                                                                                 Apply to Roll
                                                                             </button>
+                                                                            <button type="button" wire:click="addCuttingLaborRow({{ $rId }})" class="flex items-center gap-1 bg-primary text-on-primary px-3 py-1 rounded-lg text-xs font-bold shadow-xs hover:bg-primary-container transition-all shrink-0 whitespace-nowrap">
+                                                                                <span class="material-symbols-outlined text-[15px]">person_add</span> Add Cutter Worker
+                                                                            </button>
                                                                         </div>
-                                                                        <button type="button" wire:click="addCuttingLaborRow({{ $rId }})" class="flex items-center gap-1 bg-primary text-on-primary px-3 py-2 rounded-xl text-xs font-bold shadow-xs hover:bg-primary-container transition-all shrink-0">
-                                                                            <span class="material-symbols-outlined text-[15px]">person_add</span> Add Cutter Worker
-                                                                        </button>
                                                                     </div>
                                                                 @endif
                                                             </div>
