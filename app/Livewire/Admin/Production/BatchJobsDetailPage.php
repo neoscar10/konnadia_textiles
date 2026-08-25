@@ -19,6 +19,7 @@ class BatchJobsDetailPage extends Component
     public ?int $target_product_id = null;
     public string $productSearch = '';
     public int $target_sets_desired = 1;
+    public int $target_unit_level = 1; // 1 for Unit 1 (Base Pcs), 2 for Unit 2 (Boxes/Packs)
     public string $conversion_notes = '';
     public array $conversionComponents = [];
     public array $conversionPackaging = [];
@@ -34,6 +35,7 @@ class BatchJobsDetailPage extends Component
         $this->target_product_id = null;
         $this->productSearch = '';
         $this->target_sets_desired = 1;
+        $this->target_unit_level = 1;
         $this->conversion_notes = '';
         $this->conversionComponents = [];
         $this->conversionPackaging = [];
@@ -49,6 +51,7 @@ class BatchJobsDetailPage extends Component
         $this->target_product_id = null;
         $this->productSearch = '';
         $this->target_sets_desired = 1;
+        $this->target_unit_level = 1;
         $this->conversion_notes = '';
         $this->conversionComponents = [];
 
@@ -97,6 +100,11 @@ class BatchJobsDetailPage extends Component
         $this->conversionPackaging = array_values($this->conversionPackaging);
     }
 
+    public function updatedTargetProductId($value): void
+    {
+        $this->target_unit_level = 1;
+    }
+
     public function updatedConversionComponents($value, $key): void
     {
         if (str_contains($key, 'production_job_id')) {
@@ -112,12 +120,41 @@ class BatchJobsDetailPage extends Component
         }
     }
 
+    public function getSelectedTargetProductProperty()
+    {
+        return $this->target_product_id ? Product::with('units')->find($this->target_product_id) : null;
+    }
+
+    public function getTargetUnitConversionFactorProperty(): float
+    {
+        $product = $this->selectedTargetProduct;
+        if (!$product) return 1.0;
+
+        if ($this->target_unit_level === 2) {
+            $unit2 = $product->units->firstWhere('level', 2);
+            if ($unit2 && (float)$unit2->conversion_to_base > 0) {
+                return (float)$unit2->conversion_to_base;
+            }
+        }
+
+        return 1.0;
+    }
+
     public function getConversionSummaryProperty(): array
     {
-        $desiredSets = max(1, intval($this->target_sets_desired ?? 1));
+        $inputSetsDesired = max(1, intval($this->target_sets_desired ?? 1));
+        $unitFactor = $this->targetUnitConversionFactor;
+        $effectiveBaseItemsDesired = intval(round($inputSetsDesired * $unitFactor));
 
         if (empty($this->conversionComponents)) {
-            return ['max_sets' => 0, 'rows' => [], 'desired_sets' => $desiredSets, 'can_fulfill' => false];
+            return [
+                'max_sets' => 0,
+                'rows' => [],
+                'desired_sets' => $inputSetsDesired,
+                'effective_base_items' => $effectiveBaseItemsDesired,
+                'unit_factor' => $unitFactor,
+                'can_fulfill' => false
+            ];
         }
 
         $possibleSets = [];
@@ -129,12 +166,12 @@ class BatchJobsDetailPage extends Component
             $ratio = max(1, intval($comp['quantity_per_set'] ?? 1));
             $inputPcs = max(0, intval($comp['total_pieces_input'] ?? 0));
 
-            $setsPossible = $jobId && $inputPcs > 0 ? (int) floor($inputPcs / $ratio) : 0;
+            $setsPossible = $jobId && $inputPcs > 0 ? (int) floor(($inputPcs / $ratio) / $unitFactor) : 0;
             if ($jobId) {
                 $possibleSets[] = $setsPossible;
             }
 
-            $requiredPcsForDesired = $desiredSets * $ratio;
+            $requiredPcsForDesired = $effectiveBaseItemsDesired * $ratio;
             $consumedPcs = min($inputPcs, $requiredPcsForDesired);
             $leftoverPcs = max(0, $inputPcs - $requiredPcsForDesired);
 
@@ -151,11 +188,13 @@ class BatchJobsDetailPage extends Component
         }
 
         $maxPossibleSets = !empty($possibleSets) ? (int) min($possibleSets) : 0;
-        $canFulfill = $desiredSets <= $maxPossibleSets;
+        $canFulfill = $inputSetsDesired <= $maxPossibleSets;
 
         return [
             'max_sets' => $maxPossibleSets,
-            'desired_sets' => $desiredSets,
+            'desired_sets' => $inputSetsDesired,
+            'effective_base_items' => $effectiveBaseItemsDesired,
+            'unit_factor' => $unitFactor,
             'can_fulfill' => $canFulfill,
             'rows' => $rowDetails,
         ];
@@ -204,6 +243,7 @@ class BatchJobsDetailPage extends Component
 
         $summary = $this->conversionSummary;
         $desiredSets = $summary['desired_sets'];
+        $effectiveBaseItems = $summary['effective_base_items'];
 
         if (!$summary['can_fulfill']) {
             $this->addError('target_sets_desired', "Insufficient finished job pieces to produce {$desiredSets} product set(s). Based on your components, you can only produce up to {$summary['max_sets']} set(s).");
@@ -216,16 +256,18 @@ class BatchJobsDetailPage extends Component
             // Filter out empty packaging rows
             $filteredPackaging = array_filter($this->conversionPackaging, fn($p) => !empty($p['raw_material_id']));
 
+            $unitLabel = $this->target_unit_level === 2 ? "Unit 2" : "Unit 1";
+
             $bundle = $conversionService->convertJobsToStorefrontBundle(
                 intval($this->target_product_id),
-                $desiredSets,
+                $effectiveBaseItems,
                 $this->conversionComponents,
-                $this->conversion_notes ?: "Converted {$desiredSets} set(s) from Production Batch {$this->batchCode}",
+                $this->conversion_notes ?: "Converted {$desiredSets} {$unitLabel} set(s) ({$effectiveBaseItems} base pcs) from Production Batch {$this->batchCode}",
                 $filteredPackaging
             );
 
             $this->dispatch('close-modal', 'storefront-conversion-modal');
-            $this->dispatch('toast', message: "Successfully converted {$desiredSets} storefront product(s) under Bundle {$bundle->bundle_code}! Storefront stock updated: +{$desiredSets}", type: 'success');
+            $this->dispatch('toast', message: "Successfully converted {$desiredSets} storefront product set(s) under Bundle {$bundle->bundle_code}! Storefront stock updated: +{$effectiveBaseItems} Pcs", type: 'success');
         } catch (Exception $e) {
             $this->addError('conversionComponents', $e->getMessage());
             $this->dispatch('toast', message: $e->getMessage(), type: 'error');
@@ -248,7 +290,7 @@ class BatchJobsDetailPage extends Component
                         ->orWhere('sku', 'like', '%' . $this->productSearch . '%');
                 });
             })
-            ->with('combinations')
+            ->with(['combinations', 'units'])
             ->orderBy('title')
             ->get();
         $packagingRawMaterials = \App\Models\RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
@@ -281,6 +323,7 @@ class BatchJobsDetailPage extends Component
             'completedJobsForPicker' => $completedJobsForPicker,
             'storefrontProducts' => $storefrontProducts,
             'packagingRawMaterials' => $packagingRawMaterials,
+            'conversionSummary' => $this->conversionSummary,
         ])->title("Batch Jobs — {$this->batchCode}");
     }
 }

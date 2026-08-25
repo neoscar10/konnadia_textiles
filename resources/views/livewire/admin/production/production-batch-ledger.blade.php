@@ -346,7 +346,7 @@
                     <thead>
                         <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
                             <th class="px-4 py-3 font-bold">Job Code</th>
-                            <th class="px-4 py-3 font-bold">Stage Task</th>
+                            <th class="px-4 py-3 font-bold">STAGE</th>
                             <th class="px-4 py-3 font-bold text-center">Status</th>
                             <th class="px-4 py-3 font-bold text-center">Target Qty</th>
                             <th class="px-4 py-3 font-bold text-center">Output Processed</th>
@@ -362,13 +362,14 @@
                                 $jobWageCost = $jSum['total_labor_cost'];
                                 $jobMatCost = $jSum['total_material_cost'];
                                 $jobOutput = $jSum['finished_units'];
+                                $stageName = $job->task?->name ?? $job->stageExecutions->first()?->task?->name ?? (\App\Models\Task::find($job->task_id)?->name) ?? 'Cutting';
                             @endphp
                             <tr class="hover:bg-surface-container/50 transition-colors">
                                 <td class="px-4 py-3.5 font-mono font-bold text-primary text-sm">
                                     {{ $job->job_code }}
                                 </td>
                                 <td class="px-4 py-3.5">
-                                    <span class="font-bold text-on-surface text-sm">{{ $job->task?->name ?? 'Stage Task' }}</span>
+                                    <span class="font-bold text-on-surface text-sm">{{ $stageName }}</span>
                                 </td>
                                 <td class="px-4 py-3.5 text-center">
                                     <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $job->status === 'completed' ? 'bg-secondary/10 text-secondary' : ($job->status === 'in_progress' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant') }}">
@@ -569,9 +570,12 @@
                         </thead>
                         <tbody class="divide-y divide-outline-variant/40 text-xs">
                             @foreach($workerData['allocations'] as $alloc)
+                                @php
+                                    $allocStageName = $alloc->task?->name ?? $alloc->productionJob?->task?->name ?? $alloc->productionJob?->stageExecutions?->first()?->task?->name ?? (\App\Models\Task::find($alloc->task_id)?->name) ?? 'Production Stage';
+                                @endphp
                                 <tr class="hover:bg-surface-container/50 transition-colors">
                                     <td class="px-4 py-3.5">
-                                        <p class="font-bold text-on-surface text-sm">{{ $alloc->productionJob?->task?->name ?? 'Stage' }}</p>
+                                        <p class="font-bold text-on-surface text-sm">{{ $allocStageName }}</p>
                                         <span class="text-[10px] text-outline font-mono">Job: {{ $alloc->productionJob?->job_code }}</span>
                                     </td>
                                     <td class="px-4 py-3.5 text-center font-semibold text-on-surface-variant">

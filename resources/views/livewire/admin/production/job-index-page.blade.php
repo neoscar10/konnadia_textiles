@@ -200,37 +200,119 @@
             @endif
 
             <!-- 1. Select Target Storefront Product SKU -->
-            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-3">
+            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-4">
                 <h4 class="font-bold text-sm text-primary flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg">storefront</span>
                     1. Target Storefront Product SKU *
                 </h4>
 
-                <div>
-                    <div class="flex justify-between items-center mb-1">
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
                         <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Target Storefront Product SKU *</label>
                         <span class="text-[10px] text-outline font-semibold">({{ count($storefrontProducts) }} available)</span>
                     </div>
 
-                    <!-- Search Input to filter long list of storefront products -->
-                    <div class="relative mb-2">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
-                        <input type="text" wire:model.live.debounce.200ms="productSearch" placeholder="Type title or SKU to search products..." class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                        @if(!empty($productSearch))
-                            <button type="button" wire:click="$set('productSearch', '')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-0.5">
-                                <span class="material-symbols-outlined text-sm">close</span>
-                            </button>
+                    <div x-data="{ open: false, search: '' }" class="relative">
+                        <!-- Dropdown Trigger Button -->
+                        <button type="button" @click="open = !open; if(open){ $nextTick(() => $refs.searchInput.focus()) }" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-left text-sm font-bold text-on-surface flex items-center justify-between shadow-xs hover:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                            @if($this->selectedTargetProduct)
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="material-symbols-outlined text-primary text-base">check_circle</span>
+                                    <span class="truncate">{{ $this->selectedTargetProduct->title ?? $this->selectedTargetProduct->name }}</span>
+                                    <span class="px-2 py-0.5 bg-primary/10 text-primary font-mono text-[11px] font-bold rounded-lg shrink-0">SKU: {{ $this->selectedTargetProduct->sku ?? 'SKU-'.$this->selectedTargetProduct->id }}</span>
+                                </div>
+                            @else
+                                <span class="text-on-surface-variant/70 font-semibold">-- Search & Select Target Storefront Product --</span>
+                            @endif
+                            <span class="material-symbols-outlined text-on-surface-variant text-base transition-transform duration-200" :class="open ? 'rotate-180' : ''">unfold_more</span>
+                        </button>
+
+                        <!-- Searchable Floating Menu Panel -->
+                        <div x-show="open" @click.outside="open = false" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="absolute z-50 left-0 right-0 mt-1.5 bg-surface border border-outline-variant/60 rounded-xl shadow-xl overflow-hidden p-2 space-y-2">
+                            <!-- Embedded Live Search Input -->
+                            <div class="relative">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
+                                <input x-ref="searchInput" type="text" x-model="search" placeholder="Type title or SKU to search products..." class="w-full bg-surface-container-low border border-outline-variant/60 rounded-lg pl-9 pr-8 py-2 text-xs font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                <button x-show="search.length > 0" type="button" @click="search = ''" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface">
+                                    <span class="material-symbols-outlined text-sm">close</span>
+                                </button>
+                            </div>
+
+                            <!-- Scrollable Product Options List -->
+                            <div class="max-h-56 overflow-y-auto divide-y divide-outline-variant/30 font-body-md text-xs">
+                                @forelse($storefrontProducts as $sp)
+                                    <div x-show="!search || '{{ strtolower(addslashes(($sp->title ?? $sp->name) . ' ' . $sp->sku)) }}'.includes(search.toLowerCase())"
+                                         @click="$wire.set('target_product_id', {{ $sp->id }}); open = false"
+                                         class="p-2.5 hover:bg-primary/5 cursor-pointer rounded-lg flex items-center justify-between transition-colors {{ $target_product_id == $sp->id ? 'bg-primary/10 font-bold text-primary' : 'text-on-surface' }}">
+                                        <div class="flex items-center gap-2 truncate">
+                                            <span class="material-symbols-outlined text-sm {{ $target_product_id == $sp->id ? 'text-primary' : 'text-on-surface-variant' }}">inventory_2</span>
+                                            <div class="truncate">
+                                                <p class="font-bold text-sm leading-tight truncate">{{ $sp->title ?? $sp->name }}</p>
+                                                <p class="text-[10px] text-outline font-mono mt-0.5">SKU: {{ $sp->sku ?? 'SKU-'.$sp->id }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right shrink-0 ml-2">
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $sp->stock_quantity > 0 ? 'bg-secondary/10 text-secondary' : 'bg-error/10 text-error' }}">
+                                                {{ $sp->stock_quantity }} in stock
+                                            </span>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="p-4 text-center text-outline font-semibold">No storefront products available.</div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                    @error('target_product_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Dual Unit (Unit 1 vs Unit 2) Conversion Selection -->
+                @if($this->selectedTargetProduct)
+                    @php
+                        $unit1 = $this->selectedTargetProduct->units->firstWhere('level', 1);
+                        $unit2 = $this->selectedTargetProduct->units->firstWhere('level', 2);
+                    @endphp
+                    <div class="pt-2 border-t border-outline-variant/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-secondary text-base">straighten</span>
+                            <span class="text-xs font-bold text-on-surface">Target Unit of Measure:</span>
+                        </div>
+
+                        @if($unit2)
+                            <div class="flex items-center gap-2 bg-surface p-1 rounded-xl border border-outline-variant/60">
+                                <button type="button" wire:click="$set('target_unit_level', 1)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 {{ $target_unit_level === 1 ? 'bg-primary text-on-primary shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                    <span class="material-symbols-outlined text-xs">category</span>
+                                    Unit 1: {{ $unit1?->name ?? 'Piece' }} ({{ $unit1?->short_code ?? 'Pc' }})
+                                </button>
+                                <button type="button" wire:click="$set('target_unit_level', 2)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 {{ $target_unit_level === 2 ? 'bg-secondary text-on-secondary shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                    <span class="material-symbols-outlined text-xs">inventory_2</span>
+                                    Unit 2: {{ $unit2->name }} ({{ $unit2->short_code }})
+                                    <span class="text-[10px] opacity-80 font-normal">(1 {{ $unit2->short_code }} = {{ number_format($unit2->conversion_to_base) }} {{ $unit1?->short_code ?? 'Pcs' }})</span>
+                                </button>
+                            </div>
+                        @else
+                            <div class="flex items-center gap-2">
+                                <span class="px-3 py-1 bg-surface-container text-on-surface font-bold text-xs rounded-lg border border-outline-variant/50 flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-xs text-primary">check_circle</span>
+                                    Unit 1: {{ $unit1?->name ?? 'Pieces' }} ({{ $unit1?->short_code ?? 'Pcs' }})
+                                </span>
+                                <span class="text-[10px] text-outline font-semibold">(Standard Single-Unit Conversion)</span>
+                            </div>
                         @endif
                     </div>
 
-                    <select wire:model.live="target_product_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                        <option value="">-- Select Target Storefront Product --</option>
-                        @foreach($storefrontProducts as $sp)
-                            <option value="{{ $sp->id }}">{{ $sp->title ?? $sp->name }} (SKU: {{ $sp->sku ?? 'SKU-'.$sp->id }}) — Current Stock: {{ $sp->stock_quantity }}</option>
-                        @endforeach
-                    </select>
-                    @error('target_product_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                </div>
+                    @if($target_unit_level === 2 && $unit2)
+                        <div class="bg-secondary/10 border border-secondary/30 p-2.5 rounded-xl text-xs font-bold text-secondary flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base">swap_calls</span>
+                                Target Unit 2 Conversion: Each assembled Box = {{ number_format($unit2->conversion_to_base) }} Base {{ $unit1?->short_code ?? 'Pcs' }} required from Factory Jobs
+                            </span>
+                            <span class="text-[11px] font-mono bg-surface px-2 py-0.5 rounded-md text-on-surface border border-secondary/20">
+                                Ratio: 1 {{ $unit2->short_code }} = {{ number_format($unit2->conversion_to_base) }} {{ $unit1?->short_code ?? 'Pcs' }}
+                            </span>
+                        </div>
+                    @endif
+                @endif
             </div>
 
             <!-- 2. Source Factory Components & Processed Pieces -->

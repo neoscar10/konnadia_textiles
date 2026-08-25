@@ -32,9 +32,35 @@ class JobIndexPage extends Component
     // Storefront Conversion Modal Properties
     public ?int $target_product_id = null;
     public string $productSearch = '';
+    public int $target_unit_level = 1; // 1 for Unit 1 (Base Pcs), 2 for Unit 2 (Boxes/Packs)
     public string $conversion_notes = '';
     public array $conversionComponents = [];
     public array $conversionPackaging = [];
+
+    public function updatedTargetProductId($value): void
+    {
+        $this->target_unit_level = 1;
+    }
+
+    public function getSelectedTargetProductProperty()
+    {
+        return $this->target_product_id ? Product::with('units')->find($this->target_product_id) : null;
+    }
+
+    public function getTargetUnitConversionFactorProperty(): float
+    {
+        $product = $this->selectedTargetProduct;
+        if (!$product) return 1.0;
+
+        if ($this->target_unit_level === 2) {
+            $unit2 = $product->units->firstWhere('level', 2);
+            if ($unit2 && (float)$unit2->conversion_to_base > 0) {
+                return (float)$unit2->conversion_to_base;
+            }
+        }
+
+        return 1.0;
+    }
 
     public function updatingSearch(): void
     {
@@ -59,6 +85,7 @@ class JobIndexPage extends Component
         $this->resetValidation();
         $this->target_product_id = null;
         $this->productSearch = '';
+        $this->target_unit_level = 1;
         $this->conversion_notes = '';
         $this->conversionComponents = [];
         $this->conversionPackaging = [];
@@ -127,8 +154,10 @@ class JobIndexPage extends Component
 
     public function getConversionSummaryProperty(): array
     {
+        $unitFactor = $this->targetUnitConversionFactor;
+
         if (empty($this->conversionComponents)) {
-            return ['max_sets' => 0, 'rows' => []];
+            return ['max_sets' => 0, 'effective_base_items' => 0, 'unit_factor' => $unitFactor, 'rows' => []];
         }
 
         $possibleSets = [];
@@ -140,7 +169,7 @@ class JobIndexPage extends Component
             $ratio = max(1, intval($comp['quantity_per_set'] ?? 1));
             $inputPcs = max(0, intval($comp['total_pieces_input'] ?? 0));
 
-            $sets = $jobId && $inputPcs > 0 ? (int) floor($inputPcs / $ratio) : 0;
+            $sets = $jobId && $inputPcs > 0 ? (int) floor(($inputPcs / $ratio) / $unitFactor) : 0;
             if ($jobId) {
                 $possibleSets[] = $sets;
             }
@@ -154,9 +183,10 @@ class JobIndexPage extends Component
         }
 
         $maxSets = !empty($possibleSets) ? (int) min($possibleSets) : 0;
+        $effectiveBaseItems = intval(round($maxSets * $unitFactor));
 
         foreach ($rowDetails as $idx => $det) {
-            $consumed = $maxSets * $det['ratio'];
+            $consumed = $effectiveBaseItems * $det['ratio'];
             $leftover = max(0, $det['inputPcs'] - $consumed);
             $rowDetails[$idx]['consumedPcs'] = $consumed;
             $rowDetails[$idx]['leftoverPcs'] = $leftover;
@@ -164,6 +194,8 @@ class JobIndexPage extends Component
 
         return [
             'max_sets' => $maxSets,
+            'effective_base_items' => $effectiveBaseItems,
+            'unit_factor' => $unitFactor,
             'rows' => $rowDetails,
         ];
     }
@@ -206,6 +238,7 @@ class JobIndexPage extends Component
 
         $summary = $this->conversionSummary;
         $maxSets = $summary['max_sets'];
+        $effectiveBaseItems = $summary['effective_base_items'];
 
         if ($maxSets <= 0) {
             $this->addError('conversionComponents', 'Cannot assemble any complete storefront sets with the entered piece quantities and set ratio. Please check your inputs.');
@@ -216,16 +249,18 @@ class JobIndexPage extends Component
             $conversionService = resolve(FinishedGoodsConversionService::class);
             $filteredPackaging = array_filter($this->conversionPackaging, fn($p) => !empty($p['raw_material_id']));
 
+            $unitLabel = $this->target_unit_level === 2 ? "Unit 2" : "Unit 1";
+
             $bundle = $conversionService->convertJobsToStorefrontBundle(
                 intval($this->target_product_id),
-                $maxSets,
+                $effectiveBaseItems,
                 $this->conversionComponents,
-                $this->conversion_notes ?: "Converted from Production Jobs Hub",
+                $this->conversion_notes ?: "Converted {$maxSets} {$unitLabel} set(s) ({$effectiveBaseItems} base pcs) from Production Jobs Hub",
                 $filteredPackaging
             );
 
             $this->dispatch('close-modal', 'storefront-conversion-modal');
-            $this->dispatch('toast', message: "Successfully converted {$maxSets} storefront set(s) under Bundle {$bundle->bundle_code}! Stock added: +{$maxSets}", type: 'success');
+            $this->dispatch('toast', message: "Successfully converted {$maxSets} storefront set(s) under Bundle {$bundle->bundle_code}! Storefront stock added: +{$effectiveBaseItems} Pcs", type: 'success');
         } catch (Exception $e) {
             $this->addError('conversionComponents', $e->getMessage());
             $this->dispatch('toast', message: $e->getMessage(), type: 'error');
@@ -321,7 +356,7 @@ class JobIndexPage extends Component
                         ->orWhere('sku', 'like', '%' . $this->productSearch . '%');
                 });
             })
-            ->with('combinations')
+            ->with(['combinations', 'units'])
             ->orderBy('title')
             ->get();
         $packagingRawMaterials = \App\Models\RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
@@ -344,6 +379,7 @@ class JobIndexPage extends Component
             'totalStorefrontConvertedUnits' => $totalStorefrontConvertedUnits,
             'availableUnconvertedPoolUnits' => $availableUnconvertedPoolUnits,
             'packagingRawMaterials' => $packagingRawMaterials,
+            'conversionSummary' => $this->conversionSummary,
         ])->title('Production Jobs Hub');
     }
 }
