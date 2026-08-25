@@ -710,7 +710,6 @@
                                     <td class="px-4 py-3 text-right text-outline italic">N/A</td>
                                 </tr>
                             @endif
-                        @forelse($allRollsSummary as $rSum_dummy)
                         @empty
                             <tr>
                                 <td colspan="8" class="px-4 py-8 text-center text-outline italic">No fabric rolls linked or recorded for this batch.</td>
