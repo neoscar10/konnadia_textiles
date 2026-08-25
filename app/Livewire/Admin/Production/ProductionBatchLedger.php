@@ -148,6 +148,16 @@ class ProductionBatchLedger extends Component
                     ->whereNotNull('inventory_bale_roll_id')
                     ->pluck('inventory_bale_roll_id')
             )
+            ->merge(
+                \App\Models\JobWastage::whereIn('production_job_id', $jobIds)
+                    ->whereNotNull('inventory_bale_roll_id')
+                    ->pluck('inventory_bale_roll_id')
+            )
+            ->merge(
+                \App\Models\JobProductionOutput::whereIn('production_job_id', $jobIds)
+                    ->whereNotNull('inventory_bale_roll_id')
+                    ->pluck('inventory_bale_roll_id')
+            )
             ->unique();
         $batchRolls = \App\Models\InventoryBaleRoll::with('bale')->whereIn('id', $rollIds)->get();
 
@@ -216,19 +226,54 @@ class ProductionBatchLedger extends Component
             $wastageCost = round($wastedQty * (float)$rate, 2);
             $matCost = (float) $rConsumptions->sum('total_cost');
             $laborCost = (float) $rAllocations->sum('calculated_wage');
+            $totalRollProduced = (int) $rOutputs->sum('quantity_produced');
+            $totalRollCost = $matCost + $laborCost + $wastageCost;
+
+            $productBreakdowns = [];
+            foreach ($rOutputs as $out) {
+                $prod = $out->manufacturingProduct;
+                $prodName = $prod?->name ?? 'Product SKU';
+                $prodQty = (int) $out->quantity_produced;
+
+                $prodFabricCost = (float) $out->total_fabric_cost;
+                if ($prodFabricCost <= 0) {
+                    $proportion = $totalRollProduced > 0 ? ($prodQty / $totalRollProduced) : 0;
+                    $prodFabricCost = round($matCost * $proportion, 2);
+                } else {
+                    $proportion = $matCost > 0 ? ($prodFabricCost / $matCost) : ($totalRollProduced > 0 ? ($prodQty / $totalRollProduced) : 0);
+                }
+
+                $prodWastageCost = round($wastageCost * $proportion, 2);
+                $prodLaborCost = round($laborCost * $proportion, 2);
+                $prodTotalCostFromRoll = $prodFabricCost + $prodLaborCost + $prodWastageCost;
+                $prodUnitCostFromRoll = $prodQty > 0 ? round($prodTotalCostFromRoll / $prodQty, 2) : 0.00;
+
+                $productBreakdowns[] = [
+                    'product_id'        => $prod?->id,
+                    'product_name'      => $prodName,
+                    'product_code'      => $prod?->code,
+                    'quantity_produced' => $prodQty,
+                    'fabric_cost'       => $prodFabricCost,
+                    'labor_cost'        => $prodLaborCost,
+                    'wastage_cost'      => $prodWastageCost,
+                    'total_cost'        => $prodTotalCostFromRoll,
+                    'unit_cost'         => $prodUnitCostFromRoll,
+                ];
+            }
 
             $allRollsSummary[] = [
-                'roll_id'         => $roll->id,
-                'bale_number'     => $roll->bale?->bale_number ?? 'N/A',
-                'roll_number'     => $roll->roll_number,
-                'consumed_qty'    => (float) $rConsumptions->sum('quantity_consumed'),
-                'produced_qty'    => (int) $rOutputs->sum('quantity_produced'),
-                'wasted_qty'      => $wastedQty,
-                'material_cost'   => $matCost,
-                'labor_cost'      => $laborCost,
-                'wastage_cost'    => $wastageCost,
-                'total_roll_cost' => $matCost + $laborCost + $wastageCost,
-                'total_cost'      => $matCost + $laborCost + $wastageCost,
+                'roll_id'            => $roll->id,
+                'bale_number'        => $roll->bale?->bale_number ?? 'N/A',
+                'roll_number'        => $roll->roll_number,
+                'consumed_qty'       => (float) $rConsumptions->sum('quantity_consumed'),
+                'produced_qty'       => $totalRollProduced,
+                'wasted_qty'         => $wastedQty,
+                'material_cost'      => $matCost,
+                'labor_cost'         => $laborCost,
+                'wastage_cost'       => $wastageCost,
+                'total_roll_cost'    => $totalRollCost,
+                'total_cost'         => $totalRollCost,
+                'product_breakdowns' => $productBreakdowns,
             ];
         }
 

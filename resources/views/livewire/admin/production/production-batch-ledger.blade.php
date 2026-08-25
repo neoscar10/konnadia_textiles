@@ -630,10 +630,10 @@
             </div>
         </div>
 
-        <!-- Master All Rolls Audit Table -->
+        <!-- Master All Rolls & Itemized Product Unit Cost Audit Table -->
         <div class="pt-2">
             <div class="flex justify-between items-center mb-3">
-                <h4 class="font-bold text-sm text-primary uppercase tracking-wider">All Fabric Rolls Summary Audit ({{ count($allRollsSummary) }} Rolls Used)</h4>
+                <h4 class="font-bold text-sm text-primary uppercase tracking-wider">Roll-by-Roll Product Manufacturing Cost Matrix ({{ count($allRollsSummary) }} Rolls Used)</h4>
                 @if(!empty($filterRollId))
                     <button type="button" wire:click="$set('filterRollId', '')" class="text-xs font-bold text-secondary hover:underline flex items-center gap-1">
                         <span class="material-symbols-outlined text-[14px]">clear</span> Show All Rolls
@@ -645,45 +645,75 @@
                     <thead>
                         <tr class="bg-surface-container-low border-b border-outline-variant/60 text-[10px] text-on-surface-variant uppercase font-bold">
                             <th class="px-4 py-3">Bale & Roll #</th>
-                            <th class="px-4 py-3 text-center">Fabric Consumed</th>
+                            <th class="px-4 py-3">Product SKU Cut</th>
                             <th class="px-4 py-3 text-center">Output Yield</th>
-                            <th class="px-4 py-3 text-center text-error">Wastage Qty / Roll</th>
-                            <th class="px-4 py-3 text-right text-error">Wastage Cost / Roll</th>
-                            <th class="px-4 py-3 text-right">Total Roll Cost</th>
-                            <th class="px-4 py-3 text-center">Action</th>
+                            <th class="px-4 py-3 text-right">Fabric Cost</th>
+                            <th class="px-4 py-3 text-right">Labor Wages</th>
+                            <th class="px-4 py-3 text-right text-error">Roll Wastage Loss</th>
+                            <th class="px-4 py-3 text-right font-black text-primary">Total Roll Product Cost</th>
+                            <th class="px-4 py-3 text-right font-black text-secondary">Unit Cost / Pc from Roll</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-outline-variant/40">
                         @forelse($allRollsSummary as $rSum)
-                            <tr class="hover:bg-surface-container/40 transition-colors {{ (int)$filterRollId === (int)$rSum['roll_id'] ? 'bg-primary/10 font-bold' : '' }}">
-                                <td class="px-4 py-3">
-                                    <span class="font-extrabold text-on-surface text-sm">Roll #{{ $rSum['roll_number'] }}</span>
-                                    <span class="text-[10px] text-outline font-mono block">Bale: {{ $rSum['bale_number'] }}</span>
-                                </td>
-                                <td class="px-4 py-3 text-center font-bold text-secondary">
-                                    {{ number_format($rSum['consumed_qty'], 2) }}
-                                </td>
-                                <td class="px-4 py-3 text-center font-bold text-primary">
-                                    {{ number_format($rSum['produced_qty']) }} Pcs
-                                </td>
-                                <td class="px-4 py-3 text-center font-bold text-error">
-                                    {{ number_format($rSum['wasted_qty'], 2) }}
-                                </td>
-                                <td class="px-4 py-3 text-right font-black text-error">
-                                    ₹{{ number_format($rSum['wastage_cost'], 2) }}
-                                </td>
-                                <td class="px-4 py-3 text-right font-black text-primary">
-                                    ₹{{ number_format($rSum['total_roll_cost'] ?? $rSum['total_cost'] ?? 0, 2) }}
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <button type="button" wire:click="$set('filterRollId', {{ $rSum['roll_id'] }})" class="px-3 py-1 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg text-[11px] font-bold transition-all">
-                                        Inspect →
-                                    </button>
-                                </td>
-                            </tr>
+                            @if(!empty($rSum['product_breakdowns']))
+                                @foreach($rSum['product_breakdowns'] as $pIdx => $pBk)
+                                    <tr class="hover:bg-surface-container/40 transition-colors {{ (int)$filterRollId === (int)$rSum['roll_id'] ? 'bg-primary/10' : '' }}">
+                                        @if($pIdx === 0)
+                                            <td class="px-4 py-3 font-semibold border-r border-outline-variant/30 align-top" rowspan="{{ count($rSum['product_breakdowns']) }}">
+                                                <span class="font-extrabold text-on-surface text-sm">Roll #{{ $rSum['roll_number'] }}</span>
+                                                <span class="text-[10px] text-outline font-mono block">Bale: {{ $rSum['bale_number'] }}</span>
+                                                <span class="text-[10px] text-secondary font-bold block mt-0.5">Consumed: {{ number_format($rSum['consumed_qty'], 2) }} units</span>
+                                                <button type="button" wire:click="$set('filterRollId', {{ $rSum['roll_id'] }})" class="mt-2 px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg text-[10px] font-bold transition-all block">
+                                                    Inspect Roll →
+                                                </button>
+                                            </td>
+                                        @endif
+                                        <td class="px-4 py-3">
+                                            <p class="font-bold text-on-surface text-sm">{{ $pBk['product_name'] }}</p>
+                                            <span class="text-[10px] text-outline font-mono">{{ $pBk['product_code'] }}</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-bold text-primary">
+                                            {{ number_format($pBk['quantity_produced']) }} Pcs
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-medium text-on-surface-variant">
+                                            ₹{{ number_format($pBk['fabric_cost'], 2) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-medium text-on-surface-variant">
+                                            ₹{{ number_format($pBk['labor_cost'], 2) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-bold text-error">
+                                            ₹{{ number_format($pBk['wastage_cost'], 2) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-black text-primary text-sm">
+                                            ₹{{ number_format($pBk['total_cost'], 2) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right">
+                                            <span class="px-2.5 py-1 rounded-xl bg-secondary/10 text-secondary font-black text-xs border border-secondary/20 inline-block">
+                                                ₹{{ number_format($pBk['unit_cost'], 2) }} / Pc
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            @else
+                                <tr class="hover:bg-surface-container/40 transition-colors {{ (int)$filterRollId === (int)$rSum['roll_id'] ? 'bg-primary/10' : '' }}">
+                                    <td class="px-4 py-3">
+                                        <span class="font-extrabold text-on-surface text-sm">Roll #{{ $rSum['roll_number'] }}</span>
+                                        <span class="text-[10px] text-outline font-mono block">Bale: {{ $rSum['bale_number'] }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-outline italic">No products cut yet</td>
+                                    <td class="px-4 py-3 text-center font-bold text-outline">0 Pcs</td>
+                                    <td class="px-4 py-3 text-right text-on-surface-variant">₹{{ number_format($rSum['material_cost'], 2) }}</td>
+                                    <td class="px-4 py-3 text-right text-on-surface-variant">₹{{ number_format($rSum['labor_cost'], 2) }}</td>
+                                    <td class="px-4 py-3 text-right text-error font-bold">₹{{ number_format($rSum['wastage_cost'], 2) }}</td>
+                                    <td class="px-4 py-3 text-right font-black text-primary">₹{{ number_format($rSum['total_roll_cost'], 2) }}</td>
+                                    <td class="px-4 py-3 text-right text-outline italic">N/A</td>
+                                </tr>
+                            @endif
+                        @forelse($allRollsSummary as $rSum_dummy)
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-8 text-center text-outline italic">No fabric rolls linked or recorded for this batch.</td>
+                                <td colspan="8" class="px-4 py-8 text-center text-outline italic">No fabric rolls linked or recorded for this batch.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -731,20 +761,27 @@
                                     <tr class="bg-surface-container-low border-b border-outline-variant/60 text-[10px] text-on-surface-variant uppercase font-bold">
                                         <th class="px-3 py-2">Product Name</th>
                                         <th class="px-3 py-2 text-center">Qty Produced</th>
-                                        <th class="px-3 py-2 text-right">Calculated Unit Cost</th>
+                                        <th class="px-3 py-2 text-right">Unit Cost / Pc</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-outline-variant/40">
                                     @forelse($rollData['outputs'] as $out)
                                         @php
-                                            $proportion = $rollData['total_produced'] > 0 ? ($out->quantity_produced / $rollData['total_produced']) : 0;
-                                            $apportionedCost = $rollData['total_cost'] * $proportion;
-                                            $unitCost = $out->quantity_produced > 0 ? ($apportionedCost / $out->quantity_produced) : 0;
+                                            $totalRollProd = max(1, $rollData['total_produced']);
+                                            $proportion = $out->quantity_produced / $totalRollProd;
+                                            $outFabricCost = (float) $out->total_fabric_cost > 0 ? (float) $out->total_fabric_cost : round($rollData['material_cost'] * $proportion, 2);
+                                            $outLaborCost = round($rollData['labor_cost'] * $proportion, 2);
+                                            $outWastageCost = round($rollData['wastage_cost'] * $proportion, 2);
+                                            $totalOutCost = $outFabricCost + $outLaborCost + $outWastageCost;
+                                            $unitCost = $out->quantity_produced > 0 ? ($totalOutCost / $out->quantity_produced) : 0;
                                         @endphp
                                         <tr class="hover:bg-surface-container/30">
-                                            <td class="px-3 py-2.5 font-bold">{{ $out->manufacturingProduct?->name }}</td>
+                                            <td class="px-3 py-2.5 font-bold">
+                                                <p class="text-on-surface">{{ $out->manufacturingProduct?->name }}</p>
+                                                <span class="text-[10px] text-outline font-mono">{{ $out->manufacturingProduct?->code }}</span>
+                                            </td>
                                             <td class="px-3 py-2.5 text-center font-extrabold text-primary">{{ number_format($out->quantity_produced) }} Pcs</td>
-                                            <td class="px-3 py-2.5 text-right font-black text-secondary">₹{{ number_format($unitCost, 2) }}</td>
+                                            <td class="px-3 py-2.5 text-right font-black text-secondary">₹{{ number_format($unitCost, 2) }} / Pc</td>
                                         </tr>
                                     @empty
                                         <tr><td colspan="3" class="px-3 py-6 text-center italic text-outline">No products recorded as produced from this roll yet.</td></tr>
