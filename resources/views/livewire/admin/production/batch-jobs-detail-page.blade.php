@@ -202,7 +202,7 @@
                                 </div>
 
                                 <!-- Scrollable Product Options List -->
-                                <div class="max-h-56 overflow-y-auto divide-y divide-outline-variant/30 font-body-md text-xs">
+                                <div @wheel.stop @touchmove.stop class="max-h-60 overflow-y-auto overscroll-contain divide-y divide-outline-variant/30 font-body-md text-xs">
                                     @forelse($storefrontProducts as $sp)
                                         <div x-show="!search || '{{ strtolower(addslashes(($sp->title ?? $sp->name) . ' ' . $sp->sku)) }}'.includes(search.toLowerCase())"
                                              @click="$wire.set('target_product_id', {{ $sp->id }}); open = false"
