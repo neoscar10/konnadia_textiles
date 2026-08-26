@@ -27,6 +27,15 @@ class OrderItemResource extends JsonResource
         $conversionToBase = (float) ($this->unit_conversion_quantity ?: 1.0);
         $baseQty = (int) ($this->quantity * $conversionToBase);
 
+        $statusValue = $this->status ?: 'pending_dispatch';
+        $statusLabel = match($statusValue) {
+            'dispatched' => 'Dispatched',
+            'partially_dispatched' => 'Partially Dispatched',
+            'allocated' => 'Allocated',
+            'cancelled' => 'Cancelled',
+            default => 'Pending Dispatch',
+        };
+
         return [
             'id' => $this->id,
             'product' => [
@@ -47,7 +56,19 @@ class OrderItemResource extends JsonResource
                 'label' => ($this->unit_name ?: 'Piece') . ' (' . round($conversionToBase) . ' ' . ($conversionToBase == 1 ? 'Pc' : 'Pcs') . ')',
             ],
             'quantity' => (int) $this->quantity,
+            'quantity_lvl1' => $this->quantity_lvl1 !== null ? (float)$this->quantity_lvl1 : null,
+            'quantity_lvl2' => $this->quantity_lvl2 !== null ? (float)$this->quantity_lvl2 : null,
             'base_quantity' => $baseQty,
+            'status' => [
+                'value' => $statusValue,
+                'label' => $statusLabel,
+            ],
+            'dispatch' => [
+                'dispatch_number' => $this->dispatch_number,
+                'dispatch_note' => $this->dispatch_note,
+                'dispatched_at' => $this->dispatched_at ? $this->dispatched_at->toIso8601String() : null,
+                'dispatched_at_formatted' => $this->dispatched_at ? $this->dispatched_at->format('M d, Y g:i A') : null,
+            ],
             'hsn_code' => $this->hsn_code,
             'pricing' => [
                 'base_unit_price' => (float) $this->base_unit_price,
