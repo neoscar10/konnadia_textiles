@@ -33,8 +33,15 @@
             <div>
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ $brand }}</span>
                 <h2 class="text-xl font-extrabold text-[#001229] mt-0.5">{{ $title }}</h2>
+                @php
+                    $badgeClasses = match($stockStatus) {
+                        'out_of_stock' => 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/50',
+                        'low_stock' => 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/50',
+                        default => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50',
+                    };
+                @endphp
                 <div class="flex items-center gap-3 mt-2">
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $stockStatus === 'out_of_stock' ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/50' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50' }}">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $badgeClasses }}">
                         {{ $stockLabel }}
                     </span>
                     <span class="text-xs text-slate-500 font-medium">SKU: {{ $currentSku }}</span>

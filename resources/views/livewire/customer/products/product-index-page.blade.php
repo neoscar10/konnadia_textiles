@@ -93,6 +93,10 @@
                             <span>In Stock Only</span>
                         </label>
                         <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer">
+                            <input type="radio" wire:model.live="availability" value="low_stock" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">
+                            <span>Low Stock Only</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer">
                             <input type="radio" wire:model.live="availability" value="out_of_stock" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">
                             <span>Out of Stock Only</span>
                         </label>
@@ -205,6 +209,8 @@
                             :moq="$prod['minimum_order_quantity']" 
                             :image="$prod['primary_image_url']" 
                             :inStock="$prod['stock']['status'] !== 'out_of_stock'"
+                            :stockStatus="$prod['stock']['status']"
+                            :stockLabel="$prod['stock']['label']"
                             :url="route('customer.products.show', $prod['slug'])"
                             :productId="$prod['id']"
                         />
@@ -524,6 +530,10 @@
                         <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer">
                             <input type="radio" wire:model.live="availability" value="in_stock" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">
                             <span>In Stock Only</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer">
+                            <input type="radio" wire:model.live="availability" value="low_stock" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">
+                            <span>Low Stock Only</span>
                         </label>
                         <label class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 cursor-pointer">
                             <input type="radio" wire:model.live="availability" value="out_of_stock" class="rounded-full border-outline-variant text-[#001229] focus:ring-gold focus:ring-offset-0">

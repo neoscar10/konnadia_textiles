@@ -74,20 +74,61 @@ class ProductCatalogService
 
         // Availability filter
         if (!empty($filters['availability'])) {
-            $avail = $filters['availability'];
+            $rawAvail = $filters['availability'];
+            $avail = null;
+            if (is_bool($rawAvail)) {
+                $avail = $rawAvail ? 'in_stock' : 'out_of_stock';
+            } else {
+                $val = strtolower(trim((string)$rawAvail));
+                if (in_array($val, ['in_stock', 'instock', 'in-stock', '1', 'true', 'yes'], true)) {
+                    $avail = 'in_stock';
+                } elseif (in_array($val, ['out_of_stock', 'outofstock', 'out-of-stock', '0', 'false', 'no'], true)) {
+                    $avail = 'out_of_stock';
+                } elseif (in_array($val, ['low_stock', 'lowstock', 'low-stock'], true)) {
+                    $avail = 'low_stock';
+                }
+            }
+
             if ($avail === 'in_stock') {
                 $query->where(function ($q) {
-                    $q->where('stock_quantity', '>', 0)
+                    $q->where('product_type', 'manufactured')
+                      ->orWhereNull('stock_quantity')
+                      ->orWhere('stock_quantity', '>', 0)
                       ->orWhereHas('combinations', function ($sq) {
                           $sq->where('stock_quantity', '>', 0)->where('is_active', true);
                       });
                 });
             } elseif ($avail === 'out_of_stock') {
                 $query->where(function ($q) {
-                    $q->where('stock_quantity', 0)
-                      ->whereDoesntHave('combinations', function ($sq) {
-                          $sq->where('stock_quantity', '>', 0)->where('is_active', true);
-                      });
+                    $q->where(function ($sub) {
+                        $sub->where(function ($typeSub) {
+                            $typeSub->where('product_type', '!=', 'manufactured')
+                                    ->orWhereNull('product_type');
+                        })
+                        ->where(function ($qZero) {
+                            $qZero->whereNotNull('stock_quantity')
+                                  ->where('stock_quantity', '<=', 0);
+                        });
+                    })
+                    ->whereDoesntHave('combinations', function ($sq) {
+                        $sq->where('stock_quantity', '>', 0)->where('is_active', true);
+                    });
+                });
+            } elseif ($avail === 'low_stock') {
+                $query->where(function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->where(function ($typeSub) {
+                            $typeSub->where('product_type', '!=', 'manufactured')
+                                    ->orWhereNull('product_type');
+                        })
+                        ->where('stock_quantity', '>', 0)
+                        ->where('stock_quantity', '<=', 10);
+                    })
+                    ->orWhereHas('combinations', function ($sq) {
+                        $sq->where('stock_quantity', '>', 0)
+                           ->where('stock_quantity', '<=', 10)
+                           ->where('is_active', true);
+                    });
                 });
             }
         }

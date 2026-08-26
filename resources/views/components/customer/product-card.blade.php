@@ -5,9 +5,21 @@
     'moq' => 10,
     'image',
     'inStock' => true,
+    'stockStatus' => 'in_stock',
+    'stockLabel' => 'In Stock',
     'url' => '#',
     'productId' => null
 ])
+
+@php
+    $effectiveStatus = $stockStatus ?? ($inStock ? 'in_stock' : 'out_of_stock');
+    $effectiveLabel = $stockLabel ?? ($effectiveStatus === 'out_of_stock' ? 'Out of Stock' : ($effectiveStatus === 'low_stock' ? 'Low Stock' : 'In Stock'));
+    $badgeClasses = match($effectiveStatus) {
+        'out_of_stock' => 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/50',
+        'low_stock' => 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/50',
+        default => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50',
+    };
+@endphp
 
 <div class="bg-white rounded-xl border border-outline-variant/30 shadow-ambient overflow-hidden flex flex-col hover:shadow-md transition-shadow group">
     <!-- Image Area -->
@@ -15,8 +27,8 @@
         <img src="{{ $image }}" alt="{{ $title }}" class="max-w-full max-h-full object-contain group-hover:scale-102 transition-transform duration-300">
         
         <!-- Stock Badge -->
-        <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $inStock ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/50' }}">
-            {{ $inStock ? 'In Stock' : 'Out of Stock' }}
+        <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $badgeClasses }}">
+            {{ $effectiveLabel }}
         </span>
     </a>
 
