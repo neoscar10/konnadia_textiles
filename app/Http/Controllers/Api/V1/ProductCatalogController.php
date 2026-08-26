@@ -96,21 +96,69 @@ class ProductCatalogController extends Controller implements HasMiddleware
                     });
                 }
             })
-            ->when(!empty($filters['availability']), function ($q) use ($filters) {
-                $avail = $filters['availability'];
+            ->when(true, function ($q) use ($request) {
+                // Resolve stock availability filter flexibly across all parameter aliases & formats
+                $rawAvail = $request->input('availability') 
+                    ?? $request->input('stock_status') 
+                    ?? ($request->has('in_stock') ? $request->input('in_stock') : null)
+                    ?? ($request->has('in_stock_only') ? $request->input('in_stock_only') : null);
+
+                $avail = null;
+                if ($rawAvail !== null && $rawAvail !== '') {
+                    if (is_bool($rawAvail)) {
+                        $avail = $rawAvail ? 'in_stock' : 'out_of_stock';
+                    } else {
+                        $val = strtolower(trim((string)$rawAvail));
+                        if (in_array($val, ['in_stock', 'instock', 'in-stock', '1', 'true', 'yes'], true)) {
+                            $avail = 'in_stock';
+                        } elseif (in_array($val, ['out_of_stock', 'outofstock', 'out-of-stock', '0', 'false', 'no'], true)) {
+                            $avail = 'out_of_stock';
+                        } elseif (in_array($val, ['low_stock', 'lowstock', 'low-stock'], true)) {
+                            $avail = 'low_stock';
+                        }
+                    }
+                }
+
                 if ($avail === 'in_stock') {
                     $q->where(function ($sq) {
-                        $sq->where('stock_quantity', '>', 0)
+                        $sq->where('product_type', 'manufactured')
+                          ->orWhereNull('stock_quantity')
+                          ->orWhere('stock_quantity', '>', 0)
                           ->orWhereHas('combinations', function ($cc) {
                               $cc->where('stock_quantity', '>', 0)->where('is_active', true);
                           });
                     });
                 } elseif ($avail === 'out_of_stock') {
                     $q->where(function ($sq) {
-                        $sq->where('stock_quantity', 0)
-                          ->whereDoesntHave('combinations', function ($cc) {
-                              $cc->where('stock_quantity', '>', 0)->where('is_active', true);
-                          });
+                        $sq->where(function ($sub) {
+                            $sub->where(function ($typeSub) {
+                                $typeSub->where('product_type', '!=', 'manufactured')
+                                        ->orWhereNull('product_type');
+                            })
+                            ->where(function ($qZero) {
+                                $qZero->whereNotNull('stock_quantity')
+                                      ->where('stock_quantity', '<=', 0);
+                            });
+                        })
+                        ->whereDoesntHave('combinations', function ($cc) {
+                            $cc->where('stock_quantity', '>', 0)->where('is_active', true);
+                        });
+                    });
+                } elseif ($avail === 'low_stock') {
+                    $q->where(function ($sq) {
+                        $sq->where(function ($sub) {
+                            $sub->where(function ($typeSub) {
+                                $typeSub->where('product_type', '!=', 'manufactured')
+                                        ->orWhereNull('product_type');
+                            })
+                            ->where('stock_quantity', '>', 0)
+                            ->where('stock_quantity', '<=', 10);
+                        })
+                        ->orWhereHas('combinations', function ($cc) {
+                            $cc->where('stock_quantity', '>', 0)
+                               ->where('stock_quantity', '<=', 10)
+                               ->where('is_active', true);
+                        });
                     });
                 }
             })
