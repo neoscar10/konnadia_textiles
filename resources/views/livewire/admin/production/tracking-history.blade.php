@@ -53,68 +53,70 @@
 
     <!-- Data Table -->
     <div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden shadow-sm">
-        <table class="w-full text-left border-collapse font-body-md">
-            <thead>
-                <tr class="bg-surface-container-low border-b border-outline-variant">
-                    <th class="px-3 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-36 whitespace-nowrap">Date & Time</th>
-                    <th class="px-4 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider min-w-[200px] whitespace-nowrap">Batch & Job ID</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Labor Worker</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Task Stage</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Product</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center">Qty Processed</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Calculated Wage</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-outline-variant">
-                @forelse($allocations as $allocation)
-                    <tr class="hover:bg-surface-container transition-colors">
-                        <td class="px-3 py-4 text-xs font-mono text-on-surface-variant whitespace-nowrap">
-                            {{ $allocation->created_at ? $allocation->created_at->format('d M Y, h:i A') : '-' }}
-                        </td>
-                        <td class="px-4 py-4 whitespace-nowrap">
-                            <p class="font-bold text-primary text-sm whitespace-nowrap">{{ $allocation->job_id }}</p>
-                            @if($allocation->production_batch_id)
-                                <p class="text-xs font-mono text-outline whitespace-nowrap">{{ $allocation->production_batch_id }}</p>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4">
-                            <p class="font-bold text-on-surface text-sm">{{ $allocation->labor?->name ?? 'Unknown Worker' }}</p>
-                            <span class="text-xs text-outline">{{ $allocation->labor?->code }}</span>
-                            @if($allocation->labor?->payment_method === 'monthly_salary')
-                                <span class="ml-2 bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold">Monthly</span>
-                            @else
-                                <span class="ml-2 bg-secondary/10 text-secondary px-2 py-0.5 rounded text-[10px] font-bold">Piece Rate</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 bg-surface-container-high rounded-full text-xs font-bold text-on-surface">
-                                {{ $allocation->task?->name ?? 'Task #'.$allocation->task_id }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-on-surface-variant">
-                            {{ $allocation->manufacturingProduct?->name ?? ($allocation->manufacturing_product_id ? 'Product #'.$allocation->manufacturing_product_id : 'N/A') }}
-                        </td>
-                        <td class="px-6 py-4 text-center font-bold text-on-surface">
-                            {{ number_format($allocation->quantity_processed) }} <span class="text-xs font-normal text-outline">Units</span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            @if(is_null($allocation->calculated_wage))
-                                <span class="text-xs text-outline italic">Salaried (No Piece Rate)</span>
-                            @else
-                                <span class="font-bold text-secondary text-base">₹{{ number_format($allocation->calculated_wage, 2) }}</span>
-                            @endif
-                        </td>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse font-body-md">
+                <thead>
+                    <tr class="bg-surface-container-low border-b border-outline-variant">
+                        <th class="px-4 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Date & Time</th>
+                        <th class="px-4 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider min-w-[180px] whitespace-nowrap">Batch & Job ID</th>
+                        <th class="px-4 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Labor Worker</th>
+                        <th class="px-4 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Task Stage</th>
+                        <th class="px-4 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Product</th>
+                        <th class="px-4 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center whitespace-nowrap">Qty Processed</th>
+                        <th class="px-4 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right whitespace-nowrap">Calculated Wage</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-on-surface-variant">
-                            <span class="material-symbols-outlined text-4xl text-outline mb-2">assignment_late</span>
-                            <p class="font-body-lg text-body-lg">No labor production tracking records found.</p>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="divide-y divide-outline-variant">
+                    @forelse($allocations as $allocation)
+                        <tr class="hover:bg-surface-container transition-colors">
+                            <td class="px-4 py-4 text-xs font-mono text-on-surface-variant whitespace-nowrap">
+                                {{ $allocation->created_at ? $allocation->created_at->format('d M Y, h:i A') : '-' }}
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <p class="font-bold text-primary text-sm whitespace-nowrap">{{ $allocation->job_id }}</p>
+                                @if($allocation->production_batch_id)
+                                    <p class="text-xs font-mono text-outline whitespace-nowrap">{{ $allocation->production_batch_id }}</p>
+                                @endif
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <p class="font-bold text-on-surface text-sm whitespace-nowrap">{{ $allocation->labor?->name ?? 'Unknown Worker' }}</p>
+                                <span class="text-xs text-outline">{{ $allocation->labor?->code }}</span>
+                                @if($allocation->labor?->payment_method === 'monthly_salary')
+                                    <span class="ml-2 bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap">Monthly</span>
+                                @else
+                                    <span class="ml-2 bg-secondary/10 text-secondary px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap">Piece Rate</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 bg-surface-container-high rounded-full text-xs font-bold text-on-surface whitespace-nowrap">
+                                    {{ $allocation->task?->name ?? 'Task #'.$allocation->task_id }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-4 text-sm text-on-surface-variant whitespace-nowrap">
+                                {{ $allocation->manufacturingProduct?->name ?? ($allocation->manufacturing_product_id ? 'Product #'.$allocation->manufacturing_product_id : 'N/A') }}
+                            </td>
+                            <td class="px-4 py-4 text-center font-bold text-on-surface whitespace-nowrap">
+                                {{ number_format($allocation->quantity_processed) }} <span class="text-xs font-normal text-outline">Units</span>
+                            </td>
+                            <td class="px-4 py-4 text-right whitespace-nowrap">
+                                @if(is_null($allocation->calculated_wage))
+                                    <span class="text-xs text-outline italic whitespace-nowrap">Salaried (No Piece Rate)</span>
+                                @else
+                                    <span class="font-bold text-secondary text-base whitespace-nowrap">₹{{ number_format($allocation->calculated_wage, 2) }}</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-6 py-12 text-center text-on-surface-variant">
+                                <span class="material-symbols-outlined text-4xl text-outline mb-2">assignment_late</span>
+                                <p class="font-body-lg text-body-lg">No labor production tracking records found.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
         @if($allocations->hasPages())
             <div class="px-6 py-4 bg-surface-container-low border-t border-outline-variant">
