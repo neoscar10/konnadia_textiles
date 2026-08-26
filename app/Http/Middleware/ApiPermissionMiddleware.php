@@ -26,7 +26,14 @@ class ApiPermissionMiddleware
         }
 
         // Check if user has explicit permission
-        if (!$user->hasPermissionTo($permission, 'web') && !$user->hasPermissionTo($permission, 'api')) {
+        $hasPerm = false;
+        try {
+            $hasPerm = $user->hasPermissionTo($permission, 'api') || $user->hasPermissionTo($permission, 'web');
+        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist $e) {
+            $hasPerm = false;
+        }
+
+        if (!$hasPerm) {
             return response()->json([
                 'success' => false,
                 'message' => "Access denied. You do not have permission to access '{$permission}'.",

@@ -263,4 +263,157 @@ class AdminLaborController extends Controller
             'message' => "Labor record \"{$name}\" ({$code}) deleted successfully.",
         ]);
     }
+
+    /**
+     * Get detailed Worker Profile, Earnings, and Performance Analytics (Replicates LaborDetail.php web page).
+     */
+    public function detailStats(Request $request, int $id): JsonResponse
+    {
+        $labor = Labor::with('tasks')->findOrFail($id);
+
+        $query = \App\Models\JobLaborAllocation::where('labor_id', $id)
+            ->with(['task', 'productionJob', 'inventoryBaleRoll.bale', 'manufacturingProduct']);
+
+        // Handle Date Preset
+        $preset = $request->query('preset');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+
+        if ($preset === 'this_month') {
+            $dateFrom = \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d');
+            $dateTo = \Carbon\Carbon::now()->endOfDay()->format('Y-m-d');
+        } elseif ($preset === 'last_30') {
+            $dateFrom = \Carbon\Carbon::now()->subDays(30)->format('Y-m-d');
+            $dateTo = \Carbon\Carbon::now()->endOfDay()->format('Y-m-d');
+        } elseif ($preset === 'this_year') {
+            $dateFrom = \Carbon\Carbon::now()->startOfYear()->format('Y-m-d');
+            $dateTo = \Carbon\Carbon::now()->endOfDay()->format('Y-m-d');
+        }
+
+        if ($dateFrom) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        // Filters
+        if ($request->filled('batch_filter')) {
+            $batchF = trim($request->query('batch_filter'));
+            $query->where(function ($q) use ($batchF) {
+                $q->where('production_batch_id', 'like', "%{$batchF}%")
+                  ->orWhere('job_id', 'like', "%{$batchF}%");
+            });
+        }
+
+        if ($request->filled('task_filter')) {
+            $query->where('task_id', (int) $request->query('task_filter'));
+        }
+
+        if ($request->filled('search')) {
+            $search = trim($request->query('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('job_id', 'like', "%{$search}%")
+                  ->orWhere('production_batch_id', 'like', "%{$search}%")
+                  ->orWhereHas('manufacturingProduct', fn($pq) => $pq->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"));
+            });
+        }
+
+        // Clone query to compute totals across filtered dataset
+        $allAllocations = (clone $query)->get();
+
+        $totalPieces = (int) $allAllocations->sum('quantity_processed');
+        $totalDirectWages = (float) $allAllocations->sum('calculated_wage');
+
+        $totalJobCostValue = 0.0;
+        foreach ($allAllocations as $alloc) {
+            $rate = (float) ($alloc->piece_rate ?? $alloc->rate_per_piece ?? 0);
+            if ($rate <= 0 && $alloc->manufacturingProduct) {
+                $rate = (float) $alloc->manufacturingProduct->getStandardLaborRateForTask($alloc->task_id);
+            }
+            $totalJobCostValue += round((float)$alloc->quantity_processed * $rate, 2);
+        }
+
+        $uniqueBatches = $allAllocations->pluck('production_batch_id')->filter()->unique();
+        $uniqueJobs = $allAllocations->pluck('job_id')->filter()->unique();
+
+        // Batch Breakdown Array
+        $batchBreakdown = [];
+        $groupedByBatch = $allAllocations->groupBy('production_batch_id');
+        foreach ($groupedByBatch as $batchCode => $items) {
+            $bPieces = $items->sum('quantity_processed');
+            $bWages = $items->sum('calculated_wage');
+            $bValuation = 0.0;
+            foreach ($items as $it) {
+                $r = (float) ($it->piece_rate ?? $it->rate_per_piece ?? 0);
+                if ($r <= 0 && $it->manufacturingProduct) {
+                    $r = (float) $it->manufacturingProduct->getStandardLaborRateForTask($it->task_id);
+                }
+                $bValuation += round((float)$it->quantity_processed * $r, 2);
+            }
+
+            $batchBreakdown[] = [
+                'batch_code' => $batchCode ?: 'General Batch',
+                'total_pieces' => (int) $bPieces,
+                'total_wages' => (float) $bWages,
+                'total_valuation' => (float) $bValuation,
+                'jobs_count' => $items->pluck('job_id')->unique()->count(),
+            ];
+        }
+
+        $perPage = (int) $request->query('per_page', 15);
+        $paginator = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'worker' => new AdminLaborResource($labor),
+            'performance_metrics' => [
+                'total_pieces_processed' => $totalPieces,
+                'total_direct_wages' => $totalDirectWages,
+                'total_job_cost_valuation' => $totalJobCostValue,
+                'total_batches_count' => $uniqueBatches->count(),
+                'total_jobs_count' => $uniqueJobs->count(),
+                'batch_breakdown' => array_values($batchBreakdown),
+            ],
+            'data' => $paginator->getCollection()->map(fn($alloc) => [
+                'id' => $alloc->id,
+                'job_code' => $alloc->job_id,
+                'production_batch_id' => $alloc->production_batch_id,
+                'task_name' => $alloc->task ? $alloc->task->name : 'N/A',
+                'manufacturing_product_title' => $alloc->manufacturingProduct ? $alloc->manufacturingProduct->title : 'N/A',
+                'quantity_processed' => (int) $alloc->quantity_processed,
+                'piece_rate' => (float) ($alloc->piece_rate ?? $alloc->rate_per_piece ?? 0),
+                'calculated_wage' => (float) $alloc->calculated_wage,
+                'created_at' => $alloc->created_at ? $alloc->created_at->toIso8601String() : null,
+            ]),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
+    }
+
+    /**
+     * Get aggregate Labor Payroll & Wage summary.
+     */
+    public function payrollSummary(Request $request): JsonResponse
+    {
+        $totalMonthlySalary = (float) Labor::where('status', true)->where('payment_method', 'monthly_salary')->sum('monthly_salary');
+        $totalPieceRateWages = (float) \App\Models\JobLaborAllocation::sum('calculated_wage');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_laborers' => Labor::count(),
+                'active_laborers' => Labor::where('status', true)->count(),
+                'inactive_laborers' => Labor::where('status', false)->count(),
+                'monthly_salary_obligations' => $totalMonthlySalary,
+                'piece_rate_wages_earned' => $totalPieceRateWages,
+                'formatted_monthly_salary' => '₹' . number_format($totalMonthlySalary, 2),
+                'formatted_piece_rate_wages' => '₹' . number_format($totalPieceRateWages, 2),
+            ],
+        ]);
+    }
 }

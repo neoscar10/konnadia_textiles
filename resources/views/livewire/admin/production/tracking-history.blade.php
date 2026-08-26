@@ -56,8 +56,8 @@
         <table class="w-full text-left border-collapse font-body-md">
             <thead>
                 <tr class="bg-surface-container-low border-b border-outline-variant">
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Date & Time</th>
-                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Batch & Job ID</th>
+                    <th class="px-3 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-36 whitespace-nowrap">Date & Time</th>
+                    <th class="px-4 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider min-w-[200px] whitespace-nowrap">Batch & Job ID</th>
                     <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Labor Worker</th>
                     <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Task Stage</th>
                     <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Product</th>
@@ -68,13 +68,13 @@
             <tbody class="divide-y divide-outline-variant">
                 @forelse($allocations as $allocation)
                     <tr class="hover:bg-surface-container transition-colors">
-                        <td class="px-6 py-4 text-xs font-mono text-on-surface-variant whitespace-nowrap">
+                        <td class="px-3 py-4 text-xs font-mono text-on-surface-variant whitespace-nowrap">
                             {{ $allocation->created_at ? $allocation->created_at->format('d M Y, h:i A') : '-' }}
                         </td>
-                        <td class="px-6 py-4">
-                            <p class="font-bold text-primary text-sm">{{ $allocation->job_id }}</p>
+                        <td class="px-4 py-4 whitespace-nowrap">
+                            <p class="font-bold text-primary text-sm whitespace-nowrap">{{ $allocation->job_id }}</p>
                             @if($allocation->production_batch_id)
-                                <p class="text-xs font-mono text-outline">{{ $allocation->production_batch_id }}</p>
+                                <p class="text-xs font-mono text-outline whitespace-nowrap">{{ $allocation->production_batch_id }}</p>
                             @endif
                         </td>
                         <td class="px-6 py-4">

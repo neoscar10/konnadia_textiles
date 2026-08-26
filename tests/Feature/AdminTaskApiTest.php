@@ -24,9 +24,12 @@ class AdminTaskApiTest extends TestCase
 
         Role::firstOrCreate(['name' => 'super_admin']);
         Role::firstOrCreate(['name' => 'admin']);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'access production', 'guard_name' => 'web']);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'access production', 'guard_name' => 'api']);
 
         $this->admin = User::factory()->create(['is_active' => true]);
         $this->admin->assignRole('admin');
+        $this->admin->givePermissionTo('access production');
 
         $this->category = RawMaterialCategory::create([
             'name' => 'Fabric Category',

@@ -125,6 +125,11 @@ class ProductionJob extends Model
         return $this->hasMany(JobLaborAllocation::class, 'job_id', 'job_code');
     }
 
+    public function laborAllocations()
+    {
+        return $this->allocations();
+    }
+
     /**
      * Get all material consumptions for this job.
      */
@@ -139,6 +144,11 @@ class ProductionJob extends Model
     public function productOutputs()
     {
         return $this->hasMany(JobProductionOutput::class, 'production_job_id');
+    }
+
+    public function outputs()
+    {
+        return $this->productOutputs();
     }
 
     /**

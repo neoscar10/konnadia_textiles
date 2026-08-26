@@ -31,8 +31,12 @@ class AdminManufacturingProductApiTest extends TestCase
         $this->seed(\Database\Seeders\RoleSeeder::class);
         $this->seed(\Database\Seeders\FactoryRolesSeeder::class);
 
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'access production', 'guard_name' => 'web']);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'access production', 'guard_name' => 'api']);
+
         $this->admin = User::factory()->create(['is_active' => true]);
         $this->admin->assignRole('admin');
+        $this->admin->givePermissionTo('access production');
 
         $this->category = ManufacturingProductCategory::create([
             'name' => 'Bedding & Linen',
