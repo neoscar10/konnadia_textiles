@@ -82,15 +82,23 @@ class OtpService
             return true;
         }
 
+        $timeout = config('services.waty.timeout', 15);
+        $retryTimes = (int) env('WATY_WHATSAPP_RETRY_TIMES', 2);
+        $retrySleepMs = (int) env('WATY_WHATSAPP_RETRY_SLEEP_MS', 200);
+
         try {
-            $response = Http::acceptJson()
-                ->post(rtrim($baseUrl, '/') . '/otp/send', [
-                    'api_token'          => $apiToken,
-                    'otp_account'        => $otpAccount,
-                    'phone_number'       => $formattedPhone,
-                    'otp_code'           => (string) $otpCode,
-                    'admin_phone_number' => $adminPhone,
-                ]);
+            $httpRequest = Http::acceptJson()->timeout($timeout);
+            if ($retryTimes > 0) {
+                $httpRequest->retry($retryTimes, $retrySleepMs);
+            }
+
+            $response = $httpRequest->post(rtrim($baseUrl, '/') . '/otp/send', [
+                'api_token'          => $apiToken,
+                'otp_account'        => $otpAccount,
+                'phone_number'       => $formattedPhone,
+                'otp_code'           => (string) $otpCode,
+                'admin_phone_number' => $adminPhone,
+            ]);
 
             if ($response->successful() && $response->json('success') === true) {
                 Log::info("[Waty OTP] Successfully sent WhatsApp OTP to {$formattedPhone} (Message ID: " . $response->json('message_id') . ").");
