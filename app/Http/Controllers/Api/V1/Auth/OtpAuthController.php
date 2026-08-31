@@ -52,7 +52,7 @@ class OtpAuthController extends Controller
             return $this->errorResponse('Failed to send OTP.', [], 400);
         }
 
-        return $this->successResponse('OTP sent successfully. Any 6-digit code will pass.', [
+        return $this->successResponse('OTP sent successfully via WhatsApp.', [
             'login' => $validated['login'],
         ]);
     }

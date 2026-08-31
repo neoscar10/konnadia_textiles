@@ -76,7 +76,7 @@ class OtpAuthApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'OTP sent successfully. Any 6-digit code will pass.');
+            ->assertJsonPath('message', 'OTP sent successfully via WhatsApp.');
     }
 
     /**
@@ -175,5 +175,43 @@ class OtpAuthApiTest extends TestCase
         ]);
 
         $response->assertStatus(403);
+    }
+
+    /**
+     * Test Waty WhatsApp API POST request structure.
+     */
+    public function test_waty_whatsapp_otp_api_is_called(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'https://bizlawn.storesite.in/api/otp/send' => \Illuminate\Support\Facades\Http::response([
+                'success' => true,
+                'message' => 'OTP sent successfully via WhatsApp.',
+                'message_id' => 'wamid.HBgNMjM0NzA2MTgxNjEyMxUCABEYEjI2MDI4RjA1MzRDNEUzMkJEMAA=',
+            ], 200),
+        ]);
+
+        config([
+            'services.waty.api_token' => 'test_waty_api_token_123',
+            'services.waty.otp_account' => 'mobile_app',
+            'services.waty.admin_phone_number' => '+919911041964',
+        ]);
+
+        $this->createCustomer(['mobile_number' => '9911041964'], ['mobile_number' => '9911041964']);
+
+        $response = $this->postJson('/api/v1/auth/otp/send', [
+            'login' => '9911041964',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        \Illuminate\Support\Facades\Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+            return $request->url() === 'https://bizlawn.storesite.in/api/otp/send' &&
+                $request['api_token'] === 'test_waty_api_token_123' &&
+                $request['otp_account'] === 'mobile_app' &&
+                $request['phone_number'] === '+919911041964' &&
+                !empty($request['otp_code']) &&
+                $request['admin_phone_number'] === '+919911041964';
+        });
     }
 }

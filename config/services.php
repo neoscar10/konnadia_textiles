@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'waty' => [
+        'base_url' => env('WATY_API_BASE_URL', 'https://bizlawn.storesite.in/api'),
+        'api_token' => env('WATY_API_TOKEN'),
+        'otp_account' => env('WATY_OTP_ACCOUNT', 'mobile_app'),
+        'admin_phone_number' => env('WATY_ADMIN_PHONE_NUMBER'),
+    ],
+
 ];
