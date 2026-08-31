@@ -68,8 +68,9 @@ class OrderStatusService
             throw new \InvalidArgumentException("Invalid status transition from {$order->status} to {$toStatus}.");
         }
 
-        return DB::transaction(function () use ($order, $toStatus, $changedBy, $note, $metadata) {
-            $fromStatus = $order->status;
+        $fromStatus = $order->status;
+
+        $result = DB::transaction(function () use ($order, $toStatus, $changedBy, $note, $metadata, $fromStatus) {
             $order->status = $toStatus;
 
             // Set timestamps based on status
@@ -94,6 +95,75 @@ class OrderStatusService
 
             return $order;
         });
+
+        if ($fromStatus !== $toStatus) {
+            $this->notifyUserOfStatusChange($result, $fromStatus, $toStatus, $note);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Send Push, WhatsApp, and DB Notification when an admin updates order status.
+     */
+    protected function notifyUserOfStatusChange(Order $order, string $fromStatus, string $toStatus, ?string $note = null): void
+    {
+        $user = $order->customer?->user ?? $order->user;
+        if (!$user) {
+            return;
+        }
+
+        $statusLabel = $this->getStatusLabel($toStatus);
+
+        // 1. In-App Database Notification
+        try {
+            $user->notify(new \App\Notifications\OrderStatusUpdatedNotification($order, $fromStatus, $toStatus, $statusLabel, $note));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("[OrderStatusService] DB notification error: " . $e->getMessage());
+        }
+
+        // 2. FCM Push Notification (Mobile App)
+        try {
+            $tokens = $user->deviceTokens()->pluck('device_token')->toArray();
+            if (!empty($tokens)) {
+                $fcmService = app(\App\Services\Notification\FcmPushNotificationService::class);
+                $title = "Order Status Updated: #{$order->order_number}";
+                $body = "Your order #{$order->order_number} status is now {$statusLabel}.";
+                if ($note) {
+                    $body .= " Note: {$note}";
+                }
+                $fcmService->sendPush($tokens, $title, $body, [
+                    'type' => 'order_status_updated',
+                    'order_id' => (string) $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $toStatus,
+                    'status_label' => $statusLabel,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("[OrderStatusService] FCM push error: " . $e->getMessage());
+        }
+
+        // 3. WhatsApp Cloud API Notification (Pluggable / Handled Gracefully)
+        try {
+            $phone = $user->mobile_number ?? $order->customer?->mobile_number;
+            if ($phone) {
+                $whatsAppService = app(\App\Services\Notification\WhatsAppNotificationService::class);
+                $templateName = config('services.whatsapp.order_status_template', env('WHATSAPP_ORDER_STATUS_TEMPLATE', 'order_status_update'));
+                
+                $whatsAppService->sendTemplateMessage(
+                    $phone,
+                    $templateName,
+                    [
+                        $order->order_number,
+                        $statusLabel,
+                        url("/portal/orders/{$order->order_number}")
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("[OrderStatusService] WhatsApp notification error: " . $e->getMessage());
+        }
     }
 
     /**
