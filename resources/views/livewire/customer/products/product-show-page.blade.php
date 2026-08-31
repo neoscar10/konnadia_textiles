@@ -284,44 +284,128 @@
                         class="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold text-white transition-colors shadow-sm {{ $isPurchasable ? 'bg-[#001229] hover:bg-slate-800' : 'bg-slate-300 cursor-not-allowed' }}">
                     <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Wholesale Cart
                 </button>
+
+                @if(!$isPurchasable)
+                <button type="button" 
+                        wire:click="openStockReminderModal"
+                        class="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors shadow-sm mt-2">
+                    <span class="material-symbols-outlined text-sm">notifications_active</span> Notify Me When In Stock
+                </button>
+                @endif
             </x-customer.card>
             @else
             <x-customer.card bodyClass="p-5 text-center space-y-4">
-                <span class="material-symbols-outlined text-4xl text-gold">lock</span>
-                <h5 class="text-sm font-bold text-[#001229]">Wholesale Ordering Restricted</h5>
-                <p class="text-xs text-slate-500 leading-relaxed">Please sign in to your B2B account to customize quantities and add items to your wholesale cart.</p>
-                <a href="{{ route('login') }}" class="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold text-white bg-[#001229] hover:bg-slate-800 transition-colors shadow-sm">
-                    <span class="material-symbols-outlined text-sm">login</span> Sign In to Order
-                </a>
+                @if(!$isPurchasable)
+                    <span class="material-symbols-outlined text-4xl text-amber-500">notifications_active</span>
+                    <h5 class="text-sm font-bold text-[#001229]">Item Currently Out of Stock</h5>
+                    <p class="text-xs text-slate-500 leading-relaxed">Leave your contact details and we will send a notification as soon as this item is back in stock.</p>
+                    <button type="button" 
+                            wire:click="openStockReminderModal"
+                            class="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors shadow-sm">
+                        <span class="material-symbols-outlined text-sm">notifications_active</span> Notify Me When In Stock
+                    </button>
+                @else
+                    <span class="material-symbols-outlined text-4xl text-gold">lock</span>
+                    <h5 class="text-sm font-bold text-[#001229]">Wholesale Ordering Restricted</h5>
+                    <p class="text-xs text-slate-500 leading-relaxed">Please sign in to your B2B account to customize quantities and add items to your wholesale cart.</p>
+                    <a href="{{ route('login') }}" class="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold text-white bg-[#001229] hover:bg-slate-800 transition-colors shadow-sm">
+                        <span class="material-symbols-outlined text-sm">login</span> Sign In to Order
+                    </a>
+                @endif
             </x-customer.card>
             @endauth
         </div>
 
     </div>
 
-    <!-- Mobile Sticky Footer Add to Cart Bar -->
+    <!-- Mobile Sticky Footer Add to Cart / Reminder Bar -->
     @auth
     <div class="lg:hidden fixed bottom-16 left-0 right-0 bg-white border-t border-outline-variant/30 p-4 z-40 flex items-center justify-between shadow-ambient">
         <div>
             <span class="text-[10px] text-slate-400 font-semibold block uppercase">Total Subtotal</span>
             <span class="text-base font-black text-[#001229]">₹{{ number_format($total, 2) }}</span>
         </div>
-        <button type="button" 
-                wire:click="addToCart"
-                @if(!$isPurchasable) disabled @endif
-                class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white {{ $isPurchasable ? 'bg-[#001229]' : 'bg-slate-300 cursor-not-allowed' }}">
-            <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Cart
-        </button>
+        @if($isPurchasable)
+            <button type="button" 
+                    wire:click="addToCart"
+                    class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-[#001229]">
+                <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Cart
+            </button>
+        @else
+            <button type="button" 
+                    wire:click="openStockReminderModal"
+                    class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-amber-600">
+                <span class="material-symbols-outlined text-sm">notifications_active</span> Notify Me
+            </button>
+        @endif
     </div>
     @else
     <div class="lg:hidden fixed bottom-16 left-0 right-0 bg-white border-t border-outline-variant/30 p-4 z-40 flex items-center justify-between shadow-ambient">
         <div>
-            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Ordering Restricted</span>
-            <span class="text-xs text-slate-500 font-bold">Please log in to purchase</span>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">{{ $isPurchasable ? 'Ordering Restricted' : 'Item Out of Stock' }}</span>
+            <span class="text-xs text-slate-500 font-bold">{{ $isPurchasable ? 'Please log in to purchase' : 'Set stock alert' }}</span>
         </div>
-        <a href="{{ route('login') }}" class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-[#001229]">
-            <span class="material-symbols-outlined text-sm">login</span> Log In
-        </a>
+        @if(!$isPurchasable)
+            <button type="button" 
+                    wire:click="openStockReminderModal"
+                    class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-amber-600">
+                <span class="material-symbols-outlined text-sm">notifications_active</span> Notify Me
+            </button>
+        @else
+            <a href="{{ route('login') }}" class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-[#001229]">
+                <span class="material-symbols-outlined text-sm">login</span> Sign In
+            </a>
+        @endif
     </div>
     @endauth
+
+    <!-- Guest Reminder Modal -->
+    @if($showGuestReminderModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-outline-variant/20">
+            <div class="flex items-center justify-between border-b pb-3">
+                <div class="flex items-center gap-2 text-[#001229]">
+                    <span class="material-symbols-outlined text-amber-600 text-2xl">notifications_active</span>
+                    <h3 class="text-base font-bold">Set Stock Reminder</h3>
+                </div>
+                <button type="button" wire:click="$set('showGuestReminderModal', false)" class="text-slate-400 hover:text-slate-700">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Enter your phone number or email. We will automatically notify you when <strong>{{ $title }}</strong> is restocked!
+            </p>
+
+            <form wire:submit.prevent="submitGuestStockReminder" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number*</label>
+                    <input type="text" 
+                           wire:model="guestPhoneNumber" 
+                           placeholder="+91 9876543210" 
+                           class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:ring-amber-500 focus:border-amber-500">
+                    @error('guestPhoneNumber') <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Email Address (Optional)</label>
+                    <input type="email" 
+                           wire:model="guestEmail" 
+                           placeholder="you@example.com" 
+                           class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:ring-amber-500 focus:border-amber-500">
+                    @error('guestEmail') <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" wire:click="$set('showGuestReminderModal', false)" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 shadow-sm flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">notifications_active</span> Set Reminder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
 </div>

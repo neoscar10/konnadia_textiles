@@ -20,7 +20,7 @@ class CartItemResource extends JsonResource
         
         $imageUrl = $primaryImage
             ? (str_starts_with($primaryImage, 'http') ? $primaryImage : url(Storage::url($primaryImage)))
-            : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=160';
+            : url('/images/product-placeholder.svg');
 
         $availService = app(\App\Services\Portal\ProductAvailabilityService::class);
         $avail = $this->combination 

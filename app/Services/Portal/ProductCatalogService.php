@@ -252,7 +252,7 @@ class ProductCatalogService
         // Format primary image URL
         $primaryImageUrl = $primaryImage 
             ? (str_starts_with($primaryImage, 'http') ? $primaryImage : Storage::url($primaryImage))
-            : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400';
+            : url('/images/product-placeholder.svg');
 
         $categories = $product->categories->map(fn($cat) => [
             'id' => $cat->id,
@@ -311,7 +311,7 @@ class ProductCatalogService
         if (empty($media)) {
             $media[] = [
                 'id' => 0,
-                'url' => 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800',
+                'url' => url('/images/product-placeholder.svg'),
                 'is_primary' => true,
                 'sort_order' => 0
             ];

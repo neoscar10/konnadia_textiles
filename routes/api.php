@@ -9,12 +9,24 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/otp/send', [\App\Http\Controllers\Api\V1\Auth\OtpAuthController::class, 'send']);
     Route::post('/auth/otp/login', [\App\Http\Controllers\Api\V1\Auth\OtpAuthController::class, 'login']);
     Route::post('/contact', [\App\Http\Controllers\Api\V1\PublicContactController::class, 'submit']);
+    Route::post('/products/{product}/stock-reminder/guest', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'store']);
 
     Route::middleware('auth:api')->group(function () {
         Route::get('/auth/me', [MobileAuthController::class, 'me']);
         Route::post('/auth/logout', [MobileAuthController::class, 'logout']);
         Route::post('/auth/refresh', [MobileAuthController::class, 'refresh']);
         Route::post('/auth/change-password', [MobileAuthController::class, 'changePassword']);
+
+        // FCM Device Token Registration for Push Notifications
+        Route::get('/user/device-tokens', [\App\Http\Controllers\Api\V1\DeviceTokenController::class, 'index']);
+        Route::post('/user/device-tokens', [\App\Http\Controllers\Api\V1\DeviceTokenController::class, 'store']);
+        Route::delete('/user/device-tokens', [\App\Http\Controllers\Api\V1\DeviceTokenController::class, 'destroy']);
+
+        // Out-of-Stock Reminders API
+        Route::get('/stock-reminders', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'index']);
+        Route::post('/stock-reminders', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'store']);
+        Route::post('/products/{product}/stock-reminder', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'store']);
+        Route::delete('/stock-reminders/{id}', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'destroy']);
 
         // Product Catalog API
         Route::get('/products', [\App\Http\Controllers\Api\V1\ProductCatalogController::class, 'index']);

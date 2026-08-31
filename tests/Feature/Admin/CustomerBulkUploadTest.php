@@ -46,7 +46,7 @@ class CustomerBulkUploadTest extends TestCase
                 'gst_number' => '12ABCDE3456F7GZ',
                 'contact_person' => 'Raj Kumar',
                 'mobile_number' => '9988776655',
-                'email' => '', // blank email (warning)
+                'email' => 'raj.kumar@example.com',
                 'customer_level_name' => 'Wholesale Distributor',
                 'credit_limit' => '', // blank limit (warning)
                 'allow_credit_beyond_limit' => 'No',
@@ -60,7 +60,7 @@ class CustomerBulkUploadTest extends TestCase
 
         $this->assertTrue($validated[0]['is_valid']);
         $this->assertCount(0, $validated[0]['errors']);
-        $this->assertCount(3, $validated[0]['warnings']); // email blank, limit blank, password blank
+        $this->assertCount(2, $validated[0]['warnings']); // limit blank, password blank
     }
 
     public function test_bulk_row_validation_detects_missing_required_fields()
@@ -72,7 +72,7 @@ class CustomerBulkUploadTest extends TestCase
                 'gst_number' => '', // error
                 'contact_person' => 'Raj Kumar',
                 'mobile_number' => '', // error
-                'email' => 'raj@test.com',
+                'email' => '', // error
                 'customer_level_name' => 'Invalid Level', // error
                 'credit_limit' => '1000',
                 'allow_credit_beyond_limit' => 'No',
@@ -88,6 +88,7 @@ class CustomerBulkUploadTest extends TestCase
         $this->assertContains('Company Name is required.', $validated[0]['errors']);
         $this->assertContains('GST Number is required.', $validated[0]['errors']);
         $this->assertContains('Mobile Number is required.', $validated[0]['errors']);
+        $this->assertContains('Email Address is required.', $validated[0]['errors']);
         $this->assertContains('Customer Level "Invalid Level" was not found.', $validated[0]['errors']);
     }
 

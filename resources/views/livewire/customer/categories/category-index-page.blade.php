@@ -21,7 +21,7 @@
         @forelse($categories as $cat)
             <x-customer.category-card 
                 :name="$cat->name" 
-                :image="$cat->image ? asset('storage/' . $cat->image) : 'https://images.unsplash.com/photo-1490114538077-0a7f8cb49891?w=600'" 
+                :image="$cat->image ? asset('storage/' . $cat->image) : asset('images/product-placeholder.svg')" 
                 :count="$cat->products_count" 
                 :url="route('customer.products.index', ['category' => $cat->id])"
             />

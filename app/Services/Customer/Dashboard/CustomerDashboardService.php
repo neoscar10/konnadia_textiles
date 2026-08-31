@@ -141,7 +141,7 @@ class CustomerDashboardService
             }
             $imageUrl = $primaryImage
                 ? (str_starts_with($primaryImage, 'http') ? $primaryImage : \Illuminate\Support\Facades\Storage::url($primaryImage))
-                : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100';
+                : url('/images/product-placeholder.svg');
 
             $itemsData[] = [
                 'id' => $item->id,

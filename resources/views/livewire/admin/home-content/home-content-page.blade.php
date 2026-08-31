@@ -832,7 +832,7 @@
                                                         $primaryImage = $prod->primaryMedia ? $prod->primaryMedia->file_path : null;
                                                         $imageUrl = $primaryImage 
                                                             ? (str_starts_with($primaryImage, 'http') ? $primaryImage : Storage::disk('public')->url($primaryImage)) 
-                                                            : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100';
+                                                            : asset('images/product-placeholder.svg');
                                                     @endphp
                                                     <img src="{{ $imageUrl }}" class="w-10 h-10 object-cover rounded-lg border bg-slate-50">
                                                     <div>
@@ -1181,7 +1181,7 @@
                                                         $primaryImage = $p->primaryMedia ? $p->primaryMedia->file_path : null;
                                                         $imageUrl = $primaryImage 
                                                             ? (str_starts_with($primaryImage, 'http') ? $primaryImage : asset('storage/' . $primaryImage)) 
-                                                            : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100';
+                                                            : asset('images/product-placeholder.svg');
                                                     @endphp
                                                     <img src="{{ $imageUrl }}" class="w-full h-16 object-cover rounded-lg border border-white/5 bg-slate-800">
                                                     <div class="space-y-1">
@@ -1214,7 +1214,7 @@
                                                             $primaryImage = $p->primaryMedia ? $p->primaryMedia->file_path : null;
                                                             $imageUrl = $primaryImage 
                                                                 ? (str_starts_with($primaryImage, 'http') ? $primaryImage : asset('storage/' . $primaryImage)) 
-                                                                : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100';
+                                                                : asset('images/product-placeholder.svg');
                                                         @endphp
                                                         <img src="{{ $imageUrl }}" class="w-full h-16 object-cover rounded-lg border border-white/5 bg-slate-800">
                                                         <div class="space-y-1">

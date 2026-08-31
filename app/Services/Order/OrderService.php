@@ -216,7 +216,7 @@ class OrderService
         $firstItem = $order->items->first();
         $firstItemData = null;
         if ($firstItem) {
-            $imageUrl = 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=120';
+            $imageUrl = url('/images/product-placeholder.svg');
             if ($firstItem->product && $firstItem->product->primaryMedia) {
                 $path = $firstItem->product->primaryMedia->file_path;
                 $imageUrl = str_starts_with($path, 'http') ? $path : url(Storage::url($path));
@@ -260,7 +260,7 @@ class OrderService
     protected function formatOrderDetail(Order $order): array
     {
         $items = $order->items->map(function ($item) {
-            $imageUrl = 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100';
+            $imageUrl = url('/images/product-placeholder.svg');
             if ($item->product) {
                 $primaryMedia = $item->product->primaryMedia;
                 if ($primaryMedia) {

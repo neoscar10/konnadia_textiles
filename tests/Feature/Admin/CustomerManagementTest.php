@@ -141,10 +141,25 @@ class CustomerManagementTest extends TestCase
             ->set('form.gst_number', '12ABCDE3456F7GH')
             ->set('form.contact_person', 'John Doe')
             ->set('form.mobile_number', '9876543210')
+            ->set('form.email', 'unique_mobile_test@test.com')
             ->set('form.customer_level_id', $this->level->id)
             ->set('form.credit_limit', 600000)
             ->call('save')
             ->assertHasErrors(['form.mobile_number']);
+    }
+
+    public function test_email_is_required_for_customer_creation()
+    {
+        Livewire::actingAs($this->superAdmin)
+            ->test(CustomerIndexPage::class)
+            ->set('form.company_name', 'Test Company No Email')
+            ->set('form.gst_number', '12ABCDE3456F9GH')
+            ->set('form.contact_person', 'No Email Person')
+            ->set('form.mobile_number', '9876543299')
+            ->set('form.email', '') // Empty email
+            ->set('form.customer_level_id', $this->level->id)
+            ->call('save')
+            ->assertHasErrors(['form.email']);
     }
 
     public function test_customer_can_be_updated_including_user_details()

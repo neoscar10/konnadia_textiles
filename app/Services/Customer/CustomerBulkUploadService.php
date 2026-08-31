@@ -48,7 +48,9 @@ class CustomerBulkUploadService
             'Contact Person' => 'contact_person',
             'Mobile Number *' => 'mobile_number',
             'Mobile Number' => 'mobile_number',
+            'Email Address *' => 'email',
             'Email Address' => 'email',
+            'Email *' => 'email',
             'Email' => 'email',
             'Customer Level *' => 'customer_level_name',
             'Customer Level' => 'customer_level_name',
@@ -140,6 +142,9 @@ class CustomerBulkUploadService
         if (empty($row['mobile_number'])) {
             $errors[] = 'Mobile Number is required.';
         }
+        if (empty($row['email'])) {
+            $errors[] = 'Email Address is required.';
+        }
         if (empty($row['customer_level_name'])) {
             $errors[] = 'Customer Level is required.';
         }
@@ -207,9 +212,6 @@ class CustomerBulkUploadService
             $errors[] = 'Duplicate Email Address in uploaded file.';
         }
 
-        if (empty($row['email'])) {
-            $warnings[] = 'Email is blank. Customer can still be created.';
-        }
         if (empty($row['credit_limit'])) {
             if ($level) {
                 $warnings[] = 'Credit Limit is blank. Default level credit limit (₹' . number_format($level->default_credit_limit, 2) . ') will be used.';

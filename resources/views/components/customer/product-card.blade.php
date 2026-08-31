@@ -67,15 +67,21 @@
             <a href="{{ $url }}" class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-[#001229] border border-outline-variant/50 hover:bg-slate-50 transition-colors rounded-lg">
                 <span class="material-symbols-outlined text-sm">visibility</span> View
             </a>
-            @auth
-                <button type="button" @if($productId) wire:click.prevent="handleAddClick({{ $productId }})" @endif class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold bg-[#001229] text-white hover:bg-slate-800 transition-colors rounded-lg">
-                    <span class="material-symbols-outlined text-sm">shopping_cart</span> Add
+            @if(!$inStock)
+                <button type="button" @if($productId) wire:click.prevent="handleAddClick({{ $productId }})" @endif class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition-colors rounded-lg">
+                    <span class="material-symbols-outlined text-sm">notifications_active</span> Notify Me
                 </button>
             @else
-                <a href="{{ route('login') }}" class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold bg-[#001229] text-white hover:bg-slate-800 transition-colors rounded-lg">
-                    <span class="material-symbols-outlined text-sm">login</span> Login
-                </a>
-            @endauth
+                @auth
+                    <button type="button" @if($productId) wire:click.prevent="handleAddClick({{ $productId }})" @endif class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold bg-[#001229] text-white hover:bg-slate-800 transition-colors rounded-lg">
+                        <span class="material-symbols-outlined text-sm">shopping_cart</span> Add
+                    </button>
+                @else
+                    <a href="{{ route('login') }}" class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold bg-[#001229] text-white hover:bg-slate-800 transition-colors rounded-lg">
+                        <span class="material-symbols-outlined text-sm">login</span> Login
+                    </a>
+                @endauth
+            @endif
         </div>
     </div>
 </div>

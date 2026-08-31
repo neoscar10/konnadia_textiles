@@ -68,17 +68,23 @@ class ProductIndexPage extends Component
         'selectedTags' => ['except' => []],
     ];
 
+    public $quickAddGuestPhoneNumber = '';
+    public $quickAddGuestEmail = '';
+
     public function handleAddClick($productId, ProductCatalogService $catalogService)
     {
         $user = auth()->user();
-        if (!$user) {
+        $product = \App\Models\Product::with(['units', 'variationGroups.values.media', 'combinations'])->findOrFail($productId);
+        
+        $availService = app(\App\Services\Portal\ProductAvailabilityService::class);
+        $availability = $availService->getProductAvailability($product);
+
+        if (!$user && $availability['is_purchasable']) {
             $this->dispatch('toast', type: 'error', message: 'Please log in to purchase products.');
             return;
         }
-        $product = \App\Models\Product::with(['units', 'variationGroups.values.media', 'combinations'])->findOrFail($productId);
 
-        // Always open the modal so the user can confirm quantity,
-        // even if the product has no variant groups.
+        // Always open the modal so the user can confirm quantity/unit or set stock reminder
         $this->quickAddProductId = $productId;
         $this->quickAddProduct = $product;
         $this->quickAddSelectedValues = [];
@@ -363,6 +369,52 @@ class ProductIndexPage extends Component
             $this->showQuickAddModal = false;
         } catch (\Exception $e) {
             $this->dispatch('toast', type: 'error', message: $e->getMessage());
+        }
+    }
+
+    public function subscribeQuickAddStockReminder(?\App\Services\Inventory\StockReminderService $reminderService = null, ?ProductCatalogService $catalogService = null)
+    {
+        $reminderService = $reminderService ?? app(\App\Services\Inventory\StockReminderService::class);
+        $catalogService = $catalogService ?? app(ProductCatalogService::class);
+
+        $user = auth()->user();
+        if (!$user) {
+            $this->validate([
+                'quickAddGuestPhoneNumber' => 'required|string|min:8|max:20',
+                'quickAddGuestEmail'       => 'nullable|email',
+            ]);
+        }
+
+        if (!$this->quickAddProduct) return;
+
+        $combination = $catalogService->resolveSelectedCombination($this->quickAddProduct, $this->quickAddSelectedValues);
+
+        $selectedUnitId = !empty($this->quickAddQueuedItems) 
+            ? array_key_first($this->quickAddQueuedItems)
+            : null;
+
+        if (!$selectedUnitId) {
+            $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
+            $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
+            $selectedUnitId = $lvl2 ? $lvl2['id'] : ($lvl1 ? $lvl1['id'] : null);
+        }
+
+        try {
+            $reminderService->createReminder([
+                'product_id'             => $this->quickAddProductId,
+                'product_combination_id' => $combination?->id,
+                'product_unit_id'        => $selectedUnitId,
+                'phone_number'           => $user ? null : $this->quickAddGuestPhoneNumber,
+                'email'                  => $user ? null : $this->quickAddGuestEmail,
+            ], $user);
+
+            $this->showQuickAddModal = false;
+            $this->quickAddGuestPhoneNumber = '';
+            $this->quickAddGuestEmail = '';
+
+            $this->dispatch('toast', type: 'success', message: 'Stock reminder set! We will notify you when this item becomes available.');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', type: 'error', message: 'Unable to set stock reminder: ' . $e->getMessage());
         }
     }
 

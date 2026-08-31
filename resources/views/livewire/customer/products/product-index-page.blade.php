@@ -441,17 +441,43 @@
                             <span class="text-[#001229]">₹{{ number_format($quickAddTotal, 2) }}</span>
                         </div>
                     </div>
+                    @if(!$quickAddIsPurchasable)
+                        @guest
+                            <div class="bg-amber-50/70 border border-amber-200/60 rounded-xl p-3.5 space-y-2 mt-3">
+                                <span class="text-xs font-bold text-amber-800 block">Set Stock Alert Contact Details</span>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Phone Number*</label>
+                                        <input type="text" wire:model="quickAddGuestPhoneNumber" placeholder="+91 9876543210" class="w-full text-xs bg-white border border-slate-300 rounded-lg p-2 focus:ring-amber-500">
+                                        @error('quickAddGuestPhoneNumber') <span class="text-rose-600 text-[10px] font-bold mt-0.5 block">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Email (Optional)</label>
+                                        <input type="email" wire:model="quickAddGuestEmail" placeholder="you@example.com" class="w-full text-xs bg-white border border-slate-300 rounded-lg p-2 focus:ring-amber-500">
+                                        @error('quickAddGuestEmail') <span class="text-rose-600 text-[10px] font-bold mt-0.5 block">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        @endguest
+                    @endif
                 </div>
 
                 <!-- Footer -->
                 <div class="px-5 py-3.5 sm:px-6 sm:py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50 shrink-0">
                     <button type="button" wire:click="$set('showQuickAddModal', false)" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-700 border border-outline-variant/30 hover:bg-slate-100 transition-colors bg-white shadow-xs">Cancel</button>
-                    <button type="button" 
-                            wire:click="addVariantToCart"
-                            @if(!$quickAddIsPurchasable) disabled @endif
-                            class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white transition-colors shadow-sm {{ $quickAddIsPurchasable ? 'bg-[#001229] hover:bg-slate-800' : 'bg-slate-300 cursor-not-allowed' }}">
-                        <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Cart
-                    </button>
+                    @if(!$quickAddIsPurchasable)
+                        <button type="button" 
+                                wire:click="subscribeQuickAddStockReminder"
+                                class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors shadow-sm">
+                            <span class="material-symbols-outlined text-sm">notifications_active</span> Set Stock Reminder
+                        </button>
+                    @else
+                        <button type="button" 
+                                wire:click="addVariantToCart"
+                                class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-[#001229] hover:bg-slate-800 transition-colors shadow-sm">
+                            <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Cart
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>

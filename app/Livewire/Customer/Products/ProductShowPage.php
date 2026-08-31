@@ -12,6 +12,7 @@ use App\Services\Portal\CustomerPricingService;
 use App\Services\Portal\ProductAvailabilityService;
 use App\Services\Portal\ProductUnitPricingService;
 use App\Services\Cart\CartService;
+use App\Services\Inventory\StockReminderService;
 use Illuminate\Validation\ValidationException;
 
 #[Layout('components.customer.layout')]
@@ -82,7 +83,7 @@ class ProductShowPage extends Component
         $this->combinations = $detail['combinations'];
         $this->units = $detail['units'];
         
-        $this->activeImage = !empty($this->media) ? $this->media[0]['url'] : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800';
+        $this->activeImage = !empty($this->media) ? $this->media[0]['url'] : url('/images/product-placeholder.svg');
 
         $this->selectedValues = [];
         foreach ($this->variations as $group) {
@@ -412,6 +413,84 @@ class ProductShowPage extends Component
         } catch (ValidationException $e) {
             $firstError = collect($e->errors())->flatten()->first();
             $this->dispatch('toast', type: 'error', message: $firstError);
+        }
+    }
+
+    // Guest Reminder Modal State
+    public $showGuestReminderModal = false;
+    public $guestPhoneNumber = '';
+    public $guestEmail = '';
+
+    public function openStockReminderModal()
+    {
+        if (auth()->check()) {
+            $this->subscribeStockReminder(app(StockReminderService::class), app(ProductCatalogService::class));
+        } else {
+            $this->showGuestReminderModal = true;
+        }
+    }
+
+    public function submitGuestStockReminder(?StockReminderService $reminderService = null, ?ProductCatalogService $catalogService = null)
+    {
+        $reminderService = $reminderService ?? app(StockReminderService::class);
+        $catalogService = $catalogService ?? app(ProductCatalogService::class);
+
+        $this->validate([
+            'guestPhoneNumber' => 'required|string|min:8|max:20',
+            'guestEmail'       => 'nullable|email',
+        ]);
+
+        $product = Product::find($this->productId);
+        if (!$product) return;
+
+        $combination = $catalogService->resolveSelectedCombination($product, $this->selectedValues);
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        $lvl1 = collect($this->units)->firstWhere('level', 1);
+        $selectedUnitId = $lvl2 ? $lvl2['id'] : ($lvl1 ? $lvl1['id'] : null);
+
+        try {
+            $reminderService->createReminder([
+                'product_id'             => $this->productId,
+                'product_combination_id' => $combination?->id,
+                'product_unit_id'        => $selectedUnitId,
+                'phone_number'           => $this->guestPhoneNumber,
+                'email'                  => $this->guestEmail,
+            ], null);
+
+            $this->showGuestReminderModal = false;
+            $this->guestPhoneNumber = '';
+            $this->guestEmail = '';
+
+            $this->dispatch('toast', type: 'success', message: 'Stock reminder set! We will notify you when this item becomes available.');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', type: 'error', message: 'Unable to set stock reminder: ' . $e->getMessage());
+        }
+    }
+
+    public function subscribeStockReminder(?StockReminderService $reminderService = null, ?ProductCatalogService $catalogService = null)
+    {
+        $reminderService = $reminderService ?? app(StockReminderService::class);
+        $catalogService = $catalogService ?? app(ProductCatalogService::class);
+
+        $user = auth()->user();
+        $product = Product::find($this->productId);
+        if (!$product) return;
+
+        $combination = $catalogService->resolveSelectedCombination($product, $this->selectedValues);
+        $lvl2 = collect($this->units)->firstWhere('level', 2);
+        $lvl1 = collect($this->units)->firstWhere('level', 1);
+        $selectedUnitId = $lvl2 ? $lvl2['id'] : ($lvl1 ? $lvl1['id'] : null);
+
+        try {
+            $reminderService->createReminder([
+                'product_id' => $this->productId,
+                'product_combination_id' => $combination?->id,
+                'product_unit_id' => $selectedUnitId,
+            ], $user);
+
+            $this->dispatch('toast', type: 'success', message: 'Stock reminder set! We will notify you when this item becomes available.');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', type: 'error', message: 'Unable to set stock reminder: ' . $e->getMessage());
         }
     }
 

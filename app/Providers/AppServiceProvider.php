@@ -25,5 +25,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole('super_admin') ? true : null;
         });
+
+        // Register Stock Replenishment Observers
+        \App\Models\Product::observe(\App\Observers\ProductStockObserver::class);
+        \App\Models\ProductCombination::observe(\App\Observers\ProductCombinationStockObserver::class);
     }
 }

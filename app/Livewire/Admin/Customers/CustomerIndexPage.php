@@ -105,7 +105,7 @@ class CustomerIndexPage extends Component
                 Rule::unique('users', 'mobile_number')->ignore($this->editingId ? Customer::find($this->editingId)?->user_id : null)
             ],
             'form.email' => [
-                'nullable', 
+                'required', 
                 'email', 
                 'max:150',
                 Rule::unique('customers', 'email')->ignore($this->editingId),
@@ -222,7 +222,7 @@ class CustomerIndexPage extends Component
             'editingRow.gst_number' => ['required', 'string', 'max:30'],
             'editingRow.contact_person' => ['required', 'string', 'max:150'],
             'editingRow.mobile_number' => ['required', 'string', 'max:30'],
-            'editingRow.email' => ['nullable', 'email', 'max:150'],
+            'editingRow.email' => ['required', 'email', 'max:150'],
             'editingRow.customer_level_name' => ['required', 'string'],
             'editingRow.credit_limit' => ['nullable', 'numeric', 'min:0'],
             'editingRow.password' => ['nullable', 'string', 'min:8'],

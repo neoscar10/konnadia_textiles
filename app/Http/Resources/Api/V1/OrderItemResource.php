@@ -19,9 +19,9 @@ class OrderItemResource extends JsonResource
             }
             $imageUrl = $primaryImage
                 ? (str_starts_with($primaryImage, 'http') ? $primaryImage : url(Storage::url($primaryImage)))
-                : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=160';
+                : url('/images/product-placeholder.svg');
         } else {
-            $imageUrl = 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=160';
+            $imageUrl = url('/images/product-placeholder.svg');
         }
 
         $conversionToBase = (float) ($this->unit_conversion_quantity ?: 1.0);

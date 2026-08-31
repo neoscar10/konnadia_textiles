@@ -41,7 +41,7 @@ class ProductDetailResource extends JsonResource
         if (empty($media)) {
             $media[] = [
                 'id' => 0,
-                'url' => 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800',
+                'url' => url('/images/product-placeholder.svg'),
                 'type' => 'image',
                 'mime_type' => 'image/jpeg',
                 'is_primary' => true,

@@ -75,7 +75,7 @@ class CartService
             }
             $imageUrl = $primaryImage
                 ? (str_starts_with($primaryImage, 'http') ? $primaryImage : Storage::url($primaryImage))
-                : 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=160';
+                : url('/images/product-placeholder.svg');
 
             $lvl1Unit = $product->units->where('level', 1)->first();
             $lvl2Unit = $product->units->where('level', 2)->first();

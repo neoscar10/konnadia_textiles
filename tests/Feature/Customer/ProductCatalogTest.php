@@ -126,4 +126,29 @@ class ProductCatalogTest extends TestCase
         $response->assertSee('Blue Shirt');
         $response->assertDontSee('Red Pants');
     }
+
+    public function test_customer_can_set_stock_reminder_from_shop_list_modal(): void
+    {
+        $outOfStock = Product::create([
+            'title' => 'Silk Dupatta OOS',
+            'sku' => 'SILK-OOS-01',
+            'base_price' => 1200,
+            'is_active' => true,
+            'stock_quantity' => 0,
+        ]);
+
+        \Livewire\Livewire::actingAs($this->user)
+            ->test(\App\Livewire\Customer\Products\ProductIndexPage::class)
+            ->call('handleAddClick', $outOfStock->id)
+            ->assertSet('showQuickAddModal', true)
+            ->call('subscribeQuickAddStockReminder')
+            ->assertSet('showQuickAddModal', false)
+            ->assertDispatched('toast');
+
+        $this->assertDatabaseHas('product_stock_reminders', [
+            'user_id' => $this->user->id,
+            'product_id' => $outOfStock->id,
+            'status' => 'pending',
+        ]);
+    }
 }

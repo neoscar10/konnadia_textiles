@@ -92,6 +92,16 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Order::class);
     }
 
+    public function deviceTokens()
+    {
+        return $this->hasMany(UserDeviceToken::class);
+    }
+
+    public function stockReminders()
+    {
+        return $this->hasMany(ProductStockReminder::class);
+    }
+
     /**
      * Get the user's initials based on customer company name or user name.
      */

@@ -26,7 +26,7 @@
             </div>
 
             <div class="space-y-xs md:col-span-2">
-                <label class="font-label-md text-on-surface-variant">Email Address</label>
+                <label class="font-label-md text-on-surface-variant">Email Address *</label>
                 <input type="email" wire:model="editingRow.email" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all">
                 @error('editingRow.email') <span class="text-error text-xs">{{ $message }}</span> @enderror
             </div>
