@@ -39,6 +39,7 @@ class StockReminderController extends Controller
                 'product_unit_id' => $r->product_unit_id,
                 'unit_name' => $r->unit ? $r->unit->name : null,
                 'unit_level' => $r->unit ? $r->unit->level : 1,
+                'quantity' => (float) $r->quantity,
                 'phone_number' => $r->phone_number,
                 'email' => $r->email,
                 'status' => $r->status,
@@ -56,6 +57,7 @@ class StockReminderController extends Controller
             'product_id'             => 'required|integer|exists:products,id',
             'product_combination_id' => 'nullable|integer|exists:product_combinations,id',
             'product_unit_id'        => 'nullable|integer|exists:product_units,id',
+            'quantity'               => 'nullable|numeric|min:0.01',
             'phone_number'           => 'nullable|string|max:30',
             'email'                  => 'nullable|email|max:255',
         ]);
@@ -71,6 +73,7 @@ class StockReminderController extends Controller
                 'product_id' => $reminder->product_id,
                 'product_combination_id' => $reminder->product_combination_id,
                 'product_unit_id' => $reminder->product_unit_id,
+                'quantity' => (float) $reminder->quantity,
                 'status' => $reminder->status,
             ],
         ], 201);

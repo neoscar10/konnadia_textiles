@@ -34,6 +34,7 @@ class StockReminderService
         $product = Product::findOrFail($payload['product_id']);
         $combinationId = isset($payload['product_combination_id']) ? (int)$payload['product_combination_id'] : null;
         $unitId = isset($payload['product_unit_id']) ? (int)$payload['product_unit_id'] : null;
+        $quantity = isset($payload['quantity']) ? (float)$payload['quantity'] : 1.0;
 
         $phone = $payload['phone_number'] ?? $user?->mobile_number ?? $user?->customer?->phone;
         $email = $payload['email'] ?? $user?->email;
@@ -62,6 +63,7 @@ class StockReminderService
 
         $existing = $query->first();
         if ($existing) {
+            $existing->update(['quantity' => $quantity]);
             return $existing;
         }
 
@@ -70,6 +72,7 @@ class StockReminderService
             'product_id'             => $product->id,
             'product_combination_id' => $combinationId,
             'product_unit_id'        => $unitId,
+            'quantity'               => $quantity,
             'phone_number'           => $phone,
             'email'                  => $email,
             'status'                 => 'pending',

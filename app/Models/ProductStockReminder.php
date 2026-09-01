@@ -15,6 +15,7 @@ class ProductStockReminder extends Model
         'product_id',
         'product_combination_id',
         'product_unit_id',
+        'quantity',
         'phone_number',
         'email',
         'status',
@@ -22,6 +23,7 @@ class ProductStockReminder extends Model
     ];
 
     protected $casts = [
+        'quantity' => 'float',
         'notified_at' => 'datetime',
     ];
 
