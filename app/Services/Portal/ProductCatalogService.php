@@ -244,6 +244,14 @@ class ProductCatalogService
         $pricing = $this->pricingService->calculateCustomerPrice($product, $user);
         $availability = $this->availabilityService->getProductAvailability($product);
         
+        $activeReminder = null;
+        if ($user) {
+            $activeReminder = \App\Models\ProductStockReminder::pending()
+                ->where('product_id', $product->id)
+                ->where('user_id', $user->id)
+                ->first();
+        }
+
         $primaryImage = $product->primaryMedia ? $product->primaryMedia->file_path : null;
         if (!$primaryImage && $product->media->first()) {
             $primaryImage = $product->media->first()->file_path;
@@ -271,6 +279,15 @@ class ProductCatalogService
             'sku' => $product->sku,
             'primary_image_url' => $primaryImageUrl,
             'categories' => $categories,
+            'has_active_reminder' => !empty($activeReminder),
+            'active_reminder' => $activeReminder ? [
+                'id' => $activeReminder->id,
+                'product_combination_id' => $activeReminder->product_combination_id,
+                'product_unit_id' => $activeReminder->product_unit_id,
+                'unit_name' => $activeReminder->unit ? $activeReminder->unit->name : null,
+                'quantity' => (float) $activeReminder->quantity,
+                'created_at' => $activeReminder->created_at ? $activeReminder->created_at->toIso8601String() : null,
+            ] : null,
             'price' => [
                 'base_price' => $pricing['base_price'],
                 'customer_price' => $pricing['customer_price'],
@@ -299,6 +316,14 @@ class ProductCatalogService
     {
         $pricing = $this->pricingService->calculateCustomerPrice($product, $user);
         $availability = $this->availabilityService->getProductAvailability($product);
+
+        $activeReminder = null;
+        if ($user) {
+            $activeReminder = \App\Models\ProductStockReminder::pending()
+                ->where('product_id', $product->id)
+                ->where('user_id', $user->id)
+                ->first();
+        }
 
         $media = $product->media->map(fn($m) => [
             'id' => $m->id,
@@ -372,6 +397,15 @@ class ProductCatalogService
             'title' => $product->title,
             'sku' => $product->sku,
             'brand' => 'Sapnay Premium Apparel',
+            'has_active_reminder' => !empty($activeReminder),
+            'active_reminder' => $activeReminder ? [
+                'id' => $activeReminder->id,
+                'product_combination_id' => $activeReminder->product_combination_id,
+                'product_unit_id' => $activeReminder->product_unit_id,
+                'unit_name' => $activeReminder->unit ? $activeReminder->unit->name : null,
+                'quantity' => (float) $activeReminder->quantity,
+                'created_at' => $activeReminder->created_at ? $activeReminder->created_at->toIso8601String() : null,
+            ] : null,
             'description_markdown' => $product->description,
             'description_html' => $descriptionHtml,
             'media' => $media,

@@ -52,6 +52,14 @@ class ProductCardResource extends JsonResource
         $baseUnit = $this->units->where('level', 1)->first();
         $unitLabel = $baseUnit ? $baseUnit->name : 'Piece';
 
+        $activeReminder = null;
+        if ($user) {
+            $activeReminder = \App\Models\ProductStockReminder::pending()
+                ->where('product_id', $this->id)
+                ->where('user_id', $user->id)
+                ->first();
+        }
+
         return [
             'id' => $this->id,
             'slug' => $this->slug ?? Str::slug($this->title),
@@ -61,6 +69,15 @@ class ProductCardResource extends JsonResource
             'brand' => 'Sapnay Premium Apparel',
             'primary_image_url' => $primaryImageUrl,
             'categories' => $categories,
+            'has_active_reminder' => !empty($activeReminder),
+            'active_reminder' => $activeReminder ? [
+                'id' => $activeReminder->id,
+                'product_combination_id' => $activeReminder->product_combination_id,
+                'product_unit_id' => $activeReminder->product_unit_id,
+                'unit_name' => $activeReminder->unit ? $activeReminder->unit->name : null,
+                'quantity' => (float) $activeReminder->quantity,
+                'created_at' => $activeReminder->created_at ? $activeReminder->created_at->toIso8601String() : null,
+            ] : null,
             'pricing' => [
                 'currency' => $pricing['currency'],
                 'base_price' => (float)$pricing['base_price'],

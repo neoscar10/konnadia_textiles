@@ -211,6 +211,7 @@
                             :inStock="$prod['stock']['status'] !== 'out_of_stock'"
                             :stockStatus="$prod['stock']['status']"
                             :stockLabel="$prod['stock']['label']"
+                            :hasActiveReminder="$prod['has_active_reminder'] ?? false"
                             :url="route('customer.products.show', $prod['slug'])"
                             :productId="$prod['id']"
                         />

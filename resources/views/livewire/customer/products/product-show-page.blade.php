@@ -44,6 +44,11 @@
                     <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $badgeClasses }}">
                         {{ $stockLabel }}
                     </span>
+                    @if($product['has_active_reminder'] ?? false)
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 ring-1 ring-amber-200/60 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-xs">notifications_active</span> Stock Reminder Set
+                        </span>
+                    @endif
                     <span class="text-xs text-slate-500 font-medium">SKU: {{ $currentSku }}</span>
                 </div>
             </div>

@@ -158,6 +158,14 @@ class ProductDetailResource extends JsonResource
             'label' => $u['label'],
         ])->toArray();
 
+        $activeReminder = null;
+        if ($user) {
+            $activeReminder = \App\Models\ProductStockReminder::pending()
+                ->where('product_id', $this->id)
+                ->where('user_id', $user->id)
+                ->first();
+        }
+
         return [
             'id' => $this->id,
             'slug' => $this->slug ?? Str::slug($this->title),
@@ -166,6 +174,15 @@ class ProductDetailResource extends JsonResource
             'product_code' => $this->product_code ?? null,
             'brand' => 'Sapnay Premium Apparel',
             'status' => $this->is_active ? 'active' : 'inactive',
+            'has_active_reminder' => !empty($activeReminder),
+            'active_reminder' => $activeReminder ? [
+                'id' => $activeReminder->id,
+                'product_combination_id' => $activeReminder->product_combination_id,
+                'product_unit_id' => $activeReminder->product_unit_id,
+                'unit_name' => $activeReminder->unit ? $activeReminder->unit->name : null,
+                'quantity' => (float) $activeReminder->quantity,
+                'created_at' => $activeReminder->created_at ? $activeReminder->created_at->toIso8601String() : null,
+            ] : null,
             'description' => [
                 'markdown' => $this->description,
                 'html' => Str::markdown($this->description ?? ''),

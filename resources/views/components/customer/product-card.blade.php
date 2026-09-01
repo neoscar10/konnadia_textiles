@@ -7,6 +7,7 @@
     'inStock' => true,
     'stockStatus' => 'in_stock',
     'stockLabel' => 'In Stock',
+    'hasActiveReminder' => false,
     'url' => '#',
     'productId' => null
 ])
@@ -26,6 +27,13 @@
     <a href="{{ $url }}" class="relative flex items-center justify-center overflow-hidden aspect-[4/3] bg-slate-50 p-2">
         <img src="{{ $image }}" alt="{{ $title }}" class="max-w-full max-h-full object-contain group-hover:scale-102 transition-transform duration-300">
         
+        @if($hasActiveReminder)
+            <!-- Active Reminder Badge -->
+            <span class="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 ring-1 ring-amber-200/60 flex items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined text-[12px]">notifications_active</span> Reminder Set
+            </span>
+        @endif
+
         <!-- Stock Badge -->
         <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $badgeClasses }}">
             {{ $effectiveLabel }}
@@ -68,8 +76,8 @@
                 <span class="material-symbols-outlined text-sm">visibility</span> View
             </a>
             @if(!$inStock)
-                <button type="button" @if($productId) wire:click.prevent="handleAddClick({{ $productId }})" @endif class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition-colors rounded-lg">
-                    <span class="material-symbols-outlined text-sm">notifications_active</span> Notify Me
+                <button type="button" @if($productId) wire:click.prevent="handleAddClick({{ $productId }})" @endif class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold {{ $hasActiveReminder ? 'bg-amber-700 text-white ring-2 ring-amber-400/50' : 'bg-amber-600 text-white hover:bg-amber-700' }} transition-colors rounded-lg">
+                    <span class="material-symbols-outlined text-sm">notifications_active</span> {{ $hasActiveReminder ? 'Reminder Set' : 'Notify Me' }}
                 </button>
             @else
                 @auth
