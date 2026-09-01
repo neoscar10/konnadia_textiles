@@ -23,8 +23,8 @@ return new class extends Migration
             $table->timestamp('notified_at')->nullable();
             $table->timestamps();
 
-            $table->index(['product_id', 'status']);
-            $table->index(['product_id', 'product_combination_id', 'status']);
+            $table->index(['product_id', 'status'], 'psr_prod_status_idx');
+            $table->index(['product_id', 'product_combination_id', 'status'], 'psr_prod_comb_status_idx');
         });
     }
 
