@@ -170,10 +170,6 @@
                         <span>GST</span>
                         <span class="font-bold text-slate-800">{{ $order['summary']['formatted_gst_amount'] }}</span>
                     </div>
-                    <div class="flex justify-between text-slate-500 font-medium">
-                        <span>Freight charges</span>
-                        <span class="font-bold text-slate-800 text-emerald-700">F.O.R Surat (Free)</span>
-                    </div>
                     <div class="border-t border-dashed border-slate-200 pt-3 flex justify-between text-sm font-extrabold text-[#001229]">
                         <span>Grand Total</span>
                         <span class="text-[#001229]">{{ $order['summary']['formatted_total'] }}</span>

@@ -105,10 +105,6 @@
                         <span>GST</span>
                         <span class="font-bold text-slate-800">₹{{ number_format($totals['gst_amount'], 2) }}</span>
                     </div>
-                    <div class="flex justify-between text-slate-500 font-medium">
-                        <span>Shipping / Cargo Fee</span>
-                        <span class="font-bold text-slate-800 text-emerald-700">F.O.R Surat (Free)</span>
-                    </div>
                     
                     <div class="border-t border-dashed border-slate-200 pt-3 flex justify-between text-sm font-extrabold text-[#001229]">
                         <span>Grand Total</span>
