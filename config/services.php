@@ -43,4 +43,10 @@ return [
         'timeout' => (int) env('WATY_WHATSAPP_TIMEOUT', 15),
     ],
 
+    'firebase' => [
+        'project_id' => env('FIREBASE_PROJECT_ID', 'kanodia-textiles'),
+        'server_key' => env('FIREBASE_SERVER_KEY'),
+        'credentials_path' => env('FIREBASE_CREDENTIALS_PATH', storage_path('app/firebase-credentials.json')),
+    ],
+
 ];
