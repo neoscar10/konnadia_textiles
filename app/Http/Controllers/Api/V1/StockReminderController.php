@@ -80,6 +80,77 @@ class StockReminderController extends Controller
     }
 
     /**
+     * Get details of a single stock reminder.
+     */
+    public function show(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user('api') ?? $request->user();
+        $reminder = ProductStockReminder::with(['product.primaryMedia', 'combination', 'unit'])
+            ->where('id', $id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$reminder) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stock reminder not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'id' => $reminder->id,
+                'product_id' => $reminder->product_id,
+                'product_title' => $reminder->product ? $reminder->product->title : 'N/A',
+                'product_combination_id' => $reminder->product_combination_id,
+                'combination_attributes' => $reminder->combination ? $reminder->combination->attribute_values : null,
+                'product_unit_id' => $reminder->product_unit_id,
+                'unit_name' => $reminder->unit ? $reminder->unit->name : null,
+                'unit_level' => $reminder->unit ? $reminder->unit->level : 1,
+                'quantity' => (float) $reminder->quantity,
+                'phone_number' => $reminder->phone_number,
+                'email' => $reminder->email,
+                'status' => $reminder->status,
+                'created_at' => $reminder->created_at->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Update an existing stock reminder (e.g. change quantity, unit, variant, or contact).
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'product_combination_id' => 'nullable|integer|exists:product_combinations,id',
+            'product_unit_id'        => 'nullable|integer|exists:product_units,id',
+            'quantity'               => 'nullable|numeric|min:0.01',
+            'phone_number'           => 'nullable|string|max:30',
+            'email'                  => 'nullable|email|max:255',
+        ]);
+
+        $user = $request->user('api') ?? $request->user();
+        $reminder = $this->reminderService->updateReminder($id, $validated, $user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Stock reminder updated successfully.',
+            'data'    => [
+                'id' => $reminder->id,
+                'product_id' => $reminder->product_id,
+                'product_combination_id' => $reminder->product_combination_id,
+                'product_unit_id' => $reminder->product_unit_id,
+                'unit_name' => $reminder->unit ? $reminder->unit->name : null,
+                'quantity' => (float) $reminder->quantity,
+                'phone_number' => $reminder->phone_number,
+                'email' => $reminder->email,
+                'status' => $reminder->status,
+            ],
+        ]);
+    }
+
+    /**
      * Cancel a pending stock reminder.
      */
     public function destroy(Request $request, int $id): JsonResponse

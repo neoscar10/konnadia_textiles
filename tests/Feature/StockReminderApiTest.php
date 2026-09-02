@@ -85,4 +85,36 @@ class StockReminderApiTest extends TestCase
             'status' => 'cancelled',
         ]);
     }
+
+    public function test_user_can_view_and_update_stock_reminder()
+    {
+        $reminder = ProductStockReminder::create([
+            'user_id' => $this->user->id,
+            'product_id' => $this->product->id,
+            'product_unit_id' => $this->unit->id,
+            'quantity' => 2.0,
+            'status' => 'pending',
+        ]);
+
+        $showResponse = $this->actingAs($this->user, 'api')
+            ->getJson("/api/v1/stock-reminders/{$reminder->id}");
+
+        $showResponse->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.quantity', 2);
+
+        $updateResponse = $this->actingAs($this->user, 'api')
+            ->putJson("/api/v1/stock-reminders/{$reminder->id}", [
+                'quantity' => 15.0,
+            ]);
+
+        $updateResponse->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.quantity', 15);
+
+        $this->assertDatabaseHas('product_stock_reminders', [
+            'id' => $reminder->id,
+            'quantity' => 15.0,
+        ]);
+    }
 }

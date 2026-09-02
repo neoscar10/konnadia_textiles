@@ -453,6 +453,7 @@ class ProductShowPage extends Component
                 'product_id'             => $this->productId,
                 'product_combination_id' => $combination?->id,
                 'product_unit_id'        => $selectedUnitId,
+                'quantity'               => max(1, (float)$this->qty),
                 'phone_number'           => $this->guestPhoneNumber,
                 'email'                  => $this->guestEmail,
             ], null);
@@ -480,17 +481,42 @@ class ProductShowPage extends Component
         $lvl2 = collect($this->units)->firstWhere('level', 2);
         $lvl1 = collect($this->units)->firstWhere('level', 1);
         $selectedUnitId = $lvl2 ? $lvl2['id'] : ($lvl1 ? $lvl1['id'] : null);
+        $targetQty = max(1, (float)$this->qty);
 
         try {
             $reminderService->createReminder([
-                'product_id' => $this->productId,
+                'product_id'             => $this->productId,
                 'product_combination_id' => $combination?->id,
-                'product_unit_id' => $selectedUnitId,
+                'product_unit_id'        => $selectedUnitId,
+                'quantity'               => $targetQty,
             ], $user);
 
-            $this->dispatch('toast', type: 'success', message: 'Stock reminder set! We will notify you when this item becomes available.');
+            // Re-fetch formatted product data so UI updates immediately
+            $this->product = $catalogService->getProductForCustomer($user, $this->productId);
+
+            $this->dispatch('toast', type: 'success', message: 'Stock reminder updated successfully! We will notify you when this item becomes available.');
         } catch (\Throwable $e) {
             $this->dispatch('toast', type: 'error', message: 'Unable to set stock reminder: ' . $e->getMessage());
+        }
+    }
+
+    public function cancelStockReminder(?StockReminderService $reminderService = null, ?ProductCatalogService $catalogService = null)
+    {
+        $reminderService = $reminderService ?? app(StockReminderService::class);
+        $catalogService = $catalogService ?? app(ProductCatalogService::class);
+
+        $user = auth()->user();
+        if (!$user) return;
+
+        $reminder = ProductStockReminder::pending()
+            ->where('product_id', $this->productId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($reminder) {
+            $reminderService->cancelReminder($reminder->id, $user);
+            $this->product = $catalogService->getProductForCustomer($user, $this->productId);
+            $this->dispatch('toast', type: 'success', message: 'Stock reminder cancelled.');
         }
     }
 

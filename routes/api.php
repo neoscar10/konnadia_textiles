@@ -25,6 +25,9 @@ Route::prefix('v1')->group(function () {
         // Out-of-Stock Reminders API
         Route::get('/stock-reminders', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'index']);
         Route::post('/stock-reminders', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'store']);
+        Route::get('/stock-reminders/{id}', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'show']);
+        Route::put('/stock-reminders/{id}', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'update']);
+        Route::patch('/stock-reminders/{id}', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'update']);
         Route::post('/products/{product}/stock-reminder', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'store']);
         Route::delete('/stock-reminders/{id}', [\App\Http\Controllers\Api\V1\StockReminderController::class, 'destroy']);
 

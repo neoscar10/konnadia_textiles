@@ -46,11 +46,9 @@ class StockReminderService
             ]);
         }
 
-        // Check for existing pending reminder
+        // Check for existing pending reminder on this product
         $query = ProductStockReminder::pending()
-            ->where('product_id', $product->id)
-            ->where('product_combination_id', $combinationId)
-            ->where('product_unit_id', $unitId);
+            ->where('product_id', $product->id);
 
         if ($user) {
             $query->where('user_id', $user->id);
@@ -63,8 +61,14 @@ class StockReminderService
 
         $existing = $query->first();
         if ($existing) {
-            $existing->update(['quantity' => $quantity]);
-            return $existing;
+            $existing->update([
+                'product_combination_id' => $combinationId,
+                'product_unit_id'        => $unitId,
+                'quantity'               => $quantity,
+                'phone_number'           => $phone ?? $existing->phone_number,
+                'email'                  => $email ?? $existing->email,
+            ]);
+            return $existing->fresh(['product', 'combination', 'unit']);
         }
 
         return ProductStockReminder::create([
@@ -77,6 +81,45 @@ class StockReminderService
             'email'                  => $email,
             'status'                 => 'pending',
         ]);
+    }
+
+    /**
+     * Update an existing pending stock reminder.
+     */
+    public function updateReminder(int $reminderId, array $payload, ?User $user = null): ProductStockReminder
+    {
+        $query = ProductStockReminder::pending()->where('id', $reminderId);
+        if ($user) {
+            $query->where('user_id', $user->id);
+        }
+
+        $reminder = $query->first();
+        if (!$reminder) {
+            throw ValidationException::withMessages([
+                'reminder' => 'Stock reminder not found or cannot be modified.',
+            ]);
+        }
+
+        $updateData = [];
+        if (array_key_exists('product_combination_id', $payload)) {
+            $updateData['product_combination_id'] = $payload['product_combination_id'] ? (int)$payload['product_combination_id'] : null;
+        }
+        if (array_key_exists('product_unit_id', $payload)) {
+            $updateData['product_unit_id'] = $payload['product_unit_id'] ? (int)$payload['product_unit_id'] : null;
+        }
+        if (isset($payload['quantity'])) {
+            $updateData['quantity'] = (float) $payload['quantity'];
+        }
+        if (isset($payload['phone_number'])) {
+            $updateData['phone_number'] = $payload['phone_number'];
+        }
+        if (isset($payload['email'])) {
+            $updateData['email'] = $payload['email'];
+        }
+
+        $reminder->update($updateData);
+
+        return $reminder->fresh(['product', 'combination', 'unit']);
     }
 
     /**

@@ -291,11 +291,42 @@
                 </button>
 
                 @if(!$isPurchasable)
-                <button type="button" 
-                        wire:click="openStockReminderModal"
-                        class="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors shadow-sm mt-2">
-                    <span class="material-symbols-outlined text-sm">notifications_active</span> Notify Me When In Stock
-                </button>
+                    @if($product['has_active_reminder'] ?? false)
+                        <div class="mt-3 p-4 rounded-xl bg-amber-50/80 border border-amber-200/80 space-y-3 text-left">
+                            <div class="flex items-center justify-between">
+                                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800">
+                                    <span class="material-symbols-outlined text-base text-amber-600">notifications_active</span> Active Restock Reminder
+                                </span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/60 text-amber-900 uppercase tracking-wider">Pending</span>
+                            </div>
+                            
+                            <div class="text-xs text-slate-700 space-y-1.5 bg-white/70 p-2.5 rounded-lg border border-amber-100">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500 font-medium">Target Quantity:</span>
+                                    <span class="font-extrabold text-[#001229]">{{ number_format($product['active_reminder']['quantity'] ?? 1) }} {{ $product['active_reminder']['unit_name'] ?? 'Units' }}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1">
+                                <button type="button" 
+                                        wire:click="openStockReminderModal"
+                                        class="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors shadow-xs">
+                                    <span class="material-symbols-outlined text-xs">edit</span> Update Reminder Qty
+                                </button>
+                                <button type="button" 
+                                        wire:click="cancelStockReminder"
+                                        class="flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors border border-rose-200/60">
+                                    <span class="material-symbols-outlined text-xs">close</span> Cancel
+                                </button>
+                            </div>
+                        </div>
+                    @else
+                        <button type="button" 
+                                wire:click="openStockReminderModal"
+                                class="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors shadow-sm mt-2">
+                            <span class="material-symbols-outlined text-sm">notifications_active</span> Notify Me When In Stock
+                        </button>
+                    @endif
                 @endif
             </x-customer.card>
             @else
