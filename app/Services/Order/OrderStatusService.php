@@ -98,6 +98,14 @@ class OrderStatusService
 
         if ($fromStatus !== $toStatus) {
             $this->notifyUserOfStatusChange($result, $fromStatus, $toStatus, $note);
+
+            if (in_array($toStatus, ['dispatched', 'partially_dispatched'], true)) {
+                try {
+                    app(\App\Services\Notification\AdminWhatsAppNotificationService::class)->notifyOrderDispatch($result);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error("[OrderStatusService] Error sending admin WhatsApp dispatch alert: " . $e->getMessage());
+                }
+            }
         }
 
         return $result;

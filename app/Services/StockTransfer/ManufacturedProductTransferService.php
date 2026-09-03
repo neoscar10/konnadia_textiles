@@ -227,5 +227,13 @@ class ManufacturedProductTransferService
 
             return $transfer;
         });
+
+        try {
+            app(\App\Services\Notification\AdminWhatsAppNotificationService::class)->notifyGoodsTransfer($transfer);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("[ManufacturedProductTransferService] Error sending admin WhatsApp goods transfer alert: " . $e->getMessage());
+        }
+
+        return $transfer;
     }
 }

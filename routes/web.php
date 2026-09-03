@@ -47,6 +47,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         
         Route::get('reports', \App\Livewire\Admin\Reports\ReportIndexPage::class)->name('reports.index');
         Route::get('notifications', \App\Livewire\Admin\Notifications\NotificationIndexPage::class)->name('notifications.index');
+        Route::get('notification-contacts', \App\Livewire\Admin\NotificationContacts\AdminNotificationContactsIndex::class)->name('notification-contacts.index');
         Route::get('home-content', \App\Livewire\Admin\HomeContent\HomeContentPage::class)->name('home-content.index');
         Route::get('settings', \App\Livewire\Admin\Settings\SettingsPage::class)->name('settings.index');
         Route::get('admins', \App\Livewire\Admin\Admins\AdminIndexPage::class)->name('admins.index');

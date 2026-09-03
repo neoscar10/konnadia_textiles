@@ -265,6 +265,10 @@
                         <span class="font-label-md text-label-md" x-show="sidebarOpen">Admins</span>
                     </a>
                 @endif
+                <a href="{{ route('admin.notification-contacts.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.notification-contacts.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="add_call">add_call</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">WhatsApp Alerts</span>
+                </a>
                 @can('access settings')
                     <a href="{{ route('admin.settings.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.settings.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <span class="material-symbols-outlined shrink-0" data-icon="settings">settings</span>

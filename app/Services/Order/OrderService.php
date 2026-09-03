@@ -79,6 +79,14 @@ class OrderService
 
             return $order;
         });
+
+        try {
+            app(\App\Services\Notification\AdminWhatsAppNotificationService::class)->notifyNewOrder($order);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("[OrderService] Error sending admin WhatsApp new order notification: " . $e->getMessage());
+        }
+
+        return $order;
     }
 
     /**
