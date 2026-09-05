@@ -203,7 +203,7 @@
                 </div>
 
                 <!-- Raw Materials Group -->
-                <div x-data="{ open: {{ request()->routeIs('factory.raw-materials.*') || request()->routeIs('admin.units.*') || request()->routeIs('factory.units.*') ? 'true' : 'false' }} }" class="flex flex-col">
+                <div x-data="{ open: {{ request()->routeIs('factory.raw-materials.*') || request()->routeIs('factory.fabric-widths.*') || request()->routeIs('admin.units.*') || request()->routeIs('factory.units.*') ? 'true' : 'false' }} }" class="flex flex-col">
                     <button @click="open = !open; if(!sidebarOpen && open) sidebarOpen = true;" type="button" class="flex items-center justify-between rounded-lg transition-all duration-200 text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30 w-full" :class="sidebarOpen ? 'px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <div class="flex items-center gap-md">
                             <span class="material-symbols-outlined shrink-0" data-icon="deployed_code">deployed_code</span>
@@ -215,6 +215,9 @@
                         <div class="flex flex-col gap-1 pl-11 pr-2 py-1 relative before:absolute before:left-[22px] before:top-0 before:bottom-0 before:w-px before:bg-on-primary/10">
                             <a href="{{ route('factory.raw-materials.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.raw-materials.index') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Directory
+                            </a>
+                            <a href="{{ route('factory.fabric-widths.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.fabric-widths.*') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                                Fabric Width Master <span class="ml-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">NEW</span>
                             </a>
                             <a href="{{ route('factory.raw-materials.purchase') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.raw-materials.purchase') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Purchase Entry

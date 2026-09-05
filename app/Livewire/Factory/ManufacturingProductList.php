@@ -67,7 +67,7 @@ class ManufacturingProductList extends Component
 
     public function render()
     {
-        $query = ManufacturingProduct::with(['tasks', 'category']);
+        $query = ManufacturingProduct::with(['tasks', 'category', 'patterns.fabricWidth', 'patterns.tasks']);
 
         if (!empty($this->search)) {
             $query->where(function ($q) {

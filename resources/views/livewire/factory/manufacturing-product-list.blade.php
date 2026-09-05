@@ -64,7 +64,10 @@
                                 <span class="text-xs text-outline">{{ $product->created_at ? $product->created_at->format('d M Y') : '' }}</span>
                             </td>
                             <td class="py-4 px-6 font-bold text-on-surface text-sm">
-                                {{ $product->name }}
+                                <p>{{ $product->name }}</p>
+                                <span class="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                    {{ $product->patterns->count() }} pattern{{ $product->patterns->count() !== 1 ? 's' : '' }}
+                                </span>
                             </td>
                             <td class="py-4 px-6">
                                 @if($product->category)

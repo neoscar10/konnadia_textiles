@@ -70,6 +70,22 @@ class ManufacturingProduct extends Model
     }
 
     /**
+     * Patterns/variations associated with this manufacturing product.
+     */
+    public function patterns()
+    {
+        return $this->hasMany(ManufacturingProductPattern::class, 'manufacturing_product_id');
+    }
+
+    /**
+     * Get default pattern for this product.
+     */
+    public function defaultPattern()
+    {
+        return $this->hasOne(ManufacturingProductPattern::class, 'manufacturing_product_id')->where('is_default', true);
+    }
+
+    /**
      * Tasks associated with this manufacturing product, ordered by routing sequence.
      */
     public function tasks()

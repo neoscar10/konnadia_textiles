@@ -100,6 +100,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     })->name('factory.tasks.edit');
 
     // Raw Material Master Management
+    Route::get('/factory/fabric-widths', \App\Livewire\Admin\Production\FabricWidthMasterPage::class)->name('factory.fabric-widths.index');
     Route::get('/factory/raw-materials', \App\Livewire\Factory\RawMaterialList::class)->name('factory.raw-materials.index');
     Route::get('/factory/raw-materials/purchase', \App\Livewire\Factory\RawMaterialPurchaseEntry::class)->name('factory.raw-materials.purchase');
     Route::get('/factory/raw-materials/batches', \App\Livewire\Factory\InventoryBatchList::class)->name('factory.raw-materials.batches');

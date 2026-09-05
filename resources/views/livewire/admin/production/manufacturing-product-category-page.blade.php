@@ -12,7 +12,7 @@
             <div>
                 <h2 class="font-headline-lg text-headline-lg text-primary font-extrabold tracking-tight">Manufacturing Product Categories</h2>
                 <p class="font-body-md text-body-md text-on-surface-variant mt-1">
-                    Define and manage product categories used to classify manufacturing SKUs on the factory floor.
+                    Classify manufacturing SKUs and define each category's default task sequence routing.
                 </p>
             </div>
             <button type="button" wire:click="openCreateModal"
@@ -22,7 +22,6 @@
             </button>
         </div>
     </div>
-
 
     <!-- Search Bar -->
     <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/60 mb-6 shadow-xs">
@@ -41,8 +40,8 @@
             <table class="w-full text-left border-collapse font-body-md">
                 <thead>
                     <tr class="bg-surface-container-low text-xs text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/60">
-                        <th class="px-6 py-4 font-bold">#</th>
-                        <th class="px-6 py-4 font-bold">Category Name</th>
+                        <th class="px-6 py-4 font-bold">Category</th>
+                        <th class="px-6 py-4 font-bold">Default Task Sequence <span class="ml-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 uppercase">NEW</span></th>
                         <th class="px-6 py-4 font-bold text-center">Linked Products</th>
                         <th class="px-6 py-4 font-bold text-center">Status</th>
                         <th class="px-6 py-4 font-bold text-right">Actions</th>
@@ -51,12 +50,28 @@
                 <tbody class="divide-y divide-outline-variant/40">
                     @forelse($categories as $category)
                         <tr class="hover:bg-surface-container-low/50 transition-colors">
-                            <td class="px-6 py-4 text-xs text-outline font-mono">
-                                {{ $categories->firstItem() + $loop->index }}
-                            </td>
                             <td class="px-6 py-4">
                                 <p class="font-extrabold text-on-surface text-sm">{{ $category->name }}</p>
                                 <p class="text-xs text-outline mt-0.5">Created {{ $category->created_at->diffForHumans() }}</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                @if($category->defaultTasks->isNotEmpty())
+                                    <div class="flex items-center flex-wrap gap-1.5">
+                                        @foreach($category->defaultTasks as $idx => $t)
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                                                <span>{{ $t->name }}</span>
+                                                @if($t->pivot->is_final_step)
+                                                    <span class="text-[9px] font-extrabold px-1 rounded bg-amber-200 text-amber-900 uppercase">Final</span>
+                                                @endif
+                                            </span>
+                                            @if(!$loop->last)
+                                                <span class="text-slate-400 font-bold text-xs">→</span>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span class="text-xs text-slate-400 italic">No default sequence defined</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <span class="px-3 py-1 bg-surface-container-high text-on-surface font-bold text-xs rounded-full">
@@ -64,7 +79,6 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <!-- Clickable Status Toggle -->
                                 <button type="button" wire:click="toggleStatus({{ $category->id }})"
                                     wire:loading.attr="disabled"
                                     title="{{ $category->status ? 'Click to Deactivate' : 'Click to Activate' }}"
@@ -121,7 +135,7 @@
     </div>
 
     <!-- Create / Edit Modal -->
-    <x-admin.modal id="category-modal" title="{{ $categoryId ? 'Edit Category' : 'Add Manufacturing Product Category' }}" maxWidth="md">
+    <x-admin.modal id="category-modal" title="{{ $categoryId ? 'Edit Category' : 'Add Manufacturing Product Category' }}" maxWidth="lg">
         <form wire:submit.prevent="saveCategory" class="space-y-5">
             <!-- Category Name -->
             <div>
@@ -130,10 +144,63 @@
                 </label>
                 <input type="text" wire:model="name"
                     class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                    placeholder="e.g. Bedding, Upholstery, Apparel">
+                    placeholder="e.g. Bedsheet, Pillow Cover, Dohar">
                 @error('name')
                     <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span>
                 @enderror
+            </div>
+
+            <!-- Default Task Sequence Repeater -->
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-xs font-extrabold uppercase text-slate-800 tracking-wider">Default Task Sequence</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">Pre-fills the routing sequence for new products added under this category.</p>
+                    </div>
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">DEFAULT ROUTING</span>
+                </div>
+
+                <div class="space-y-2">
+                    @foreach($defaultTasksList as $index => $row)
+                        <div class="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                            <span class="w-6 h-6 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                                {{ $index + 1 }}
+                            </span>
+                            
+                            <div class="flex-1 min-w-[140px]">
+                                <select wire:model="defaultTasksList.{{ $index }}.task_id" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800">
+                                    <option value="">-- Select Task --</option>
+                                    @foreach($availableTasks as $t)
+                                        <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->code }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="w-28">
+                                <input type="number" step="0.50" wire:model="defaultTasksList.{{ $index }}.standard_labor_rate" placeholder="Rate (₹)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800">
+                            </div>
+
+                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-700 shrink-0">
+                                <input type="radio" name="cat_final_step" wire:click="setFinalStep({{ $index }})" @checked(!empty($row['is_final_step'])) class="text-amber-600 focus:ring-amber-500">
+                                <span>Final</span>
+                            </label>
+
+                            <div class="flex items-center gap-1 shrink-0">
+                                @if($index > 0)
+                                    <button type="button" wire:click="moveDefaultTaskRow({{ $index }}, 'up')" class="w-6 h-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-100 text-slate-600 text-xs">↑</button>
+                                @endif
+                                @if($index < count($defaultTasksList) - 1)
+                                    <button type="button" wire:click="moveDefaultTaskRow({{ $index }}, 'down')" class="w-6 h-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-100 text-slate-600 text-xs">↓</button>
+                                @endif
+                                <button type="button" wire:click="removeDefaultTaskRow({{ $index }})" class="w-6 h-6 rounded border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs">✕</button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <button type="button" wire:click="addDefaultTaskRow" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition-all shadow-2xs">
+                    <span>＋</span> Add task to sequence
+                </button>
             </div>
 
             <!-- Status Checkbox -->
@@ -142,27 +209,10 @@
                     <input type="checkbox" wire:model="status"
                         class="w-4 h-4 rounded border-outline-variant/60 text-primary focus:ring-primary/30 cursor-pointer">
                     <span class="text-sm font-semibold text-on-surface group-hover:text-primary transition-colors">
-                        Active
-                    </span>
-                    <span class="text-xs text-on-surface-variant font-normal">
-                        (uncheck to mark as Inactive)
+                        Active Category
                     </span>
                 </label>
-                @error('status')
-                    <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span>
-                @enderror
             </div>
-
-            <!-- Info notice -->
-            @if(!$categoryId)
-                <div class="p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-start gap-2">
-                    <span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">info</span>
-                    <p class="text-[11px] text-on-surface-variant font-medium leading-relaxed">
-                        Once created, manufacturing products can be linked to this category.
-                        Categories cannot be deleted if they have linked products — deactivate them instead.
-                    </p>
-                </div>
-            @endif
 
             <!-- Actions -->
             <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40">

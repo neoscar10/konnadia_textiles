@@ -35,6 +35,17 @@ class ManufacturingProductCategory extends Model
     }
 
     /**
+     * Default task routing sequence for products created in this category.
+     */
+    public function defaultTasks()
+    {
+        return $this->belongsToMany(Task::class, 'manufacturing_category_tasks', 'manufacturing_product_category_id', 'task_id')
+            ->withPivot('sequence_number', 'standard_labor_rate', 'is_final_step')
+            ->orderByPivot('sequence_number', 'asc')
+            ->withTimestamps();
+    }
+
+    /**
      * Scope to only return active categories.
      */
     public function scopeActive($query)

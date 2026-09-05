@@ -4,8 +4,9 @@ namespace App\Livewire\Factory;
 
 use App\Models\ManufacturingProduct;
 use App\Models\ManufacturingProductCategory;
+use App\Models\ManufacturingProductPattern;
+use App\Models\FabricWidth;
 use App\Models\RawMaterial;
-use App\Models\RawMaterialCategory;
 use App\Models\Task;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -25,34 +26,43 @@ class AddManufacturingProductForm extends Component
     public $imageUpload = null;
     public $existing_image_path = '';
 
-    // Fabric configuration properties
-    public bool $is_fabric_used = false;
-    public $standard_fabric_width = '';
-    public $standard_fabric_length = '';
-    public string $fabric_width_unit = 'in';
-    public string $fabric_length_unit = 'm';
-    public string $fabric_width_group_id = '';
-    public string $fabric_length_group_id = '';
+    // Customised Product ID toggle UI placeholder (from prototype step 1)
+    public bool $is_customised_product = false;
+    public string $customised_mode = 'fixed'; // 'fixed' or 'calc'
 
+    // Patterns repeater for Step 2
+    // Structure per pattern:
+    // [
+    //   'id' => null,
+    //   'name' => 'Standard Fold',
+    //   'fabric_width_id' => '',
+    //   'fabric_length' => '',
+    //   'fabric_length_unit' => 'm',
+    //   'standard_labor_rate' => '',
+    //   'tasks' => [ ['task_id' => '', 'standard_labor_rate' => '', 'is_final_step' => true] ]
+    // ]
+    public array $patternsList = [];
 
-    // Subsidiary material configuration properties
+    // Subsidiary material configuration properties (Step 3)
     public bool $is_subsidiary_used = false;
+    public bool $is_common_subsidiary = true;
     public array $subsidiaryMaterialsList = []; // [['raw_material_id' => '', 'consumption_quantity' => '', 'unit' => '']]
 
-    // Stitching material configuration properties
+    // Backwards compatibility properties for legacy tests & components
     public bool $is_stitching_used = false;
-    public array $stitchingMaterialsList = []; // array of raw_material_id integers
-
-    // Packaging material configuration properties
-    public bool $is_packaging_used = false;
-    public array $packagingMaterialsList = []; // [['raw_material_id' => '', 'required_quantity' => '', 'unit' => '']]
-
-    // Manufacturing Task Sequence / Routing Repeater
-    public array $routingTasksList = []; // [['task_id' => '', 'standard_labor_rate' => '15.00', 'is_final_step' => false]]
+    public array $stitchingMaterialsList = [];
+    public array $routingTasksList = [];
 
     // Wizard State
     public int $wizardStep = 1;
-    public int $maxSteps = 4;
+    public int $maxSteps = 3;
+
+    public function updatedRoutingTasksList($value): void
+    {
+        if (isset($this->patternsList[0])) {
+            $this->patternsList[0]['tasks'] = $value;
+        }
+    }
 
     protected function rules()
     {
@@ -60,27 +70,23 @@ class AddManufacturingProductForm extends Component
             'name'                              => 'required|string|max:255',
             'manufacturing_product_category_id' => 'required|exists:manufacturing_product_categories,id',
             'status'                            => 'required|in:active,inactive',
-            'standard_labor_rate'               => 'nullable|numeric|min:0',
-            'is_fabric_used'                    => 'boolean',
-            'is_subsidiary_used'                => 'boolean',
-            'is_stitching_used'                 => 'boolean',
-            'routingTasksList'                  => 'required|array|min:1',
-            'routingTasksList.*.task_id'        => 'required|exists:tasks,id',
-            'routingTasksList.*.standard_labor_rate' => 'nullable|numeric|min:0',
             'imageUpload'                       => 'nullable|image|max:10240',
         ];
 
-            if ($this->is_fabric_used) {
-                $rules['standard_fabric_width']  = 'required|numeric|min:0.01';
-                $rules['standard_fabric_length'] = 'required|numeric|min:0.01';
-                $rules['fabric_width_unit']      = 'required|string';
-                $rules['fabric_length_unit']     = 'required|string';
-            }
+        if ($this->wizardStep === 2 || $this->wizardStep === 3) {
+            $rules['patternsList'] = 'required|array|min:1';
+            $rules['patternsList.*.name'] = 'required|string|max:255';
+            $rules['patternsList.*.fabric_width_id'] = 'required|exists:fabric_widths,id';
+            $rules['patternsList.*.fabric_length'] = 'required|numeric|min:0.01';
+            $rules['patternsList.*.fabric_length_unit'] = 'required|string';
+            $rules['patternsList.*.tasks'] = 'required|array|min:1';
+            $rules['patternsList.*.tasks.*.task_id'] = 'required|exists:tasks,id';
+        }
 
-        if ($this->is_subsidiary_used) {
-            $rules['subsidiaryMaterialsList']                               = 'array';
-            $rules['subsidiaryMaterialsList.*.raw_material_id']            = 'required|exists:raw_materials,id';
-            $rules['subsidiaryMaterialsList.*.consumption_quantity']       = 'required|numeric|min:0.0001';
+        if ($this->wizardStep === 3 && $this->is_subsidiary_used) {
+            $rules['subsidiaryMaterialsList']                         = 'array';
+            $rules['subsidiaryMaterialsList.*.raw_material_id']      = 'required|exists:raw_materials,id';
+            $rules['subsidiaryMaterialsList.*.consumption_quantity'] = 'required|numeric|min:0.0001';
         }
 
         return $rules;
@@ -92,17 +98,15 @@ class AddManufacturingProductForm extends Component
             'name.required'                              => 'Product Name is required.',
             'manufacturing_product_category_id.required' => 'Please select a product category.',
             'manufacturing_product_category_id.exists'   => 'Selected category is invalid.',
-            'status.required'                            => 'Product Status is required.',
-            'status.in'                                  => 'Selected status is invalid.',
-            'standard_fabric_width.required'             => 'Fabric Width is required.',
-            'standard_fabric_length.required'            => 'Fabric Length is required.',
-            'subsidiaryMaterialsList.*.raw_material_id.required'      => 'Please select a subsidiary material.',
-            'subsidiaryMaterialsList.*.consumption_quantity.required'  => 'Consumption quantity is required.',
-            'subsidiaryMaterialsList.*.consumption_quantity.min'       => 'Consumption quantity must be greater than 0.',
-            'routingTasksList.required'                  => 'At least one task sequence must be configured for the product routing.',
-            'routingTasksList.min'                       => 'At least one task sequence must be configured for the product routing.',
-            'routingTasksList.*.task_id.required'        => 'Please select a task for each routing step.',
-            'routingTasksList.*.task_id.exists'          => 'Selected task is invalid.',
+            'patternsList.required'                      => 'At least one pattern must be configured for this product.',
+            'patternsList.min'                           => 'At least one pattern must be configured for this product.',
+            'patternsList.*.name.required'               => 'Pattern name is required.',
+            'patternsList.*.fabric_width_id.required'    => 'Please select a fabric width option.',
+            'patternsList.*.fabric_length.required'      => 'Pattern length is required.',
+            'patternsList.*.tasks.required'              => 'Each pattern must have a valid task routing sequence.',
+            'patternsList.*.tasks.*.task_id.required'    => 'Please select a task for each routing step in the pattern.',
+            'subsidiaryMaterialsList.*.raw_material_id.required' => 'Please select a subsidiary material.',
+            'subsidiaryMaterialsList.*.consumption_quantity.required' => 'Consumption quantity is required.',
         ];
     }
 
@@ -111,26 +115,124 @@ class AddManufacturingProductForm extends Component
         $this->validateOnly($propertyName);
     }
 
-    public function updatedFabricWidthGroupId($value): void
+    // --- Pattern Repeater Actions ---
+    public function addPatternRow(): void
     {
-        if ($value) {
-            $group = \App\Models\UnitGroup::with('units')->find($value);
-            if ($group && $group->units->isNotEmpty()) {
-                $this->fabric_width_unit = $group->units->first()->short_code;
+        $defaultWidth = FabricWidth::where('status', true)->first();
+        $newPattern = [
+            'id'                  => null,
+            'name'                => 'Pattern ' . (count($this->patternsList) + 1),
+            'fabric_width_id'     => $defaultWidth ? (string) $defaultWidth->id : '',
+            'fabric_length'       => '2.50',
+            'fabric_length_unit'  => 'm',
+            'standard_labor_rate' => '',
+            'tasks'               => [],
+        ];
+
+        $this->patternsList[] = $newPattern;
+        $patternIndex = count($this->patternsList) - 1;
+        $this->loadCategoryDefaultTasksForPattern($patternIndex);
+    }
+
+    public function removePatternRow(int $index): void
+    {
+        if (count($this->patternsList) > 1) {
+            array_splice($this->patternsList, $index, 1);
+            $this->patternsList = array_values($this->patternsList);
+        } else {
+            $this->dispatch('toast', message: 'A manufacturing product must have at least one pattern.', type: 'error');
+        }
+    }
+
+    public function loadCategoryDefaultTasksForPattern(int $patternIndex): void
+    {
+        if (empty($this->manufacturing_product_category_id)) {
+            $this->dispatch('toast', message: 'Please select a Category first to load its default sequence.', type: 'error');
+            return;
+        }
+
+        $category = ManufacturingProductCategory::with('defaultTasks')->find($this->manufacturing_product_category_id);
+        
+        if ($category && $category->defaultTasks->isNotEmpty()) {
+            $this->patternsList[$patternIndex]['tasks'] = $category->defaultTasks->map(fn($t) => [
+                'task_id'             => (string) $t->id,
+                'standard_labor_rate' => (string) ($t->pivot->standard_labor_rate ?? ''),
+                'is_final_step'       => (bool) ($t->pivot->is_final_step ?? false),
+            ])->toArray();
+            $this->dispatch('toast', message: "Loaded default task sequence for Category \"{$category->name}\".", type: 'success');
+        } else {
+            // Default Cutting task fallback
+            $cuttingTask = Task::where('name', 'Cutting')->orWhere('code', 'TSK-001')->first()
+                ?? Task::where('status', true)->first();
+
+            if ($cuttingTask) {
+                $this->patternsList[$patternIndex]['tasks'] = [
+                    [
+                        'task_id'             => (string) $cuttingTask->id,
+                        'standard_labor_rate' => '',
+                        'is_final_step'       => true,
+                    ]
+                ];
+            } else {
+                $this->patternsList[$patternIndex]['tasks'] = [];
             }
         }
     }
 
-    public function updatedFabricLengthGroupId($value): void
+    public function addPatternTaskRow(int $patternIndex): void
     {
-        if ($value) {
-            $group = \App\Models\UnitGroup::with('units')->find($value);
-            if ($group && $group->units->isNotEmpty()) {
-                $this->fabric_length_unit = $group->units->first()->short_code;
+        if (!isset($this->patternsList[$patternIndex]['tasks'])) {
+            $this->patternsList[$patternIndex]['tasks'] = [];
+        }
+
+        foreach ($this->patternsList[$patternIndex]['tasks'] as &$r) {
+            $r['is_final_step'] = false;
+        }
+
+        $this->patternsList[$patternIndex]['tasks'][] = [
+            'task_id'             => '',
+            'standard_labor_rate' => '',
+            'is_final_step'       => true,
+        ];
+    }
+
+    public function removePatternTaskRow(int $patternIndex, int $taskIndex): void
+    {
+        $wasFinal = $this->patternsList[$patternIndex]['tasks'][$taskIndex]['is_final_step'] ?? false;
+        array_splice($this->patternsList[$patternIndex]['tasks'], $taskIndex, 1);
+        $this->patternsList[$patternIndex]['tasks'] = array_values($this->patternsList[$patternIndex]['tasks']);
+
+        if ($wasFinal && !empty($this->patternsList[$patternIndex]['tasks'])) {
+            $lastIdx = count($this->patternsList[$patternIndex]['tasks']) - 1;
+            foreach ($this->patternsList[$patternIndex]['tasks'] as $i => &$r) {
+                $r['is_final_step'] = ($i === $lastIdx);
             }
         }
     }
 
+    public function setPatternFinalStep(int $patternIndex, int $taskIndex): void
+    {
+        foreach ($this->patternsList[$patternIndex]['tasks'] as $i => &$r) {
+            $r['is_final_step'] = ($i === $taskIndex);
+        }
+    }
+
+    public function movePatternTaskRow(int $patternIndex, int $taskIndex, string $direction): void
+    {
+        $targetIndex = ($direction === 'up') ? $taskIndex - 1 : $taskIndex + 1;
+        $tasks = &$this->patternsList[$patternIndex]['tasks'];
+        
+        if ($targetIndex < 0 || $targetIndex >= count($tasks)) {
+            return;
+        }
+
+        $temp = $tasks[$taskIndex];
+        $tasks[$taskIndex] = $tasks[$targetIndex];
+        $tasks[$targetIndex] = $temp;
+        $tasks = array_values($tasks);
+    }
+
+    // --- Subsidiary Material Actions ---
     public function updatedSubsidiaryMaterialsList($value, $key)
     {
         if (str_ends_with($key, '.raw_material_id') && !empty($value)) {
@@ -155,104 +257,10 @@ class AddManufacturingProductForm extends Component
         }
     }
 
-    public function updatedIsSubsidiaryUsed($value): void
-    {
-        if ($value && empty($this->subsidiaryMaterialsList)) {
-            $this->subsidiaryMaterialsList = [['raw_material_id' => '', 'consumption_quantity' => '', 'unit' => '']];
-        }
-    }
-
-    // --- Packaging Actions ---
-    public function updatedPackagingMaterialsList($value, $key)
-    {
-        if (str_ends_with($key, '.raw_material_id') && !empty($value)) {
-            $index = (int) explode('.', $key)[0];
-            $material = RawMaterial::find($value);
-            $this->packagingMaterialsList[$index]['unit'] = $material?->unit ?? '';
-        }
-    }
-
-    public function addPackagingRow(): void
-    {
-        $this->packagingMaterialsList[] = ['raw_material_id' => '', 'required_quantity' => '', 'unit' => ''];
-    }
-
-    public function removePackagingRow(int $index): void
-    {
-        if (count($this->packagingMaterialsList) > 1) {
-            array_splice($this->packagingMaterialsList, $index, 1);
-            $this->packagingMaterialsList = array_values($this->packagingMaterialsList);
-        } else {
-            $this->packagingMaterialsList = [['raw_material_id' => '', 'required_quantity' => '', 'unit' => '']];
-        }
-    }
-
-    public function updatedIsPackagingUsed($value): void
-    {
-        if ($value && empty($this->packagingMaterialsList)) {
-            $this->packagingMaterialsList = [['raw_material_id' => '', 'required_quantity' => '', 'unit' => '']];
-        }
-    }
-
-    // --- Task Sequence / Routing Repeater Actions ---
-
-    public function addRoutingRow(): void
-    {
-        foreach ($this->routingTasksList as $i => &$row) {
-            $row['is_final_step'] = false;
-        }
-
-        $this->routingTasksList[] = [
-            'task_id'             => '',
-            'standard_labor_rate' => '',
-            'is_final_step'       => true,
-        ];
-    }
-
-    public function removeRoutingRow(int $index): void
-    {
-        if ($index === 0) {
-            // Cannot remove the first mandatory stage (Cutting)
-            return;
-        }
-
-        $wasFinal = $this->routingTasksList[$index]['is_final_step'] ?? false;
-        array_splice($this->routingTasksList, $index, 1);
-        $this->routingTasksList = array_values($this->routingTasksList);
-
-        // If removed row was the final step, make the last remaining row final
-        if ($wasFinal && !empty($this->routingTasksList)) {
-            $lastIndex = count($this->routingTasksList) - 1;
-            foreach ($this->routingTasksList as $i => &$row) {
-                $row['is_final_step'] = ($i === $lastIndex);
-            }
-        }
-    }
-
-    public function setFinalStep(int $index): void
-    {
-        foreach ($this->routingTasksList as $i => &$row) {
-            $row['is_final_step'] = ($i === $index);
-        }
-    }
-
-    public function moveRoutingRow(int $index, string $direction): void
-    {
-        $targetIndex = ($direction === 'up') ? $index - 1 : $index + 1;
-        if ($targetIndex < 0 || $targetIndex >= count($this->routingTasksList)) {
-            return;
-        }
-
-        $temp = $this->routingTasksList[$index];
-        $this->routingTasksList[$index] = $this->routingTasksList[$targetIndex];
-        $this->routingTasksList[$targetIndex] = $temp;
-        $this->routingTasksList = array_values($this->routingTasksList);
-    }
-
     public function mount($id = null)
     {
         if ($id) {
-            $product = ManufacturingProduct::with(['subsidiaryMaterials', 'stitchingMaterials', 'packagingMaterials', 'tasks'])->findOrFail($id);
+            $product = ManufacturingProduct::with(['patterns.tasks', 'patterns.fabricWidth', 'subsidiaryMaterials'])->findOrFail($id);
             $this->productId                         = $product->id;
             $this->name                              = $product->name;
             $this->code                              = $product->code;
@@ -260,39 +268,8 @@ class AddManufacturingProductForm extends Component
             $this->manufacturing_product_category_id = $product->manufacturing_product_category_id ?? '';
             $this->status                            = $product->status ?? 'active';
             $this->standard_labor_rate               = $product->standard_labor_rate ?? 0.00;
-            $this->is_fabric_used                    = (bool)($product->is_fabric_used ?? false);
-            $this->standard_fabric_width             = $product->standard_fabric_width ?? '';
-            $this->standard_fabric_length            = $product->standard_fabric_length ?? '';
-            $this->fabric_width_unit                 = $product->fabric_width_unit ?? 'in';
-            $this->fabric_length_unit                = $product->fabric_length_unit ?? 'm';
 
-            $widthUnit = \App\Models\Unit::where('short_code', $this->fabric_width_unit)
-                ->orWhere('name', $this->fabric_width_unit)
-                ->first();
-            if ($widthUnit) {
-                $this->fabric_width_group_id = (string) $widthUnit->unit_group_id;
-                $this->fabric_width_unit = $widthUnit->short_code;
-            } else {
-                $defaultLengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first() 
-                    ?? \App\Models\UnitGroup::where('name', 'like', '%Length%')->first() 
-                    ?? \App\Models\UnitGroup::first();
-                $this->fabric_width_group_id = $defaultLengthGroup ? (string) $defaultLengthGroup->id : '';
-            }
-
-            $lengthUnit = \App\Models\Unit::where('short_code', $this->fabric_length_unit)
-                ->orWhere('name', $this->fabric_length_unit)
-                ->first();
-            if ($lengthUnit) {
-                $this->fabric_length_group_id = (string) $lengthUnit->unit_group_id;
-                $this->fabric_length_unit = $lengthUnit->short_code;
-            } else {
-                $defaultLengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first() 
-                    ?? \App\Models\UnitGroup::where('name', 'like', '%Length%')->first() 
-                    ?? \App\Models\UnitGroup::first();
-                $this->fabric_length_group_id = $defaultLengthGroup ? (string) $defaultLengthGroup->id : '';
-            }
-
-            // Subsidiary materials
+            // Load Subsidiary materials
             $this->is_subsidiary_used = (bool)($product->is_subsidiary_used ?? false);
             if ($this->is_subsidiary_used && $product->subsidiaryMaterials->isNotEmpty()) {
                 $this->subsidiaryMaterialsList = $product->subsidiaryMaterials->map(fn($m) => [
@@ -300,38 +277,32 @@ class AddManufacturingProductForm extends Component
                     'consumption_quantity' => (string)$m->pivot->consumption_quantity,
                     'unit'                 => $m->unit,
                 ])->toArray();
-            } elseif ($this->is_subsidiary_used) {
+            } else {
                 $this->subsidiaryMaterialsList = [['raw_material_id' => '', 'consumption_quantity' => '', 'unit' => '']];
             }
 
-            // Stitching materials
-            $this->is_stitching_used = (bool)($product->is_stitching_used ?? false);
-            $this->stitchingMaterialsList = $product->stitchingMaterials->pluck('id')->map(fn($id) => (string)$id)->toArray();
-
-            // Packaging materials
-            $this->is_packaging_used = (bool)($product->is_packaging_used ?? false);
-            if ($this->is_packaging_used && $product->packagingMaterials->isNotEmpty()) {
-                $this->packagingMaterialsList = $product->packagingMaterials->map(fn($m) => [
-                    'raw_material_id'   => (string)$m->id,
-                    'required_quantity' => (string)$m->pivot->required_quantity,
-                    'unit'              => $m->unit,
-                ])->toArray();
-            } elseif ($this->is_packaging_used) {
-                $this->packagingMaterialsList = [['raw_material_id' => '', 'required_quantity' => '', 'unit' => '']];
-            }
-
-            // Routing tasks
-            if ($product->tasks->isNotEmpty()) {
-                $this->routingTasksList = $product->tasks->map(fn($t) => [
-                    'task_id'             => (string)$t->id,
-                    'standard_labor_rate' => (string)($t->pivot->standard_labor_rate ?? $product->standard_labor_rate),
-                    'is_final_step'       => (bool)($t->pivot->is_final_step ?? false),
-                ])->toArray();
+            // Load Patterns
+            if ($product->patterns->isNotEmpty()) {
+                $this->patternsList = $product->patterns->map(function ($p) {
+                    return [
+                        'id'                  => $p->id,
+                        'name'                => $p->name,
+                        'fabric_width_id'     => (string) ($p->fabric_width_id ?? ''),
+                        'fabric_length'       => (string) ($p->fabric_length ?? ''),
+                        'fabric_length_unit'  => $p->fabric_length_unit ?? 'm',
+                        'standard_labor_rate' => (string) ($p->standard_labor_rate ?? ''),
+                        'tasks'               => $p->tasks->map(fn($t) => [
+                            'task_id'             => (string) $t->id,
+                            'standard_labor_rate' => (string) ($t->pivot->standard_labor_rate ?? ''),
+                            'is_final_step'       => (bool) ($t->pivot->is_final_step ?? false),
+                        ])->toArray(),
+                    ];
+                })->toArray();
             } else {
-                $this->loadDefaultRoutingTasks();
+                $this->initDefaultPatternFromProduct($product);
             }
         } else {
-            // Generate preview code
+            // Code preview
             $year   = date('Y');
             $latest = ManufacturingProduct::where('code', 'like', "MP-{$year}-%")->latest('id')->first();
             $seq    = 1;
@@ -344,69 +315,98 @@ class AddManufacturingProductForm extends Component
             }
             $this->code = "MP-{$year}-" . str_pad($seq, 4, '0', STR_PAD_LEFT);
 
-            // Default task sequence from Task Master
-            $this->loadDefaultRoutingTasks();
-            
-            $lengthGroupId = \App\Models\UnitGroup::where('code', 'LENGTH')->value('id') ?? '';
-            $this->fabric_width_group_id = $lengthGroupId;
-            $this->fabric_length_group_id = $lengthGroupId;
-        }
-    }
-
-    private function loadDefaultRoutingTasks(): void
-    {
-        $cuttingTask = Task::where('name', 'Cutting')->orWhere('code', 'TSK-001')->first();
-        if (!$cuttingTask) {
-            $cuttingTask = Task::where('status', true)->first();
-        }
-
-        if ($cuttingTask) {
-            $this->routingTasksList = [
+            // Initialize pattern 1
+            $defaultWidth = FabricWidth::where('status', true)->first();
+            $this->patternsList = [
                 [
-                    'task_id'             => (string)$cuttingTask->id,
+                    'id'                  => null,
+                    'name'                => 'Standard Fold',
+                    'fabric_width_id'     => $defaultWidth ? (string) $defaultWidth->id : '',
+                    'fabric_length'       => '2.50',
+                    'fabric_length_unit'  => 'm',
                     'standard_labor_rate' => '',
-                    'is_final_step'       => true,
+                    'tasks'               => [],
                 ]
             ];
-        } else {
-            $this->routingTasksList = [
-                ['task_id' => '', 'standard_labor_rate' => '', 'is_final_step' => true]
-            ];
+
+            $this->subsidiaryMaterialsList = [['raw_material_id' => '', 'consumption_quantity' => '', 'unit' => '']];
+        }
+
+        $this->routingTasksList = $this->patternsList[0]['tasks'] ?? [];
+    }
+
+    private function initDefaultPatternFromProduct($product): void
+    {
+        $matchedWidth = null;
+        if (!empty($product->standard_fabric_width)) {
+            $matchedWidth = FabricWidth::where('value', $product->standard_fabric_width)->first();
+        }
+        if (!$matchedWidth) {
+            $matchedWidth = FabricWidth::where('status', true)->first();
+        }
+
+        $tasks = $product->tasks->isNotEmpty()
+            ? $product->tasks->map(fn($t) => [
+                'task_id'             => (string) $t->id,
+                'standard_labor_rate' => (string) ($t->pivot->standard_labor_rate ?? ''),
+                'is_final_step'       => (bool) ($t->pivot->is_final_step ?? false),
+            ])->toArray()
+            : [];
+
+        $this->patternsList = [
+            [
+                'id'                  => null,
+                'name'                => 'Standard Fold',
+                'fabric_width_id'     => $matchedWidth ? (string) $matchedWidth->id : '',
+                'fabric_length'       => (string) ($product->standard_fabric_length ?? '2.50'),
+                'fabric_length_unit'  => $product->fabric_length_unit ?? 'm',
+                'standard_labor_rate' => (string) ($product->standard_labor_rate ?? ''),
+                'tasks'               => $tasks,
+            ]
+        ];
+
+        if (empty($tasks)) {
+            $this->loadCategoryDefaultTasksForPattern(0);
         }
     }
 
     public function setWizardStep(int $step): void
     {
         if ($step >= 1 && $step <= $this->maxSteps) {
+            if ($step > $this->wizardStep) {
+                $this->validateCurrentStep();
+            }
             $this->wizardStep = $step;
+        }
+    }
+
+    public function validateCurrentStep(): void
+    {
+        if ($this->wizardStep === 1) {
+            $this->validate([
+                'name'                              => 'required|string|max:255',
+                'manufacturing_product_category_id' => 'required|exists:manufacturing_product_categories,id',
+            ]);
+
+            // If patterns tasks are empty, pre-fill pattern 1 with category defaults
+            if (!empty($this->patternsList[0]) && empty($this->patternsList[0]['tasks'])) {
+                $this->loadCategoryDefaultTasksForPattern(0);
+            }
+        } elseif ($this->wizardStep === 2) {
+            $this->validate([
+                'patternsList'                            => 'required|array|min:1',
+                'patternsList.*.name'                     => 'required|string|max:255',
+                'patternsList.*.fabric_width_id'          => 'required|exists:fabric_widths,id',
+                'patternsList.*.fabric_length'            => 'required|numeric|min:0.01',
+                'patternsList.*.tasks'                    => 'required|array|min:1',
+                'patternsList.*.tasks.*.task_id'          => 'required|exists:tasks,id',
+            ]);
         }
     }
 
     public function nextStep(): void
     {
-        if ($this->wizardStep === 1) {
-            $rules = [
-                'name'                              => 'required|string|max:255',
-                'manufacturing_product_category_id' => 'required|exists:manufacturing_product_categories,id',
-                'standard_labor_rate'               => 'nullable|numeric|min:0',
-            ];
-            if ($this->is_fabric_used) {
-                $rules['standard_fabric_width']  = 'required|numeric|min:0.01';
-                $rules['standard_fabric_length'] = 'required|numeric|min:0.01';
-                $rules['fabric_width_unit']      = 'required|string';
-                $rules['fabric_length_unit']     = 'required|string';
-            }
-            $this->validate($rules);
-        } elseif ($this->wizardStep === 2) {
-            if ($this->is_subsidiary_used) {
-                $this->validate([
-                    'subsidiaryMaterialsList.*.raw_material_id'      => 'required|exists:raw_materials,id',
-                    'subsidiaryMaterialsList.*.consumption_quantity' => 'required|numeric|min:0.0001',
-                ]);
-            }
-        } elseif ($this->wizardStep === 3) {
-            // Stitching validation (none required to proceed)
-        }
+        $this->validateCurrentStep();
 
         if ($this->wizardStep < $this->maxSteps) {
             $this->wizardStep++;
@@ -424,9 +424,10 @@ class AddManufacturingProductForm extends Component
 
     public function save()
     {
+        // Full validation
         $this->validate();
 
-        // 1. Ensure no duplicate subsidiary materials
+        // 1. Check duplicate subsidiary materials
         if ($this->is_subsidiary_used && count($this->subsidiaryMaterialsList) > 0) {
             $selectedSubIds = array_column($this->subsidiaryMaterialsList, 'raw_material_id');
             $selectedSubIds = array_filter($selectedSubIds);
@@ -436,65 +437,29 @@ class AddManufacturingProductForm extends Component
             }
         }
 
-        // 3. Validate Routing Sequence Rules
-        if (empty($this->routingTasksList)) {
-            $this->addError('routingTasksList', 'At least one manufacturing task sequence must be configured.');
-            return;
-        }
-
-        $selectedTaskIds = array_column($this->routingTasksList, 'task_id');
-        $selectedTaskIds = array_filter($selectedTaskIds);
-
-        if (count($selectedTaskIds) !== count($this->routingTasksList)) {
-            $this->addError('routingTasksList', 'All routing steps must have a valid task selected.');
-            return;
-        }
-
-        if (count($selectedTaskIds) !== count(array_unique($selectedTaskIds))) {
-            $this->addError('routingTasksList', 'Duplicate tasks found in sequence. Each task can only appear once in the routing.');
-            return;
-        }
-
-        // Exactly ONE task must be designated as the Final Production Step
-        $finalStepCount = 0;
-        foreach ($this->routingTasksList as $rRow) {
-            if (!empty($rRow['is_final_step'])) {
-                $finalStepCount++;
-            }
-        }
-
-        if ($finalStepCount !== 1) {
-            // Auto-default last step as final step if none or multiple selected
-            $lastIdx = count($this->routingTasksList) - 1;
-            foreach ($this->routingTasksList as $i => $rRow) {
-                $this->routingTasksList[$i]['is_final_step'] = ($i === $lastIdx);
-            }
-        }
-
-        // 4. Ensure Category is active
+        // 2. Validate category status
         $category = ManufacturingProductCategory::findOrFail($this->manufacturing_product_category_id);
         if (!$category->status) {
-            $this->addError('manufacturing_product_category_id', 'The selected category is inactive. Products can only be linked to active categories.');
+            $this->addError('manufacturing_product_category_id', 'Selected category is inactive.');
             return;
         }
 
+        // Extract primary fabric values from default/first pattern for legacy backward compatibility
+        $firstPattern = $this->patternsList[0] ?? null;
+        $firstWidth = $firstPattern ? FabricWidth::find($firstPattern['fabric_width_id']) : null;
+
         $fabricData = [
-            'is_fabric_used'        => $this->is_fabric_used,
-            'standard_fabric_width'  => $this->is_fabric_used ? $this->standard_fabric_width : null,
-            'standard_fabric_length' => $this->is_fabric_used ? $this->standard_fabric_length : null,
-            'fabric_width_unit'      => $this->is_fabric_used ? $this->fabric_width_unit : null,
-            'fabric_length_unit'     => $this->is_fabric_used ? $this->fabric_length_unit : null,
+            'is_fabric_used'         => true,
+            'standard_fabric_width'  => $firstWidth?->value ?? 44.00,
+            'standard_fabric_length' => $firstPattern ? $firstPattern['fabric_length'] : 2.50,
+            'fabric_width_unit'      => $firstWidth?->unit ?? 'in',
+            'fabric_length_unit'     => $firstPattern ? $firstPattern['fabric_length_unit'] : 'm',
         ];
 
         $materialData = [
             'is_subsidiary_used' => $this->is_subsidiary_used,
-            'is_stitching_used'  => $this->is_stitching_used,
+            'is_stitching_used'  => $this->is_stitching_used || !empty($this->stitchingMaterialsList),
             'is_packaging_used'  => false,
-        ];
-
-        $mappingData = [
-            'product_id' => null,
-            'product_combination_id' => null,
         ];
 
         $imageData = [];
@@ -511,7 +476,7 @@ class AddManufacturingProductForm extends Component
                 'manufacturing_product_category_id' => $this->manufacturing_product_category_id,
                 'status'                            => $this->status,
                 'standard_labor_rate'               => $this->standard_labor_rate ?: 0.00,
-            ], $fabricData, $materialData, $mappingData, $imageData));
+            ], $fabricData, $materialData, $imageData));
             $message = "Manufacturing Product {$product->name} updated successfully!";
         } else {
             $product = ManufacturingProduct::create(array_merge([
@@ -519,7 +484,7 @@ class AddManufacturingProductForm extends Component
                 'manufacturing_product_category_id' => $this->manufacturing_product_category_id,
                 'status'                            => $this->status,
                 'standard_labor_rate'               => $this->standard_labor_rate ?: 0.00,
-            ], $fabricData, $materialData, $mappingData, $imageData));
+            ], $fabricData, $materialData, $imageData));
             $message = "Manufacturing Product {$product->name} created successfully!";
         }
 
@@ -539,25 +504,65 @@ class AddManufacturingProductForm extends Component
         }
 
         // Sync stitching materials pivot
-        if ($this->is_stitching_used) {
+        if ($this->is_stitching_used || !empty($this->stitchingMaterialsList)) {
             $product->stitchingMaterials()->sync(array_filter($this->stitchingMaterialsList));
         } else {
             $product->stitchingMaterials()->detach();
         }
 
-        // Sync packaging materials pivot (unconditionally detach since packaging is not configured here anymore)
-        $product->packagingMaterials()->detach();
+        // Save Patterns & Pattern Tasks
+        $keptPatternIds = [];
+        foreach ($this->patternsList as $pIndex => $pRow) {
+            $isDefault = ($pIndex === 0);
+            
+            $patternModel = ManufacturingProductPattern::updateOrCreate(
+                [
+                    'id'                       => $pRow['id'] ?? null,
+                    'manufacturing_product_id' => $product->id,
+                ],
+                [
+                    'name'                => $pRow['name'] ?? 'Standard Fold',
+                    'fabric_width_id'     => $pRow['fabric_width_id'],
+                    'fabric_length'       => $pRow['fabric_length'],
+                    'fabric_length_unit'  => $pRow['fabric_length_unit'] ?? 'm',
+                    'standard_labor_rate' => $pRow['standard_labor_rate'] ?: 0.00,
+                    'is_default'          => $isDefault,
+                ]
+            );
 
-        // Sync manufacturing_product_task pivot (Task Sequence / Routing)
-        $taskSyncData = [];
-        foreach ($this->routingTasksList as $seqIndex => $rRow) {
-            $taskSyncData[$rRow['task_id']] = [
-                'sequence_number'     => $seqIndex + 1,
-                'standard_labor_rate' => !empty($rRow['standard_labor_rate']) ? $rRow['standard_labor_rate'] : ($this->standard_labor_rate ?: 0.00),
-                'is_final_step'       => !empty($rRow['is_final_step']),
-            ];
+            $keptPatternIds[] = $patternModel->id;
+
+            // Sync Pattern Tasks
+            $taskSyncData = [];
+            $validTasks = array_filter($pRow['tasks'] ?? [], fn($t) => !empty($t['task_id']));
+            
+            $hasFinal = false;
+            foreach ($validTasks as $vt) {
+                if (!empty($vt['is_final_step'])) $hasFinal = true;
+            }
+            $lastTaskIndex = count($validTasks) - 1;
+
+            $seq = 1;
+            foreach ($validTasks as $idx => $tRow) {
+                $isFinal = $hasFinal ? !empty($tRow['is_final_step']) : ($idx === $lastTaskIndex);
+                $taskSyncData[$tRow['task_id']] = [
+                    'sequence_number'     => $seq++,
+                    'standard_labor_rate' => !empty($tRow['standard_labor_rate']) ? $tRow['standard_labor_rate'] : ($pRow['standard_labor_rate'] ?: 0.00),
+                    'is_final_step'       => $isFinal,
+                ];
+            }
+            $patternModel->tasks()->sync($taskSyncData);
+
+            // Copy default pattern tasks to product task pivot for legacy system compatibility
+            if ($isDefault) {
+                $product->tasks()->sync($taskSyncData);
+            }
         }
-        $product->tasks()->sync($taskSyncData);
+
+        // Delete removed patterns
+        ManufacturingProductPattern::where('manufacturing_product_id', $product->id)
+            ->whereNotIn('id', $keptPatternIds)
+            ->delete();
 
         session()->flash('toast', ['message' => $message, 'type' => 'success']);
         return redirect()->route('factory.products.index');
@@ -567,32 +572,18 @@ class AddManufacturingProductForm extends Component
     {
         $activeCategories = ManufacturingProductCategory::active()->orderBy('name')->get();
         $availableTasks = Task::where('status', true)->orderBy('id')->get();
+        $fabricWidths = FabricWidth::active()->orderBy('value', 'asc')->get();
 
         // CAT-SUB materials for subsidiary picker
         $subsidiaryRawMaterials = RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-SUB'))
             ->orderBy('name')
             ->get();
 
-        // CAT-STITCH materials for stitching picker
-        $stitchingRawMaterials = RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-STITCH'))
-            ->orderBy('name')
-            ->get();
-
-        // CAT-PKG materials for packaging picker
-        $packagingRawMaterials = RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
-            ->orderBy('name')
-            ->get();
-
-
-        $allUnitGroups = \App\Models\UnitGroup::with('units')->active()->orderBy('name')->get();
-
         return view('livewire.factory.add-manufacturing-product-form', [
             'categories'             => $activeCategories,
             'availableTasks'         => $availableTasks,
+            'fabricWidths'           => $fabricWidths,
             'subsidiaryRawMaterials' => $subsidiaryRawMaterials,
-            'stitchingRawMaterials'  => $stitchingRawMaterials,
-            'packagingRawMaterials'  => $packagingRawMaterials,
-            'allUnitGroups'          => $allUnitGroups,
         ])->title($this->productId ? 'Edit Manufacturing Product' : 'Add Manufacturing Product');
     }
 }
