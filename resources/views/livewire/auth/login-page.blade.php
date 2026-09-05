@@ -170,7 +170,7 @@
                                     <div>
                                         An OTP has been sent for <strong>{{ $otpLogin }}</strong>.
                                         <br>
-                                        <span class="text-[12px] opacity-80">Enter any 6-digit code (e.g. 123456) to proceed.</span>
+                                        <span class="text-[12px] opacity-80">Please enter the 6-digit verification code sent to your WhatsApp.</span>
                                     </div>
                                 </div>
 

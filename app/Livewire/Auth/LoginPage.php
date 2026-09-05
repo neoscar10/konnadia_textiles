@@ -121,7 +121,7 @@ class LoginPage extends Component
         ]);
 
         if (!$otpService->verifyOtp($this->otpLogin, $this->otp)) {
-            $this->addError('otp', 'Invalid OTP code. Any 6-digit code will pass.');
+            $this->addError('otp', 'Invalid OTP code. Please enter the 6-digit verification code sent to your WhatsApp.');
             return;
         }
 
