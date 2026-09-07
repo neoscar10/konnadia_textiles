@@ -12,12 +12,12 @@ return new class extends Migration
         Schema::create('manufacturing_product_patterns', function (Blueprint $table) {
             $table->id();
             $table->foreignId('manufacturing_product_id')
-                ->constrained('manufacturing_products')
+                ->constrained('manufacturing_products', 'id', 'mfg_pat_prod_fk')
                 ->cascadeOnDelete();
             $table->string('name')->default('Standard');
             $table->foreignId('fabric_width_id')
                 ->nullable()
-                ->constrained('fabric_widths')
+                ->constrained('fabric_widths', 'id', 'mfg_pat_width_fk')
                 ->nullOnDelete();
             $table->decimal('fabric_length', 10, 4)->nullable();
             $table->string('fabric_length_unit')->nullable()->default('m');
@@ -29,10 +29,10 @@ return new class extends Migration
         Schema::create('manufacturing_pattern_tasks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('pattern_id')
-                ->constrained('manufacturing_product_patterns')
+                ->constrained('manufacturing_product_patterns', 'id', 'mfg_pat_task_pat_fk')
                 ->cascadeOnDelete();
             $table->foreignId('task_id')
-                ->constrained('tasks')
+                ->constrained('tasks', 'id', 'mfg_pat_task_task_fk')
                 ->cascadeOnDelete();
             $table->integer('sequence_number')->default(1);
             $table->decimal('standard_labor_rate', 10, 2)->nullable();

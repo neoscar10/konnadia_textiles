@@ -11,10 +11,10 @@ return new class extends Migration
         Schema::create('manufacturing_category_tasks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('manufacturing_product_category_id')
-                ->constrained('manufacturing_product_categories')
+                ->constrained('manufacturing_product_categories', 'id', 'mfg_cat_tasks_cat_fk')
                 ->cascadeOnDelete();
             $table->foreignId('task_id')
-                ->constrained('tasks')
+                ->constrained('tasks', 'id', 'mfg_cat_tasks_task_fk')
                 ->cascadeOnDelete();
             $table->integer('sequence_number')->default(1);
             $table->decimal('standard_labor_rate', 10, 2)->nullable();
