@@ -9,6 +9,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('manufacturing_pattern_tasks');
+        Schema::dropIfExists('manufacturing_product_patterns');
         Schema::create('manufacturing_product_patterns', function (Blueprint $table) {
             $table->id();
             $table->foreignId('manufacturing_product_id')

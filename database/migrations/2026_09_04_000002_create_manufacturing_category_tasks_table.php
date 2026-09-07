@@ -8,6 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('manufacturing_category_tasks');
         Schema::create('manufacturing_category_tasks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('manufacturing_product_category_id')
