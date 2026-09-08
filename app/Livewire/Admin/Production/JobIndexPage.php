@@ -486,6 +486,7 @@ class JobIndexPage extends Component
         $availableUnconvertedPoolUnits = max(0, $totalFinishedUnitsProduced - $totalStorefrontConvertedUnits);
 
         return view('livewire.admin.production.job-index-page', [
+            'batchProducts'                 => $this->batchProducts,
             'paginatedBatches'              => $paginatedBatches,
             'allProducts'                   => $allProducts,
             'selectedProduct'               => $selectedProduct,
