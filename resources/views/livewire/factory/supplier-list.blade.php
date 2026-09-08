@@ -162,13 +162,13 @@
 
     <!-- Create / Edit Supplier Modal -->
     @if($showModal)
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50" wire:click="$set('showModal', false)"></div>
+        <!-- Backdrop (transparent background to avoid darkening page) -->
+        <div class="fixed inset-0 z-50 bg-transparent" wire:click="$set('showModal', false)"></div>
 
         <!-- Modal Dialog Container -->
-        <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="fixed inset-0 z-50 overflow-y-auto pointer-events-none">
             <div class="flex min-h-full items-center justify-center p-4 sm:p-6">
-                <div class="relative bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-xl overflow-hidden my-8 max-h-[calc(100vh-4rem)] flex flex-col" @click.outside="$wire.set('showModal', false)">
+                <div class="relative bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-xl overflow-hidden my-8 max-h-[calc(100vh-4rem)] flex flex-col pointer-events-auto" @click.outside="$wire.set('showModal', false)">
                     <!-- Modal Header (Fixed at top) -->
                     <div class="px-6 py-4 bg-surface-container-low border-b border-outline-variant/60 flex items-center justify-between shrink-0">
                         <div>
@@ -234,10 +234,13 @@
                                     <span class="font-extrabold text-xs text-on-surface block">Grant Supplier Portal Access</span>
                                     <p class="text-[10px] text-on-surface-variant mt-0.5">Allows vendor to login to upload product photos and view supply history.</p>
                                 </div>
-                                <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                                    <input type="checkbox" wire:model.live="grant_portal_access" class="sr-only peer">
-                                    <div class="w-10 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-                                </label>
+                                <button type="button" 
+                                    wire:click="$toggle('grant_portal_access')" 
+                                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $grant_portal_access ? 'bg-emerald-600' : 'bg-slate-300' }}"
+                                    role="switch"
+                                    aria-checked="{{ $grant_portal_access ? 'true' : 'false' }}">
+                                    <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out {{ $grant_portal_access ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                                </button>
                             </div>
 
                             <div class="grid grid-cols-2 gap-3 pt-2 border-t border-outline-variant/40">
@@ -278,13 +281,13 @@
 
     <!-- Delete Confirmation Modal -->
     @if($confirmingDeletionId)
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50" wire:click="$set('confirmingDeletionId', null)"></div>
+        <!-- Backdrop (transparent background to avoid darkening page) -->
+        <div class="fixed inset-0 z-50 bg-transparent" wire:click="$set('confirmingDeletionId', null)"></div>
 
         <!-- Modal Dialog Container -->
-        <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="fixed inset-0 z-50 overflow-y-auto pointer-events-none">
             <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-sm p-6 space-y-4 text-center my-8" @click.outside="$wire.set('confirmingDeletionId', null)">
+                <div class="relative bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-sm p-6 space-y-4 text-center my-8 pointer-events-auto" @click.outside="$wire.set('confirmingDeletionId', null)">
                     <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mx-auto">
                         <span class="material-symbols-outlined text-2xl">warning</span>
                     </div>
