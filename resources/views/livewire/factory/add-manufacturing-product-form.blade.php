@@ -210,49 +210,51 @@
 
                                 <div class="space-y-2.5">
                                     @forelse($pattern['tasks'] ?? [] as $tIdx => $tRow)
-                                        <div class="flex flex-wrap items-center gap-3 p-2.5 bg-slate-50/90 border border-slate-200 rounded-xl transition-all hover:border-slate-300 w-full lg:w-[70%]">
-                                            <!-- Step Badge -->
-                                            <span class="w-6 h-6 rounded-md bg-slate-900 text-white font-black text-[11px] flex items-center justify-center shrink-0 shadow-2xs">
-                                                {{ $tIdx + 1 }}
-                                            </span>
+                                        <div>
+                                            <div class="inline-flex flex-wrap items-center gap-2.5 p-2 bg-slate-50/90 border border-slate-200/90 rounded-full transition-all hover:border-slate-300 shadow-2xs max-w-full">
+                                                <!-- Step Badge -->
+                                                <span class="w-6 h-6 rounded-full bg-slate-900 text-white font-black text-[11px] flex items-center justify-center shrink-0 shadow-2xs">
+                                                    {{ $tIdx + 1 }}
+                                                </span>
 
-                                            <!-- Stage / Task Selection Dropdown -->
-                                            <div class="w-48 sm:w-56 shrink-0">
-                                                <select wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.task_id" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs">
-                                                    <option value="">-- Select Stage --</option>
-                                                    @foreach($availableTasks as $t)
-                                                        <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->code }})</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-
-                                            <!-- Stage Labor Rate Input (₹) -->
-                                            <div class="w-24 sm:w-28 shrink-0">
-                                                <div class="relative flex items-center">
-                                                    <span class="absolute left-2.5 text-xs font-extrabold text-slate-400">₹</span>
-                                                    <input type="number" step="0.50" wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.standard_labor_rate" placeholder="Rate" class="w-full pl-6 pr-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs">
+                                                <!-- Stage / Task Selection Dropdown -->
+                                                <div class="w-48 sm:w-56 shrink-0">
+                                                    <select wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.task_id" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs">
+                                                        <option value="">-- Select Stage --</option>
+                                                        @foreach($availableTasks as $t)
+                                                            <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->code }})</option>
+                                                        @endforeach
+                                                    </select>
                                                 </div>
-                                            </div>
 
-                                            <!-- Final Stage Radio Pill -->
-                                            <label class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-lg cursor-pointer text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all shrink-0 select-none shadow-2xs">
-                                                <input type="radio" name="p_final_{{ $pIdx }}" wire:click="setPatternFinalStep({{ $pIdx }}, {{ $tIdx }})" @checked(!empty($tRow['is_final_step'])) class="text-amber-600 focus:ring-amber-500">
-                                                <span class="{{ !empty($tRow['is_final_step']) ? 'text-amber-700 font-extrabold' : 'text-slate-600' }}">Final</span>
-                                            </label>
+                                                <!-- Stage Labor Rate Input (₹) -->
+                                                <div class="w-24 sm:w-28 shrink-0">
+                                                    <div class="relative flex items-center">
+                                                        <span class="absolute left-2.5 text-xs font-extrabold text-slate-400">₹</span>
+                                                        <input type="number" step="0.50" wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.standard_labor_rate" placeholder="Rate" class="w-full pl-6 pr-2 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs">
+                                                    </div>
+                                                </div>
 
-                                            <!-- Actions (Reorder & Delete) -->
-                                            <div class="flex items-center gap-1 shrink-0 ml-auto">
-                                                @if($tIdx > 0)
-                                                    <button type="button" wire:click="movePatternTaskRow({{ $pIdx }}, {{ $tIdx }}, 'up')" class="w-6 h-6 rounded-md border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all" title="Move Up">↑</button>
-                                                @endif
-                                                @if($tIdx < count($pattern['tasks']) - 1)
-                                                    <button type="button" wire:click="movePatternTaskRow({{ $pIdx }}, {{ $tIdx }}, 'down')" class="w-6 h-6 rounded-md border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all" title="Move Down">↓</button>
-                                                @endif
-                                                <button type="button" wire:click="removePatternTaskRow({{ $pIdx }}, {{ $tIdx }})" class="w-6 h-6 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs font-bold transition-all" title="Remove Stage">✕</button>
+                                                <!-- Final Stage Radio Pill -->
+                                                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full cursor-pointer text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all shrink-0 select-none shadow-2xs">
+                                                    <input type="radio" name="p_final_{{ $pIdx }}" wire:click="setPatternFinalStep({{ $pIdx }}, {{ $tIdx }})" @checked(!empty($tRow['is_final_step'])) class="text-amber-600 focus:ring-amber-500">
+                                                    <span class="{{ !empty($tRow['is_final_step']) ? 'text-amber-700 font-extrabold' : 'text-slate-600' }}">Final</span>
+                                                </label>
+
+                                                <!-- Actions (Reorder & Delete) - immediately next to Final pill -->
+                                                <div class="flex items-center gap-1 shrink-0 pr-1">
+                                                    @if($tIdx > 0)
+                                                        <button type="button" wire:click="movePatternTaskRow({{ $pIdx }}, {{ $tIdx }}, 'up')" class="w-6 h-6 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all" title="Move Up">↑</button>
+                                                    @endif
+                                                    @if($tIdx < count($pattern['tasks']) - 1)
+                                                        <button type="button" wire:click="movePatternTaskRow({{ $pIdx }}, {{ $tIdx }}, 'down')" class="w-6 h-6 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all" title="Move Down">↓</button>
+                                                    @endif
+                                                    <button type="button" wire:click="removePatternTaskRow({{ $pIdx }}, {{ $tIdx }})" class="w-6 h-6 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs font-bold transition-all" title="Remove Stage">✕</button>
+                                                </div>
                                             </div>
                                         </div>
                                     @empty
-                                        <div class="text-xs text-slate-400 italic p-3 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 w-full lg:w-[70%]">
+                                        <div class="text-xs text-slate-400 italic p-3 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 w-fit">
                                             No tasks configured yet. Click "⚡ Load Category Task Sequence" above or add a task manually below.
                                         </div>
                                     @endforelse
