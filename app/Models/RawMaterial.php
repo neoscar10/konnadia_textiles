@@ -73,6 +73,14 @@ class RawMaterial extends Model
     }
 
     /**
+     * Get supplier aliases for this raw material.
+     */
+    public function supplierAliases()
+    {
+        return $this->hasMany(RawMaterialSupplierAlias::class, 'raw_material_id');
+    }
+
+    /**
      * Scope: only active materials.
      */
     public function scopeActive($query)

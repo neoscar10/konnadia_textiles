@@ -101,6 +101,57 @@
                             @enderror
                         </div>
 
+                        <!-- Supplier Aliases Repeater -->
+                        <div class="bg-surface-container-low/30 border border-outline-variant/40 rounded-xl p-4 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">SUPPLIER ALIASES</label>
+                                    <span class="text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">NEW</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-on-surface-variant/70">Every supplier can name this material differently — add as many aliases as needed.</p>
+
+                            @if(empty($supplierAliases))
+                                <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl text-center text-xs text-on-surface-variant/70 italic font-medium">
+                                    No aliases yet — every supplier can call this material something different, add one below.
+                                </div>
+                            @else
+                                <div class="space-y-2.5">
+                                    @foreach($supplierAliases as $aIdx => $alias)
+                                        <div wire:key="supplier-alias-row-{{ $aIdx }}" class="p-2.5 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
+                                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                                                <div class="sm:col-span-5">
+                                                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Supplier *</label>
+                                                    <select wire:model="supplierAliases.{{ $aIdx }}.supplier_id" class="w-full py-1.5 px-3 rounded-lg border border-outline-variant/60 bg-surface-container-lowest text-xs font-semibold text-on-surface">
+                                                        <option value="">-- Select Supplier --</option>
+                                                        @foreach($suppliers as $sup)
+                                                            <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+
+                                                <div class="sm:col-span-6">
+                                                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Supplier Alias Name / Code *</label>
+                                                    <input type="text" wire:model="supplierAliases.{{ $aIdx }}.alias_name" placeholder="e.g. Poplin Premium 44in" class="w-full py-1.5 px-3 rounded-lg border border-outline-variant/60 bg-surface-container-lowest text-xs font-semibold text-on-surface">
+                                                </div>
+
+                                                <div class="sm:col-span-1 flex justify-end pt-3 sm:pt-0">
+                                                    <button type="button" wire:click="removeSupplierAliasRow({{ $aIdx }})" class="p-1 text-error hover:bg-error-container/20 rounded-lg transition-colors" title="Remove Alias">
+                                                        <span class="material-symbols-outlined text-base">delete</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            <button type="button" wire:click="addSupplierAliasRow" class="w-full py-2 bg-surface-container-lowest hover:bg-surface-container-high border border-outline-variant/60 rounded-xl text-xs font-bold text-primary transition-all shadow-xs flex items-center justify-center gap-1.5">
+                                <span class="material-symbols-outlined text-sm">add</span>
+                                <span>Add Alias</span>
+                            </button>
+                        </div>
+
                         <!-- Unit Selection (dynamic based on selected Unit Class / Category) -->
                         <div>
                             <label for="rm-unit" class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">

@@ -6,6 +6,8 @@ use App\Models\RawMaterial;
 use App\Models\RawMaterialCategory;
 use App\Models\UnitGroup;
 use App\Models\Unit;
+use App\Models\Supplier;
+use App\Models\RawMaterialSupplierAlias;
 use App\Enums\RawMaterialUnitType;
 use Livewire\Component;
 use Livewire\Attributes\On;
@@ -23,6 +25,10 @@ class RawMaterialManager extends Component
     public ?int $raw_material_category_id = null;
     public ?int $unit_group_id = null;
     public ?int $unit_id = null;
+
+    // Supplier Aliases Repeater
+    // Structure: [ ['supplier_id' => '', 'alias_name' => '', 'supplier_material_code' => ''] ]
+    public array $supplierAliases = [];
 
     // Dynamic unit options based on selected Unit Group / Category
     public array $availableUnits = [];
@@ -49,6 +55,21 @@ class RawMaterialManager extends Component
         return false;
     }
 
+    public function addSupplierAliasRow(): void
+    {
+        $this->supplierAliases[] = [
+            'supplier_id' => '',
+            'alias_name' => '',
+            'supplier_material_code' => '',
+        ];
+    }
+
+    public function removeSupplierAliasRow(int $index): void
+    {
+        unset($this->supplierAliases[$index]);
+        $this->supplierAliases = array_values($this->supplierAliases);
+    }
+
     protected function rules()
     {
         $validUnits = $this->getValidUnitsForSelectedCategory();
@@ -68,6 +89,9 @@ class RawMaterialManager extends Component
             'unit_group_id' => 'nullable|exists:unit_groups,id',
             'unit' => $unitRule,
             'is_active' => 'required|boolean',
+            'supplierAliases' => 'array',
+            'supplierAliases.*.supplier_id' => 'nullable|exists:suppliers,id',
+            'supplierAliases.*.alias_name' => 'nullable|string|max:255',
         ];
 
         if ($this->isLengthBased()) {
@@ -101,7 +125,7 @@ class RawMaterialManager extends Component
         $this->resetForm();
 
         if ($materialId) {
-            $material = RawMaterial::with(['category.unitGroup', 'unitGroup', 'unitModel'])->findOrFail($materialId);
+            $material = RawMaterial::with(['category.unitGroup', 'unitGroup', 'unitModel', 'supplierAliases.supplier'])->findOrFail($materialId);
             $this->materialId = $material->id;
             $this->name = $material->name;
             $this->code = $material->code;
@@ -112,6 +136,12 @@ class RawMaterialManager extends Component
             $this->width_unit = $material->width_unit ?? 'Inch';
             $this->is_active = (bool) $material->is_active;
             $this->raw_material_category_id = $material->raw_material_category_id;
+
+            $this->supplierAliases = $material->supplierAliases->map(fn($a) => [
+                'supplier_id' => (string) $a->supplier_id,
+                'alias_name' => $a->alias_name,
+                'supplier_material_code' => $a->supplier_material_code ?? '',
+            ])->toArray();
         }
 
         $this->updateAvailableUnits();
@@ -235,6 +265,19 @@ class RawMaterialManager extends Component
             $message = "Raw Material [{$material->code}] created successfully!";
         }
 
+        // Sync Supplier Aliases
+        $material->supplierAliases()->delete();
+        foreach ($this->supplierAliases as $aliasRow) {
+            if (!empty($aliasRow['supplier_id']) && !empty($aliasRow['alias_name'])) {
+                RawMaterialSupplierAlias::create([
+                    'raw_material_id' => $material->id,
+                    'supplier_id' => (int) $aliasRow['supplier_id'],
+                    'alias_name' => trim($aliasRow['alias_name']),
+                    'supplier_material_code' => !empty($aliasRow['supplier_material_code']) ? trim($aliasRow['supplier_material_code']) : null,
+                ]);
+            }
+        }
+
         $this->showModal = false;
         $this->dispatch('toast', message: $message, type: 'success');
         $this->dispatch('raw-material-saved');
@@ -259,6 +302,7 @@ class RawMaterialManager extends Component
         $this->is_active = true;
         $this->raw_material_category_id = null;
         $this->availableUnits = [];
+        $this->supplierAliases = [];
     }
 
     protected function updateAvailableUnits()
@@ -308,10 +352,13 @@ class RawMaterialManager extends Component
     {
         $categories = RawMaterialCategory::active()->orderBy('name')->get();
         $unitGroups = UnitGroup::active()->with('activeUnits')->orderBy('name')->get();
+        $suppliers = Supplier::orderBy('name')->get();
 
         return view('livewire.factory.raw-material-manager', [
             'categories' => $categories,
             'unitGroups' => $unitGroups,
+            'suppliers'  => $suppliers,
         ]);
     }
 }
+
