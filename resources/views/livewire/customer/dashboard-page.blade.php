@@ -312,6 +312,9 @@
                                     :moq="$prod['minimum_order_quantity']" 
                                     :image="$prod['primary_image_url']" 
                                     :inStock="$prod['stock']['status'] !== 'out_of_stock'"
+                                    :stockStatus="$prod['stock']['status']"
+                                    :stockLabel="$prod['stock']['label']"
+                                    :hasActiveReminder="$prod['has_active_reminder'] ?? false"
                                     :url="$item['link']['url']"
                                     :productId="$prod['id']"
                                 />
@@ -328,6 +331,9 @@
                                     :moq="$prod['minimum_order_quantity']" 
                                     :image="$prod['primary_image_url']" 
                                     :inStock="$prod['stock']['status'] !== 'out_of_stock'"
+                                    :stockStatus="$prod['stock']['status']"
+                                    :stockLabel="$prod['stock']['label']"
+                                    :hasActiveReminder="$prod['has_active_reminder'] ?? false"
                                     :url="$item['link']['url']"
                                     :productId="$prod['id']"
                                 />
@@ -410,6 +416,9 @@
                                     :moq="$prod['minimum_order_quantity']" 
                                     :image="$prod['primary_image_url']" 
                                     :inStock="$prod['stock']['status'] !== 'out_of_stock'"
+                                    :stockStatus="$prod['stock']['status']"
+                                    :stockLabel="$prod['stock']['label']"
+                                    :hasActiveReminder="$prod['has_active_reminder'] ?? false"
                                     :url="$item['link']['url']"
                                     :productId="$prod['id']"
                                 />
@@ -426,6 +435,9 @@
                                     :moq="$prod['minimum_order_quantity']" 
                                     :image="$prod['primary_image_url']" 
                                     :inStock="$prod['stock']['status'] !== 'out_of_stock'"
+                                    :stockStatus="$prod['stock']['status']"
+                                    :stockLabel="$prod['stock']['label']"
+                                    :hasActiveReminder="$prod['has_active_reminder'] ?? false"
                                     :url="$item['link']['url']"
                                     :productId="$prod['id']"
                                 />
@@ -631,26 +643,44 @@
                     <div class="space-y-4">
                         <h5 class="text-sm font-bold text-slate-700">Order Quantity by Unit</h5>
 
-                        @foreach($quickAddUnits as $u)
-                            <div class="space-y-1 bg-slate-50 p-2.5 rounded-lg border border-outline-variant/20">
-                                <div class="flex justify-between items-center">
-                                    <label class="text-xs text-slate-500 font-bold uppercase block">Buy in {{ $u['name'] }}s</label>
-                                    @if($u['level'] === 2)
-                                        <span class="text-[10px] text-slate-400 block">1 {{ ucfirst($u['name']) }} = {{ (int)$u['conversion_to_base'] }} Pieces</span>
-                                    @endif
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <div class="flex items-center justify-between border border-outline-variant/30 rounded-lg bg-white p-1 flex-1">
-                                        <button type="button" wire:click="decrementQuickAddUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
-                                            <span class="material-symbols-outlined text-lg">remove</span>
-                                        </button>
-                                        <input type="number" wire:model.live="quickAddUnitQuantities.{{ $u['id'] }}" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
-                                        <button type="button" wire:click="incrementQuickAddUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
-                                            <span class="material-symbols-outlined text-lg">add</span>
-                                        </button>
+                        @if($quickAddHasLvl2Unit)
+                            @php
+                                $lvl1 = collect($quickAddUnits)->firstWhere('level', 1);
+                                $lvl2 = collect($quickAddUnits)->firstWhere('level', 2);
+                            @endphp
+                            @if($lvl1 && $lvl2)
+                                <div class="p-3 bg-secondary/10 border border-secondary/20 rounded-xl flex items-start gap-2 mb-2 select-none">
+                                    <span class="material-symbols-outlined text-secondary text-base select-none mt-0.5">info</span>
+                                    <div class="text-[11px] font-semibold text-secondary">
+                                        Only <strong>{{ $lvl2['name'] }}</strong> purchases are allowed for this product.<br>
+                                        Relation: 1 {{ $lvl2['name'] }} = {{ (int)$lvl2['conversion_to_base'] }} {{ $lvl1['name'] }}s.
                                     </div>
                                 </div>
-                            </div>
+                            @endif
+                        @endif
+
+                        @foreach($quickAddUnits as $u)
+                            @if(!$quickAddHasLvl2Unit || $u['level'] === 2)
+                                <div class="space-y-1 bg-slate-50 p-2.5 rounded-lg border border-outline-variant/20">
+                                    <div class="flex justify-between items-center">
+                                        <label class="text-xs text-slate-500 font-bold uppercase block">Buy in {{ $u['name'] }}s</label>
+                                        @if($u['level'] === 2)
+                                            <span class="text-[10px] text-slate-400 block">1 {{ ucfirst($u['name']) }} = {{ (int)$u['conversion_to_base'] }} Pieces</span>
+                                        @endif
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex items-center justify-between border border-outline-variant/30 rounded-lg bg-white p-1 flex-1">
+                                            <button type="button" wire:click="decrementQuickAddUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
+                                                <span class="material-symbols-outlined text-lg">remove</span>
+                                            </button>
+                                            <input type="number" wire:model.live="quickAddUnitQuantities.{{ $u['id'] }}" min="0" class="w-12 text-center bg-transparent border-none focus:outline-none focus:ring-0 text-base font-extrabold text-[#001229] py-1">
+                                            <button type="button" wire:click="incrementQuickAddUnitQuantity({{ $u['id'] }})" class="w-8 h-8 rounded-md flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all focus:outline-none">
+                                                <span class="material-symbols-outlined text-lg">add</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         @endforeach
 
                         <!-- Queued Items List -->
@@ -687,18 +717,38 @@
                         <div class="flex justify-between items-center text-[10px] text-slate-400 font-semibold select-none">
                             @php
                                 $totalPiecesDisplay = collect($quickAddQueuedItems)->sum(fn($i) => $i['quantity'] * $i['conversion_to_base']);
+                                $purchasableUnit = $quickAddHasLvl2Unit 
+                                    ? collect($quickAddUnits)->firstWhere('level', 2) 
+                                    : collect($quickAddUnits)->firstWhere('level', 1);
+                                $totalUnitsQueued = $purchasableUnit 
+                                    ? collect($quickAddQueuedItems)->where('unit_id', $purchasableUnit['id'])->sum('quantity') 
+                                    : 0;
+                                $unitLabelPlural = $purchasableUnit ? $purchasableUnit['name'] . 's' : 'Pieces';
                             @endphp
-                            <span>Total Selected: {{ $totalPiecesDisplay }} Pieces</span>
-                            <span>MOQ: {{ $quickAddMoq }} Pieces</span>
+                            @if($quickAddHasLvl2Unit)
+                                <span>Total Selected: {{ $totalUnitsQueued }} {{ $unitLabelPlural }} ({{ $totalPiecesDisplay }} pcs)</span>
+                                <span>MOQ: {{ $quickAddMoq }} {{ $unitLabelPlural }}</span>
+                            @else
+                                <span>Total Selected: {{ $totalPiecesDisplay }} Pieces</span>
+                                <span>MOQ: {{ $quickAddMoq }} Pieces</span>
+                            @endif
                         </div>
                     </div>
 
                     {{-- Live MOQ warning if below minimum --}}
-                    @if($totalPiecesDisplay > 0 && $totalPiecesDisplay < $quickAddMoq)
+                    @php
+                        $isBelowMoq = false;
+                        if ($quickAddHasLvl2Unit) {
+                            $isBelowMoq = $totalUnitsQueued > 0 && $totalUnitsQueued < $quickAddMoq;
+                        } else {
+                            $isBelowMoq = $totalPiecesDisplay > 0 && $totalPiecesDisplay < $quickAddMoq;
+                        }
+                    @endphp
+                    @if($isBelowMoq)
                         <div class="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 mt-2">
                             <span class="material-symbols-outlined text-sm text-rose-500 select-none mt-0.5">warning</span>
                             <span class="text-xs font-semibold text-rose-700">
-                                Minimum order is <strong>{{ $quickAddMoq }} pieces</strong>. Please select more.
+                                Minimum order is <strong>{{ $quickAddMoq }} {{ $quickAddHasLvl2Unit ? $purchasableUnit['name'] . 's' : 'pieces' }}</strong>. Please select more.
                             </span>
                         </div>
                     @endif
@@ -718,17 +768,43 @@
                             <span class="text-[#001229]">₹{{ number_format($quickAddTotal, 2) }}</span>
                         </div>
                     </div>
+                    @if(!$quickAddIsPurchasable)
+                        @guest
+                            <div class="bg-amber-50/70 border border-amber-200/60 rounded-xl p-3.5 space-y-2 mt-3">
+                                <span class="text-xs font-bold text-amber-800 block">Set Stock Alert Contact Details</span>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Phone Number*</label>
+                                        <input type="text" wire:model="quickAddGuestPhoneNumber" placeholder="+91 9876543210" class="w-full text-xs bg-white border border-slate-300 rounded-lg p-2 focus:ring-amber-500">
+                                        @error('quickAddGuestPhoneNumber') <span class="text-rose-600 text-[10px] font-bold mt-0.5 block">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Email (Optional)</label>
+                                        <input type="email" wire:model="quickAddGuestEmail" placeholder="you@example.com" class="w-full text-xs bg-white border border-slate-300 rounded-lg p-2 focus:ring-amber-500">
+                                        @error('quickAddGuestEmail') <span class="text-rose-600 text-[10px] font-bold mt-0.5 block">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        @endguest
+                    @endif
                 </div>
 
                 <!-- Footer -->
                 <div class="px-5 py-3.5 sm:px-6 sm:py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50 shrink-0">
                     <button type="button" wire:click="$set('showQuickAddModal', false)" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-700 border border-outline-variant/30 hover:bg-slate-100 transition-colors bg-white shadow-xs">Cancel</button>
-                    <button type="button" 
-                            wire:click="addVariantToCart"
-                            @if(!$quickAddIsPurchasable) disabled @endif
-                            class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white transition-colors shadow-sm {{ $quickAddIsPurchasable ? 'bg-[#001229] hover:bg-slate-800' : 'bg-slate-300 cursor-not-allowed' }}">
-                        <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Cart
-                    </button>
+                    @if(!$quickAddIsPurchasable)
+                        <button type="button" 
+                                wire:click="subscribeQuickAddStockReminder"
+                                class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors shadow-sm">
+                            <span class="material-symbols-outlined text-sm">notifications_active</span> Set Stock Reminder
+                        </button>
+                    @else
+                        <button type="button" 
+                                wire:click="addVariantToCart"
+                                class="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-[#001229] hover:bg-slate-800 transition-colors shadow-sm">
+                            <span class="material-symbols-outlined text-sm">shopping_cart</span> Add to Cart
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>

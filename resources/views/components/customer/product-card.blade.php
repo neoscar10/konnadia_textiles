@@ -5,8 +5,8 @@
     'moq' => 10,
     'image',
     'inStock' => true,
-    'stockStatus' => 'in_stock',
-    'stockLabel' => 'In Stock',
+    'stockStatus' => null,
+    'stockLabel' => null,
     'hasActiveReminder' => false,
     'url' => '#',
     'productId' => null

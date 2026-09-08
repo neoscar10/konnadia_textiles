@@ -71,7 +71,10 @@
                             :price="$product['price']['customer_price']"
                             :moq="$product['minimum_order_quantity']"
                             :image="$product['primary_image_url']"
-                            :inStock="$product['stock']['status'] === 'in_stock'"
+                            :inStock="$product['stock']['status'] !== 'out_of_stock'"
+                            :stockStatus="$product['stock']['status']"
+                            :stockLabel="$product['stock']['label']"
+                            :hasActiveReminder="$product['has_active_reminder'] ?? false"
                             :url="route('customer.products.show', $product['slug'])"
                             :productId="$product['id']"
                         />
@@ -86,7 +89,10 @@
                             :price="$product['price']['customer_price']"
                             :moq="$product['minimum_order_quantity']"
                             :image="$product['primary_image_url']"
-                            :inStock="$product['stock']['status'] === 'in_stock'"
+                            :inStock="$product['stock']['status'] !== 'out_of_stock'"
+                            :stockStatus="$product['stock']['status']"
+                            :stockLabel="$product['stock']['label']"
+                            :hasActiveReminder="$product['has_active_reminder'] ?? false"
                             :url="route('customer.products.show', $product['slug'])"
                             :productId="$product['id']"
                         />

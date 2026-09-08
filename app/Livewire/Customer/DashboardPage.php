@@ -50,14 +50,21 @@ class DashboardPage extends Component
     public $quickAddStockStatus = '';
     public $quickAddIsPurchasable = true;
 
+    public $quickAddGuestPhoneNumber = '';
+    public $quickAddGuestEmail = '';
+
     public function handleAddClick($productId, \App\Services\Portal\ProductCatalogService $catalogService)
     {
         $user = auth()->user();
-        if (!$user) {
+        $product = \App\Models\Product::with(['units', 'variationGroups.values.media', 'combinations'])->findOrFail($productId);
+
+        $availService = app(\App\Services\Portal\ProductAvailabilityService::class);
+        $availability = $availService->getProductAvailability($product);
+
+        if (!$user && $availability['is_purchasable']) {
             $this->dispatch('toast', type: 'error', message: 'Please log in to purchase products.');
             return;
         }
-        $product = \App\Models\Product::with(['units', 'variationGroups.values.media', 'combinations'])->findOrFail($productId);
 
         // Always open the modal so the user can confirm quantity,
         // even if the product has no variant groups.
@@ -78,8 +85,6 @@ class DashboardPage extends Component
             }
         }
 
-        $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
-        $this->quickAddSelectedUnitId = $lvl1 ? $lvl1['id'] : $detail['purchase_defaults']['default_unit_id'];
         $this->quickAddMoq = $detail['purchase_defaults']['minimum_order_quantity'];
 
         $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
@@ -87,12 +92,22 @@ class DashboardPage extends Component
 
         $this->quickAddUnits = collect($detail['units'])->map(function($u) {
             $moq = max(1, $this->quickAddMoq);
-            if ($u['level'] === 2) {
-                $conversion = (float) ($u['conversion_to_base'] ?? 1.0);
-                if ($conversion <= 0) $conversion = 1.0;
-                $u['min_qty'] = (int) ceil($moq / $conversion);
+            if ($this->quickAddHasLvl2Unit) {
+                if ($u['level'] === 2) {
+                    $u['min_qty'] = $moq;
+                    $u['is_purchasable'] = true;
+                } else {
+                    $u['min_qty'] = 0;
+                    $u['is_purchasable'] = false;
+                }
             } else {
-                $u['min_qty'] = $moq;
+                if ($u['level'] === 1) {
+                    $u['min_qty'] = $moq;
+                    $u['is_purchasable'] = true;
+                } else {
+                    $u['min_qty'] = 0;
+                    $u['is_purchasable'] = false;
+                }
             }
             return $u;
         })->toArray();
@@ -107,28 +122,13 @@ class DashboardPage extends Component
             $conversion = (float) ($lvl2['conversion_to_base'] ?? 1.0);
             if ($conversion <= 0) $conversion = 1.0;
 
-            $lvl2Qty = (int) floor($moq / $conversion);
-            $lvl1Qty = (int) ($moq - ($lvl2Qty * $conversion));
-
-            if ($lvl2Qty > 0) {
-                $this->quickAddQueuedItems[$lvl2['id']] = [
-                    'unit_id' => $lvl2['id'],
-                    'unit_name' => $lvl2['name'],
-                    'unit_short_code' => $lvl2['short_code'],
-                    'conversion_to_base' => $conversion,
-                    'quantity' => $lvl2Qty,
-                ];
-            }
-
-            if ($lvl1Qty > 0 || $lvl2Qty === 0) {
-                $this->quickAddQueuedItems[$lvl1['id']] = [
-                    'unit_id' => $lvl1['id'],
-                    'unit_name' => $lvl1['name'],
-                    'unit_short_code' => $lvl1['short_code'],
-                    'conversion_to_base' => 1.0,
-                    'quantity' => $lvl1Qty > 0 ? $lvl1Qty : 1,
-                ];
-            }
+            $this->quickAddQueuedItems[$lvl2['id']] = [
+                'unit_id' => $lvl2['id'],
+                'unit_name' => $lvl2['name'],
+                'unit_short_code' => $lvl2['short_code'],
+                'conversion_to_base' => $conversion,
+                'quantity' => $moq,
+            ];
         } else {
             if ($lvl1) {
                 $this->quickAddQueuedItems[$lvl1['id']] = [
@@ -236,7 +236,7 @@ class DashboardPage extends Component
             $estimate = $unitPricingService->calculateLineEstimate(
                 $this->pricePerPiece ?? $this->quickAddPricePerPiece,
                 $lvl1Unit,
-                $totalPieces,
+                (int) $totalPieces,
                 $this->quickAddProduct->gst_percentage !== null ? (float) $this->quickAddProduct->gst_percentage : null
             );
 
@@ -274,10 +274,19 @@ class DashboardPage extends Component
             return;
         }
 
-        // If no units queued, automatically add Level 1 unit with MOQ
+        // If no units queued, automatically add Level 2 unit with MOQ (if exists), else Level 1
         if (empty($this->quickAddQueuedItems)) {
+            $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
             $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
-            if ($lvl1) {
+            if ($lvl2) {
+                $this->quickAddQueuedItems[$lvl2['id']] = [
+                    'unit_id' => $lvl2['id'],
+                    'unit_name' => $lvl2['name'],
+                    'unit_short_code' => $lvl2['short_code'],
+                    'conversion_to_base' => (float)$lvl2['conversion_to_base'],
+                    'quantity' => max(1, $this->quickAddMoq),
+                ];
+            } elseif ($lvl1) {
                 $this->quickAddQueuedItems[$lvl1['id']] = [
                     'unit_id' => $lvl1['id'],
                     'unit_name' => $lvl1['name'],
@@ -293,27 +302,32 @@ class DashboardPage extends Component
             return;
         }
 
-        // MOQ check on total pieces in queue
-        $totalPieces = 0;
-        foreach ($this->quickAddQueuedItems as $item) {
-            $totalPieces += (int) ($item['quantity'] * $item['conversion_to_base']);
-        }
-
-        if ($totalPieces < $this->quickAddMoq) {
-            $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
-            if ($lvl2) {
-                $moqBoxes = (int) ceil($this->quickAddMoq / (float)$lvl2['conversion_to_base']);
+        // MOQ check
+        $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
+        if ($lvl2) {
+            $totalUnits = 0;
+            foreach ($this->quickAddQueuedItems as $item) {
+                if ($item['unit_id'] == $lvl2['id']) {
+                    $totalUnits += $item['quantity'];
+                }
+            }
+            if ($totalUnits < $this->quickAddMoq) {
                 $this->dispatch('toast', type: 'error', message:
-                    "Minimum order is {$this->quickAddMoq} pieces. "
-                    . "Your current selection total is {$totalPieces} pieces. "
-                    . "Please select at least {$moqBoxes} {$lvl2['name']}(s) or {$this->quickAddMoq} Pieces."
+                    "Minimum order is {$this->quickAddMoq} {$lvl2['name']}(s). Your current selection is {$totalUnits} {$lvl2['name']}(s)."
                 );
-            } else {
+                return;
+            }
+        } else {
+            $totalPieces = 0;
+            foreach ($this->quickAddQueuedItems as $item) {
+                $totalPieces += (int) ($item['quantity'] * $item['conversion_to_base']);
+            }
+            if ($totalPieces < $this->quickAddMoq) {
                 $this->dispatch('toast', type: 'error', message:
                     "Minimum order quantity is {$this->quickAddMoq} pieces. Your current selection total is {$totalPieces} pieces."
                 );
+                return;
             }
-            return;
         }
 
         $user = auth()->user();
@@ -338,6 +352,52 @@ class DashboardPage extends Component
             $this->showQuickAddModal = false;
         } catch (\Exception $e) {
             $this->dispatch('toast', type: 'error', message: $e->getMessage());
+        }
+    }
+
+    public function subscribeQuickAddStockReminder(?\App\Services\Inventory\StockReminderService $reminderService = null, ?\App\Services\Portal\ProductCatalogService $catalogService = null)
+    {
+        $reminderService = $reminderService ?? app(\App\Services\Inventory\StockReminderService::class);
+        $catalogService = $catalogService ?? app(\App\Services\Portal\ProductCatalogService::class);
+
+        $user = auth()->user();
+        if (!$user) {
+            $this->validate([
+                'quickAddGuestPhoneNumber' => 'required|string|min:8|max:20',
+                'quickAddGuestEmail'       => 'nullable|email',
+            ]);
+        }
+
+        if (!$this->quickAddProduct) return;
+
+        $combination = $catalogService->resolveSelectedCombination($this->quickAddProduct, $this->quickAddSelectedValues);
+
+        $selectedUnitId = !empty($this->quickAddQueuedItems) 
+            ? array_key_first($this->quickAddQueuedItems)
+            : null;
+
+        if (!$selectedUnitId) {
+            $lvl2 = collect($this->quickAddUnits)->firstWhere('level', 2);
+            $lvl1 = collect($this->quickAddUnits)->firstWhere('level', 1);
+            $selectedUnitId = $lvl2 ? $lvl2['id'] : ($lvl1 ? $lvl1['id'] : null);
+        }
+
+        try {
+            $reminderService->createReminder([
+                'product_id'             => $this->quickAddProductId,
+                'product_combination_id' => $combination?->id,
+                'product_unit_id'        => $selectedUnitId,
+                'phone_number'           => $user ? null : $this->quickAddGuestPhoneNumber,
+                'email'                  => $user ? null : $this->quickAddGuestEmail,
+            ], $user);
+
+            $this->showQuickAddModal = false;
+            $this->quickAddGuestPhoneNumber = '';
+            $this->quickAddGuestEmail = '';
+
+            $this->dispatch('toast', type: 'success', message: 'Stock reminder set! We will notify you when this item becomes available.');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', type: 'error', message: 'Unable to set stock reminder: ' . $e->getMessage());
         }
     }
 
