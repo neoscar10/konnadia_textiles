@@ -200,57 +200,69 @@
                             </div>
 
                             <!-- Pattern Task Routing Repeater -->
-                            <div class="p-3.5 bg-white border border-slate-200 rounded-xl space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-extrabold uppercase text-slate-800">Task Routing Sequence for {{ $pattern['name'] ?: 'Pattern' }}</span>
-                                    <span class="text-[10px] font-bold text-slate-500">Click task row to reorder or edit labor rates</span>
+                            <div class="p-4 bg-white border border-slate-200/90 rounded-2xl space-y-3.5 shadow-2xs">
+                                <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                                    <div>
+                                        <span class="text-xs font-black uppercase tracking-wider text-slate-800">Task Routing Sequence for {{ $pattern['name'] ?: 'Pattern' }}</span>
+                                        <span class="text-[11px] font-medium text-slate-500 block mt-0.5">Configure task order, labor piece rates, and mark the final stage.</span>
+                                    </div>
                                 </div>
 
-                                <div class="space-y-2">
+                                <div class="space-y-2.5">
                                     @forelse($pattern['tasks'] ?? [] as $tIdx => $tRow)
-                                        <div class="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-lg">
-                                            <span class="w-5 h-5 rounded-full bg-slate-800 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0">
+                                        <div class="flex flex-wrap items-center gap-3 p-2.5 bg-slate-50/90 border border-slate-200 rounded-xl transition-all hover:border-slate-300 w-full lg:w-[70%]">
+                                            <!-- Step Badge -->
+                                            <span class="w-6 h-6 rounded-md bg-slate-900 text-white font-black text-[11px] flex items-center justify-center shrink-0 shadow-2xs">
                                                 {{ $tIdx + 1 }}
                                             </span>
 
-                                            <div class="flex-1 min-w-[140px]">
-                                                <select wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.task_id" class="w-full px-2.5 py-1 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-800">
-                                                    <option value="">-- Select Task --</option>
+                                            <!-- Stage / Task Selection Dropdown -->
+                                            <div class="w-48 sm:w-56 shrink-0">
+                                                <select wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.task_id" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs">
+                                                    <option value="">-- Select Stage --</option>
                                                     @foreach($availableTasks as $t)
                                                         <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->code }})</option>
                                                     @endforeach
                                                 </select>
                                             </div>
 
-                                            <div class="w-24">
-                                                <input type="number" step="0.50" wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.standard_labor_rate" placeholder="Rate (₹)" class="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs font-semibold">
+                                            <!-- Stage Labor Rate Input (₹) -->
+                                            <div class="w-24 sm:w-28 shrink-0">
+                                                <div class="relative flex items-center">
+                                                    <span class="absolute left-2.5 text-xs font-extrabold text-slate-400">₹</span>
+                                                    <input type="number" step="0.50" wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.standard_labor_rate" placeholder="Rate" class="w-full pl-6 pr-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs">
+                                                </div>
                                             </div>
 
-                                            <label class="flex items-center gap-1 cursor-pointer text-xs font-bold text-slate-700 shrink-0">
-                                                <input type="radio" name="p_final_{{ $pIdx }}" wire:click="setPatternFinalStep({{ $pIdx }}, {{ $tIdx }})" @checked(!empty($tRow['is_final_step'])) class="text-amber-600">
-                                                <span>Final</span>
+                                            <!-- Final Stage Radio Pill -->
+                                            <label class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-lg cursor-pointer text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all shrink-0 select-none shadow-2xs">
+                                                <input type="radio" name="p_final_{{ $pIdx }}" wire:click="setPatternFinalStep({{ $pIdx }}, {{ $tIdx }})" @checked(!empty($tRow['is_final_step'])) class="text-amber-600 focus:ring-amber-500">
+                                                <span class="{{ !empty($tRow['is_final_step']) ? 'text-amber-700 font-extrabold' : 'text-slate-600' }}">Final</span>
                                             </label>
 
-                                            <div class="flex items-center gap-1 shrink-0">
+                                            <!-- Actions (Reorder & Delete) -->
+                                            <div class="flex items-center gap-1 shrink-0 ml-auto">
                                                 @if($tIdx > 0)
-                                                    <button type="button" wire:click="movePatternTaskRow({{ $pIdx }}, {{ $tIdx }}, 'up')" class="w-5 h-5 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-200 text-slate-600 text-[10px]">↑</button>
+                                                    <button type="button" wire:click="movePatternTaskRow({{ $pIdx }}, {{ $tIdx }}, 'up')" class="w-6 h-6 rounded-md border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all" title="Move Up">↑</button>
                                                 @endif
                                                 @if($tIdx < count($pattern['tasks']) - 1)
-                                                    <button type="button" wire:click="movePatternTaskRow({{ $pIdx }}, {{ $tIdx }}, 'down')" class="w-5 h-5 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-200 text-slate-600 text-[10px]">↓</button>
+                                                    <button type="button" wire:click="movePatternTaskRow({{ $pIdx }}, {{ $tIdx }}, 'down')" class="w-6 h-6 rounded-md border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 text-slate-600 text-xs font-bold transition-all" title="Move Down">↓</button>
                                                 @endif
-                                                <button type="button" wire:click="removePatternTaskRow({{ $pIdx }}, {{ $tIdx }})" class="w-5 h-5 rounded border border-rose-200 bg-rose-50 text-rose-600 flex items-center justify-center text-[10px]">✕</button>
+                                                <button type="button" wire:click="removePatternTaskRow({{ $pIdx }}, {{ $tIdx }})" class="w-6 h-6 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs font-bold transition-all" title="Remove Stage">✕</button>
                                             </div>
                                         </div>
                                     @empty
-                                        <div class="text-xs text-slate-400 italic p-2 text-center">
+                                        <div class="text-xs text-slate-400 italic p-3 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 w-full lg:w-[70%]">
                                             No tasks configured yet. Click "⚡ Load Category Task Sequence" above or add a task manually below.
                                         </div>
                                     @endforelse
                                 </div>
 
-                                <button type="button" wire:click="addPatternTaskRow({{ $pIdx }})" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-lg transition-all">
-                                    ＋ Add Task to Routing
-                                </button>
+                                <div class="pt-1">
+                                    <button type="button" wire:click="addPatternTaskRow({{ $pIdx }})" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-extrabold text-xs rounded-xl transition-all shadow-2xs inline-flex items-center gap-1">
+                                        <span>＋ Add Task to Routing</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     @endforeach
