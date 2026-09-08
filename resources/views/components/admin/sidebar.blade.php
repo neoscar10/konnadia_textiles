@@ -181,6 +181,12 @@
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Task Master</span>
                 </a>
 
+                <!-- Supervisors (Standalone) -->
+                <a href="{{ route('factory.supervisors.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.supervisors.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="supervised_user_circle">supervised_user_circle</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Supervisors</span>
+                </a>
+
                 <!-- Manufacturing Prod Group -->
                 <div x-data="{ open: {{ request()->routeIs('factory.products.*') || request()->routeIs('admin.production.product-categories.*') ? 'true' : 'false' }} }" class="flex flex-col">
                     <button @click="open = !open; if(!sidebarOpen && open) sidebarOpen = true;" type="button" class="flex items-center justify-between rounded-lg transition-all duration-200 text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30 w-full" :class="sidebarOpen ? 'px-md py-sm' : 'justify-center p-sm mx-xs'">

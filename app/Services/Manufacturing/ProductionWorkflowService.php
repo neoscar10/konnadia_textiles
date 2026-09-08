@@ -35,13 +35,13 @@ class ProductionWorkflowService
 
                 // Create the Production Batch record
                 $batch = ProductionBatch::create([
-                    'batch_date' => $batchDate ?? now()->format('Y-m-d'),
-                    'supervisor_id' => $supervisorId,
+                    'batch_date'               => $batchDate ?? now()->format('Y-m-d'),
+                    'factory_supervisor_id'    => $supervisorId,
                     'manufacturing_product_id' => $product?->id,
-                    'planned_quantity' => $plannedQuantity,
-                    'priority' => $priority,
-                    'status' => 'Created',
-                    'remarks' => $remarks,
+                    'planned_quantity'         => $plannedQuantity,
+                    'priority'                 => $priority,
+                    'status'                   => 'Created',
+                    'remarks'                  => $remarks,
                 ]);
 
                 // Create the single master Production Job record

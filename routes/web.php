@@ -99,6 +99,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
         return redirect()->route('factory.tasks.index', ['edit' => $id]);
     })->name('factory.tasks.edit');
 
+    // Supervisors Management
+    Route::get('/factory/supervisors', \App\Livewire\Factory\SupervisorList::class)->name('factory.supervisors.index');
+
     // Raw Material Master Management
     Route::get('/factory/fabric-widths', \App\Livewire\Admin\Production\FabricWidthMasterPage::class)->name('factory.fabric-widths.index');
     Route::get('/factory/raw-materials', \App\Livewire\Factory\RawMaterialList::class)->name('factory.raw-materials.index');

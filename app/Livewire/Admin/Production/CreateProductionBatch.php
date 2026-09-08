@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Admin\Production;
 
+use App\Models\FactorySupervisor;
 use App\Models\ManufacturingProduct;
 use App\Models\ProductionBatch;
-use App\Models\User;
 use App\Services\Manufacturing\ProductionWorkflowService;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
@@ -17,7 +17,7 @@ class CreateProductionBatch extends Component
     public int $planned_quantity = 500;
     public string $priority = 'Normal'; // Urgent, Normal, Low
     public string $batch_date = '';
-    public $supervisor_id = null;
+    public $factory_supervisor_id = null;
     public string $remarks = '';
 
     public function mount()
@@ -36,7 +36,10 @@ class CreateProductionBatch extends Component
         }
 
         $this->batch_date = now()->format('Y-m-d');
-        $this->supervisor_id = auth()->id();
+
+        // Default to first active supervisor if available
+        $firstSupervisor = FactorySupervisor::active()->orderBy('name')->first();
+        $this->factory_supervisor_id = $firstSupervisor?->id;
 
         $latestId = ProductionBatch::max('id') ?? 0;
         $this->batch_code_preview = 'PB-' . date('Y') . '-' . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
@@ -50,20 +53,21 @@ class CreateProductionBatch extends Component
     public function saveBatch(ProductionWorkflowService $workflowService)
     {
         $this->validate([
-            'manufacturing_product_id' => 'required|exists:manufacturing_products,id',
-            'planned_quantity' => 'required|numeric|min:1',
-            'priority' => 'required|in:Urgent,Normal,Low',
-            'batch_date' => 'required|date',
-            'supervisor_id' => 'required|exists:users,id',
-            'remarks' => 'nullable|string|max:1000',
+            'manufacturing_product_id'  => 'required|exists:manufacturing_products,id',
+            'planned_quantity'          => 'required|numeric|min:1',
+            'priority'                  => 'required|in:Urgent,Normal,Low',
+            'batch_date'               => 'required|date',
+            'factory_supervisor_id'    => 'required|exists:factory_supervisors,id',
+            'remarks'                  => 'nullable|string|max:1000',
         ], [
-            'manufacturing_product_id.required' => 'Please select a manufacturing product.',
-            'planned_quantity.min' => 'Planned quantity must be at least 1 unit.',
+            'manufacturing_product_id.required'  => 'Please select a manufacturing product.',
+            'planned_quantity.min'               => 'Planned quantity must be at least 1 unit.',
+            'factory_supervisor_id.required'     => 'Please select a supervisor.',
         ]);
 
         $response = $workflowService->initiateBatch(
             $this->manufacturing_product_id,
-            $this->supervisor_id,
+            $this->factory_supervisor_id,
             $this->planned_quantity,
             $this->priority,
             $this->remarks,
@@ -91,26 +95,15 @@ class CreateProductionBatch extends Component
     {
         $allProducts = ManufacturingProduct::with('tasks')->get();
         $selectedProduct = ManufacturingProduct::with('tasks')->find($this->manufacturing_product_id);
-        $recentBatches = ProductionBatch::with(['manufacturingProduct', 'supervisor', 'childBatches', 'parentBatch'])->latest()->take(10)->get();
+        $recentBatches = ProductionBatch::with(['manufacturingProduct', 'factorySupervisor', 'childBatches', 'parentBatch'])->latest()->take(10)->get();
 
-        $supervisors = User::where('is_active', true)
-            ->where(function ($query) {
-                $query->whereHas('roles', function ($q) {
-                    $q->whereIn('name', ['super_admin', 'admin', 'Factory Supervisor']);
-                });
-            })
-            ->orderBy('name')
-            ->get();
-
-        if ($supervisors->isEmpty()) {
-            $supervisors = User::where('is_active', true)->orderBy('name')->get();
-        }
+        $supervisors = FactorySupervisor::active()->orderBy('name')->get();
 
         return view('livewire.admin.production.create-production-batch', [
-            'allProducts' => $allProducts,
+            'allProducts'    => $allProducts,
             'selectedProduct' => $selectedProduct,
-            'recentBatches' => $recentBatches,
-            'supervisors' => $supervisors,
+            'recentBatches'  => $recentBatches,
+            'supervisors'    => $supervisors,
         ])->title('Create Production Batch');
     }
 }

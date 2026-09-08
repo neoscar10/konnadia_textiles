@@ -86,13 +86,23 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Assigned Supervisor *</label>
-                                <select wire:model="supervisor_id" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
-                                    @foreach($supervisors as $supervisor)
-                                        <option value="{{ $supervisor->id }}">{{ $supervisor->name }} ({{ $supervisor->email }})</option>
-                                    @endforeach
-                                </select>
-                                @error('supervisor_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Assigned Supervisor *
+                                    <a href="{{ route('factory.supervisors.index') }}" wire:navigate class="ml-2 text-primary underline font-normal normal-case text-[10px]">Manage</a>
+                                </label>
+                                @if($supervisors->isEmpty())
+                                    <div class="w-full h-12 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 flex items-center text-xs text-amber-800 font-semibold gap-2">
+                                        <span class="material-symbols-outlined text-[16px]">warning</span>
+                                        No active supervisors found. <a href="{{ route('factory.supervisors.index') }}" wire:navigate class="underline ml-1">Add one now →</a>
+                                    </div>
+                                @else
+                                    <select wire:model="factory_supervisor_id" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                        <option value="">— Select a Supervisor —</option>
+                                        @foreach($supervisors as $supervisor)
+                                            <option value="{{ $supervisor->id }}">{{ $supervisor->name }} ({{ $supervisor->code }}){{ $supervisor->department ? ' · ' . $supervisor->department : '' }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
+                                @error('factory_supervisor_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     </div>

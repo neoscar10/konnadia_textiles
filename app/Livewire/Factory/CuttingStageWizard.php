@@ -6,13 +6,13 @@ use App\Models\RawMaterial;
 use App\Models\InventoryBatch;
 use App\Models\InventoryBale;
 use App\Models\InventoryBaleRoll;
+use App\Models\FactorySupervisor;
 use App\Models\ManufacturingProduct;
 use App\Models\ProductionBatch;
 use App\Models\ProductionJob;
 use App\Models\JobStageExecution;
 use App\Models\Labor;
 use App\Models\Task;
-use App\Models\User;
 use App\Models\JobMaterialConsumption;
 use App\Models\JobLaborAllocation;
 use App\Services\Manufacturing\ProductionWorkflowService;
@@ -59,7 +59,9 @@ class CuttingStageWizard extends Component
 
     public function mount()
     {
-        $this->supervisor_id = auth()->id();
+        // Default to first active factory supervisor
+        $firstSupervisor = FactorySupervisor::active()->orderBy('name')->first();
+        $this->supervisor_id = $firstSupervisor?->id;
 
         // Default cutting task
         $cuttingTask = Task::where('name', 'like', '%Cut%')->where('status', true)->first();
@@ -625,7 +627,7 @@ class CuttingStageWizard extends Component
             ->get();
 
         $manufacturingProducts = ManufacturingProduct::active()->orderBy('name')->get();
-        $supervisors = User::where('is_active', true)->get();
+        $supervisors = FactorySupervisor::active()->orderBy('name')->get();
         $labors = Labor::active()->orderBy('name')->get();
         $tasks = Task::where('status', true)->orderBy('name')->get();
 

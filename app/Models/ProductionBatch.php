@@ -14,6 +14,7 @@ class ProductionBatch extends Model
         'batch_code',
         'batch_date',
         'supervisor_id',
+        'factory_supervisor_id',
         'manufacturing_product_id',
         'planned_quantity',
         'priority',
@@ -102,11 +103,19 @@ class ProductionBatch extends Model
     }
 
     /**
-     * Get the supervisor assigned to this batch.
+     * Get the supervisor (legacy: User record) assigned to this batch.
      */
     public function supervisor()
     {
         return $this->belongsTo(User::class, 'supervisor_id');
+    }
+
+    /**
+     * Get the factory supervisor assigned to this batch.
+     */
+    public function factorySupervisor()
+    {
+        return $this->belongsTo(FactorySupervisor::class, 'factory_supervisor_id');
     }
 
     /**

@@ -307,12 +307,16 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Cutting Supervisor <span class="text-error">*</span></label>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Cutting Supervisor <span class="text-error">*</span>
+                            <a href="{{ route('factory.supervisors.index') }}" wire:navigate class="ml-2 text-primary underline font-normal normal-case text-[10px]">Manage</a>
+                        </label>
                         <select wire:model="supervisor_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-body-md focus:border-primary focus:outline-none">
+                            <option value="">— Select a Supervisor —</option>
                             @foreach($supervisors as $sup)
-                                <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                                <option value="{{ $sup->id }}">{{ $sup->name }} ({{ $sup->code }}){{ $sup->department ? ' · ' . $sup->department : '' }}</option>
                             @endforeach
                         </select>
+                        @error('supervisor_id') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
