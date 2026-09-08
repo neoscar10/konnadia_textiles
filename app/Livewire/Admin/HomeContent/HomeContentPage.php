@@ -462,7 +462,7 @@ class HomeContentPage extends Component
         // Format items payloads
         if ($this->sectionType === 'banner') {
             $imagePath = $this->bannerExistingImage;
-            if ($this->bannerImage) {
+            if ($this->isValidUpload($this->bannerImage)) {
                 $imagePath = $mediaService->storeImage($this->bannerImage, 'banners');
             }
             $sectionData['items'][] = [
@@ -479,8 +479,8 @@ class HomeContentPage extends Component
             ];
         } elseif ($this->sectionType === 'banner_slider') {
             foreach ($this->slides as $index => $slide) {
-                $imagePath = $slide['existing_image'];
-                if ($slide['upload']) {
+                $imagePath = $slide['existing_image'] ?? null;
+                if (!empty($slide['upload']) && $this->isValidUpload($slide['upload'])) {
                     $imagePath = $mediaService->storeImage($slide['upload'], 'banners');
                 }
                 $sectionData['items'][] = [
@@ -496,7 +496,7 @@ class HomeContentPage extends Component
             }
         } elseif ($this->sectionType === 'image_text_card') {
             $imagePath = $this->cardExistingImage;
-            if ($this->cardImage) {
+            if ($this->isValidUpload($this->cardImage)) {
                 $imagePath = $mediaService->storeImage($this->cardImage, 'cards');
             }
             $sectionData['items'][] = [
@@ -526,8 +526,8 @@ class HomeContentPage extends Component
             }
         } elseif ($this->sectionType === 'image_slider') {
             foreach ($this->slides as $index => $slide) {
-                $imagePath = $slide['existing_image'];
-                if ($slide['upload']) {
+                $imagePath = $slide['existing_image'] ?? null;
+                if (!empty($slide['upload']) && $this->isValidUpload($slide['upload'])) {
                     $imagePath = $mediaService->storeImage($slide['upload'], 'slides');
                 }
                 $sectionData['items'][] = [
@@ -605,6 +605,44 @@ class HomeContentPage extends Component
         $this->slides = [];
         $this->cardAlignment = 'left';
         $this->visibilityMode = 'live';
+    }
+
+    /**
+     * Helper to check if a property is a valid uploaded file instance.
+     */
+    public function isValidUpload($file): bool
+    {
+        return $file instanceof \Illuminate\Http\UploadedFile;
+    }
+
+    /**
+     * Safely retrieve temporary URL for an upload instance.
+     */
+    public function getTemporaryUrl($file): ?string
+    {
+        if (!$this->isValidUpload($file)) {
+            return null;
+        }
+        try {
+            return $file->temporaryUrl();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Safely retrieve original filename for an upload instance.
+     */
+    public function getClientOriginalName($file): ?string
+    {
+        if (!$this->isValidUpload($file)) {
+            return null;
+        }
+        try {
+            return $file->getClientOriginalName();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     public function render()

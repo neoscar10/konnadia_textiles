@@ -360,11 +360,11 @@
                                             <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span>
                                         @enderror
 
-                                        @if($bannerImage)
+                                        @if($tempUrl = $this->getTemporaryUrl($bannerImage))
                                             <div class="mt-3 relative rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs">
-                                                <img src="{{ $bannerImage->temporaryUrl() }}" class="h-24 w-full object-cover">
+                                                <img src="{{ $tempUrl }}" class="h-24 w-full object-cover">
                                                 <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-1 text-[10px] text-white font-bold truncate">
-                                                    {{ $bannerImage->getClientOriginalName() }}
+                                                    {{ $this->getClientOriginalName($bannerImage) ?? 'Uploaded Image' }}
                                                 </div>
                                             </div>
                                         @elseif($bannerExistingImage)
@@ -506,11 +506,11 @@
                                                         </div>
                                                         @error("slides.{$index}.upload") <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
                                                         
-                                                        @if(isset($slide['upload']))
+                                                        @if(isset($slide['upload']) && ($tempUrl = $this->getTemporaryUrl($slide['upload'])))
                                                             <div class="mt-2 relative rounded overflow-hidden border border-outline-variant/30 shadow-xs">
-                                                                <img src="{{ $slide['upload']->temporaryUrl() }}" class="h-12 w-full object-cover">
+                                                                <img src="{{ $tempUrl }}" class="h-12 w-full object-cover">
                                                                 <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold truncate">
-                                                                    {{ $slide['upload']->getClientOriginalName() }}
+                                                                    {{ $this->getClientOriginalName($slide['upload']) ?? 'Uploaded Image' }}
                                                                 </div>
                                                             </div>
                                                         @elseif(isset($slide['existing_image']))
@@ -653,11 +653,11 @@
                                             </select>
                                         </div>
                                         
-                                        @if($cardImage)
+                                        @if($tempUrl = $this->getTemporaryUrl($cardImage))
                                             <div class="relative rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs h-20">
-                                                <img src="{{ $cardImage->temporaryUrl() }}" class="h-full w-full object-cover">
+                                                <img src="{{ $tempUrl }}" class="h-full w-full object-cover">
                                                 <div class="absolute bottom-0 inset-x-0 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 text-[9px] text-white font-bold truncate">
-                                                    {{ $cardImage->getClientOriginalName() }}
+                                                    {{ $this->getClientOriginalName($cardImage) ?? 'Uploaded Image' }}
                                                 </div>
                                             </div>
                                         @elseif($cardExistingImage)
@@ -931,11 +931,11 @@
                                                         </div>
                                                         @error("slides.{$index}.upload") <span class="text-rose-600 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
                                                         
-                                                        @if(isset($slide['upload']))
+                                                        @if(isset($slide['upload']) && ($tempUrl = $this->getTemporaryUrl($slide['upload'])))
                                                             <div class="mt-2 rounded-lg overflow-hidden border border-outline-variant/30 shadow-xs bg-slate-900">
-                                                                <img src="{{ $slide['upload']->temporaryUrl() }}" class="w-full h-auto object-contain block max-h-48">
+                                                                <img src="{{ $tempUrl }}" class="w-full h-auto object-contain block max-h-48">
                                                                 <div class="px-2 py-1 bg-slate-900/80 text-[9px] text-white font-bold truncate">
-                                                                    {{ $slide['upload']->getClientOriginalName() }}
+                                                                    {{ $this->getClientOriginalName($slide['upload']) ?? 'Uploaded Image' }}
                                                                 </div>
                                                             </div>
                                                         @elseif(isset($slide['existing_image']))
@@ -1069,8 +1069,8 @@
                                 <!-- Banner type preview -->
                                 @if($sectionType === 'banner')
                                     <div class="relative w-full rounded-xl overflow-hidden min-h-[220px] bg-slate-800 flex items-center justify-center p-6 border border-white/5">
-                                        @if($bannerImage)
-                                            <img src="{{ $bannerImage->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
+                                        @if($tempUrl = $this->getTemporaryUrl($bannerImage))
+                                            <img src="{{ $tempUrl }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
                                         @elseif($bannerExistingImage)
                                             <img src="{{ asset('storage/' . $bannerExistingImage) }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
                                         @else
@@ -1094,8 +1094,8 @@
                                     <div class="relative w-full rounded-xl overflow-hidden min-h-[220px] bg-slate-800 flex items-center justify-center p-6 border border-white/5">
                                         @if(!empty($slides))
                                             @php $firstSlide = $slides[0]; @endphp
-                                            @if(isset($firstSlide['upload']))
-                                                <img src="{{ $firstSlide['upload']->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
+                                            @if(isset($firstSlide['upload']) && ($tempUrl = $this->getTemporaryUrl($firstSlide['upload'])))
+                                                <img src="{{ $tempUrl }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
                                             @elseif(isset($firstSlide['existing_image']))
                                                 <img src="{{ asset('storage/' . $firstSlide['existing_image']) }}" class="absolute inset-0 w-full h-full object-cover opacity-60">
                                             @endif
@@ -1127,8 +1127,8 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-800 p-4 rounded-xl border border-white/5 text-xs text-slate-200">
                                         @if($cardAlignment === 'left')
                                             <div class="h-40 rounded-lg overflow-hidden bg-slate-700 relative">
-                                                @if($cardImage)
-                                                    <img src="{{ $cardImage->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover">
+                                                @if($tempUrl = $this->getTemporaryUrl($cardImage))
+                                                    <img src="{{ $tempUrl }}" class="absolute inset-0 w-full h-full object-cover">
                                                 @elseif($cardExistingImage)
                                                     <img src="{{ asset('storage/' . $cardExistingImage) }}" class="absolute inset-0 w-full h-full object-cover">
                                                 @else
@@ -1145,8 +1145,8 @@
                                                 {!! \Illuminate\Support\Str::markdown($cardMarkdown ?: 'No text configured yet.') !!}
                                             </div>
                                             <div class="h-40 rounded-lg overflow-hidden bg-slate-700 relative">
-                                                @if($cardImage)
-                                                    <img src="{{ $cardImage->temporaryUrl() }}" class="absolute inset-0 w-full h-full object-cover">
+                                                @if($tempUrl = $this->getTemporaryUrl($cardImage))
+                                                    <img src="{{ $tempUrl }}" class="absolute inset-0 w-full h-full object-cover">
                                                 @elseif($cardExistingImage)
                                                     <img src="{{ asset('storage/' . $cardExistingImage) }}" class="absolute inset-0 w-full h-full object-cover">
                                                 @else
@@ -1245,8 +1245,8 @@
                                                 @foreach($slides as $i => $slide)
                                                     <div class="flex-shrink-0 w-48 rounded-xl overflow-hidden border border-white/10 bg-slate-800 relative group">
                                                         {{-- Image --}}
-                                                        @if(isset($slide['upload']))
-                                                            <img src="{{ $slide['upload']->temporaryUrl() }}" class="w-full h-36 object-cover block">
+                                                        @if(isset($slide['upload']) && ($tempUrl = $this->getTemporaryUrl($slide['upload'])))
+                                                            <img src="{{ $tempUrl }}" class="w-full h-36 object-cover block">
                                                         @elseif(isset($slide['existing_image']))
                                                             <img src="{{ asset('storage/' . $slide['existing_image']) }}" class="w-full h-36 object-cover block">
                                                         @else
