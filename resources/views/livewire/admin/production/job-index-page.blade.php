@@ -508,10 +508,7 @@
 
                 <!-- Pattern -->
                 <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider">PATTERN *</label>
-                        <span class="text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">NEW</span>
-                    </div>
+                    <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider mb-1">PATTERN *</label>
                     <select wire:model.live="pattern_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
                         @forelse($availablePatterns as $pat)
                             <option value="{{ $pat->id }}">{{ $pat->name }}{{ $pat->is_default ? ' (Default)' : '' }}</option>
@@ -524,10 +521,7 @@
 
                 <!-- Supervisor -->
                 <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider">SUPERVISOR *</label>
-                        <span class="text-[9px] font-black uppercase text-amber-800 bg-amber-500/15 px-1.5 py-0.5 rounded">NOW REQUIRED</span>
-                    </div>
+                    <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider mb-1">SUPERVISOR *</label>
                     @if($supervisors->isEmpty())
                         <div class="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-amber-800 font-semibold flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[14px]">warning</span>

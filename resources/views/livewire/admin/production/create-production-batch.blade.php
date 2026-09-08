@@ -53,10 +53,7 @@
                             </div>
 
                             <div class="md:col-span-6">
-                                <div class="flex items-center justify-between mb-2">
-                                    <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider">Pattern / Variant *</label>
-                                    <span class="text-[10px] font-black uppercase text-amber-700 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">New Routing</span>
-                                </div>
+                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Pattern / Variant *</label>
                                 <select wire:model.live="pattern_id" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                                     @forelse($availablePatterns as $pat)
                                         <option value="{{ $pat->id }}">{{ $pat->name }}{{ $pat->is_default ? ' (Default Fold)' : '' }}</option>
