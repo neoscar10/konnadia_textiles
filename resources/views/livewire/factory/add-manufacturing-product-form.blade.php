@@ -278,16 +278,30 @@
                     <p class="text-xs text-slate-500 mt-1">Add subsidiary materials (zippers, threads, tags) required for this product.</p>
                 </div>
 
-                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-4">
-                    <div>
-                        <span class="font-extrabold text-sm text-slate-900">Configure Subsidiary Materials</span>
-                        <p class="text-xs text-slate-500 mt-0.5">Enable if this manufacturing product consumes subsidiary raw materials.</p>
+                <div class="p-5 bg-slate-50/80 border-2 border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-slate-300">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl {{ $is_subsidiary_used ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-200/60 text-slate-500 border border-slate-300/60' }} flex items-center justify-center shrink-0 transition-colors">
+                            <span class="material-symbols-outlined text-xl font-bold">category</span>
+                        </div>
+                        <div>
+                            <span class="font-extrabold text-sm text-slate-900 block">Configure Subsidiary Materials</span>
+                            <p class="text-xs text-slate-500 mt-0.5">Enable if this manufacturing product consumes subsidiary raw materials.</p>
+                        </div>
                     </div>
 
-                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input type="checkbox" wire:model.live="is_subsidiary_used" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-                    </label>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <!-- Status Badge -->
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider transition-all {{ $is_subsidiary_used ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs' : 'bg-slate-200 text-slate-600 border border-slate-300' }}">
+                            <span class="w-2 h-2 rounded-full {{ $is_subsidiary_used ? 'bg-amber-600 animate-pulse' : 'bg-slate-400' }}"></span>
+                            {{ $is_subsidiary_used ? 'Enabled' : 'Disabled' }}
+                        </span>
+
+                        <!-- Prominent Toggle Switch -->
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0 select-none group">
+                            <input type="checkbox" wire:model.live="is_subsidiary_used" class="sr-only peer">
+                            <div class="w-14 h-7 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-500/40 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md peer-checked:bg-amber-600 border-2 border-slate-400/90 peer-checked:border-amber-700 transition-all group-hover:border-slate-500"></div>
+                        </label>
+                    </div>
                 </div>
 
                 @if($is_subsidiary_used)
