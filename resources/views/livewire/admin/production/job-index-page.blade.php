@@ -487,40 +487,102 @@
         </form>
     </x-admin.modal>
 
-    <!-- Create New Job Modal -->
-    <x-admin.modal id="create-job-modal" title="Create New Production Job" maxWidth="xl">
+    <!-- Create New Production Batch Modal -->
+    <x-admin.modal id="create-job-modal" title="Create New Production Batch" maxWidth="2xl">
         <form wire:submit.prevent="saveJob" class="space-y-5">
-            <p class="text-on-surface-variant text-sm mb-4">Initialize a new production job order. Work order codes are automatically generated.</p>
+            <p class="text-on-surface-variant text-xs">
+                Product and Pattern are selected up front, so downstream jobs are locked to the right routing from the start.
+            </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Auto-generated Job Code Preview -->
+                <!-- Manufacturing Product -->
                 <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Job Code (Auto-generated)</label>
-                    <div class="px-4 py-2.5 bg-surface-container-high/60 border border-outline-variant/60 rounded-xl font-bold font-mono text-primary text-sm flex items-center justify-between">
-                        <span>Auto Generated</span>
-                        <span class="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px]">JOB-2026-XXXX</span>
-                    </div>
+                    <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider mb-1">MANUFACTURING PRODUCT *</label>
+                    <select wire:model.live="manufacturing_product_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                        @foreach($allProducts as $product)
+                            <option value="{{ $product->id }}">{{ $product->name }} ({{ $product->code }})</option>
+                        @endforeach
+                    </select>
+                    @error('manufacturing_product_id') <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
                 </div>
 
-                <!-- Production Batch ID -->
+                <!-- Pattern -->
                 <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Production Batch ID</label>
-                    <input type="text" wire:model="production_batch_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-2.5 font-bold text-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    @error('production_batch_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider">PATTERN *</label>
+                        <span class="text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">NEW</span>
+                    </div>
+                    <select wire:model.live="pattern_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                        @forelse($availablePatterns as $pat)
+                            <option value="{{ $pat->id }}">{{ $pat->name }}{{ $pat->is_default ? ' (Default)' : '' }}</option>
+                        @empty
+                            <option value="">Standard Fold</option>
+                        @endforelse
+                    </select>
+                    @error('pattern_id') <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Supervisor -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider">SUPERVISOR *</label>
+                        <span class="text-[9px] font-black uppercase text-amber-800 bg-amber-500/15 px-1.5 py-0.5 rounded">NOW REQUIRED</span>
+                    </div>
+                    @if($supervisors->isEmpty())
+                        <div class="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-amber-800 font-semibold flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px]">warning</span>
+                            <span>No active supervisors. <a href="{{ route('factory.supervisors.index') }}" wire:navigate class="underline">Add Supervisor →</a></span>
+                        </div>
+                    @else
+                        <select wire:model="factory_supervisor_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                            <option value="">— Select a Supervisor —</option>
+                            @foreach($supervisors as $supervisor)
+                                <option value="{{ $supervisor->id }}">{{ $supervisor->name }} ({{ $supervisor->code }}){{ $supervisor->department ? ' · ' . $supervisor->department : '' }}</option>
+                            @endforeach
+                        </select>
+                    @endif
+                    @error('factory_supervisor_id') <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Target Quantity -->
+                <div>
+                    <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider mb-1">TARGET QUANTITY *</label>
+                    <input type="number" min="1" wire:model="planned_quantity" placeholder="200" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                    @error('planned_quantity') <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            <!-- Routing Pulled Banner -->
+            <div class="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-semibold text-emerald-900 flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-600 text-[18px] shrink-0">check</span>
+                <div>
+                    Routing pulled from <span class="font-bold text-emerald-950">{{ $selectedPattern?->name ?? 'Standard Fold' }}</span>: 
+                    <span class="font-extrabold text-emerald-900">
+                        @if($selectedPattern && $selectedPattern->tasks->isNotEmpty())
+                            {{ implode(' → ', $selectedPattern->tasks->pluck('name')->toArray()) }}
+                        @elseif($selectedProduct && $selectedProduct->tasks->isNotEmpty())
+                            {{ implode(' → ', $selectedProduct->tasks->pluck('name')->toArray()) }}
+                        @else
+                            Cutting → Stitching → Ironing
+                        @endif
+                    </span>.
+                    <span class="text-emerald-700 text-[11px] block mt-0.5">No other product's tasks will appear in this batch's jobs.</span>
                 </div>
             </div>
 
             <!-- Notes -->
             <div>
-                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Production Notes</label>
-                <textarea wire:model="notes" rows="3" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Optional notes for shop floor supervisor..."></textarea>
-                @error('notes') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider mb-1">NOTES</label>
+                <textarea wire:model="notes" rows="2" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20" placeholder="Optional notes for shop floor supervisor..."></textarea>
+                @error('notes') <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
             </div>
 
             <!-- Modal Action Buttons -->
             <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40">
                 <x-admin.button type="button" variant="ghost" @click="show = false">Cancel</x-admin.button>
-                <x-admin.button type="submit" variant="primary" icon="add">Create Job & Manage Stages</x-admin.button>
+                <button type="submit" class="px-6 py-2.5 bg-[#001229] hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all active:scale-95">
+                    Create Batch & First Job
+                </button>
             </div>
         </form>
     </x-admin.modal>

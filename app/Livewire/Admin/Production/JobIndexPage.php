@@ -25,57 +25,44 @@ class JobIndexPage extends Component
     public string $statusFilter = '';
 
     // Create Modal Properties
-    public $production_batch_id = '';
-    public $status = 'in_progress';
-    public $notes = '';
+    public $manufacturing_product_id = null;
+    public $pattern_id = null;
+    public $factory_supervisor_id = null;
+    public int $planned_quantity = 200;
+    public string $priority = 'Normal';
+    public string $notes = '';
 
-    // Storefront Conversion Modal Properties
-    public ?int $target_product_id = null;
-    public string $productSearch = '';
-    public int $target_unit_level = 1; // 1 for Unit 1 (Base Pcs), 2 for Unit 2 (Boxes/Packs)
-    public string $conversion_notes = '';
-    public array $conversionComponents = [];
-    public array $conversionPackaging = [];
-
-    public function updatedTargetProductId($value): void
+    public function updatedManufacturingProductId(): void
     {
-        $this->target_unit_level = 1;
+        $this->loadDefaultPattern();
     }
 
-    public function getSelectedTargetProductProperty()
+    protected function loadDefaultPattern(): void
     {
-        return $this->target_product_id ? Product::with('units')->find($this->target_product_id) : null;
-    }
-
-    public function getTargetUnitConversionFactorProperty(): float
-    {
-        $product = $this->selectedTargetProduct;
-        if (!$product) return 1.0;
-
-        if ($this->target_unit_level === 2) {
-            $unit2 = $product->units->firstWhere('level', 2);
-            if ($unit2 && (float)$unit2->conversion_to_base > 0) {
-                return (float)$unit2->conversion_to_base;
-            }
+        if ($this->manufacturing_product_id) {
+            $patterns = \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $this->manufacturing_product_id)->get();
+            $defaultPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
+            $this->pattern_id = $defaultPattern?->id;
+        } else {
+            $this->pattern_id = null;
         }
-
-        return 1.0;
-    }
-
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
     }
 
     public function openCreateModal(): void
     {
         $this->resetValidation();
         $this->reset(['notes']);
-        $this->status = 'in_progress';
+        $this->planned_quantity = 200;
+        $this->priority = 'Normal';
         
-        // Default batch ID suggestion
-        $latestId = ProductionJob::max('id') ?? 0;
-        $this->production_batch_id = 'PB-2026-' . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
+        $firstProduct = ManufacturingProduct::first();
+        if ($firstProduct) {
+            $this->manufacturing_product_id = $firstProduct->id;
+            $this->loadDefaultPattern();
+        }
+
+        $firstSupervisor = \App\Models\FactorySupervisor::active()->orderBy('name')->first();
+        $this->factory_supervisor_id = $firstSupervisor?->id;
 
         $this->dispatch('open-modal', 'create-job-modal');
     }
@@ -270,23 +257,38 @@ class JobIndexPage extends Component
     public function saveJob(): void
     {
         $this->validate([
-            'production_batch_id' => 'nullable|string|max:100',
-            'notes' => 'nullable|string|max:1000',
+            'manufacturing_product_id' => 'required|exists:manufacturing_products,id',
+            'pattern_id'               => 'nullable|exists:manufacturing_product_patterns,id',
+            'factory_supervisor_id'   => 'required|exists:factory_supervisors,id',
+            'planned_quantity'         => 'required|numeric|min:1',
+            'priority'                 => 'required|in:Urgent,Normal,Low',
+            'notes'                    => 'nullable|string|max:1000',
+        ], [
+            'manufacturing_product_id.required' => 'Please select a manufacturing product.',
+            'factory_supervisor_id.required'    => 'Please select a supervisor.',
         ]);
 
-        $job = ProductionJob::create([
-            'production_batch_id' => $this->production_batch_id,
-            'manufacturing_product_id' => null,
-            'target_quantity' => 0,
-            'status' => 'in_progress',
-            'notes' => $this->notes,
-        ]);
+        $workflowService = resolve(\App\Services\Manufacturing\ProductionWorkflowService::class);
+        $response = $workflowService->initiateBatch(
+            $this->manufacturing_product_id,
+            $this->factory_supervisor_id,
+            $this->planned_quantity,
+            $this->priority,
+            $this->notes,
+            now()->format('Y-m-d'),
+            $this->pattern_id
+        );
 
-        $this->dispatch('close-modal', 'create-job-modal');
-        $this->dispatch('toast', message: "Production Job {$job->job_code} created successfully!", type: 'success');
+        $responseData = $response->getData(true);
 
-        // Redirect directly to Job Detail page to start managing stages
-        redirect()->route('admin.production.jobs.show', $job->id);
+        if (isset($responseData['success']) && $responseData['success']) {
+            $batchCode = $responseData['data']['batch']['batch_code'] ?? 'Batch';
+            $this->dispatch('close-modal', 'create-job-modal');
+            $this->dispatch('toast', message: "Production Batch {$batchCode} & First Job initiated successfully!", type: 'success');
+        } else {
+            $errorMessage = $responseData['message'] ?? 'Failed to initiate production batch.';
+            $this->addError('manufacturing_product_id', $errorMessage);
+        }
     }
 
     // Batch Conversion Properties
@@ -341,7 +343,13 @@ class JobIndexPage extends Component
             ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
         );
 
-        $allProducts = ManufacturingProduct::all();
+        $allProducts = ManufacturingProduct::with('patterns')->get();
+        $selectedProduct = $this->manufacturing_product_id ? ManufacturingProduct::with('tasks')->find($this->manufacturing_product_id) : null;
+        $availablePatterns = $this->manufacturing_product_id 
+            ? \App\Models\ManufacturingProductPattern::with('tasks')->where('manufacturing_product_id', $this->manufacturing_product_id)->get()
+            : collect();
+        $selectedPattern = $availablePatterns->firstWhere('id', $this->pattern_id);
+        $supervisors = \App\Models\FactorySupervisor::active()->orderBy('name')->get();
 
         // Eligible Completed Jobs for Conversion Picker
         $completedJobsForPicker = ProductionJob::with(['manufacturingProduct'])
@@ -370,16 +378,20 @@ class JobIndexPage extends Component
         $availableUnconvertedPoolUnits = max(0, $totalFinishedUnitsProduced - $totalStorefrontConvertedUnits);
 
         return view('livewire.admin.production.job-index-page', [
-            'paginatedBatches' => $paginatedBatches,
-            'allProducts' => $allProducts,
-            'completedJobsForPicker' => $completedJobsForPicker,
-            'storefrontProducts' => $storefrontProducts,
-            'totalCompletedJobsCount' => $totalCompletedJobsCount,
-            'totalFinishedUnitsProduced' => $totalFinishedUnitsProduced,
+            'paginatedBatches'              => $paginatedBatches,
+            'allProducts'                   => $allProducts,
+            'selectedProduct'               => $selectedProduct,
+            'availablePatterns'             => $availablePatterns,
+            'selectedPattern'               => $selectedPattern,
+            'supervisors'                   => $supervisors,
+            'completedJobsForPicker'        => $completedJobsForPicker,
+            'storefrontProducts'            => $storefrontProducts,
+            'totalCompletedJobsCount'       => $totalCompletedJobsCount,
+            'totalFinishedUnitsProduced'    => $totalFinishedUnitsProduced,
             'totalStorefrontConvertedUnits' => $totalStorefrontConvertedUnits,
             'availableUnconvertedPoolUnits' => $availableUnconvertedPoolUnits,
-            'packagingRawMaterials' => $packagingRawMaterials,
-            'conversionSummary' => $this->conversionSummary,
+            'packagingRawMaterials'         => $packagingRawMaterials,
+            'conversionSummary'             => $this->conversionSummary,
         ])->title('Production Jobs Hub');
     }
 }
