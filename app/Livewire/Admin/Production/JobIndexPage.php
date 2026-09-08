@@ -32,6 +32,14 @@ class JobIndexPage extends Component
     public string $priority = 'Normal';
     public string $notes = '';
 
+    // Storefront Conversion Modal Properties
+    public ?int $target_product_id = null;
+    public string $productSearch = '';
+    public int $target_unit_level = 1; // 1 for Unit 1 (Base Pcs), 2 for Unit 2 (Boxes/Packs)
+    public string $conversion_notes = '';
+    public array $conversionComponents = [];
+    public array $conversionPackaging = [];
+
     public function updatedManufacturingProductId(): void
     {
         $this->loadDefaultPattern();
@@ -137,6 +145,31 @@ class JobIndexPage extends Component
                 }
             }
         }
+    }
+
+    public function updatedTargetProductId($value): void
+    {
+        $this->target_unit_level = 1;
+    }
+
+    public function getSelectedTargetProductProperty()
+    {
+        return $this->target_product_id ? Product::with('units')->find($this->target_product_id) : null;
+    }
+
+    public function getTargetUnitConversionFactorProperty(): float
+    {
+        $product = $this->selectedTargetProduct;
+        if (!$product) return 1.0;
+
+        if ($this->target_unit_level === 2) {
+            $unit2 = $product->units->firstWhere('level', 2);
+            if ($unit2 && (float)$unit2->conversion_to_base > 0) {
+                return (float)$unit2->conversion_to_base;
+            }
+        }
+
+        return 1.0;
     }
 
     public function getConversionSummaryProperty(): array
