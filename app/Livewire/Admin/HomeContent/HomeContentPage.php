@@ -338,6 +338,9 @@ class HomeContentPage extends Component
             ]);
         } elseif ($this->wizardStep === 3) {
             if ($this->sectionType === 'banner') {
+                if ($this->bannerImage && !$this->isValidUpload($this->bannerImage)) {
+                    $this->bannerImage = null;
+                }
                 $rules = [
                     'bannerCtaLabel' => ['nullable', 'string', 'max:50'],
                     'bannerLinkType' => ['required', 'in:none,category,product,url'],
@@ -350,9 +353,13 @@ class HomeContentPage extends Component
                     'bannerExternalUrl' => ['required_if:bannerLinkType,url', 'nullable', 'url', 'max:500'],
                 ];
                 if (!$this->bannerExistingImage) {
-                    $rules['bannerImage'] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                    $rules['bannerImage'] = $this->isValidUpload($this->bannerImage)
+                        ? ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360']
+                        : ['required'];
                 } else {
-                    $rules['bannerImage'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                    $rules['bannerImage'] = $this->isValidUpload($this->bannerImage)
+                        ? ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360']
+                        : ['nullable'];
                 }
                 $this->validate($rules);
             } elseif ($this->sectionType === 'banner_slider') {
@@ -362,6 +369,10 @@ class HomeContentPage extends Component
                     ]);
                 }
                 foreach ($this->slides as $index => $slide) {
+                    if (isset($slide['upload']) && !$this->isValidUpload($slide['upload'])) {
+                        $this->slides[$index]['upload'] = null;
+                        $slide['upload'] = null;
+                    }
                     $rules = [
                         "slides.{$index}.cta_label" => ['nullable', 'string', 'max:50'],
                         "slides.{$index}.link_type" => ['required', 'in:none,category,product,url'],
@@ -374,23 +385,34 @@ class HomeContentPage extends Component
                         "slides.{$index}.external_url" => ["required_if:slides.{$index}.link_type,url", 'nullable', 'url', 'max:500'],
                     ];
                     if (empty($slide['existing_image'])) {
-                        $rules["slides.{$index}.upload"] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                        $rules["slides.{$index}.upload"] = $this->isValidUpload($slide['upload'] ?? null)
+                            ? ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360']
+                            : ['required'];
                     } else {
-                        $rules["slides.{$index}.upload"] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                        $rules["slides.{$index}.upload"] = $this->isValidUpload($slide['upload'] ?? null)
+                            ? ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360']
+                            : ['nullable'];
                     }
                     $this->validate($rules, [
                         "slides.{$index}.upload.required" => "An image file is required for slide #".($index + 1),
                     ]);
                 }
             } elseif ($this->sectionType === 'image_text_card') {
+                if ($this->cardImage && !$this->isValidUpload($this->cardImage)) {
+                    $this->cardImage = null;
+                }
                 $rules = [
                     'cardMarkdown' => ['required', 'string'],
                     'cardAlignment' => ['required', 'in:left,right'],
                 ];
                 if (!$this->cardExistingImage) {
-                    $rules['cardImage'] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                    $rules['cardImage'] = $this->isValidUpload($this->cardImage)
+                        ? ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360']
+                        : ['required'];
                 } else {
-                    $rules['cardImage'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                    $rules['cardImage'] = $this->isValidUpload($this->cardImage)
+                        ? ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360']
+                        : ['nullable'];
                 }
                 $this->validate($rules);
             } elseif ($this->sectionType === 'category_slider') {
@@ -412,6 +434,10 @@ class HomeContentPage extends Component
                     ]);
                 }
                 foreach ($this->slides as $index => $slide) {
+                    if (isset($slide['upload']) && !$this->isValidUpload($slide['upload'])) {
+                        $this->slides[$index]['upload'] = null;
+                        $slide['upload'] = null;
+                    }
                     $rules = [
                         "slides.{$index}.title" => ['nullable', 'string', 'max:150'],
                         "slides.{$index}.subtitle" => ['nullable', 'string', 'max:250'],
@@ -426,9 +452,13 @@ class HomeContentPage extends Component
                         "slides.{$index}.external_url" => ["required_if:slides.{$index}.link_type,url", 'nullable', 'url', 'max:500'],
                     ];
                     if (empty($slide['existing_image'])) {
-                        $rules["slides.{$index}.upload"] = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                        $rules["slides.{$index}.upload"] = $this->isValidUpload($slide['upload'] ?? null)
+                            ? ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360']
+                            : ['required'];
                     } else {
-                        $rules["slides.{$index}.upload"] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'];
+                        $rules["slides.{$index}.upload"] = $this->isValidUpload($slide['upload'] ?? null)
+                            ? ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360']
+                            : ['nullable'];
                     }
                     $this->validate($rules, [
                         "slides.{$index}.upload.required" => "An image file is required for slide #".($index + 1),
@@ -612,7 +642,15 @@ class HomeContentPage extends Component
      */
     public function isValidUpload($file): bool
     {
-        return $file instanceof \Illuminate\Http\UploadedFile;
+        if (!($file instanceof \Illuminate\Http\UploadedFile)) {
+            return false;
+        }
+        try {
+            $path = $file->getRealPath();
+            return !empty($path) && is_file($path);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
