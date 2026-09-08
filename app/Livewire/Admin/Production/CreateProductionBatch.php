@@ -14,6 +14,7 @@ class CreateProductionBatch extends Component
 {
     public string $batch_code_preview = '';
     public $manufacturing_product_id = null;
+    public $pattern_id = null;
     public int $planned_quantity = 500;
     public string $priority = 'Normal'; // Urgent, Normal, Low
     public string $batch_date = '';
@@ -47,6 +48,23 @@ class CreateProductionBatch extends Component
         $firstProduct = ManufacturingProduct::first();
         if ($firstProduct) {
             $this->manufacturing_product_id = $firstProduct->id;
+            $this->loadDefaultPattern();
+        }
+    }
+
+    public function updatedManufacturingProductId()
+    {
+        $this->loadDefaultPattern();
+    }
+
+    protected function loadDefaultPattern()
+    {
+        if ($this->manufacturing_product_id) {
+            $patterns = \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $this->manufacturing_product_id)->get();
+            $defaultPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
+            $this->pattern_id = $defaultPattern?->id;
+        } else {
+            $this->pattern_id = null;
         }
     }
 
@@ -54,6 +72,7 @@ class CreateProductionBatch extends Component
     {
         $this->validate([
             'manufacturing_product_id'  => 'required|exists:manufacturing_products,id',
+            'pattern_id'                => 'nullable|exists:manufacturing_product_patterns,id',
             'planned_quantity'          => 'required|numeric|min:1',
             'priority'                  => 'required|in:Urgent,Normal,Low',
             'batch_date'               => 'required|date',
@@ -71,7 +90,8 @@ class CreateProductionBatch extends Component
             $this->planned_quantity,
             $this->priority,
             $this->remarks,
-            $this->batch_date
+            $this->batch_date,
+            $this->pattern_id
         );
 
         $responseData = $response->getData(true);
@@ -93,17 +113,23 @@ class CreateProductionBatch extends Component
 
     public function render()
     {
-        $allProducts = ManufacturingProduct::with('tasks')->get();
-        $selectedProduct = ManufacturingProduct::with('tasks')->find($this->manufacturing_product_id);
-        $recentBatches = ProductionBatch::with(['manufacturingProduct', 'factorySupervisor', 'childBatches', 'parentBatch'])->latest()->take(10)->get();
+        $allProducts = ManufacturingProduct::with(['tasks', 'patterns'])->get();
+        $selectedProduct = ManufacturingProduct::with(['tasks', 'patterns'])->find($this->manufacturing_product_id);
+        $availablePatterns = $this->manufacturing_product_id 
+            ? \App\Models\ManufacturingProductPattern::with('tasks')->where('manufacturing_product_id', $this->manufacturing_product_id)->get()
+            : collect();
+        $selectedPattern = $availablePatterns->firstWhere('id', $this->pattern_id);
 
+        $recentBatches = ProductionBatch::with(['manufacturingProduct', 'pattern', 'factorySupervisor', 'childBatches', 'parentBatch'])->latest()->take(10)->get();
         $supervisors = FactorySupervisor::active()->orderBy('name')->get();
 
         return view('livewire.admin.production.create-production-batch', [
-            'allProducts'    => $allProducts,
-            'selectedProduct' => $selectedProduct,
-            'recentBatches'  => $recentBatches,
-            'supervisors'    => $supervisors,
+            'allProducts'       => $allProducts,
+            'selectedProduct'   => $selectedProduct,
+            'availablePatterns' => $availablePatterns,
+            'selectedPattern'   => $selectedPattern,
+            'recentBatches'     => $recentBatches,
+            'supervisors'       => $supervisors,
         ])->title('Create Production Batch');
     }
 }

@@ -52,40 +52,24 @@
                                 @error('manufacturing_product_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="md:col-span-3">
-                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2 whitespace-nowrap">Qty (Units/Pcs) *</label>
-                                <div class="relative">
-                                    <input type="number" min="1" wire:model.live="planned_quantity" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl pl-4 pr-12 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="500">
-                                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-outline font-bold">Pcs</span>
+                            <div class="md:col-span-6">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider">Pattern / Variant *</label>
+                                    <span class="text-[10px] font-black uppercase text-amber-700 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">New Routing</span>
                                 </div>
-                                @error('planned_quantity') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div class="md:col-span-3">
-                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Batch Priority *</label>
-                                <select wire:model.live="priority" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
-                                    <option value="Normal">Normal Priority</option>
-                                    <option value="Urgent">Urgent Priority</option>
-                                    <option value="Low">Low Priority</option>
+                                <select wire:model.live="pattern_id" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                    @forelse($availablePatterns as $pat)
+                                        <option value="{{ $pat->id }}">{{ $pat->name }}{{ $pat->is_default ? ' (Default Fold)' : '' }}</option>
+                                    @empty
+                                        <option value="">Standard Fold</option>
+                                    @endforelse
                                 </select>
-                                @error('priority') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                                @error('pattern_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                            <div>
-                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Auto-Generated Batch Code</label>
-                                <input type="text" value="{{ $batch_code_preview }}" disabled class="w-full h-12 bg-surface-container-high/60 border border-outline-variant/40 rounded-xl px-4 text-sm font-mono font-bold text-primary cursor-not-allowed">
-                                <span class="text-[10px] text-outline mt-1 block font-medium">Auto-generated parent batch identifier</span>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Batch Date *</label>
-                                <input type="date" wire:model="batch_date" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
-                                @error('batch_date') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                            <div class="md:col-span-6">
                                 <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Assigned Supervisor *
                                     <a href="{{ route('factory.supervisors.index') }}" wire:navigate class="ml-2 text-primary underline font-normal normal-case text-[10px]">Manage</a>
                                 </label>
@@ -103,6 +87,57 @@
                                     </select>
                                 @endif
                                 @error('factory_supervisor_id') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div class="md:col-span-3">
+                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Target Quantity *</label>
+                                <div class="relative">
+                                    <input type="number" min="1" wire:model.live="planned_quantity" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl pl-4 pr-12 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="500">
+                                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-outline font-bold">Pcs</span>
+                                </div>
+                                @error('planned_quantity') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div class="md:col-span-3">
+                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Priority *</label>
+                                <select wire:model.live="priority" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                    <option value="Normal">Normal Priority</option>
+                                    <option value="Urgent">Urgent Priority</option>
+                                    <option value="Low">Low Priority</option>
+                                </select>
+                                @error('priority') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <!-- Routing pulled info badge -->
+                        <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-3 text-xs font-semibold text-emerald-800">
+                            <span class="material-symbols-outlined text-emerald-600 text-[20px] shrink-0">check_circle</span>
+                            <div>
+                                Routing pulled from <span class="font-bold text-emerald-950">{{ $selectedPattern?->name ?? 'Standard Fold' }}</span>: 
+                                <span class="font-extrabold text-emerald-900">
+                                    @if($selectedPattern && $selectedPattern->tasks->isNotEmpty())
+                                        {{ implode(' → ', $selectedPattern->tasks->pluck('name')->toArray()) }}
+                                    @elseif($selectedProduct && $selectedProduct->tasks->isNotEmpty())
+                                        {{ implode(' → ', $selectedProduct->tasks->pluck('name')->toArray()) }}
+                                    @else
+                                        Cutting → Stitching → Ironing
+                                    @endif
+                                </span>.
+                                <span class="text-emerald-700 text-[11px] block mt-0.5">No other product's tasks will appear in this batch's jobs.</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            <div>
+                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Auto-Generated Batch Code</label>
+                                <input type="text" value="{{ $batch_code_preview }}" disabled class="w-full h-12 bg-surface-container-high/60 border border-outline-variant/40 rounded-xl px-4 text-sm font-mono font-bold text-primary cursor-not-allowed">
+                                <span class="text-[10px] text-outline mt-1 block font-medium">Auto-generated parent batch identifier</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider mb-2">Batch Date *</label>
+                                <input type="date" wire:model="batch_date" class="w-full h-12 bg-surface-container-low border border-outline-variant/60 rounded-xl px-4 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                @error('batch_date') <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     </div>

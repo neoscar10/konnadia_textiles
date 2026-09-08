@@ -17,6 +17,7 @@ class JobStageExecution extends Model
         'sequence_number',
         'target_quantity',
         'status',
+        'is_skipped',
         'started_at',
         'completed_at',
         'notes',
@@ -25,6 +26,7 @@ class JobStageExecution extends Model
     protected $casts = [
         'sequence_number' => 'integer',
         'target_quantity' => 'integer',
+        'is_skipped' => 'boolean',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
     ];

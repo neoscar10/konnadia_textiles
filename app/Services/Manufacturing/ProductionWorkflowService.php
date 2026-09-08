@@ -27,17 +27,19 @@ class ProductionWorkflowService
      * @param string|null $batchDate
      * @return JsonResponse
      */
-    public function initiateBatch($productId, $supervisorId, int $plannedQuantity, string $priority = 'Normal', ?string $remarks = null, ?string $batchDate = null): JsonResponse
+    public function initiateBatch($productId, $supervisorId, int $plannedQuantity, string $priority = 'Normal', ?string $remarks = null, ?string $batchDate = null, $patternId = null): JsonResponse
     {
         try {
-            $result = DB::transaction(function () use ($productId, $supervisorId, $plannedQuantity, $priority, $remarks, $batchDate) {
+            $result = DB::transaction(function () use ($productId, $supervisorId, $plannedQuantity, $priority, $remarks, $batchDate, $patternId) {
                 $product = $productId ? ManufacturingProduct::find($productId) : null;
+                $pattern = $patternId ? \App\Models\ManufacturingProductPattern::with('tasks')->find($patternId) : null;
 
                 // Create the Production Batch record
                 $batch = ProductionBatch::create([
                     'batch_date'               => $batchDate ?? now()->format('Y-m-d'),
                     'factory_supervisor_id'    => $supervisorId,
                     'manufacturing_product_id' => $product?->id,
+                    'pattern_id'               => $pattern?->id,
                     'planned_quantity'         => $plannedQuantity,
                     'priority'                 => $priority,
                     'status'                   => 'Created',
@@ -49,6 +51,7 @@ class ProductionWorkflowService
                     'production_batch_id' => $batch->batch_code,
                     'production_batch_db_id' => $batch->id,
                     'manufacturing_product_id' => $product?->id,
+                    'pattern_id'               => $pattern?->id,
                     'supervisor_id' => $supervisorId,
                     'job_date' => $batch->batch_date,
                     'target_quantity' => $plannedQuantity,
@@ -56,8 +59,16 @@ class ProductionWorkflowService
                     'notes' => $remarks ?? "Master Production Job for Batch {$batch->batch_code}",
                 ]);
 
-                // Populate stage executions from Product Routing tasks or default active tasks
-                $routingTasks = $product ? $product->tasks : Task::where('status', true)->get();
+                // Populate stage executions from Pattern Tasks, Product Routing tasks or default active tasks
+                $routingTasks = collect();
+                if ($pattern && $pattern->tasks->isNotEmpty()) {
+                    $routingTasks = $pattern->tasks;
+                } elseif ($product && $product->tasks->isNotEmpty()) {
+                    $routingTasks = $product->tasks;
+                } else {
+                    $routingTasks = Task::where('status', true)->get();
+                }
+
                 if ($routingTasks->isEmpty()) {
                     $fallbackTask = Task::where('status', true)->first();
                     if ($fallbackTask) {
@@ -462,5 +473,64 @@ class ProductionWorkflowService
 
         return $allFlowJobs;
     }
-}
 
+    /**
+     * Skip an intermediate stage execution on a job, passing target quantity forward.
+     *
+     * @param mixed $jobId
+     * @param mixed $taskId
+     * @return JsonResponse
+     */
+    public function skipStage($jobId, $taskId): JsonResponse
+    {
+        try {
+            $result = DB::transaction(function () use ($jobId, $taskId) {
+                $job = ProductionJob::with(['stageExecutions.task'])->findOrFail($jobId);
+                $stageExecution = $job->stageExecutions->firstWhere('task_id', $taskId);
+
+                if (!$stageExecution) {
+                    throw new Exception("Stage not found on job.");
+                }
+
+                // Identify carry-forward quantity from previous stage
+                $prevStage = $job->stageExecutions
+                    ->where('sequence_number', '<', $stageExecution->sequence_number)
+                    ->sortByDesc('sequence_number')
+                    ->first();
+
+                $forwardQty = $prevStage ? ($prevStage->completed_quantity > 0 ? $prevStage->completed_quantity : $prevStage->target_quantity) : $stageExecution->target_quantity;
+
+                $stageExecution->update([
+                    'status' => 'completed',
+                    'is_skipped' => true,
+                    'completed_at' => now(),
+                ]);
+
+                // Progress to next stage
+                $nextStage = $job->stageExecutions
+                    ->where('sequence_number', '>', $stageExecution->sequence_number)
+                    ->sortBy('sequence_number')
+                    ->first();
+
+                if ($nextStage) {
+                    $nextStage->update([
+                        'status' => 'in_progress',
+                        'target_quantity' => $forwardQty,
+                        'started_at' => now(),
+                    ]);
+                }
+
+                return [
+                    'job' => $job,
+                    'skippedStage' => $stageExecution,
+                    'nextStage' => $nextStage,
+                    'forwardQty' => $forwardQty,
+                ];
+            });
+
+            return $this->successResponse("Stage {$result['skippedStage']->task?->name} skipped.", $result, 200);
+        } catch (Exception $e) {
+            return $this->errorResponse($e->getMessage(), ['error' => $e->getMessage()], 400);
+        }
+    }
+}

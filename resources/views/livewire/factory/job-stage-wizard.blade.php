@@ -1,153 +1,494 @@
-<div>
-    <!-- Header & Breadcrumbs -->
-    <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <nav class="flex items-center gap-2 text-on-surface-variant mb-2">
-                <a href="{{ route('admin.dashboard') }}" wire:navigate class="font-label-sm text-xs text-on-surface-variant hover:text-primary transition-all">Dashboard</a>
-                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-                <a href="{{ route('factory.tasks.index') }}" wire:navigate class="font-label-sm text-xs text-on-surface-variant hover:text-primary transition-all">Factory Floor</a>
-                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-                <span class="font-label-sm text-xs text-primary font-bold">Job {{ $job->job_code }}</span>
-            </nav>
-            <h2 class="font-headline-lg text-headline-lg text-primary font-extrabold tracking-tight">Production Job Stage Wizard</h2>
-            <p class="font-body-md text-body-md text-on-surface-variant mt-1">Executing sequential stage progression for Job <strong class="font-mono text-primary">{{ $job->job_code }}</strong> ({{ $job->manufacturingProduct?->name }}).</p>
-        </div>
-        <a href="{{ route('factory.tasks.index') }}" wire:navigate class="inline-flex items-center gap-2 border border-outline-variant/60 hover:bg-surface-container-high/30 text-on-surface px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all">
-            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-            Back to Task Master
+<div class="space-y-6 max-w-7xl mx-auto pb-12">
+    <!-- Top Header & Breadcrumb -->
+    <div>
+        <a href="{{ route('admin.production.workbench') }}" wire:navigate class="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline mb-2">
+            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+            <span>Back to Production Batches Hub</span>
         </a>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl font-black text-on-surface tracking-tight font-display font-mono">
+                        {{ $job->batch?->batch_code ?? $job->job_code }}
+                    </h1>
+                    <span class="px-3 py-1 bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded-full font-black text-[10px] uppercase tracking-wider">
+                        {{ ucfirst(str_replace('_', ' ', $job->status)) }}
+                    </span>
+                </div>
+                <p class="text-xs text-on-surface-variant font-medium mt-1">
+                    Manufacturing Product: <span class="font-bold text-on-surface">{{ $job->manufacturingProduct?->name ?? 'Standard Item' }}</span>
+                    @if($job->pattern)
+                        · Pattern: <span class="font-bold text-primary">{{ $job->pattern->name }}</span>
+                    @endif
+                    @if($job->batch?->factorySupervisor)
+                        · Supervisor: <span class="font-bold text-on-surface">{{ $job->batch->factorySupervisor->name }}</span>
+                    @endif
+                </p>
+            </div>
+        </div>
     </div>
 
-    <!-- Sequential Stage Stepper Bar -->
-    <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 mb-8 shadow-xs">
-        <h3 class="font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-4">Stage Progress Sequential Tracker</h3>
-        <div class="flex flex-wrap items-center gap-4">
-            @foreach($stageExecutions as $stg)
+    <!-- Main Terminal Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- LEFT PANEL: TASK SEQUENCE (col-span-4) -->
+        <div class="lg:col-span-4 space-y-4">
+            <div class="p-5 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-on-surface-variant">Task Sequence</h3>
+                    <span class="text-[10px] font-bold text-outline uppercase tracking-wider border border-outline-variant/60 px-2 py-0.5 rounded-full">
+                        Click Task to Edit
+                    </span>
+                </div>
+
+                <div class="space-y-3">
+                    @foreach($stageExecutions as $idx => $stg)
+                        @php
+                            $isCurrent = $activeStage && $activeStage->id === $stg->id;
+                            $isDone = $stg->status === 'completed';
+                            $isFinal = $loop->last;
+                        @endphp
+                        <div wire:click="selectStage({{ $stg->id }})" 
+                             class="p-4 rounded-xl border transition-all cursor-pointer relative {{ $isCurrent ? 'bg-amber-500/5 border-amber-500/60 ring-2 ring-amber-500/20 shadow-sm' : ($isDone ? 'bg-surface-container-low/60 border-outline-variant/40 hover:bg-surface-container-low' : 'bg-surface border-outline-variant/60 hover:bg-surface-container-lowest') }}">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-extrabold text-sm text-on-surface">
+                                            {{ $idx + 1 }}. {{ $stg->task?->name ?? 'Stage' }}
+                                        </span>
+                                        @if($isFinal)
+                                            <span class="text-[9px] font-bold text-outline">Final Task</span>
+                                        @endif
+                                    </div>
+                                    <p class="text-xs text-outline font-medium mt-1">
+                                        @if($isDone)
+                                            {{ $stg->completed_quantity ?? $stg->target_quantity }} / {{ $job->target_quantity }} Pcs
+                                        @else
+                                            — / {{ $stg->target_quantity }} Pcs
+                                        @endif
+                                    </p>
+                                </div>
+
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    @if($stg->is_skipped)
+                                        <span class="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 font-extrabold text-[10px] uppercase">
+                                            Skipped
+                                        </span>
+                                    @elseif($isDone)
+                                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 font-extrabold text-[10px] uppercase">
+                                            Completed
+                                        </span>
+                                    @elseif($stg->status === 'in_progress')
+                                        <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-800 border border-amber-500/30 font-extrabold text-[10px] uppercase">
+                                            In Progress
+                                        </span>
+                                    @else
+                                        <span class="px-2.5 py-0.5 rounded-full bg-surface-container text-outline font-bold text-[10px] uppercase">
+                                            Pending
+                                        </span>
+                                    @endif
+
+                                    <!-- Skip Stage Toggle for Non-Mandatory Intermediate Tasks -->
+                                    @if($idx > 0 && !$isDone)
+                                        <button type="button" 
+                                                wire:click.stop="toggleSkipStage({{ $stg->id }})" 
+                                                class="inline-flex items-center gap-1 text-[10px] font-extrabold text-outline hover:text-rose-600 px-2 py-0.5 bg-surface-container-low border border-outline-variant/60 rounded-lg transition-colors">
+                                            <span class="material-symbols-outlined text-[14px]">remove_circle_outline</span>
+                                            <span>Skip</span>
+                                        </button>
+                                    @elseif($idx === 0)
+                                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-on-surface bg-on-surface/5 px-2 py-0.5 rounded">
+                                            Mandatory
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT MAIN PANEL: ACTIVE TASK TERMINAL (col-span-8) -->
+        <div class="lg:col-span-8 space-y-6">
+            @if($activeStage)
                 @php
-                    $isCompleted = $stg->status === 'completed';
-                    $isInProgress = $stg->status === 'in_progress';
-                    $isPending = $stg->status === 'pending';
+                    $isFinalTask = $this->isFinalStage($activeStage);
                 @endphp
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-xs font-extrabold transition-all
-                        {{ $isCompleted ? 'bg-secondary/10 border-secondary/40 text-secondary' : ($isInProgress ? 'bg-primary text-on-primary border-primary shadow-md ring-2 ring-primary/20' : 'bg-surface-container-low/40 border-outline-variant/40 text-on-surface-variant/50 opacity-60') }}"
-                    >
-                        <span class="w-6 h-6 rounded-lg flex items-center justify-center font-mono text-[11px] font-black {{ $isCompleted ? 'bg-secondary text-on-secondary' : ($isInProgress ? 'bg-on-primary text-primary' : 'bg-outline-variant/40 text-on-surface-variant') }}">
-                            {{ $stg->sequence_number }}
+                
+                <!-- Stage Terminal Card Header & Tabs -->
+                <div class="bg-surface rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
+                    <div class="p-6 border-b border-outline-variant/60 bg-surface-container-low flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 class="text-xl font-extrabold text-on-surface">
+                                    {{ $activeStage->sequence_number }}. {{ $activeStage->task?->name }}
+                                </h2>
+                                @if($isFinalTask)
+                                    <span class="px-2.5 py-0.5 bg-amber-500/10 text-amber-800 border border-amber-500/30 text-[10px] font-extrabold uppercase rounded-full">
+                                        Final Task
+                                    </span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-on-surface-variant mt-0.5">
+                                Stage Target: <span class="font-bold text-on-surface">{{ $activeStage->target_quantity }} Pcs</span>
+                            </p>
+                        </div>
+
+                        <!-- Status Badge -->
+                        <span class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider {{ $activeStage->status === 'completed' ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-800 border border-amber-500/30' }}">
+                            {{ ucfirst(str_replace('_', ' ', $activeStage->status)) }}
                         </span>
-                        <span>{{ $stg->task?->name }}</span>
-                        @if($isCompleted)
-                            <span class="material-symbols-outlined text-[16px]">check_circle</span>
-                        @elseif($isPending)
-                            <span class="material-symbols-outlined text-[16px]">lock</span>
+                    </div>
+
+                    <!-- Step Navigation Sub-Tabs -->
+                    <div class="flex items-center border-b border-outline-variant/60 bg-surface px-6 overflow-x-auto">
+                        <button type="button" 
+                                wire:click="$set('activeStep', 1)" 
+                                class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 1 ? 'border-primary text-primary font-black' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
+                            1. Labour & Bonus Rate
+                        </button>
+                        <button type="button" 
+                                wire:click="$set('activeStep', 2)" 
+                                class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 2 ? 'border-primary text-primary font-black' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
+                            2. Output Items
+                        </button>
+                        @if($isFinalTask)
+                            <button type="button" 
+                                    wire:click="$set('activeStep', 3)" 
+                                    class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 3 ? 'border-primary text-primary font-black' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
+                                <span>3. Wastage & Alteration</span>
+                                <span class="px-1.5 py-0.5 text-[9px] bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded font-black uppercase">Final Task</span>
+                            </button>
+                            <button type="button" 
+                                    wire:click="$set('activeStep', 4)" 
+                                    class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 4 ? 'border-primary text-primary font-black' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
+                                4. Review & Confirm
+                            </button>
+                        @else
+                            <button type="button" 
+                                    wire:click="$set('activeStep', 3)" 
+                                    class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 3 ? 'border-primary text-primary font-black' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
+                                3. Review & Confirm
+                            </button>
                         @endif
                     </div>
-
-                    @if(!$loop->last)
-                        <span class="material-symbols-outlined text-outline-variant/60 text-[18px]">arrow_forward</span>
-                    @endif
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    <!-- Active Stage Execution Box -->
-    @if($activeStage)
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-6">
-            <div class="flex justify-between items-center border-b border-outline-variant/40 pb-4">
-                <div class="flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-extrabold text-base">
-                        {{ $activeStage->sequence_number }}
-                    </span>
-                    <div>
-                        <h3 class="font-headline-sm text-lg font-extrabold text-primary">Stage {{ $activeStage->sequence_number }}: {{ $activeStage->task?->name }}</h3>
-                        <p class="text-xs text-on-surface-variant mt-0.5">Target Process Quantity: <strong>{{ $activeStage->target_quantity }} Pcs</strong></p>
-                    </div>
-                </div>
-                <span class="bg-primary/10 text-primary border border-primary/20 px-3.5 py-1 rounded-full font-mono text-xs font-black uppercase">
-                    IN PROGRESS
-                </span>
-            </div>
-
-            <!-- Labor Workers Section -->
-            <div>
-                <div class="flex justify-between items-center mb-3">
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Labor Worker Allocations</label>
-                    <button type="button" wire:click="addLaborRow" class="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer">
-                        <span class="material-symbols-outlined text-[16px]">add</span> Add Labor Worker
-                    </button>
                 </div>
 
-                @foreach($laborRows as $lIdx => $lRow)
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-surface-container-low/30 rounded-xl p-4 mb-3 border border-outline-variant/30 items-center">
+                <!-- STEP 1: LABOUR DEFINITION & BONUS RATE -->
+                @if($activeStep === 1)
+                    <div class="bg-surface rounded-2xl border border-outline-variant/60 p-6 shadow-xs space-y-6">
                         <div>
-                            <label class="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Worker</label>
-                            <select wire:model="laborRows.{{ $lIdx }}.labor_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-body-md">
-                                <option value="">— Select Worker —</option>
-                                @foreach($labors as $l)
-                                    <option value="{{ $l->id }}">{{ $l->name }} ({{ $l->worker_code }})</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Piece Rate (₹)</label>
-                            <input type="number" step="0.01" wire:model.live="laborRows.{{ $lIdx }}.rate" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-right" />
-                        </div>
-
-                        <div>
-                            <label class="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Processed Pcs</label>
-                            <input type="number" min="1" wire:model.live="laborRows.{{ $lIdx }}.processed_qty" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-right" />
-                        </div>
-
-                        <div class="flex items-center justify-between pt-4 md:pt-0">
-                            <div>
-                                <p class="text-[10px] text-on-surface-variant font-bold uppercase">Wage Total</p>
-                                <p class="text-sm font-extrabold text-primary">₹{{ number_format(floatval($lRow['rate'] ?? 0) * floatval($lRow['processed_qty'] ?? 0), 2) }}</p>
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-base font-extrabold text-on-surface">Step 1: Labour Definition & Quantity Worked Upon</h3>
+                                <span class="px-3 py-1 bg-[#001229] text-white rounded-full text-[10px] font-black uppercase tracking-wider">
+                                    Multi-Worker Wage Allocation
+                                </span>
                             </div>
-                            <button type="button" wire:click="removeLaborRow({{ $lIdx }})" class="text-error hover:bg-error-container/20 p-2 rounded-lg transition-colors cursor-pointer">
-                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                Assign single or multiple workers, specify item quantities worked upon, base rates, and bonus rates.
+                            </p>
+                        </div>
+
+                        <!-- Worker Rows Table -->
+                        <div class="space-y-4">
+                            @foreach($laborRows as $index => $row)
+                                @php
+                                    $bRate = floatval($row['base_rate'] ?? 0);
+                                    $bnRate = floatval($row['bonus_rate'] ?? 0);
+                                    $effRate = $bRate + $bnRate;
+                                    $pQty = intval($row['processed_qty'] ?? 0);
+                                    $subtotal = round($effRate * $pQty, 2);
+                                @endphp
+                                <div class="p-4 bg-surface-container-low border border-outline-variant/60 rounded-xl space-y-4">
+                                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                                        <!-- Worker Select -->
+                                        <div class="sm:col-span-4">
+                                            <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider mb-1">
+                                                Worker #{{ $index + 1 }} *
+                                            </label>
+                                            <select wire:model.live="laborRows.{{ $index }}.labor_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
+                                                <option value="">— Select Worker —</option>
+                                                @foreach($labors as $l)
+                                                    <option value="{{ $l->id }}">{{ $l->name }} ({{ $l->worker_code ?? 'W' }})</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <!-- Qty Worked Upon -->
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider mb-1">
+                                                QTY WORKED (PCS) *
+                                            </label>
+                                            <input type="number" min="1" wire:model.live="laborRows.{{ $index }}.processed_qty" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
+                                        </div>
+
+                                        <!-- Base Rate -->
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider mb-1">
+                                                BASE RATE (₹ / PC)
+                                            </label>
+                                            <input type="number" step="0.5" wire:model.live="laborRows.{{ $index }}.base_rate" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
+                                        </div>
+
+                                        <!-- Bonus Rate -->
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider mb-1">
+                                                BONUS RATE (₹ / PC)
+                                            </label>
+                                            <input type="number" step="0.5" wire:model.live="laborRows.{{ $index }}.bonus_rate" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
+                                        </div>
+
+                                        <!-- Remove Row Button -->
+                                        <div class="sm:col-span-2 flex justify-end">
+                                            @if(count($laborRows) > 1)
+                                                <button type="button" wire:click="removeLaborRow({{ $index }})" class="p-2 text-rose-600 hover:bg-rose-500/10 rounded-xl transition-colors">
+                                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <!-- Rate Breakdown Footer Bar -->
+                                    <div class="pt-2 border-t border-outline-variant/40 flex items-center justify-between text-xs font-bold">
+                                        <span class="text-on-surface-variant">
+                                            EFFECTIVE TOTAL RATE: <span class="text-primary font-black">₹{{ number_format($effRate, 2) }} / Pc</span>
+                                        </span>
+                                        <span class="text-on-surface">
+                                            SUBTOTAL WAGE: <span class="text-emerald-700 font-extrabold text-sm">₹{{ number_format($subtotal, 2) }}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <!-- Add Worker Button -->
+                        <button type="button" wire:click="addLaborRow" class="inline-flex items-center gap-1.5 px-4 py-2 bg-surface-container-low border border-outline-variant/60 text-on-surface hover:bg-surface-container font-extrabold text-xs rounded-xl transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">add</span>
+                            <span>+ Add Laborer / Worker</span>
+                        </button>
+
+                        <!-- Total Summary Footer Card -->
+                        @php
+                            $totalQtyProcessed = array_sum(array_column($laborRows, 'processed_qty'));
+                            $totalWages = 0;
+                            foreach($laborRows as $lr) {
+                                $eff = floatval($lr['base_rate'] ?? 0) + floatval($lr['bonus_rate'] ?? 0);
+                                $totalWages += round($eff * intval($lr['processed_qty'] ?? 0), 2);
+                            }
+                        @endphp
+                        <div class="p-4 bg-surface-container-low border border-outline-variant/60 rounded-xl space-y-1">
+                            <div class="flex items-center gap-2 text-xs font-bold text-on-surface">
+                                <span>Total Allotted Labor Quantity: <span class="font-extrabold text-primary">{{ $totalQtyProcessed }} Pcs</span></span>
+                                @if($totalQtyProcessed == $activeStage->target_quantity)
+                                    <span class="text-emerald-700 font-extrabold text-[11px]">(✓ Matches Batch Target {{ $activeStage->target_quantity }} Pcs)</span>
+                                @endif
+                            </div>
+                            <div class="text-xs font-extrabold text-on-surface-variant">
+                                Total Stage Wages (All {{ count($laborRows) }} Worker{{ count($laborRows) > 1 ? 's' : '' }}): <span class="text-emerald-700 text-sm font-black">₹{{ number_format($totalWages, 2) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Next Navigation -->
+                        <div class="pt-4 border-t border-outline-variant/40 flex justify-end">
+                            <button type="button" wire:click="$set('activeStep', 2)" class="px-6 py-2.5 bg-[#001229] hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                                <span>Next Step: Output Items</span>
+                                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                             </button>
                         </div>
                     </div>
-                @endforeach
-            </div>
+                @endif
 
-            <!-- Wastage & Alteration Section -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-surface-container-low/20 rounded-xl p-4 border border-outline-variant/30">
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Quantity Produced / Passed</label>
-                    <input type="number" min="0" wire:model="producedQty" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-extrabold text-right text-primary" />
-                </div>
+                <!-- STEP 2: OUTPUT ITEMS RECORDED -->
+                @if($activeStep === 2)
+                    <div class="bg-surface rounded-2xl border border-outline-variant/60 p-6 shadow-xs space-y-6">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-base font-extrabold text-on-surface">Step 2: Output Items Recorded</h3>
+                                <span class="px-3 py-1 bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase">
+                                    Stage Output
+                                </span>
+                            </div>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                Record the actual quantity of finished pieces produced in this stage.
+                            </p>
+                        </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Wastage Quantity</label>
-                    <input type="number" step="0.01" wire:model="wastageQty" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-bold text-right text-error" />
-                </div>
+                        <!-- Output Quantity Input -->
+                        <div class="p-5 bg-surface-container-low border border-outline-variant/60 rounded-xl space-y-3">
+                            <label class="block text-xs font-extrabold text-on-surface-variant uppercase tracking-wider">
+                                SUCCESSFULLY PRODUCED OUTPUT QUANTITY (PCS) *
+                            </label>
+                            <input type="number" min="0" wire:model.live="producedQty" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-4 py-3 text-base font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                        </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Alteration Quantity</label>
-                    <input type="number" min="0" wire:model="alterationQty" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-bold text-right text-amber-700" />
-                </div>
-            </div>
+                        <!-- Completion Status Card -->
+                        @php
+                            $target = max(1, $activeStage->target_quantity);
+                            $rate = round(($producedQty / $target) * 100, 1);
+                        @endphp
+                        <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-1 text-emerald-900">
+                            <div class="font-extrabold text-sm">Recorded Stage Output: {{ $producedQty }} Pcs</div>
+                            <div class="text-xs font-semibold text-emerald-800">
+                                Target Batch Qty: {{ $activeStage->target_quantity }} Pcs · Completion Rate: {{ $rate }}%
+                            </div>
+                        </div>
 
-            <!-- Action Button -->
-            <div class="flex justify-end pt-4">
-                <button
-                    type="button"
-                    wire:click="completeActiveStage"
-                    class="px-8 py-4 bg-primary hover:bg-primary-container text-on-primary font-black text-sm rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center gap-2"
-                >
-                    <span class="material-symbols-outlined text-[20px]">check_circle</span>
-                    Complete Stage {{ $activeStage->sequence_number }} ({{ $activeStage->task?->name }}) & Unlock Next Stage
-                </button>
-            </div>
+                        <!-- Navigation Buttons -->
+                        <div class="pt-4 border-t border-outline-variant/40 flex items-center justify-between">
+                            <button type="button" wire:click="$set('activeStep', 1)" class="px-5 py-2.5 bg-surface-container-low border border-outline-variant/60 text-on-surface font-bold text-xs rounded-xl">
+                                ← Back to Labour
+                            </button>
+                            @if($isFinalTask)
+                                <button type="button" wire:click="$set('activeStep', 3)" class="px-6 py-2.5 bg-[#001229] hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                                    <span>Next Step: Wastage & Alteration</span>
+                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                </button>
+                            @else
+                                <button type="button" wire:click="$set('activeStep', 3)" class="px-6 py-2.5 bg-[#001229] hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                                    <span>Next Step: Review & Confirm</span>
+                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+                <!-- STEP 3 (FINAL TASK ONLY): FINAL BATCH RECONCILIATION - ALTERATION & WASTAGE -->
+                @if($isFinalTask && $activeStep === 3)
+                    <div class="bg-surface rounded-2xl border border-outline-variant/60 p-6 shadow-xs space-y-6">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-base font-extrabold text-on-surface">STEP 3: FINAL BATCH RECONCILIATION — ALTERATION & WASTAGE</h3>
+                                <span class="px-3 py-1 bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded-full text-[10px] font-black uppercase">
+                                    Final Task Only
+                                </span>
+                            </div>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                Reconcile batch discrepancy, alteration units, and unsalvageable wastage before final batch completion.
+                            </p>
+                        </div>
+
+                        <!-- Batch Production Discrepancy Breakdown Card -->
+                        <div class="p-5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2 text-amber-950">
+                            <h4 class="font-extrabold text-xs uppercase tracking-wider text-amber-900">Batch Production Discrepancy Breakdown:</h4>
+                            <div class="flex flex-wrap items-center gap-4 text-xs font-bold">
+                                <span>Initial Batch Started Qty: <span class="font-extrabold">{{ $job->target_quantity }} Pcs</span></span>
+                                <span>·</span>
+                                <span>Final Task Output: <span class="font-extrabold">{{ $producedQty }} Pcs</span></span>
+                                <span>·</span>
+                                @php
+                                    $discrepancy = max(0, $job->target_quantity - $producedQty);
+                                @endphp
+                                <span>Unaccounted Loss / Missing Items: <span class="font-extrabold text-rose-700">{{ $discrepancy }} Pcs</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Alteration Units & Target Product Mapping -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-xs font-extrabold uppercase tracking-wider text-on-surface-variant">
+                                    Alteration Units & Target Product Mapping
+                                </h4>
+                                <button type="button" wire:click="addAlterationRow" class="text-xs font-extrabold text-primary hover:underline">
+                                    + Add Alteration Item
+                                </button>
+                            </div>
+
+                            <div class="space-y-3">
+                                @foreach($alterationRows as $aIdx => $aRow)
+                                    <div class="p-4 bg-surface-container-low border border-outline-variant/60 rounded-xl flex flex-col sm:flex-row items-center gap-3">
+                                        <div class="w-full sm:w-1/3">
+                                            <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider mb-1">ALTERED QTY (PCS)</label>
+                                            <input type="number" min="1" wire:model.live="alterationRows.{{ $aIdx }}.altered_qty" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
+                                        </div>
+                                        <div class="w-full sm:w-2/3">
+                                            <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider mb-1">TARGET MANUFACTURING ITEM CONVERTED TO</label>
+                                            <select wire:model.live="alterationRows.{{ $aIdx }}.target_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
+                                                @foreach($allProducts as $ap)
+                                                    <option value="{{ $ap->id }}">{{ $ap->name }} ({{ $ap->code }})</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        @if(count($alterationRows) > 1)
+                                            <button type="button" wire:click="removeAlterationRow({{ $aIdx }})" class="p-2 text-rose-600 hover:bg-rose-500/10 rounded-xl transition-colors shrink-0 self-end sm:self-center">
+                                                <span class="material-symbols-outlined text-[18px]">close</span>
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Unsalvageable Wastage Entry -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                            <div>
+                                <label class="block text-[11px] font-extrabold text-on-surface-variant uppercase tracking-wider mb-1">UNSALVAGEABLE WASTAGE QUANTITY (PCS)</label>
+                                <input type="number" step="0.5" wire:model="wastageQty" placeholder="e.g. 2.0" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-extrabold text-on-surface-variant uppercase tracking-wider mb-1">REASON / REMARKS</label>
+                                <input type="text" wire:model="remarks" placeholder="e.g. Fabric tear during final ironing" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface">
+                            </div>
+                        </div>
+
+                        <!-- Navigation Buttons -->
+                        <div class="pt-4 border-t border-outline-variant/40 flex items-center justify-between">
+                            <button type="button" wire:click="$set('activeStep', 2)" class="px-5 py-2.5 bg-surface-container-low border border-outline-variant/60 text-on-surface font-bold text-xs rounded-xl">
+                                ← Back to Output Items
+                            </button>
+                            <button type="button" wire:click="$set('activeStep', 4)" class="px-6 py-2.5 bg-[#001229] hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                                <span>Next Step: Review & Confirm</span>
+                                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- STEP REVIEW & CONFIRM -->
+                @if(($isFinalTask && $activeStep === 4) || (!$isFinalTask && $activeStep === 3))
+                    <div class="bg-surface rounded-2xl border border-outline-variant/60 p-6 shadow-xs space-y-6">
+                        <div>
+                            <h3 class="text-base font-extrabold text-on-surface">Review & Confirm Stage Completion</h3>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                Verify labor allocation summary, output count, and progress stage workflow.
+                            </p>
+                        </div>
+
+                        <!-- Summary Table -->
+                        <div class="p-5 bg-surface-container-low border border-outline-variant/60 rounded-xl space-y-3">
+                            <div class="flex justify-between text-xs font-bold border-b border-outline-variant/40 pb-2">
+                                <span class="text-on-surface-variant">Active Stage:</span>
+                                <span class="text-on-surface">{{ $activeStage->sequence_number }}. {{ $activeStage->task?->name }}</span>
+                            </div>
+                            <div class="flex justify-between text-xs font-bold border-b border-outline-variant/40 pb-2">
+                                <span class="text-on-surface-variant">Workers Assigned:</span>
+                                <span class="text-on-surface">{{ count($laborRows) }} Worker(s)</span>
+                            </div>
+                            <div class="flex justify-between text-xs font-bold border-b border-outline-variant/40 pb-2">
+                                <span class="text-on-surface-variant">Output Recorded:</span>
+                                <span class="text-emerald-700 font-extrabold">{{ $producedQty }} Pcs</span>
+                            </div>
+                            @if($isFinalTask)
+                                <div class="flex justify-between text-xs font-bold">
+                                    <span class="text-on-surface-variant">Alteration Mapping:</span>
+                                    <span class="text-amber-800 font-extrabold">{{ count($alterationRows) }} Item(s) mapped</span>
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Action Bar -->
+                        <div class="pt-4 border-t border-outline-variant/40 flex items-center justify-between">
+                            <button type="button" wire:click="$set('activeStep', {{ $isFinalTask ? 3 : 2 }})" class="px-5 py-2.5 bg-surface-container-low border border-outline-variant/60 text-on-surface font-bold text-xs rounded-xl">
+                                ← Back
+                            </button>
+                            <button type="button" wire:click="completeActiveStage" class="px-8 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                <span>Complete & Progress Stage</span>
+                            </button>
+                        </div>
+                    </div>
+                @endif
+            @endif
         </div>
-    @else
-        <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-8 text-center shadow-xs">
-            <span class="material-symbols-outlined text-secondary text-5xl mb-3">task_alt</span>
-            <h3 class="font-headline-sm text-lg font-black text-primary">All Stages Completed!</h3>
-            <p class="text-xs text-on-surface-variant mt-1">This job has completed all routing tasks and its batch is ready for Storefront Finished Goods Combination.</p>
-        </div>
-    @endif
+    </div>
 </div>

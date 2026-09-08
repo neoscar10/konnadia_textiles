@@ -14,6 +14,7 @@ class ProductionJob extends Model
         'production_batch_id',
         'production_batch_db_id',
         'manufacturing_product_id',
+        'pattern_id',
         'supervisor_id',
         'job_date',
         'target_quantity',
@@ -51,6 +52,22 @@ class ProductionJob extends Model
     public function batch()
     {
         return $this->belongsTo(ProductionBatch::class, 'production_batch_db_id');
+    }
+
+    /**
+     * Get the manufacturing product.
+     */
+    public function manufacturingProduct()
+    {
+        return $this->belongsTo(ManufacturingProduct::class, 'manufacturing_product_id');
+    }
+
+    /**
+     * Get the pattern (variant/routing template) associated with this job.
+     */
+    public function pattern()
+    {
+        return $this->belongsTo(ManufacturingProductPattern::class, 'pattern_id');
     }
 
     /**

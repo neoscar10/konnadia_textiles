@@ -16,6 +16,7 @@ class ProductionBatch extends Model
         'supervisor_id',
         'factory_supervisor_id',
         'manufacturing_product_id',
+        'pattern_id',
         'planned_quantity',
         'priority',
         'status',
@@ -124,6 +125,14 @@ class ProductionBatch extends Model
     public function manufacturingProduct()
     {
         return $this->belongsTo(ManufacturingProduct::class);
+    }
+
+    /**
+     * Get the pattern (variant/routing template) associated with this batch.
+     */
+    public function pattern()
+    {
+        return $this->belongsTo(ManufacturingProductPattern::class, 'pattern_id');
     }
 
     /**
