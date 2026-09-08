@@ -32,6 +32,26 @@ class JobDetailPage extends Component
     public int $wizardStep = 1;
     public $activeStep = 'workers';
 
+    public function getIsSelectedTaskFinalStepProperty(): bool
+    {
+        if (!$this->selectedTaskId) {
+            return false;
+        }
+
+        $routingTasks = $this->routingTasks;
+        if ($routingTasks->isEmpty()) {
+            return false;
+        }
+
+        $finalPivotTask = $routingTasks->first(fn($t) => !empty($t->pivot?->is_final_step));
+        if ($finalPivotTask) {
+            return (int) $this->selectedTaskId === (int) $finalPivotTask->id;
+        }
+
+        $lastTask = $routingTasks->last();
+        return $lastTask && (int) $this->selectedTaskId === (int) $lastTask->id;
+    }
+
     public function setActiveStep(string $step)
     {
         $targetStep = 1;
@@ -40,22 +60,29 @@ class JobDetailPage extends Component
         if ($isCutting) {
             if ($step === 'workers') $targetStep = 2;
             elseif ($step === 'output') $targetStep = 3;
-            elseif ($step === 'wastage') $targetStep = 4;
             else $targetStep = 1;
         } else {
-            if ($step === 'workers') {
-                $targetStep = $this->hasMaterialStep ? 2 : 1;
+            $hasMat = $this->hasMaterialStep;
+            $isFinal = $this->isSelectedTaskFinalStep;
+
+            if ($step === 'material' && $hasMat) {
+                $targetStep = 1;
+            } elseif ($step === 'workers') {
+                $targetStep = $hasMat ? 2 : 1;
             } elseif ($step === 'output') {
-                $targetStep = $this->hasMaterialStep ? 3 : 2;
-            } elseif ($step === 'wastage') {
+                $targetStep = $hasMat ? 3 : 2;
+            } elseif ($step === 'wastage' && $isFinal) {
+                $targetStep = $hasMat ? 4 : 3;
+            } elseif ($step === 'review') {
                 $targetStep = $this->maxWizardSteps;
-            } elseif ($step === 'material') {
+            } else {
                 $targetStep = 1;
             }
         }
         
         $this->setWizardStep($targetStep);
     }
+
     public function getSelectedTaskProperty()
     {
         return $this->selectedTaskId ? Task::with('rawMaterialCategories')->find($this->selectedTaskId) : null;
@@ -83,7 +110,15 @@ class JobDetailPage extends Component
         if ($isCutting) {
             return 3;
         }
-        return $this->hasMaterialStep ? 4 : 3;
+        $steps = 2; // Labour & Output
+        if ($this->hasMaterialStep) {
+            $steps++;
+        }
+        if ($this->isSelectedTaskFinalStep) {
+            $steps++; // Wastage step (only on final step)
+        }
+        $steps++; // Review & Confirm
+        return $steps;
     }
 
     public function setWizardStep(int $step): void
@@ -148,20 +183,51 @@ class JobDetailPage extends Component
 
         $isCutting = $this->selectedTask && ($this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001');
         if (!$isCutting) {
-            $workerStep = $this->hasMaterialStep ? 2 : 1;
-            $outputStep = $this->hasMaterialStep ? 3 : 2;
-            $wastageStep = $this->maxWizardSteps;
-            
-            if ($targetStep === $workerStep) {
-                $this->activeStep = 'workers';
-            } elseif ($targetStep === $outputStep) {
-                $this->activeStep = 'output';
-            } elseif ($targetStep === $wastageStep) {
-                $this->activeStep = 'wastage';
-            } elseif ($targetStep === 1 && $this->hasMaterialStep) {
-                $this->activeStep = 'material';
+            $hasMat = $this->hasMaterialStep;
+            $isFinal = $this->isSelectedTaskFinalStep;
+
+            if ($hasMat) {
+                if ($targetStep === 1) $this->activeStep = 'material';
+                elseif ($targetStep === 2) $this->activeStep = 'workers';
+                elseif ($targetStep === 3) $this->activeStep = 'output';
+                elseif ($targetStep === 4) $this->activeStep = $isFinal ? 'wastage' : 'review';
+                elseif ($targetStep === 5) $this->activeStep = 'review';
+            } else {
+                if ($targetStep === 1) $this->activeStep = 'workers';
+                elseif ($targetStep === 2) $this->activeStep = 'output';
+                elseif ($targetStep === 3) $this->activeStep = $isFinal ? 'wastage' : 'review';
+                elseif ($targetStep === 4) $this->activeStep = 'review';
             }
         }
+    }
+
+    public function toggleSkipStage($taskId): void
+    {
+        if (!auth()->user()->hasAnyRole(['super_admin', 'admin', 'Factory Supervisor']) && !auth()->user()->can('manage_labor')) {
+            $this->dispatch('toast', message: 'Unauthorized action.', type: 'error');
+            return;
+        }
+
+        $stageExec = $this->job->stageExecutions()->where('task_id', $taskId)->first();
+        if (!$stageExec) {
+            return;
+        }
+
+        if ($stageExec->status === 'completed') {
+            $this->dispatch('toast', message: 'Completed stages cannot be skipped.', type: 'error');
+            return;
+        }
+
+        if ($stageExec->status === 'skipped') {
+            $stageExec->update(['status' => 'pending']);
+            $this->dispatch('toast', message: "Stage '{$stageExec->task?->name}' un-skipped.", type: 'info');
+        } else {
+            $stageExec->update(['status' => 'skipped']);
+            $this->dispatch('toast', message: "Stage '{$stageExec->task?->name}' marked as SKIPPED.", type: 'warning');
+        }
+
+        $this->job->unsetRelation('stageExecutions');
+        $this->job->load('stageExecutions.task');
     }
 
     public function validateCuttingStep2(): bool
@@ -611,10 +677,20 @@ class JobDetailPage extends Component
     private function resetFormRows(): void
     {
         $defaultProdId = $this->job->manufacturing_product_id ?? '';
+        $task = $this->selectedTask;
+        $product = $this->job->manufacturingProduct;
+        $pivot = $product?->tasks->firstWhere('id', $this->selectedTaskId)?->pivot;
+        $baseRate = (float)($pivot?->standard_labor_rate ?? $product?->standard_labor_rate ?? $task?->standard_labor_rate ?? 0.00);
 
         if (empty($this->laborAllocations)) {
             $this->laborAllocations = [
-                ['labor_id' => '', 'manufacturing_product_id' => $defaultProdId, 'quantity' => '']
+                [
+                    'labor_id' => '',
+                    'manufacturing_product_id' => $defaultProdId,
+                    'quantity' => '',
+                    'base_rate' => number_format($baseRate, 2, '.', ''),
+                    'bonus_rate' => '0.00'
+                ]
             ];
         }
 
@@ -671,7 +747,18 @@ class JobDetailPage extends Component
         ]);
 
         $defaultProdId = $this->job->manufacturing_product_id ?? '';
-        $this->laborAllocations = [['labor_id' => '', 'manufacturing_product_id' => $defaultProdId, 'quantity' => '']];
+        $task = Task::with('rawMaterialCategories')->find($taskId);
+        $product = $this->job->manufacturingProduct;
+        $pivot = $product?->tasks->firstWhere('id', $taskId)?->pivot;
+        $baseRate = (float)($pivot?->standard_labor_rate ?? $product?->standard_labor_rate ?? $task?->standard_labor_rate ?? 0.00);
+
+        $this->laborAllocations = [[
+            'labor_id' => '',
+            'manufacturing_product_id' => $defaultProdId,
+            'quantity' => '',
+            'base_rate' => number_format($baseRate, 2, '.', ''),
+            'bonus_rate' => '0.00'
+        ]];
         $this->materialConsumptions = [['inventory_batch_id' => '', 'quantity_consumed' => '']];
         $this->productionOutputs = [['manufacturing_product_id' => $defaultProdId, 'quantity_produced' => '']];
         $this->wastageRecords = [['manufacturing_product_id' => $defaultProdId, 'quantity_wasted' => '', 'reason' => '']];
@@ -767,6 +854,8 @@ class JobDetailPage extends Component
                             'labor_id' => $rl->labor_id,
                             'manufacturing_product_id' => $rl->manufacturing_product_id,
                             'quantity' => $rl->quantity_processed,
+                            'base_rate' => number_format((float) ($rl->base_rate ?? $rl->piece_rate ?? 0), 2, '.', ''),
+                            'bonus_rate' => number_format((float) ($rl->bonus_rate ?? 0), 2, '.', ''),
                         ];
                     }
                 }
@@ -811,8 +900,10 @@ class JobDetailPage extends Component
                 $this->laborAllocations = $recordedAllocations->map(function ($la) {
                     return [
                         'labor_id' => $la->labor_id,
-                        'manufacturing_product_id' => $this->job->manufacturing_product_id ?? '',
-                        'quantity' => (string) ($la->assigned_quantity ?? $la->completed_quantity),
+                        'manufacturing_product_id' => $la->manufacturing_product_id ?? ($this->job->manufacturing_product_id ?? ''),
+                        'quantity' => (string) ($la->assigned_quantity ?? $la->completed_quantity ?? $la->quantity_processed),
+                        'base_rate' => number_format((float) ($la->base_rate ?? $la->piece_rate ?? 0), 2, '.', ''),
+                        'bonus_rate' => number_format((float) ($la->bonus_rate ?? 0), 2, '.', ''),
                     ];
                 })->values()->toArray();
             }
@@ -838,11 +929,41 @@ class JobDetailPage extends Component
     public function addLaborRow($manufacturingProductId = null): void
     {
         $prodId = $manufacturingProductId ?? ($this->job->manufacturing_product_id ?? '');
+        $task = $this->selectedTask;
+        $product = $this->job->manufacturingProduct;
+        $pivot = $product?->tasks->firstWhere('id', $this->selectedTaskId)?->pivot;
+        $baseRate = (float)($pivot?->standard_labor_rate ?? $product?->standard_labor_rate ?? $task?->standard_labor_rate ?? 0.00);
+
         array_unshift($this->laborAllocations, [
             'labor_id' => '',
             'manufacturing_product_id' => $prodId,
-            'quantity' => ''
+            'quantity' => '',
+            'base_rate' => number_format($baseRate, 2, '.', ''),
+            'bonus_rate' => '0.00',
         ]);
+    }
+
+    public function updatedLaborAllocations($value, $key): void
+    {
+        $parts = explode('.', $key);
+        if (count($parts) >= 2) {
+            $index = intval($parts[0]);
+            $field = $parts[1];
+
+            if ($field === 'labor_id' || $field === 'manufacturing_product_id') {
+                $currentBase = floatval($this->laborAllocations[$index]['base_rate'] ?? 0);
+                if ($currentBase <= 0) {
+                    $prodId = $this->laborAllocations[$index]['manufacturing_product_id'] ?? $this->job->manufacturing_product_id;
+                    $product = $prodId ? \App\Models\ManufacturingProduct::find($prodId) : $this->job->manufacturingProduct;
+                    $pivot = $product?->tasks->firstWhere('id', $this->selectedTaskId)?->pivot;
+                    $baseRate = (float)($pivot?->standard_labor_rate ?? $product?->standard_labor_rate ?? $this->selectedTask?->standard_labor_rate ?? 0.00);
+                    $this->laborAllocations[$index]['base_rate'] = number_format($baseRate, 2, '.', '');
+                }
+                if (!isset($this->laborAllocations[$index]['bonus_rate']) || $this->laborAllocations[$index]['bonus_rate'] === '') {
+                    $this->laborAllocations[$index]['bonus_rate'] = '0.00';
+                }
+            }
+        }
     }
 
     public function removeLaborRow(int $index): void

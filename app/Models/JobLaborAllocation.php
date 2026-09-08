@@ -17,11 +17,15 @@ class JobLaborAllocation extends Model
         'inventory_bale_roll_id',
         'task_id',
         'quantity_processed',
+        'base_rate',
+        'bonus_rate',
         'calculated_wage',
     ];
 
     protected $casts = [
         'quantity_processed' => 'integer',
+        'base_rate' => 'decimal:2',
+        'bonus_rate' => 'decimal:2',
         'calculated_wage' => 'decimal:2',
         'inventory_bale_roll_id' => 'integer',
     ];

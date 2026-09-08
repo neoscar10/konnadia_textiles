@@ -4,19 +4,13 @@
         <div>
             <div class="text-xs font-bold text-amber-700 tracking-wider uppercase mb-1">Raw Materials Master</div>
             <h1 class="text-2xl font-extrabold text-slate-900 font-display">Fabric Width Master</h1>
-            <p class="text-slate-500 text-sm mt-1">The single list of fabric widths used across the system — selected when creating Raw Materials or building Pattern fabric consumption.</p>
+            <p class="text-slate-500 text-sm mt-1">The single list of fabric widths used across the system — select from here when adding a Raw Material or building a Pattern's fabric consumption, instead of typing a width by hand.</p>
         </div>
         <div>
             <button wire:click="openCreateModal" class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-950 hover:bg-slate-800 text-white font-bold text-sm rounded-full transition-all shadow-sm">
                 <span>＋</span> Add Width
             </button>
         </div>
-    </div>
-
-    <!-- Info banner -->
-    <div class="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 text-xs sm:text-sm text-slate-700 flex items-start gap-3">
-        <span class="text-amber-600 text-lg leading-none">ℹ</span>
-        <div>Used by <strong>Raw Material Master</strong> (Fabric Standard Width) and every <strong>Pattern's</strong> fabric width consumption rows. Deletion is blocked while a width is referenced in the system.</div>
     </div>
 
     <!-- Data Table Card -->
@@ -77,7 +71,7 @@
                                         In use
                                     </span>
                                 @else
-                                    <button wire:click="deleteWidth({{ $w->id }})" wire:confirm="Are you sure you want to delete width option '{{ $w->name }}'?" class="px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all">
+                                    <button wire:click="confirmDelete({{ $w->id }})" class="px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all">
                                         Delete
                                     </button>
                                 @endif
@@ -104,6 +98,8 @@
     <!-- Create / Edit Modal -->
     <x-admin.modal id="width-modal" title="{{ $widthId ? 'Edit Fabric Width' : 'Add Fabric Width' }}">
         <form wire:submit="saveWidth" class="space-y-4">
+            <p class="text-xs text-slate-500">Adds a new width to the shared master used by Raw Materials and Pattern fabric consumption rows.</p>
+
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-extrabold uppercase text-slate-700 mb-1">Width Value *</label>
@@ -140,5 +136,23 @@
                 </button>
             </div>
         </form>
+    </x-admin.modal>
+
+    <!-- Delete Confirmation Modal -->
+    <x-admin.modal id="delete-width-modal" title="Confirm Delete Fabric Width">
+        <div class="space-y-4">
+            <p class="text-sm text-slate-700">
+                Are you sure you want to delete fabric width option <strong class="text-slate-900">{{ $deletingWidthName }}</strong>? This action cannot be undone.
+            </p>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button type="button" x-on:click="$dispatch('close-modal', 'delete-width-modal')" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-full transition-all">
+                    Cancel
+                </button>
+                <button type="button" wire:click="performDelete" class="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-full transition-all shadow-sm">
+                    Delete Width
+                </button>
+            </div>
+        </div>
     </x-admin.modal>
 </div>

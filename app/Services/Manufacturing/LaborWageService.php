@@ -67,33 +67,47 @@ class LaborWageService
 
                     $calculatedWage = null;
 
+                    $baseRate = isset($allocation['base_rate']) && $allocation['base_rate'] !== ''
+                        ? (float) $allocation['base_rate']
+                        : null;
+
+                    $bonusRate = isset($allocation['bonus_rate']) && $allocation['bonus_rate'] !== ''
+                        ? (float) $allocation['bonus_rate']
+                        : 0.00;
+
                     if ($labor->payment_method === 'job_work') {
-                        $rate = null;
+                        if (is_null($baseRate)) {
+                            // Step 1: Explicitly query the manufacturing_product_task pivot for standard_labor_rate
+                            if ($rowProductId && $taskId) {
+                                $pivotRate = DB::table('manufacturing_product_task')
+                                    ->where('manufacturing_product_id', $rowProductId)
+                                    ->where('task_id', $taskId)
+                                    ->value('standard_labor_rate');
 
-                        // Step 1: Explicitly query the manufacturing_product_task pivot for the configured
-                        // task-specific standard_labor_rate by (manufacturing_product_id, task_id) combination.
-                        if ($rowProductId && $taskId) {
-                            $pivotRate = DB::table('manufacturing_product_task')
-                                ->where('manufacturing_product_id', $rowProductId)
-                                ->where('task_id', $taskId)
-                                ->value('standard_labor_rate');
+                                if (!is_null($pivotRate)) {
+                                    $baseRate = (float) $pivotRate;
+                                }
+                            }
 
-                            if (!is_null($pivotRate)) {
-                                $rate = (float) $pivotRate;
+                            // Step 2: Fall back to model accessor if pivot returned nothing.
+                            if (is_null($baseRate) && $product) {
+                                $baseRate = $product->getStandardLaborRateForTask($taskId);
                             }
                         }
 
-                        // Step 2: Fall back to model accessor if pivot returned nothing.
-                        if (is_null($rate) && $product) {
-                            $rate = $product->getStandardLaborRateForTask($taskId);
-                        }
-
-                        if (is_null($rate)) {
+                        if (is_null($baseRate)) {
                             $productName = $product ? $product->name : "ID {$rowProductId}";
-                            throw new Exception("Standard Labor Rate is missing for Task ID {$taskId} on Product {$productName}. Please configure task routing rates in Manufacturing Product Master. Cannot calculate wage for Job Work laborer: {$labor->name}.");
+                            throw new Exception("Standard Labor Rate is missing for Task ID {$taskId} on Product {$productName}. Please configure task routing rates in Manufacturing Product Master.");
                         }
 
-                        $calculatedWage = $this->calculateJobWorkWage($quantity, $rate);
+                        $effectiveRate = $baseRate + $bonusRate;
+                        $calculatedWage = $this->calculateJobWorkWage($quantity, $effectiveRate);
+                    } else {
+                        // Monthly salary worker
+                        if (is_null($baseRate)) {
+                            $baseRate = 0.00;
+                        }
+                        $calculatedWage = $quantity * $bonusRate;
                     }
 
                     $records[] = JobLaborAllocation::create([
@@ -103,6 +117,8 @@ class LaborWageService
                         'manufacturing_product_id' => $product ? $product->id : $rowProductId,
                         'task_id' => $taskId,
                         'quantity_processed' => $quantity,
+                        'base_rate' => $baseRate ?? 0.00,
+                        'bonus_rate' => $bonusRate,
                         'calculated_wage' => $calculatedWage,
                     ]);
                 }

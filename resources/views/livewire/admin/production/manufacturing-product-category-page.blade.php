@@ -41,7 +41,7 @@
                 <thead>
                     <tr class="bg-surface-container-low text-xs text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/60">
                         <th class="px-6 py-4 font-bold">Category</th>
-                        <th class="px-6 py-4 font-bold">Default Task Sequence <span class="ml-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 uppercase">NEW</span></th>
+                        <th class="px-6 py-4 font-bold">Default Task Sequence</th>
                         <th class="px-6 py-4 font-bold text-center">Linked Products</th>
                         <th class="px-6 py-4 font-bold text-center">Status</th>
                         <th class="px-6 py-4 font-bold text-right">Actions</th>

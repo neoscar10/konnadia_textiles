@@ -182,29 +182,34 @@
                 </div>
             @else
                 <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    @php $stepNum = 1; @endphp
                     @if($hasMat)
                         <button type="button" wire:click="setActiveStep('material')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'material' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                             <span class="material-symbols-outlined text-[18px]">inventory_2</span>
-                            <span>1. Material Selection</span>
+                            <span>{{ $stepNum++ }}. Material Selection</span>
                         </button>
                     @endif
 
-                    @php $workerStepNum = $hasMat ? 2 : 1; @endphp
                     <button type="button" wire:click="setActiveStep('workers')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'workers' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">group</span>
-                        <span>{{ $workerStepNum }}. Workers & Allocation</span>
+                        <span>{{ $stepNum++ }}. Labour & Bonus Rate</span>
                     </button>
 
-                    @php $outputStepNum = $hasMat ? 3 : 2; @endphp
                     <button type="button" wire:click="setActiveStep('output')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'output' ? 'bg-primary text-on-primary border-primary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
                         <span class="material-symbols-outlined text-[18px]">inventory_2</span>
-                        <span>{{ $outputStepNum }}. Product Output Yields</span>
+                        <span>{{ $stepNum++ }}. Output Items</span>
                     </button>
 
-                    @php $wastageStepNum = $hasMat ? 4 : 3; @endphp
-                    <button type="button" wire:click="setActiveStep('wastage')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'wastage' ? 'bg-error text-on-error border-error shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
-                        <span class="material-symbols-outlined text-[18px]">report_problem</span>
-                        <span>{{ $wastageStepNum }}. Alterations</span>
+                    @if($this->isSelectedTaskFinalStep)
+                        <button type="button" wire:click="setActiveStep('wastage')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'wastage' ? 'bg-error text-on-error border-error shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                            <span class="material-symbols-outlined text-[18px]">report_problem</span>
+                            <span>{{ $stepNum++ }}. Wastage & Loss</span>
+                        </button>
+                    @endif
+
+                    <button type="button" wire:click="setActiveStep('review')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-4 py-2.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-2 shrink-0 {{ $activeStep === 'review' ? 'bg-secondary text-on-secondary border-secondary shadow-sm' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:bg-surface-container' }}">
+                        <span class="material-symbols-outlined text-[18px]">verified</span>
+                        <span>{{ $stepNum++ }}. Review & Confirm</span>
                     </button>
                 </div>
             @endif
@@ -1089,7 +1094,7 @@
         </div>
         @endif
 
-        @if((($hasMat && $wizardStep === 2) || (!$hasMat && $wizardStep === 1)) && $selectedTask)
+        @if($activeStep === 'workers' && $selectedTask)
         <!-- WIZARD WORKER ALLOCATION & LABOR MANAGEMENT -->
         <!-- SECTION 2: WORKER ALLOCATION & OUTPUT ENTRY -->
         <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
@@ -1115,11 +1120,16 @@
                         <span class="material-symbols-outlined">engineering</span>
                     </div>
                     <div>
-                        <h3 class="font-headline-sm text-headline-sm text-primary font-bold">
-                            Stage Worker Execution & Labor Allocation: {{ $selectedTask ? $selectedTask->name : 'Select Stage' }}
-                        </h3>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-headline-sm text-headline-sm text-primary font-bold">
+                                Step 1: Labour Definition & Quantity Worked Upon
+                            </h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-900 text-white">
+                                Multi-Worker Wage Allocation
+                            </span>
+                        </div>
                         <p class="text-xs text-on-surface-variant font-medium mt-0.5">
-                            Assign authorized workers for stage <span class="font-bold text-primary">{{ $selectedTask ? $selectedTask->name : '' }}</span>.
+                            Assign single or multiple workers, specify item quantities worked upon, base rates, and bonus rates.
                         </p>
                     </div>
                 </div>
@@ -1145,7 +1155,7 @@
                     @if(!$this->isSelectedStageCompleted)
                         <button type="button" wire:click="addLaborRow" class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2.5 rounded-xl font-label-md text-label-md hover:bg-primary-container transition-all font-bold shadow-xs active:scale-95 ml-2">
                             <span class="material-symbols-outlined text-[18px]">person_add</span>
-                            Add Worker Row
+                            + Add Laborer / Worker
                         </button>
                     @endif
                 </div>
@@ -1164,73 +1174,90 @@
                     @foreach($laborAllocations as $index => $allocation)
                         @php
                             $selectedLabor = $authorizedLabors->firstWhere('id', $allocation['labor_id']);
+                            $qtyVal = floatval($allocation['quantity'] ?? 0);
+                            $baseVal = floatval($allocation['base_rate'] ?? 0);
+                            $bonusVal = floatval($allocation['bonus_rate'] ?? 0);
+                            $effectiveRate = $baseVal + $bonusVal;
+                            $subtotalWage = $qtyVal * $effectiveRate;
                         @endphp
 
-                        <div class="grid grid-cols-12 gap-3 sm:gap-4 items-center p-4 sm:p-5 bg-surface rounded-xl border border-outline-variant/60 shadow-xs hover:border-primary/40 transition-all">
-                            <div class="col-span-12 lg:col-span-5 flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-primary text-on-primary font-bold text-xs flex items-center justify-center shrink-0">
-                                    {{ $index + 1 }}
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Select Authorized Worker *</label>
-                                    <select wire:model.live="laborAllocations.{{ $index }}.labor_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
-                                        <option value="">-- Choose Worker for {{ $selectedTask ? $selectedTask->name : 'Stage' }} --</option>
+                        <div class="p-4 sm:p-5 bg-surface rounded-xl border border-outline-variant/60 shadow-xs hover:border-primary/40 transition-all space-y-3">
+                            <div class="grid grid-cols-12 gap-3 sm:gap-4 items-end">
+                                <!-- Worker dropdown -->
+                                <div class="col-span-12 md:col-span-4 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Worker #{{ $index + 1 }} *</label>
+                                        @if($selectedLabor)
+                                            <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-slate-900 text-white">
+                                                {{ $selectedLabor->code }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <select wire:model.live="laborAllocations.{{ $index }}.labor_id" @if($this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
+                                        <option value="">-- Choose Worker --</option>
                                         @foreach($authorizedLabors as $labor)
                                             <option value="{{ $labor->id }}">
-                                                {{ $labor->name }} ({{ $labor->code }}) — {{ $labor->payment_method === 'monthly_salary' ? 'Monthly Salaried' : 'Piece Rate' }}
+                                                {{ $labor->name }} ({{ $labor->code }})
                                             </option>
                                         @endforeach
                                     </select>
                                     @error("laborAllocations.{$index}.labor_id") 
-                                        <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> 
+                                        <span class="text-error text-xs block font-semibold">{{ $message }}</span> 
                                     @enderror
                                 </div>
-                            </div>
 
-                            <div class="col-span-12 sm:col-span-6 lg:col-span-4">
-                                <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Product SKU *</label>
-                                <select wire:model.live="laborAllocations.{{ $index }}.manufacturing_product_id" @if($job->manufacturing_product_id || $this->isSelectedStageCompleted) disabled @endif class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all truncate @if($job->manufacturing_product_id || $this->isSelectedStageCompleted) opacity-85 bg-surface-container-low cursor-not-allowed @endif">
-                                    @php
-                                        $stageProducts = $job->manufacturingProduct ? collect([$job->manufacturingProduct]) : $allManufacturingProducts;
-                                    @endphp
-                                    @foreach($stageProducts as $prod)
-                                        <option value="{{ $prod->id }}">
-                                            {{ $prod->name }} ({{ $prod->code }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-span-12 sm:col-span-6 lg:col-span-3 flex items-center justify-between gap-3">
-                                <div class="flex-1">
-                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Processed Qty *</label>
-                                    <div class="relative flex gap-1.5 items-center">
-                                        <div class="relative flex-1">
-                                            <input type="number" min="1" wire:model.live="laborAllocations.{{ $index }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl pl-3.5 pr-12 py-2.5 text-sm font-black text-primary text-center focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all @if($this->isSelectedStageCompleted) opacity-75 cursor-not-allowed @endif">
-                                            <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-outline font-bold uppercase">Pcs</span>
-                                        </div>
+                                <!-- Qty Worked -->
+                                <div class="col-span-6 md:col-span-2 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Qty Worked (Pcs) *</label>
                                         @if(!$this->isSelectedStageCompleted)
-                                            <button type="button" wire:click="setAllLaborQuantity({{ $index }})" class="px-3 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-on-primary text-[10px] font-extrabold uppercase rounded-xl transition-all shadow-xs shrink-0 h-[42px] flex items-center justify-center">
-                                                All
-                                            </button>
+                                            <button type="button" wire:click="setAllLaborQuantity({{ $index }})" class="text-[9px] font-extrabold uppercase text-primary hover:underline">All</button>
                                         @endif
                                     </div>
+                                    <input type="number" min="1" wire:model.live="laborAllocations.{{ $index }}.quantity" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-black text-primary text-center focus:ring-2 focus:ring-primary/20">
                                     @error("laborAllocations.{$index}.quantity") 
-                                        <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span> 
+                                        <span class="text-error text-xs block font-semibold">{{ $message }}</span> 
                                     @enderror
                                 </div>
 
-                                @if(!$this->isSelectedStageCompleted && count($laborAllocations) > 1)
-                                    <button type="button" wire:click="removeLaborRow({{ $index }})" class="p-2.5 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0 mt-5" title="Remove Row">
-                                        <span class="material-symbols-outlined text-[20px]">delete</span>
-                                    </button>
-                                @endif
+                                <!-- Base Rate -->
+                                <div class="col-span-6 md:col-span-2 space-y-1">
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Base Rate (₹ / PC)</label>
+                                    <input type="number" step="0.50" min="0" wire:model.live="laborAllocations.{{ $index }}.base_rate" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface text-center focus:ring-2 focus:ring-primary/20">
+                                </div>
+
+                                <!-- Bonus Rate -->
+                                <div class="col-span-6 md:col-span-2 space-y-1">
+                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Bonus Rate (₹ / PC)</label>
+                                    <input type="number" step="0.50" min="0" wire:model.live="laborAllocations.{{ $index }}.bonus_rate" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-amber-700 text-center focus:ring-2 focus:ring-amber-500/20">
+                                </div>
+
+                                <!-- Effective Total Rate & Subtotal -->
+                                <div class="col-span-6 md:col-span-2 flex items-center justify-between gap-2">
+                                    <div class="w-full bg-surface-container-low p-2 rounded-xl border border-outline-variant/40 text-right">
+                                        <span class="block text-[9px] font-bold text-on-surface-variant uppercase">Effective Total Rate</span>
+                                        <span class="text-xs font-black text-primary">₹{{ number_format($effectiveRate, 2) }} / Pc</span>
+                                        <span class="block text-[9px] font-bold text-secondary uppercase mt-0.5">Subtotal Wage</span>
+                                        <span class="text-sm font-black text-secondary">₹{{ number_format($subtotalWage, 2) }}</span>
+                                    </div>
+
+                                    @if(!$this->isSelectedStageCompleted && count($laborAllocations) > 1)
+                                        <button type="button" wire:click="removeLaborRow({{ $index }})" class="p-2 text-error hover:bg-error-container/30 rounded-xl transition-colors shrink-0" title="Remove Row">
+                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
 
-                <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40 mt-6">
+                <div class="flex justify-between items-center pt-4 border-t border-outline-variant/40 mt-6">
+                    <button type="button" wire:click="addLaborRow" class="flex items-center gap-2 bg-surface-container-low border border-outline-variant/60 text-on-surface px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-surface-container transition-all">
+                        <span class="material-symbols-outlined text-[16px]">add</span>
+                        + Add Laborer / Worker
+                    </button>
+
                     @if($this->isSelectedStageCompleted)
                         <button type="button" disabled class="bg-outline-variant/40 text-on-surface-variant/60 px-8 py-3.5 rounded-xl font-label-md text-label-md font-bold cursor-not-allowed shadow-xs flex items-center gap-2">
                             <span class="material-symbols-outlined text-[20px]">lock</span>
@@ -1290,21 +1317,21 @@
         <!-- WORKER STEP FOOTER NAVIGATION -->
         <div class="flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
             @if($hasMat)
-                <button type="button" wire:click="setWizardStep(1)" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container transition-all flex items-center gap-2 cursor-pointer">
+                <button type="button" wire:click="setActiveStep('material')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container transition-all flex items-center gap-2 cursor-pointer">
                     <span class="material-symbols-outlined text-lg">arrow_back</span>
                     Back: Material Entry
                 </button>
             @else
                 <span class="text-xs font-bold text-on-surface-variant">Step 1 of {{ $maxSteps }}: Record Workers</span>
             @endif
-            <button type="button" wire:click="setWizardStep({{ $hasMat ? 3 : 2 }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
-                Next Step: Record Product Output Yield
+            <button type="button" wire:click="setActiveStep('output')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
+                Next Step: Record Output Items
                 <span class="material-symbols-outlined text-lg">arrow_forward</span>
             </button>
         </div>
         @endif
 
-        @if((($hasMat && $wizardStep === 3) || (!$hasMat && $wizardStep === 2)) && $selectedTask)
+        @if($activeStep === 'output' && $selectedTask)
         <!-- WIZARD PRODUCT OUTPUT YIELD & PRODUCTION LOSS -->
         <!-- SECTION 3: MULTI-PRODUCT PRODUCTION OUTPUT RECORDING -->
         <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 sm:p-6 shadow-xs mb-8">
@@ -1442,18 +1469,25 @@
 
         <!-- OUTPUT STEP FOOTER NAVIGATION -->
         <div class="mt-8 flex justify-between items-center p-4 bg-surface rounded-2xl border border-outline-variant/60 shadow-xs mb-8">
-            <button type="button" wire:click="setWizardStep({{ $hasMat ? 2 : 1 }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container transition-all flex items-center gap-2 cursor-pointer">
+            <button type="button" wire:click="setActiveStep('workers')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-surface-container-low border border-outline-variant/60 text-on-surface px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-surface-container transition-all flex items-center gap-2 cursor-pointer">
                 <span class="material-symbols-outlined text-lg">arrow_back</span>
-                Back: Record Workers
+                Back: Labour & Bonus Rate
             </button>
-            <button type="button" wire:click="setWizardStep({{ $hasMat ? 4 : 3 }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
-                Next Step: Alterations
-                <span class="material-symbols-outlined text-lg">arrow_forward</span>
-            </button>
+            @if($this->isSelectedTaskFinalStep)
+                <button type="button" wire:click="setActiveStep('wastage')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
+                    Next Step: Wastage & Loss
+                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                </button>
+            @else
+                <button type="button" wire:click="setActiveStep('review')" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="bg-secondary text-on-secondary px-8 py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-secondary-container transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
+                    Next Step: Review & Confirm
+                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                </button>
+            @endif
         </div>
         @endif
 
-        @if((($hasMat && $wizardStep === 4) || (!$hasMat && $wizardStep === 3)) && $selectedTask)
+        @if($activeStep === 'wastage' && $this->isSelectedTaskFinalStep && $selectedTask)
             @php
                 $varInfo = $this->stageVarianceInfo;
             @endphp
@@ -1730,7 +1764,108 @@
                     <span class="material-symbols-outlined text-[16px]">arrow_back</span>
                     Back: Product Output
                 </button>
-                <span class="text-xs font-bold text-on-surface-variant">Step {{ $maxSteps }} of {{ $maxSteps }}: Wastage & Stage Completion</span>
+                <span class="text-xs font-bold text-on-surface-variant">Step {{ $maxSteps - 1 }} of {{ $maxSteps }}: Wastage & Stage Completion</span>
+            </div>
+        @endif
+
+        @if($activeStep === 'review' && $selectedTask)
+            <!-- WIZARD STEP: REVIEW & CONFIRM STAGE COMPLETION -->
+            <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs mb-8 space-y-6">
+                <div class="flex items-center justify-between pb-4 border-b border-outline-variant/40">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-headline-sm text-lg font-black text-primary uppercase tracking-tight">Review & Confirm Stage Completion</h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-secondary/15 text-secondary border border-secondary/30">
+                                Final Stage Verification
+                            </span>
+                        </div>
+                        <p class="text-xs text-on-surface-variant font-medium mt-0.5">Review worker wage allocations and logged product outputs before advancing stage.</p>
+                    </div>
+                    <span class="px-3 py-1 bg-surface-container-high text-on-surface font-extrabold text-xs rounded-xl border border-outline-variant/60">
+                        Task Stage: {{ $selectedTask->name }}
+                    </span>
+                </div>
+
+                <!-- WORKERS & WAGES TABLE (Prototype Screenshot 3) -->
+                <div class="space-y-3">
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-primary flex items-center justify-between">
+                        <span>Assigned Worker Wage Allocations ({{ count($stageAllocations) }} Worker(s))</span>
+                    </h4>
+                    <div class="overflow-x-auto rounded-xl border border-outline-variant/60">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-surface-container-low border-b border-outline-variant/60 text-on-surface-variant uppercase font-extrabold text-[10px] tracking-wider">
+                                    <th class="px-4 py-3">Worker & Category</th>
+                                    <th class="px-4 py-3 text-center">Qty Worked</th>
+                                    <th class="px-4 py-3 text-right">Base Rate</th>
+                                    <th class="px-4 py-3 text-right">Bonus Rate</th>
+                                    <th class="px-4 py-3 text-right">Effective Rate</th>
+                                    <th class="px-4 py-3 text-right">Subtotal Wage</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-outline-variant/40 font-medium">
+                                @php $totalWage = 0; $totalQty = 0; @endphp
+                                @forelse($stageAllocations as $alloc)
+                                    @php
+                                        $bRate = (float)($alloc->base_rate ?? $alloc->piece_rate ?? 0);
+                                        $bnRate = (float)($alloc->bonus_rate ?? 0);
+                                        $effRate = $bRate + $bnRate;
+                                        $wage = (float)($alloc->calculated_wage ?? ($alloc->quantity_processed * $effRate));
+                                        $totalWage += $wage;
+                                        $totalQty += $alloc->quantity_processed;
+                                    @endphp
+                                    <tr class="hover:bg-surface-container/40">
+                                        <td class="px-4 py-3">
+                                            <p class="font-bold text-on-surface">{{ $alloc->labor?->name ?? 'Unknown Worker' }}</p>
+                                            <span class="text-[10px] text-outline">{{ $alloc->labor?->code }}</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-bold text-primary">{{ number_format($alloc->quantity_processed) }} Pcs</td>
+                                        <td class="px-4 py-3 text-right font-mono">₹{{ number_format($bRate, 2) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-amber-700">+ ₹{{ number_format($bnRate, 2) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono font-bold text-primary">₹{{ number_format($effRate, 2) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono font-black text-secondary">₹{{ number_format($wage, 2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="6" class="px-4 py-6 text-center text-outline italic">No worker allocations logged for this stage.</td></tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot class="bg-surface-container-high/40 font-extrabold border-t border-outline-variant/60 text-xs">
+                                <tr>
+                                    <td class="px-4 py-3 text-on-surface">Total / Overall</td>
+                                    <td class="px-4 py-3 text-center text-primary font-black">{{ number_format($totalQty) }} Pcs</td>
+                                    <td colspan="3" class="px-4 py-3 text-right text-on-surface-variant">Total Stage Labor Wage:</td>
+                                    <td class="px-4 py-3 text-right text-secondary font-black text-sm">₹{{ number_format($totalWage, 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- RECORDED STAGE OUTPUT SUMMARY -->
+                <div class="p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between text-xs">
+                    <span class="font-bold text-on-surface">Recorded Stage Output Qty:</span>
+                    <span class="font-black text-primary text-base">{{ number_format($stageCompleted) }} Pcs</span>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div class="flex justify-between items-center pt-4 border-t border-outline-variant/40">
+                    <button type="button" wire:click="setWizardStep({{ $maxSteps - 1 }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="px-5 py-2.5 rounded-xl border border-outline-variant/60 text-xs font-bold text-on-surface hover:bg-surface-container flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                        Back
+                    </button>
+
+                    @if($this->isSelectedStageCompleted)
+                        <button type="button" wire:click="completeStageAndProgress" class="bg-emerald-600 text-white hover:bg-emerald-700 px-8 py-3.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                            Go to Next Work Step
+                        </button>
+                    @else
+                        <button type="button" wire:click="completeStageAndProgress" class="bg-amber-700 text-white hover:bg-amber-800 px-8 py-3.5 rounded-xl font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                            Confirm & Advance Stage
+                        </button>
+                    @endif
+                </div>
             </div>
         @endif
         @endif
@@ -1749,6 +1884,7 @@
                         $visibleStageExecutions = (!$job->manufacturing_product_id)
                             ? $job->stageExecutions->where('sequence_number', 1)
                             : $job->stageExecutions;
+                        $totalStages = count($visibleStageExecutions);
                     @endphp
                     @foreach($visibleStageExecutions as $idx => $stageExec)
                         @php
@@ -1757,23 +1893,29 @@
                             $stageMax = (int)$stageExec->target_quantity;
                             $stagePending = $stageExec->pending_quantity;
                             $isSelected = ($selectedTaskId == $task?->id);
+                            $isFinalStepItem = (!empty($task?->pivot?->is_final_step) || ($idx === $totalStages - 1));
+                            $isSkipped = ($stageExec->status === 'skipped');
                         @endphp
-                        <button type="button" wire:click="selectTask({{ $task?->id }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-2 relative overflow-hidden group {{ $isSelected ? 'bg-primary text-on-primary border-primary shadow-md' : 'bg-surface-container-low text-on-surface border-outline-variant/60 hover:bg-surface-container-high hover:border-primary/40' }}">
-                            <div class="flex items-center justify-between">
+                        <div class="p-3.5 rounded-xl border transition-all flex flex-col gap-2 relative overflow-hidden group {{ $isSelected ? 'bg-primary text-on-primary border-primary shadow-md' : ($isSkipped ? 'bg-amber-500/10 text-on-surface border-amber-500/30' : 'bg-surface-container-low text-on-surface border-outline-variant/60 hover:bg-surface-container-high hover:border-primary/40') }}">
+                            <button type="button" wire:click="selectTask({{ $task?->id }})" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="w-full text-left flex items-center justify-between">
                                 <span class="font-extrabold text-xs tracking-tight flex items-center gap-1.5">
                                     <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black {{ $isSelected ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary' }}">
                                         {{ $idx + 1 }}
                                     </span>
-                                    {{ $task?->name }}
+                                    {{ $task?->name }} {{ $isFinalStepItem ? '(Final Step)' : '' }}
                                 </span>
                                 @if($stageExec->status === 'completed')
                                     <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider {{ $isSelected ? 'bg-white/20 text-white' : 'bg-secondary/15 text-secondary' }}">
                                         Completed
                                     </span>
+                                @elseif($isSkipped)
+                                    <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-700">
+                                        Skipped
+                                    </span>
                                 @elseif($isSelected)
                                     <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
                                 @endif
-                            </div>
+                            </button>
 
                             <div class="flex items-center justify-between text-[11px] {{ $isSelected ? 'text-white/80' : 'text-on-surface-variant' }}">
                                 <span class="font-medium">Yield Output</span>
@@ -1783,7 +1925,19 @@
                             <div class="w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
                                 <div class="h-full rounded-full transition-all {{ $isSelected ? 'bg-white' : 'bg-primary' }}" style="width: {{ min(100, $stageMax > 0 ? ($stageOutputSum / $stageMax) * 100 : 0) }}%"></div>
                             </div>
-                        </button>
+
+                            <!-- Skip Toggle Switch -->
+                            <div class="flex items-center justify-between pt-1 border-t {{ $isSelected ? 'border-white/20' : 'border-outline-variant/30' }}">
+                                @if($task && ($task->name !== 'Cutting' && $task->code !== 'TSK-001'))
+                                    <label class="inline-flex items-center gap-2 cursor-pointer text-[10px] font-bold {{ $isSelected ? 'text-white' : 'text-on-surface-variant' }}">
+                                        <input type="checkbox" wire:click="toggleSkipStage({{ $task->id }})" @checked($isSkipped) @disabled($stageExec->status === 'completed') class="rounded border-outline-variant text-amber-600 focus:ring-amber-500">
+                                        <span>Skip Stage</span>
+                                    </label>
+                                @else
+                                    <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-900 text-white">Mandatory</span>
+                                @endif
+                            </div>
+                        </div>
                     @endforeach
                 </div>
             </div>

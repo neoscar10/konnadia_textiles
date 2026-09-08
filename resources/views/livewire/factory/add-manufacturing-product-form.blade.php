@@ -26,17 +26,16 @@
     </div>
 
     <!-- Wizard Stepper Navigation Header -->
-    <div class="bg-white rounded-2xl border border-gray-200/80 p-2 shadow-sm">
+    <div class="bg-white rounded-2xl border border-gray-200/80 p-3 shadow-sm sticky top-0 z-10">
         <div class="grid grid-cols-3 gap-2 text-center text-xs font-extrabold">
             <button type="button" wire:click="setWizardStep(1)" class="py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 {{ $wizardStep === 1 ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
                 <span class="w-5 h-5 rounded-full {{ $wizardStep === 1 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700' }} text-[11px] flex items-center justify-center font-black">1</span>
-                <span>Basic Info & Fabric</span>
+                <span>Basic Information</span>
             </button>
 
             <button type="button" wire:click="setWizardStep(2)" class="py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 {{ $wizardStep === 2 ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
                 <span class="w-5 h-5 rounded-full {{ $wizardStep === 2 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700' }} text-[11px] flex items-center justify-center font-black">2</span>
-                <span>Patterns</span>
-                <span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 border border-amber-500/40 uppercase ml-1">NEW</span>
+                <span>Patterns & Task Routing</span>
             </button>
 
             <button type="button" wire:click="setWizardStep(3)" class="py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 {{ $wizardStep === 3 ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
@@ -84,12 +83,11 @@
                     </div>
                 </div>
 
-                <!-- Customised Product ID toggle (UI placeholder from prototype) -->
+                <!-- Customised Product ID toggle UI -->
                 <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-4">
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="font-extrabold text-sm text-slate-900">Customised Product ID</span>
-                            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 uppercase">NEW</span>
                         </div>
                         <p class="text-xs text-slate-500 mt-0.5">For one-off orders that don't follow a saved pattern specification.</p>
                     </div>

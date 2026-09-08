@@ -23,6 +23,10 @@ class FabricWidthMasterPage extends Component
     public string $unit = 'Inch';
     public bool $status = true;
 
+    // Delete confirm modal state
+    public ?int $deletingWidthId = null;
+    public string $deletingWidthName = '';
+
     public function mount(): void
     {
         if (!auth()->user()->hasAnyRole(['super_admin', 'admin', 'Factory Supervisor'])
@@ -102,7 +106,7 @@ class FabricWidthMasterPage extends Component
         $this->dispatch('toast', message: "Fabric Width \"{$width->name}\" set to {$label}.", type: 'success');
     }
 
-    public function deleteWidth(int $id): void
+    public function confirmDelete(int $id): void
     {
         $width = FabricWidth::findOrFail($id);
 
@@ -114,9 +118,40 @@ class FabricWidthMasterPage extends Component
             return;
         }
 
+        $this->deletingWidthId = $width->id;
+        $this->deletingWidthName = $width->name;
+        $this->dispatch('open-modal', 'delete-width-modal');
+    }
+
+    public function performDelete(): void
+    {
+        if (!$this->deletingWidthId) {
+            return;
+        }
+
+        $width = FabricWidth::findOrFail($this->deletingWidthId);
+
+        if ($width->isInUse()) {
+            $this->dispatch('toast',
+                message: "Cannot delete \"{$width->name}\" — it is currently referenced in Raw Materials or Product Patterns.",
+                type: 'error'
+            );
+            $this->dispatch('close-modal', 'delete-width-modal');
+            return;
+        }
+
         $name = $width->name;
         $width->delete();
+
+        $this->reset(['deletingWidthId', 'deletingWidthName']);
+        $this->dispatch('close-modal', 'delete-width-modal');
         $this->dispatch('toast', message: "Fabric Width \"{$name}\" deleted successfully.", type: 'success');
+    }
+
+    public function deleteWidth(int $id): void
+    {
+        $this->deletingWidthId = $id;
+        $this->performDelete();
     }
 
     public function render()

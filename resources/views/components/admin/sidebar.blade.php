@@ -217,7 +217,7 @@
                                 Directory
                             </a>
                             <a href="{{ route('factory.fabric-widths.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.fabric-widths.*') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
-                                Fabric Width Master <span class="ml-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">NEW</span>
+                                Fabric Width Master
                             </a>
                             <a href="{{ route('factory.raw-materials.purchase') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('factory.raw-materials.purchase') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Purchase Entry
