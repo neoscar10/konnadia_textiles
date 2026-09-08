@@ -119,14 +119,6 @@ class ProductionJob extends Model
     }
 
     /**
-     * Get the manufacturing product for this job.
-     */
-    public function manufacturingProduct()
-    {
-        return $this->belongsTo(ManufacturingProduct::class);
-    }
-
-    /**
      * Get the task for this job.
      */
     public function task()
