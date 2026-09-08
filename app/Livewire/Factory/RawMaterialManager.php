@@ -109,6 +109,17 @@ class RawMaterialManager extends Component
         ];
 
         if ($this->isLengthBased()) {
+            if (!$this->fabric_width_id && $this->standard_width) {
+                $fw = \App\Models\FabricWidth::where('value', $this->standard_width)->first() 
+                    ?? \App\Models\FabricWidth::firstOrCreate(['value' => $this->standard_width], ['label' => "{$this->standard_width}\" Standard Width", 'is_active' => true]);
+                $this->fabric_width_id = $fw?->id;
+            } elseif (!$this->fabric_width_id) {
+                $firstFw = \App\Models\FabricWidth::first();
+                if ($firstFw) {
+                    $this->fabric_width_id = $firstFw->id;
+                    $this->standard_width = $firstFw->value;
+                }
+            }
             $rules['fabric_width_id'] = 'required|exists:fabric_widths,id';
             $rules['standard_width'] = 'required|numeric|gt:0';
             $rules['width_unit'] = 'required|string|max:50';

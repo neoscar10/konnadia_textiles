@@ -40,6 +40,25 @@ class JobIndexPage extends Component
     public array $conversionComponents = [];
     public array $conversionPackaging = [];
 
+    public function mount(): void
+    {
+        if (empty($this->batchProducts)) {
+            $firstProduct = ManufacturingProduct::first();
+            $firstPattern = null;
+            if ($firstProduct) {
+                $patterns = \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $firstProduct->id)->get();
+                $firstPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
+            }
+            $this->batchProducts = [
+                [
+                    'manufacturing_product_id' => $firstProduct?->id,
+                    'pattern_id'               => $firstPattern?->id,
+                    'planned_quantity'         => 200,
+                ]
+            ];
+        }
+    }
+
     public function updatedManufacturingProductId(): void
     {
         $this->loadDefaultPattern();
