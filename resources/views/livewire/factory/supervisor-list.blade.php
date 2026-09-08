@@ -163,13 +163,13 @@
 
     <!-- Create / Edit Supervisor Modal -->
     @if($showModal)
-        <!-- Backdrop (transparent background to avoid darkening page) -->
-        <div class="fixed inset-0 z-50 bg-transparent" wire:click="$set('showModal', false)"></div>
+        <div class="fixed inset-0 z-50 overflow-y-auto">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-black/20" wire:click="$set('showModal', false)"></div>
 
-        <!-- Modal Dialog Container -->
-        <div class="fixed inset-0 z-50 overflow-y-auto pointer-events-none">
+            <!-- Modal Dialog Container -->
             <div class="flex min-h-full items-center justify-center p-4 sm:p-6">
-                <div class="relative bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-xl overflow-hidden my-8 max-h-[calc(100vh-4rem)] flex flex-col pointer-events-auto" @click.outside="$wire.set('showModal', false)">
+                <div class="relative z-10 bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-xl overflow-hidden my-8 max-h-[calc(100vh-4rem)] flex flex-col">
                     <!-- Modal Header (Fixed at top) -->
                     <div class="px-6 py-4 bg-surface-container-low border-b border-outline-variant/60 flex items-center justify-between shrink-0">
                         <div>
@@ -264,13 +264,13 @@
 
     <!-- Delete Confirmation Modal -->
     @if($confirmingDeletionId)
-        <!-- Backdrop (transparent background to avoid darkening page) -->
-        <div class="fixed inset-0 z-50 bg-transparent" wire:click="$set('confirmingDeletionId', null)"></div>
+        <div class="fixed inset-0 z-50 overflow-y-auto">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-black/20" wire:click="$set('confirmingDeletionId', null)"></div>
 
-        <!-- Modal Dialog Container -->
-        <div class="fixed inset-0 z-50 overflow-y-auto pointer-events-none">
+            <!-- Modal Dialog Container -->
             <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-sm p-6 space-y-4 text-center my-8 pointer-events-auto" @click.outside="$wire.set('confirmingDeletionId', null)">
+                <div class="relative z-10 bg-surface rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-sm p-6 space-y-4 text-center my-8">
                     <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mx-auto">
                         <span class="material-symbols-outlined text-2xl">warning</span>
                     </div>
