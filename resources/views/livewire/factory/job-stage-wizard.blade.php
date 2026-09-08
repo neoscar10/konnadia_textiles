@@ -447,43 +447,95 @@
                 <!-- STEP REVIEW & CONFIRM -->
                 @if(($isFinalTask && $activeStep === 4) || (!$isFinalTask && $activeStep === 3))
                     <div class="bg-surface rounded-2xl border border-outline-variant/60 p-6 shadow-xs space-y-6">
-                        <div>
-                            <h3 class="text-base font-extrabold text-on-surface">Review & Confirm Stage Completion</h3>
-                            <p class="text-xs text-on-surface-variant mt-1">
-                                Verify labor allocation summary, output count, and progress stage workflow.
-                            </p>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-base font-extrabold text-on-surface">REVIEW & CONFIRM STAGE COMPLETION</h3>
+                                <p class="text-xs text-on-surface-variant mt-1">
+                                    Verify labor allocation summary, worker wages, and recorded output yield before confirming stage completion.
+                                </p>
+                            </div>
+                            <span class="px-3 py-1 bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase">
+                                {{ $isFinalTask ? 'Final Stage Verification' : 'Stage Verification' }}
+                            </span>
                         </div>
 
-                        <!-- Summary Table -->
-                        <div class="p-5 bg-surface-container-low border border-outline-variant/60 rounded-xl space-y-3">
-                            <div class="flex justify-between text-xs font-bold border-b border-outline-variant/40 pb-2">
-                                <span class="text-on-surface-variant">Active Stage:</span>
-                                <span class="text-on-surface">{{ $activeStage->sequence_number }}. {{ $activeStage->task?->name }}</span>
+                        <!-- Worker Wage Summary Table Card -->
+                        <div class="p-5 bg-surface-container-low border border-outline-variant/60 rounded-xl space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-extrabold uppercase tracking-wider text-on-surface-variant">
+                                    Task Stage: <span class="text-on-surface font-black">{{ $activeStage->sequence_number }}. {{ $activeStage->task?->name }}</span>
+                                </span>
+                                <span class="px-2.5 py-0.5 bg-[#001229] text-white rounded text-[10px] font-black uppercase">
+                                    {{ count($laborRows) }} Assigned Worker{{ count($laborRows) > 1 ? 's' : '' }}
+                                </span>
                             </div>
-                            <div class="flex justify-between text-xs font-bold border-b border-outline-variant/40 pb-2">
-                                <span class="text-on-surface-variant">Workers Assigned:</span>
-                                <span class="text-on-surface">{{ count($laborRows) }} Worker(s)</span>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-outline-variant/60 text-[10px] text-on-surface-variant uppercase tracking-wider font-extrabold">
+                                            <th class="py-2.5 px-3">WORKER & CATEGORY</th>
+                                            <th class="py-2.5 px-3 text-center">QTY WORKED</th>
+                                            <th class="py-2.5 px-3 text-right">BASE RATE</th>
+                                            <th class="py-2.5 px-3 text-right">BONUS RATE</th>
+                                            <th class="py-2.5 px-3 text-right">EFFECTIVE RATE</th>
+                                            <th class="py-2.5 px-3 text-right">SUBTOTAL WAGE</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-outline-variant/40 font-bold text-on-surface">
+                                        @php
+                                            $totalWorkedSum = 0;
+                                            $totalWagesSum = 0;
+                                        @endphp
+                                        @foreach($laborRows as $lr)
+                                            @php
+                                                $lObj = $labors->firstWhere('id', $lr['labor_id']);
+                                                $qtyWorked = intval($lr['processed_qty'] ?? 0);
+                                                $baseRate = floatval($lr['base_rate'] ?? 0);
+                                                $bonusRate = floatval($lr['bonus_rate'] ?? 0);
+                                                $effectiveRate = $baseRate + $bonusRate;
+                                                $subtotal = round($effectiveRate * $qtyWorked, 2);
+                                                $totalWorkedSum += $qtyWorked;
+                                                $totalWagesSum += $subtotal;
+                                            @endphp
+                                            <tr>
+                                                <td class="py-3 px-3">
+                                                    <div class="font-extrabold text-on-surface">{{ $lObj?->name ?? 'Unassigned Worker' }}</div>
+                                                    <div class="text-[10px] text-outline font-medium">{{ $lObj?->trade ?? $activeStage->task?->name ?? 'Laborer' }}</div>
+                                                </td>
+                                                <td class="py-3 px-3 text-center font-extrabold">{{ $qtyWorked }} Pcs</td>
+                                                <td class="py-3 px-3 text-right font-mono">₹{{ number_format($baseRate, 2) }}</td>
+                                                <td class="py-3 px-3 text-right font-mono text-emerald-700">+ ₹{{ number_format($bonusRate, 2) }}</td>
+                                                <td class="py-3 px-3 text-right font-mono text-primary font-black">₹{{ number_format($effectiveRate, 2) }}</td>
+                                                <td class="py-3 px-3 text-right font-mono text-emerald-800 font-extrabold text-sm">₹{{ number_format($subtotal, 2) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="border-t-2 border-outline-variant/60 font-black text-xs bg-surface-container-lowest">
+                                            <td class="py-3 px-3 uppercase tracking-wider text-on-surface-variant">Total / Overall</td>
+                                            <td class="py-3 px-3 text-center text-primary font-extrabold">{{ $totalWorkedSum }} Pcs</td>
+                                            <td colspan="3" class="py-3 px-3 text-right text-on-surface-variant font-extrabold">Total Stage Labor Wage:</td>
+                                            <td class="py-3 px-3 text-right text-emerald-800 text-sm font-black font-mono">₹{{ number_format($totalWagesSum, 2) }}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
-                            <div class="flex justify-between text-xs font-bold border-b border-outline-variant/40 pb-2">
-                                <span class="text-on-surface-variant">Output Recorded:</span>
-                                <span class="text-emerald-700 font-extrabold">{{ $producedQty }} Pcs</span>
+
+                            <div class="pt-3 border-t border-outline-variant/40 flex items-center justify-between text-xs font-bold">
+                                <span class="text-on-surface-variant">Recorded Stage Output Qty:</span>
+                                <span class="text-emerald-700 font-black text-sm">{{ $producedQty }} Pcs</span>
                             </div>
-                            @if($isFinalTask)
-                                <div class="flex justify-between text-xs font-bold">
-                                    <span class="text-on-surface-variant">Alteration Mapping:</span>
-                                    <span class="text-amber-800 font-extrabold">{{ count($alterationRows) }} Item(s) mapped</span>
-                                </div>
-                            @endif
                         </div>
 
                         <!-- Action Bar -->
                         <div class="pt-4 border-t border-outline-variant/40 flex items-center justify-between">
-                            <button type="button" wire:click="$set('activeStep', {{ $isFinalTask ? 3 : 2 }})" class="px-5 py-2.5 bg-surface-container-low border border-outline-variant/60 text-on-surface font-bold text-xs rounded-xl">
+                            <button type="button" wire:click="$set('activeStep', {{ $isFinalTask ? 3 : 2 }})" class="px-5 py-2.5 bg-surface-container-low border border-outline-variant/60 text-on-surface font-bold text-xs rounded-xl hover:bg-surface-container transition-colors">
                                 ← Back
                             </button>
-                            <button type="button" wire:click="completeActiveStage" class="px-8 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2">
+                            <button type="button" wire:click="completeActiveStage" class="px-8 py-3 bg-[#8b6508] hover:bg-[#6e5006] text-white font-black text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2">
                                 <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                                <span>Complete & Progress Stage</span>
+                                <span>Confirm & Advance Stage</span>
                             </button>
                         </div>
                     </div>

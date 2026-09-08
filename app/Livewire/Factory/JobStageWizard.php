@@ -30,18 +30,23 @@ class JobStageWizard extends Component
     public array $alterationRows = [];
     public string $remarks = '';
 
-    public function mount($job)
+    public function mount($id = null, $job = null)
     {
-        $this->job = ProductionJob::with([
-            'manufacturingProduct.tasks',
-            'pattern.tasks',
-            'batch.factorySupervisor',
-            'stageExecutions.task',
-            'productOutputs',
-            'wastages',
-            'alterations',
-            'allocations',
-        ])->findOrFail($job);
+        $jobId = $job ?? $id;
+        if ($jobId instanceof ProductionJob) {
+            $this->job = $jobId;
+        } else {
+            $this->job = ProductionJob::with([
+                'manufacturingProduct.tasks',
+                'pattern.tasks',
+                'batch.factorySupervisor',
+                'stageExecutions.task',
+                'productOutputs',
+                'wastages',
+                'alterations',
+                'allocations',
+            ])->findOrFail($jobId);
+        }
 
         $this->job->ensureStageExecutionsExist();
         $this->loadActiveStage();

@@ -27,75 +27,109 @@ class ProductionWorkflowService
      * @param string|null $batchDate
      * @return JsonResponse
      */
-    public function initiateBatch($productId, $supervisorId, int $plannedQuantity, string $priority = 'Normal', ?string $remarks = null, ?string $batchDate = null, $patternId = null): JsonResponse
+    public function initiateBatch($productId, $supervisorId, int $plannedQuantity, string $priority = 'Normal', ?string $remarks = null, ?string $batchDate = null, $patternId = null, array $items = []): JsonResponse
     {
         try {
-            $result = DB::transaction(function () use ($productId, $supervisorId, $plannedQuantity, $priority, $remarks, $batchDate, $patternId) {
-                $product = $productId ? ManufacturingProduct::find($productId) : null;
-                $pattern = $patternId ? \App\Models\ManufacturingProductPattern::with('tasks')->find($patternId) : null;
+            $result = DB::transaction(function () use ($productId, $supervisorId, $plannedQuantity, $priority, $remarks, $batchDate, $patternId, $items) {
+                if (empty($items)) {
+                    $items = [
+                        [
+                            'manufacturing_product_id' => $productId,
+                            'pattern_id'               => $patternId,
+                            'planned_quantity'         => $plannedQuantity,
+                        ]
+                    ];
+                }
+
+                $totalPlannedQty = array_sum(array_column($items, 'planned_quantity'));
+                $firstItem = $items[0];
+
+                $firstProduct = !empty($firstItem['manufacturing_product_id']) ? ManufacturingProduct::find($firstItem['manufacturing_product_id']) : null;
+                $firstPattern = !empty($firstItem['pattern_id']) ? \App\Models\ManufacturingProductPattern::with('tasks')->find($firstItem['pattern_id']) : null;
+
+                $factorySupervisor = $supervisorId ? \App\Models\FactorySupervisor::find($supervisorId) : null;
+                $factorySupervisorId = $factorySupervisor?->id;
 
                 // Create the Production Batch record
                 $batch = ProductionBatch::create([
                     'batch_date'               => $batchDate ?? now()->format('Y-m-d'),
-                    'factory_supervisor_id'    => $supervisorId,
-                    'manufacturing_product_id' => $product?->id,
-                    'pattern_id'               => $pattern?->id,
-                    'planned_quantity'         => $plannedQuantity,
+                    'supervisor_id'            => $supervisorId,
+                    'factory_supervisor_id'    => $factorySupervisorId,
+                    'manufacturing_product_id' => $firstProduct?->id,
+                    'pattern_id'               => $firstPattern?->id,
+                    'planned_quantity'         => $totalPlannedQty ?: $plannedQuantity,
                     'priority'                 => $priority,
                     'status'                   => 'Created',
                     'remarks'                  => $remarks,
                 ]);
 
-                // Create the single master Production Job record
-                $job = ProductionJob::create([
-                    'production_batch_id' => $batch->batch_code,
-                    'production_batch_db_id' => $batch->id,
-                    'manufacturing_product_id' => $product?->id,
-                    'pattern_id'               => $pattern?->id,
-                    'supervisor_id' => $supervisorId,
-                    'job_date' => $batch->batch_date,
-                    'target_quantity' => $plannedQuantity,
-                    'status' => 'in_progress',
-                    'notes' => $remarks ?? "Master Production Job for Batch {$batch->batch_code}",
-                ]);
+                $createdJobs = [];
 
-                // Populate stage executions from Pattern Tasks, Product Routing tasks or default active tasks
-                $routingTasks = collect();
-                if ($pattern && $pattern->tasks->isNotEmpty()) {
-                    $routingTasks = $pattern->tasks;
-                } elseif ($product && $product->tasks->isNotEmpty()) {
-                    $routingTasks = $product->tasks;
-                } else {
-                    $routingTasks = Task::where('status', true)->get();
-                }
+                foreach ($items as $index => $itemData) {
+                    $pId = $itemData['manufacturing_product_id'] ?? null;
+                    $patId = $itemData['pattern_id'] ?? null;
+                    $itemQty = intval($itemData['planned_quantity'] ?? 200);
 
-                if ($routingTasks->isEmpty()) {
-                    $fallbackTask = Task::where('status', true)->first();
-                    if ($fallbackTask) {
-                        $routingTasks = collect([$fallbackTask]);
-                    }
-                }
+                    $product = $pId ? ManufacturingProduct::find($pId) : null;
+                    $pattern = $patId ? \App\Models\ManufacturingProductPattern::with('tasks')->find($patId) : null;
 
-                if ($routingTasks->isEmpty()) {
-                    throw new Exception("No production task routing found. Please configure tasks in Task Master first.");
-                }
+                    $year = date('Y');
+                    $maxNum = ProductionJob::where('job_code', 'like', "JOB-{$year}-%")
+                        ->get()
+                        ->map(fn($j) => (int) str_replace("JOB-{$year}-", '', $j->job_code))
+                        ->max() ?: 0;
+                    $newJobCode = sprintf("JOB-%s-%04d", $year, $maxNum + 1);
 
-                foreach ($routingTasks as $idx => $task) {
-                    \App\Models\JobStageExecution::create([
-                        'production_job_id' => $job->id,
-                        'task_id' => $task->id,
-                        'sequence_number' => $idx + 1,
-                        'target_quantity' => $plannedQuantity,
-                        'status' => $idx === 0 ? 'in_progress' : 'pending',
-                        'started_at' => $idx === 0 ? now() : null,
+                    $job = ProductionJob::create([
+                        'job_code'                 => $newJobCode,
+                        'production_batch_id'      => $batch->batch_code,
+                        'production_batch_db_id'   => $batch->id,
+                        'manufacturing_product_id' => $product?->id,
+                        'pattern_id'               => $pattern?->id,
+                        'supervisor_id'            => $supervisorId,
+                        'job_date'                 => $batch->batch_date,
+                        'target_quantity'          => $itemQty,
+                        'status'                   => 'in_progress',
+                        'notes'                    => $remarks ?? "Production Job for {$product?->name} under Batch {$batch->batch_code}",
                     ]);
+
+                    // Populate stage executions from Pattern Tasks, Product Routing tasks or default active tasks
+                    $routingTasks = collect();
+                    if ($pattern && $pattern->tasks->isNotEmpty()) {
+                        $routingTasks = $pattern->tasks;
+                    } elseif ($product && $product->tasks->isNotEmpty()) {
+                        $routingTasks = $product->tasks;
+                    } else {
+                        $routingTasks = Task::where('status', true)->get();
+                    }
+
+                    if ($routingTasks->isEmpty()) {
+                        $fallbackTask = Task::where('status', true)->first();
+                        if ($fallbackTask) {
+                            $routingTasks = collect([$fallbackTask]);
+                        }
+                    }
+
+                    foreach ($routingTasks as $idx => $task) {
+                        \App\Models\JobStageExecution::create([
+                            'production_job_id' => $job->id,
+                            'task_id'          => $task->id,
+                            'sequence_number'   => $idx + 1,
+                            'target_quantity'   => $itemQty,
+                            'status'            => $idx === 0 ? 'in_progress' : 'pending',
+                            'started_at'        => $idx === 0 ? now() : null,
+                        ]);
+                    }
+
+                    $createdJobs[] = $job;
                 }
 
-                return ['batch' => $batch, 'job' => $job];
+                return ['batch' => $batch, 'jobs' => $createdJobs, 'job' => $createdJobs[0]];
             });
 
+            $jobCount = count($result['jobs']);
             return $this->successResponse(
-                "Production Batch {$result['batch']->batch_code} initiated successfully with Master Job {$result['job']->job_code}.",
+                "Production Batch {$result['batch']->batch_code} initiated successfully with {$jobCount} Production Job(s).",
                 $result,
                 201
             );

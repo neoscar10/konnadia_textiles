@@ -64,15 +64,65 @@ class JobIndexPage extends Component
         $this->priority = 'Normal';
         
         $firstProduct = ManufacturingProduct::first();
+        $firstPattern = null;
         if ($firstProduct) {
             $this->manufacturing_product_id = $firstProduct->id;
-            $this->loadDefaultPattern();
+            $patterns = \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $firstProduct->id)->get();
+            $firstPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
+            $this->pattern_id = $firstPattern?->id;
         }
 
         $firstSupervisor = \App\Models\FactorySupervisor::active()->orderBy('name')->first();
         $this->factory_supervisor_id = $firstSupervisor?->id;
 
+        $this->batchProducts = [
+            [
+                'manufacturing_product_id' => $firstProduct?->id,
+                'pattern_id'               => $firstPattern?->id,
+                'planned_quantity'         => 200,
+            ]
+        ];
+
         $this->dispatch('open-modal', 'create-job-modal');
+    }
+
+    public function addBatchProductRow(): void
+    {
+        $firstProduct = ManufacturingProduct::first();
+        $firstPattern = null;
+        if ($firstProduct) {
+            $patterns = \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $firstProduct->id)->get();
+            $firstPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
+        }
+
+        $this->batchProducts[] = [
+            'manufacturing_product_id' => $firstProduct?->id,
+            'pattern_id'               => $firstPattern?->id,
+            'planned_quantity'         => 200,
+        ];
+    }
+
+    public function removeBatchProductRow(int $index): void
+    {
+        unset($this->batchProducts[$index]);
+        $this->batchProducts = array_values($this->batchProducts);
+        if (empty($this->batchProducts)) {
+            $this->addBatchProductRow();
+        }
+    }
+
+    public function updatedBatchProducts($value, $key): void
+    {
+        if (str_contains($key, 'manufacturing_product_id')) {
+            $parts = explode('.', $key);
+            $idx = intval($parts[0]);
+            $prodId = intval($value);
+            if ($prodId) {
+                $patterns = \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $prodId)->get();
+                $defaultPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
+                $this->batchProducts[$idx]['pattern_id'] = $defaultPattern?->id;
+            }
+        }
     }
 
     public function openConversionModal(?int $preSelectedJobId = null): void
@@ -290,37 +340,43 @@ class JobIndexPage extends Component
     public function saveJob(): void
     {
         $this->validate([
-            'manufacturing_product_id' => 'required|exists:manufacturing_products,id',
-            'pattern_id'               => 'nullable|exists:manufacturing_product_patterns,id',
-            'factory_supervisor_id'   => 'required|exists:factory_supervisors,id',
-            'planned_quantity'         => 'required|numeric|min:1',
-            'priority'                 => 'required|in:Urgent,Normal,Low',
-            'notes'                    => 'nullable|string|max:1000',
+            'factory_supervisor_id' => 'required|exists:factory_supervisors,id',
+            'priority'              => 'required|in:Urgent,Normal,Low',
+            'notes'                 => 'nullable|string|max:1000',
+            'batchProducts'         => 'required|array|min:1',
+            'batchProducts.*.manufacturing_product_id' => 'required|exists:manufacturing_products,id',
+            'batchProducts.*.pattern_id'               => 'nullable|exists:manufacturing_product_patterns,id',
+            'batchProducts.*.planned_quantity'         => 'required|numeric|min:1',
         ], [
-            'manufacturing_product_id.required' => 'Please select a manufacturing product.',
-            'factory_supervisor_id.required'    => 'Please select a supervisor.',
+            'factory_supervisor_id.required' => 'Please select a supervisor.',
+            'batchProducts.required'         => 'Please add at least one manufacturing product.',
         ]);
+
+        $firstItem = $this->batchProducts[0] ?? ['manufacturing_product_id' => null, 'pattern_id' => null, 'planned_quantity' => 200];
+        $totalPlanned = array_sum(array_column($this->batchProducts, 'planned_quantity'));
 
         $workflowService = resolve(\App\Services\Manufacturing\ProductionWorkflowService::class);
         $response = $workflowService->initiateBatch(
-            $this->manufacturing_product_id,
+            $firstItem['manufacturing_product_id'],
             $this->factory_supervisor_id,
-            $this->planned_quantity,
+            $totalPlanned,
             $this->priority,
             $this->notes,
             now()->format('Y-m-d'),
-            $this->pattern_id
+            $firstItem['pattern_id'],
+            $this->batchProducts
         );
 
         $responseData = $response->getData(true);
 
         if (isset($responseData['success']) && $responseData['success']) {
             $batchCode = $responseData['data']['batch']['batch_code'] ?? 'Batch';
+            $jobCount = count($responseData['data']['jobs'] ?? []);
             $this->dispatch('close-modal', 'create-job-modal');
-            $this->dispatch('toast', message: "Production Batch {$batchCode} & First Job initiated successfully!", type: 'success');
+            $this->dispatch('toast', message: "Production Batch {$batchCode} initiated successfully with {$jobCount} Job(s)!", type: 'success');
         } else {
             $errorMessage = $responseData['message'] ?? 'Failed to initiate production batch.';
-            $this->addError('manufacturing_product_id', $errorMessage);
+            $this->addError('factory_supervisor_id', $errorMessage);
         }
     }
 

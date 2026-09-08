@@ -65,7 +65,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('production/workbench', \App\Livewire\Admin\Production\SupervisorWorkbench::class)->name('production.workbench');
         Route::get('production/jobs', \App\Livewire\Admin\Production\JobIndexPage::class)->name('production.jobs.index');
         Route::get('production/batches/{batchCode}/jobs', \App\Livewire\Admin\Production\BatchJobsDetailPage::class)->name('production.batches.jobs');
-        Route::get('production/jobs/{id}', \App\Livewire\Admin\Production\JobDetailPage::class)->name('production.jobs.show');
+        Route::get('production/jobs/{id}', \App\Livewire\Factory\JobStageWizard::class)->name('production.jobs.show');
         Route::get('production/tracking-history', \App\Livewire\Admin\Production\TrackingHistory::class)->name('production.tracking-history');
 
         // Retail Transfers System
