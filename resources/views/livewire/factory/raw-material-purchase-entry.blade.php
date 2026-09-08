@@ -30,7 +30,21 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label for="supplier-name" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Supplier <span class="text-error">*</span></label>
+                            <label for="supplier-id" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Saved Supplier</label>
+                            <select
+                                id="supplier-id"
+                                wire:model.live="supplier_id"
+                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                            >
+                                <option value="">— Select Saved Supplier (Optional) —</option>
+                                @foreach($suppliers as $sup)
+                                    <option value="{{ $sup->id }}">{{ $sup->name }} @if($sup->company_name) ({{ $sup->company_name }}) @endif</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="supplier-name" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Supplier Name <span class="text-error">*</span></label>
                             <input
                                 id="supplier-name"
                                 type="text"

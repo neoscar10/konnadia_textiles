@@ -13,6 +13,7 @@ use App\Services\InventoryBatchLogger;
 #[Layout('components.admin.layout')]
 class RawMaterialPurchaseEntry extends Component
 {
+    public ?int $supplier_id = null;
     public string $supplier_name = '';
     public string $purchase_date = '';
     public string $invoice_number = '';
@@ -64,6 +65,16 @@ class RawMaterialPurchaseEntry extends Component
     public function getGrandTotalProperty(): float
     {
         return round($this->total_amount + $this->gstAmount, 2);
+    }
+
+    public function updatedSupplierId($value)
+    {
+        if ($value) {
+            $supplier = \App\Models\Supplier::find($value);
+            if ($supplier) {
+                $this->supplier_name = $supplier->name;
+            }
+        }
     }
 
     public function updatedRawMaterialId($value)
@@ -168,6 +179,7 @@ class RawMaterialPurchaseEntry extends Component
     protected function rules()
     {
         $rules = [
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'supplier_name' => 'required|string|max:255',
             'purchase_date' => 'required|date|before_or_equal:today',
             'invoice_number' => 'required|string|max:100',
@@ -250,6 +262,7 @@ class RawMaterialPurchaseEntry extends Component
 
             $batch = InventoryBatch::create([
                 'raw_material_id' => $this->raw_material_id,
+                'supplier_id' => $this->supplier_id,
                 'supplier_name' => $this->supplier_name,
                 'purchase_date' => $this->purchase_date,
                 'invoice_number' => $this->invoice_number,
@@ -287,9 +300,11 @@ class RawMaterialPurchaseEntry extends Component
     public function render()
     {
         $materials = RawMaterial::active()->orderBy('name')->get();
+        $suppliers = \App\Models\Supplier::orderBy('name')->get();
 
         return view('livewire.factory.raw-material-purchase-entry', [
             'materials' => $materials,
+            'suppliers' => $suppliers,
         ])->title('Record Raw Material Purchase');
     }
 }

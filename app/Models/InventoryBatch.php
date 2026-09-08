@@ -13,6 +13,7 @@ class InventoryBatch extends Model
 
     protected $fillable = [
         'raw_material_id',
+        'supplier_id',
         'batch_number',
         'supplier_name',
         'purchase_date',
@@ -101,6 +102,14 @@ class InventoryBatch extends Model
     public function rawMaterial()
     {
         return $this->belongsTo(RawMaterial::class);
+    }
+
+    /**
+     * Get the supplier associated with this batch.
+     */
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
     }
 
     /**

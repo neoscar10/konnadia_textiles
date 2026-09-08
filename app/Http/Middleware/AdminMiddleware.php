@@ -59,6 +59,7 @@ class AdminMiddleware
                 'admin.design-catalog' => 'access design-catalog',
                 'admin.categories' => 'access categories',
                 'admin.inventory' => 'access inventory',
+                'factory.suppliers' => 'access inventory',
                 'admin.retail-shops' => 'access retail-shops',
                 'admin.product-transfers' => 'access product-transfers',
                 'admin.orders' => 'access orders',
