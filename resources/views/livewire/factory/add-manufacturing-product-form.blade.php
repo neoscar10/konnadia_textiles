@@ -28,18 +28,18 @@
     <!-- Wizard Stepper Navigation Header -->
     <div class="bg-white rounded-2xl border border-gray-200/80 p-3 shadow-sm sticky top-0 z-10">
         <div class="grid grid-cols-3 gap-2 text-center text-xs font-extrabold">
-            <button type="button" wire:click="setWizardStep(1)" class="py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 {{ $wizardStep === 1 ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
-                <span class="w-5 h-5 rounded-full {{ $wizardStep === 1 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700' }} text-[11px] flex items-center justify-center font-black">1</span>
+            <button type="button" wire:click="setWizardStep(1)" class="py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 {{ $wizardStep === 1 ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80' }}">
+                <span class="w-5 h-5 rounded-full {{ $wizardStep === 1 ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-200 text-slate-700 font-bold' }} text-[11px] flex items-center justify-center">1</span>
                 <span>Basic Information</span>
             </button>
 
-            <button type="button" wire:click="setWizardStep(2)" class="py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 {{ $wizardStep === 2 ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
-                <span class="w-5 h-5 rounded-full {{ $wizardStep === 2 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700' }} text-[11px] flex items-center justify-center font-black">2</span>
+            <button type="button" wire:click="setWizardStep(2)" class="py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 {{ $wizardStep === 2 ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80' }}">
+                <span class="w-5 h-5 rounded-full {{ $wizardStep === 2 ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-200 text-slate-700 font-bold' }} text-[11px] flex items-center justify-center">2</span>
                 <span>Patterns & Task Routing</span>
             </button>
 
-            <button type="button" wire:click="setWizardStep(3)" class="py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 {{ $wizardStep === 3 ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
-                <span class="w-5 h-5 rounded-full {{ $wizardStep === 3 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-700' }} text-[11px] flex items-center justify-center font-black">3</span>
+            <button type="button" wire:click="setWizardStep(3)" class="py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 {{ $wizardStep === 3 ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80' }}">
+                <span class="w-5 h-5 rounded-full {{ $wizardStep === 3 ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-200 text-slate-700 font-bold' }} text-[11px] flex items-center justify-center">3</span>
                 <span>Subsidiary Materials</span>
             </button>
         </div>
@@ -124,7 +124,7 @@
                 <a href="{{ route('factory.products.index') }}" wire:navigate class="px-6 py-2.5 bg-white border border-gray-200 hover:bg-slate-50 text-slate-800 font-bold text-sm rounded-full transition-all">
                     Cancel
                 </a>
-                <button type="button" wire:click="nextStep" class="px-7 py-2.5 bg-slate-950 hover:bg-slate-800 text-white font-bold text-sm rounded-full transition-all shadow-sm flex items-center gap-2">
+                <button type="button" wire:click="nextStep" class="px-7 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-sm rounded-full transition-all shadow-md flex items-center gap-2">
                     <span>Next Step: Patterns</span>
                     <span>→</span>
                 </button>
@@ -263,7 +263,7 @@
                     <span>←</span>
                     <span>Back to Basic Info</span>
                 </button>
-                <button type="button" wire:click="nextStep" class="px-7 py-2.5 bg-slate-950 hover:bg-slate-800 text-white font-bold text-sm rounded-full transition-all shadow-sm flex items-center gap-2">
+                <button type="button" wire:click="nextStep" class="px-7 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-sm rounded-full transition-all shadow-md flex items-center gap-2">
                     <span>Next Step: Subsidiary Materials</span>
                     <span>→</span>
                 </button>
