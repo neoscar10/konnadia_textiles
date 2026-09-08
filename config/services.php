@@ -41,6 +41,8 @@ return [
         'otp_account' => env('WATY_WHATSAPP_OTP_ACCOUNT', env('WATY_OTP_ACCOUNT', 'sa_otp_code')),
         'admin_phone_number' => env('WATY_WHATSAPP_ADMIN_PHONE_NUMBER', env('WATY_ADMIN_PHONE_NUMBER', '+919911041964')),
         'timeout' => (int) env('WATY_WHATSAPP_TIMEOUT', 15),
+        'retry_times' => (int) env('WATY_WHATSAPP_RETRY_TIMES', 2),
+        'retry_sleep_ms' => (int) env('WATY_WHATSAPP_RETRY_SLEEP_MS', 200),
     ],
 
     'firebase' => [

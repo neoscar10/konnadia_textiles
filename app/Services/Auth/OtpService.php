@@ -83,8 +83,8 @@ class OtpService
         }
 
         $timeout = config('services.waty.timeout', 15);
-        $retryTimes = (int) env('WATY_WHATSAPP_RETRY_TIMES', 2);
-        $retrySleepMs = (int) env('WATY_WHATSAPP_RETRY_SLEEP_MS', 200);
+        $retryTimes = (int) config('services.waty.retry_times', 2);
+        $retrySleepMs = (int) config('services.waty.retry_sleep_ms', 200);
 
         try {
             $httpRequest = Http::acceptJson()->timeout($timeout);
