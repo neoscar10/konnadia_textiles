@@ -25,6 +25,7 @@ class RawMaterialManager extends Component
     public ?int $raw_material_category_id = null;
     public ?int $unit_group_id = null;
     public ?int $unit_id = null;
+    public ?int $fabric_width_id = null;
 
     // Supplier Aliases Repeater
     // Structure: [ ['supplier_id' => '', 'alias_name' => '', 'supplier_material_code' => ''] ]
@@ -32,6 +33,19 @@ class RawMaterialManager extends Component
 
     // Dynamic unit options based on selected Unit Group / Category
     public array $availableUnits = [];
+
+    public function updatedFabricWidthId($id): void
+    {
+        if ($id) {
+            $fw = \App\Models\FabricWidth::find($id);
+            if ($fw) {
+                $this->standard_width = (float) $fw->value;
+                $this->width_unit = $fw->unit ?? 'Inch';
+            }
+        } else {
+            $this->standard_width = null;
+        }
+    }
 
     public function isLengthBased(): bool
     {
@@ -95,9 +109,11 @@ class RawMaterialManager extends Component
         ];
 
         if ($this->isLengthBased()) {
+            $rules['fabric_width_id'] = 'required|exists:fabric_widths,id';
             $rules['standard_width'] = 'required|numeric|gt:0';
             $rules['width_unit'] = 'required|string|max:50';
         } else {
+            $rules['fabric_width_id'] = 'nullable';
             $rules['standard_width'] = 'nullable';
             $rules['width_unit'] = 'nullable';
         }
@@ -112,6 +128,7 @@ class RawMaterialManager extends Component
             'raw_material_category_id.required' => 'Please select a category.',
             'unit.required' => 'Please select a unit of measurement.',
             'unit.in' => 'The selected unit is not valid for the chosen unit class.',
+            'fabric_width_id.required' => 'Please select a Fabric Standard Width from the master list.',
             'standard_width.required' => 'Standard Width is required for length-based materials.',
             'standard_width.gt' => 'Standard Width must be greater than zero.',
             'width_unit.required' => 'Width Unit is required for length-based materials.',
@@ -136,6 +153,13 @@ class RawMaterialManager extends Component
             $this->width_unit = $material->width_unit ?? 'Inch';
             $this->is_active = (bool) $material->is_active;
             $this->raw_material_category_id = $material->raw_material_category_id;
+
+            if ($material->standard_width) {
+                $matchedFw = \App\Models\FabricWidth::where('value', $material->standard_width)->first();
+                $this->fabric_width_id = $matchedFw?->id;
+            } else {
+                $this->fabric_width_id = null;
+            }
 
             $this->supplierAliases = $material->supplierAliases->map(fn($a) => [
                 'supplier_id' => (string) $a->supplier_id,
@@ -297,8 +321,9 @@ class RawMaterialManager extends Component
         $this->unit = '';
         $this->unit_group_id = null;
         $this->unit_id = null;
+        $this->fabric_width_id = null;
         $this->standard_width = null;
-        $this->width_unit = 'Meters';
+        $this->width_unit = 'Inch';
         $this->is_active = true;
         $this->raw_material_category_id = null;
         $this->availableUnits = [];
@@ -353,11 +378,13 @@ class RawMaterialManager extends Component
         $categories = RawMaterialCategory::active()->orderBy('name')->get();
         $unitGroups = UnitGroup::active()->with('activeUnits')->orderBy('name')->get();
         $suppliers = Supplier::orderBy('name')->get();
+        $fabricWidthOptions = \App\Models\FabricWidth::active()->orderBy('value', 'asc')->get();
 
         return view('livewire.factory.raw-material-manager', [
-            'categories' => $categories,
-            'unitGroups' => $unitGroups,
-            'suppliers'  => $suppliers,
+            'categories'         => $categories,
+            'unitGroups'         => $unitGroups,
+            'suppliers'          => $suppliers,
+            'fabricWidthOptions' => $fabricWidthOptions,
         ]);
     }
 }
