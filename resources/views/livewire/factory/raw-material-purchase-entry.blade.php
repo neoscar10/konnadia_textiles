@@ -19,143 +19,122 @@
     </div>
 
     <form wire:submit="savePurchaseEntry">
-        <div class="flex flex-col lg:flex-row gap-gutter items-start">
-            <!-- Left Column (Main Form) -->
-            <div class="flex-1 space-y-6 w-full">
-                <!-- Card 1: Purchase Information -->
-                <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-6 shadow-xs">
-                    <div class="flex items-center gap-2 mb-6 text-primary">
-                        <span class="material-symbols-outlined text-[20px] font-bold">receipt_long</span>
-                        <h3 class="font-headline-sm text-headline-sm font-extrabold">Purchase Information</h3>
+        <div class="w-full space-y-6">
+            <!-- Card 1: Purchase Information -->
+            <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-6 shadow-xs">
+                <div class="flex items-center gap-2 mb-6 text-primary">
+                    <span class="material-symbols-outlined text-[20px] font-bold">receipt_long</span>
+                    <h3 class="font-headline-sm text-headline-sm font-extrabold">Purchase Information</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="supplier-id" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Supplier <span class="text-error">*</span></label>
+                        <select
+                            id="supplier-id"
+                            wire:model.live="supplier_id"
+                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-semibold"
+                        >
+                            <option value="">— Select Supplier —</option>
+                            @foreach($suppliers as $sup)
+                                <option value="{{ $sup->id }}">
+                                    {{ $sup->name }} @if($sup->whatsapp_number || $sup->phone) — ({{ $sup->whatsapp_number ?? $sup->phone }}) @endif
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('supplier_name') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="supplier-id" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Saved Supplier</label>
-                            <select
-                                id="supplier-id"
-                                wire:model.live="supplier_id"
-                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-                            >
-                                <option value="">— Select Saved Supplier (Optional) —</option>
-                                @foreach($suppliers as $sup)
-                                    <option value="{{ $sup->id }}">{{ $sup->name }} @if($sup->company_name) ({{ $sup->company_name }}) @endif</option>
-                                @endforeach
-                            </select>
-                        </div>
 
-                        <div>
-                            <label for="supplier-name" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Supplier Name <span class="text-error">*</span></label>
-                            <input
-                                id="supplier-name"
-                                type="text"
-                                wire:model="supplier_name"
-                                placeholder="e.g., TexVenture Fabrics Co."
-                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-                            />
-                            @error('supplier_name') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label for="purchase-date" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Purchase Date <span class="text-error">*</span></label>
-                            <input
-                                id="purchase-date"
-                                type="date"
-                                wire:model="purchase_date"
-                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-                            />
-                            @error('purchase_date') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label for="invoice-number" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Invoice Number <span class="text-error">*</span></label>
-                            <input
-                                id="invoice-number"
-                                type="text"
-                                wire:model="invoice_number"
-                                placeholder="e.g., INV-2026-991"
-                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-                            />
-                            @error('invoice_number') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
-                        </div>
+                    <div>
+                        <label for="purchase-date" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Purchase Date <span class="text-error">*</span></label>
+                        <input
+                            id="purchase-date"
+                            type="date"
+                            wire:model="purchase_date"
+                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-semibold"
+                        />
+                        @error('purchase_date') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                     </div>
-                </section>
+
+                    <div>
+                        <label for="invoice-number" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Invoice Number <span class="text-error">*</span></label>
+                        <input
+                            id="invoice-number"
+                            type="text"
+                            wire:model="invoice_number"
+                            placeholder="e.g., INV-2026-991"
+                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
+                        />
+                        @error('invoice_number') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label for="lot-number" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Lot Number <span class="text-error">*</span></label>
+                        <input
+                            id="lot-number"
+                            type="text"
+                            wire:model="lot_number"
+                            placeholder="e.g., LOT-2026-014"
+                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold text-primary"
+                        />
+                        @error('lot_number') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+            </section>
 
                 <!-- Card 2: Raw Material Selection -->
                 <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-6 shadow-xs">
                     <div class="flex items-center gap-2 mb-6 text-primary">
                         <span class="material-symbols-outlined text-[20px] font-bold">inventory</span>
-                        <h3 class="font-headline-sm text-headline-sm font-extrabold">Raw Material Selection</h3>
+                        <h3 class="font-headline-sm text-headline-sm font-extrabold">Raw Material Category Selection</h3>
                     </div>
                     
                     <div class="mb-6">
-                        <label for="material-picker" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Select Material <span class="text-error">*</span></label>
+                        <label for="category-picker" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Select Raw Material Category <span class="text-error">*</span></label>
                         <select
-                            id="material-picker"
-                            wire:model.live="raw_material_id"
-                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                            id="category-picker"
+                            wire:model.live="raw_material_category_id"
+                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold"
                         >
-                            <option value="">— Search by Name or Code —</option>
-                            @foreach($materials as $material)
-                                <option value="{{ $material->id }}">{{ $material->name }} ({{ $material->code }})</option>
+                            <option value="">— Select Category —</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }} ({{ $cat->code }})</option>
                             @endforeach
                         </select>
-                        @error('raw_material_id') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                        @error('raw_material_category_id') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    <!-- Selected Item Info -->
-                    @if($raw_material_id)
-                        @php
-                            $selectedMat = $materials->firstWhere('id', $raw_material_id);
-                        @endphp
-                        @if($selectedMat)
-                            <div class="bg-surface-container-low rounded-xl p-5 mb-8 border border-outline-variant/30">
-                                <div class="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h4 class="font-headline-sm text-sm font-black text-primary">{{ $selectedMat->name }}</h4>
-                                        <p class="font-mono font-semibold text-xs text-on-surface-variant/75 mt-0.5">{{ $selectedMat->code }}</p>
-                                    </div>
-                                    @if($selectedMat->category)
-                                        <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-md text-[10px] font-extrabold uppercase font-mono border border-secondary/20">
-                                            {{ $selectedMat->category->code }}
-                                        </span>
-                                    @endif
-                                </div>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                    <div>
-                                        <p class="font-label-sm text-[10px] font-bold text-on-surface-variant/60 uppercase">Category Type</p>
-                                        <p class="font-label-md text-xs font-extrabold text-on-surface mt-1">{{ $selectedMat->category?->unit_type?->label() }}</p>
-                                    </div>
-                                    @if($selectedMat->category?->unit_type?->value === 'length_based')
-                                        <div>
-                                            <p class="font-label-sm text-[10px] font-bold text-on-surface-variant/60 uppercase">Std Width</p>
-                                            <p class="font-label-md text-xs font-extrabold text-on-surface mt-1">{{ $selectedMat->standard_width }} {{ $selectedMat->width_unit }}</p>
-                                        </div>
-                                    @endif
-                                    <div>
-                                        <p class="font-label-sm text-[10px] font-bold text-on-surface-variant/60 uppercase">Default Unit</p>
-                                        <p class="font-label-md text-xs font-extrabold text-on-surface mt-1">{{ $selectedMat->unit }}</p>
-                                    </div>
-                                    <div class="sm:text-right">
-                                        <p class="font-label-sm text-[10px] font-bold text-on-surface-variant/60 uppercase">Status</p>
-                                        <span class="inline-flex items-center gap-1 mt-1 text-xs font-bold {{ $selectedMat->is_active ? 'text-secondary' : 'text-on-surface-variant/50' }}">
-                                            <span class="w-1.5 h-1.5 rounded-full {{ $selectedMat->is_active ? 'bg-secondary' : 'bg-outline' }}"></span>
-                                            {{ $selectedMat->is_active ? 'Active' : 'Inactive' }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
+                    <!-- Non-Fabric Single Material Picker -->
+                    @if($raw_material_category_id && $unitType !== 'length_based')
+                        <div class="mb-6 bg-surface-container-low rounded-xl p-5 border border-outline-variant/30">
+                            <label for="material-picker" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Select Raw Material Item <span class="text-error">*</span></label>
+                            <select
+                                id="material-picker"
+                                wire:model.live="raw_material_id"
+                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-semibold"
+                            >
+                                <option value="">— Select Material Item —</option>
+                                @foreach($availableMaterials as $material)
+                                    <option value="{{ $material->id }}">{{ $material->name }} ({{ $material->code }})</option>
+                                @endforeach
+                            </select>
+                            @error('raw_material_id') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                        </div>
                     @endif
 
                     <!-- Dynamic Purchase Fields -->
-                    @if($raw_material_id)
+                    @if($raw_material_category_id)
                         @if($unitType === 'length_based')
                             <!-- Fabric Bale Configuration -->
-                            <div class="bg-primary/5 border border-primary/20 rounded-xl p-5 mb-6 space-y-4">
+                            <div class="bg-primary/5 border border-primary/20 rounded-2xl p-5 mb-6 space-y-5">
                                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-primary/15 pb-3">
-                                    <div class="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-                                        <span class="material-symbols-outlined text-[18px]">inventory_2</span>
-                                        <span>Fabric Bale Purchase Details</span>
+                                    <div>
+                                        <div class="flex items-center gap-2 text-primary font-extrabold text-xs uppercase tracking-wider">
+                                            <span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                                            <span>Fabric Bale Purchase Details</span>
+                                        </div>
+                                        <p class="text-[11px] text-on-surface-variant/80 font-medium mt-0.5">
+                                            Each bale receives its own fabric raw material item, design number, stock ID, and quantity breakdown.
+                                        </p>
                                     </div>
                                     <!-- Toggle Switch: All bales equal length -->
                                     <label class="flex items-center gap-2.5 cursor-pointer">
@@ -171,8 +150,8 @@
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label for="num-bales" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                            Number of Bales Purchased <span class="text-error">*</span>
+                                        <label for="num-bales" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 whitespace-nowrap">
+                                            Number of Bales *
                                         </label>
                                         <input
                                             id="num-bales"
@@ -180,16 +159,16 @@
                                             min="1"
                                             max="100"
                                             wire:model.live="num_bales"
-                                            placeholder="e.g., 3"
-                                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold"
+                                            placeholder="e.g., 2"
+                                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold"
                                         />
                                         @error('num_bales') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                                     </div>
 
                                     @if($all_bales_equal_length)
                                         <div>
-                                            <label for="declared-bale-length" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                                Declared Length Written on Bale (in {{ $unitName }} / Bale) <span class="text-error">*</span>
+                                            <label for="declared-bale-length" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 whitespace-nowrap">
+                                                Length per Bale ({{ $unitName }}) *
                                             </label>
                                             <input
                                                 id="declared-bale-length"
@@ -197,45 +176,202 @@
                                                 step="0.01"
                                                 wire:model.live="declared_bale_length"
                                                 placeholder="e.g., 300"
-                                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold text-left"
+                                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold text-left"
                                             />
                                             @error('declared_bale_length') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                                         </div>
                                     @endif
                                 </div>
 
-                                <!-- Individual Bale Lengths Grid (When toggle is OFF) -->
-                                @if(!$all_bales_equal_length)
-                                    <div class="pt-3 border-t border-primary/15 space-y-3">
-                                        <div class="flex justify-between items-center">
-                                            <label class="block font-label-md text-xs font-bold text-primary uppercase tracking-wider">
-                                                Individual Declared Length Per Bale
-                                            </label>
-                                            <span class="text-[11px] font-bold text-on-surface-variant/80">Enter specific length for each bale</span>
-                                        </div>
-
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                                            @for($i = 0; $i < intval($num_bales ?: 1); $i++)
-                                                <div class="bg-surface rounded-xl p-3 border border-outline-variant/60">
-                                                    <label for="bale-len-{{ $i }}" class="block font-mono text-[11px] font-extrabold text-primary mb-1">
-                                                        Bale #{{ $i + 1 }} Length ({{ $unitName }})
-                                                    </label>
-                                                    <input
-                                                        id="bale-len-{{ $i }}"
-                                                        type="number"
-                                                        step="0.01"
-                                                        wire:model.live="individual_bale_lengths.{{ $i }}"
-                                                        placeholder="0.00"
-                                                        class="w-full bg-surface-container-low border border-outline-variant/40 rounded-lg px-3 py-2 font-body-md text-xs font-bold text-left focus:border-primary focus:outline-none"
-                                                    />
-                                                    @error("individual_bale_lengths.{$i}")
-                                                        <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
-                                                    @enderror
-                                                </div>
-                                            @endfor
-                                        </div>
+                                <!-- Dynamic Bale Items Cards Grid -->
+                                <div class="pt-3 border-t border-primary/15 space-y-5">
+                                    <div class="flex justify-between items-center">
+                                        <label class="block font-label-md text-xs font-bold text-primary uppercase tracking-wider">
+                                            Bale Item Breakdown &amp; Barcode Identification
+                                        </label>
+                                        <span class="text-[11px] font-bold text-on-surface-variant/80">
+                                            Select fabric item, enter design number, stock ID, length &amp; photo per item line
+                                        </span>
                                     </div>
-                                @endif
+
+                                    <div class="space-y-6">
+                                        @foreach($bale_items as $baleIndex => $bale)
+                                            @php
+                                                $baleSubtotal = 0.0;
+                                                $baleTotalQty = 0.0;
+                                                foreach ($bale['items'] ?? [] as $it) {
+                                                    $l = floatval($it['declared_length'] ?? 0);
+                                                    $r = floatval(($it['cost_per_unit'] !== '' && $it['cost_per_unit'] !== null) ? $it['cost_per_unit'] : ($purchase_rate ?: 0));
+                                                    $baleSubtotal += ($l * $r);
+                                                    $baleTotalQty += $l;
+                                                }
+                                            @endphp
+                                            <div class="bg-surface rounded-2xl p-5 border border-outline-variant/60 shadow-2xs space-y-4">
+                                                <!-- Bale Header & Number -->
+                                                <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-outline-variant/30 pb-3 gap-3">
+                                                    <div class="flex items-center gap-3 flex-1">
+                                                        <span class="w-7 h-7 rounded-full bg-primary text-on-primary font-mono text-xs font-bold flex items-center justify-center shrink-0">
+                                                            {{ $baleIndex + 1 }}
+                                                        </span>
+                                                        <div class="flex items-center gap-2 flex-1 max-w-xs">
+                                                            <label class="text-xs font-extrabold text-primary shrink-0 uppercase tracking-wider">Bale Number *</label>
+                                                            <input 
+                                                                type="text" 
+                                                                wire:model.live="bale_items.{{ $baleIndex }}.bale_number" 
+                                                                placeholder="BALE-{{ date('Y') }}-{{ str_pad($baleIndex + 1, 4, '0', STR_PAD_LEFT) }}" 
+                                                                class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-primary focus:border-primary focus:outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-4 justify-between sm:justify-end">
+                                                        <div class="text-xs font-bold text-on-surface-variant">
+                                                            <span class="text-on-surface-variant/70">Bale Total:</span> 
+                                                            <span class="font-mono font-bold text-primary">{{ number_format($baleTotalQty, 2) }} {{ $unitName }}</span>
+                                                            <span class="mx-1 text-outline-variant">•</span>
+                                                            <span class="font-mono font-bold text-primary">₹{{ number_format($baleSubtotal, 2) }}</span>
+                                                        </div>
+                                                        @if(count($bale_items) > 1)
+                                                            <button 
+                                                                type="button" 
+                                                                wire:click="removeBale({{ $baleIndex }})" 
+                                                                title="Remove entire bale"
+                                                                class="w-7 h-7 rounded-lg text-on-surface-variant/60 hover:text-error hover:bg-error/10 flex items-center justify-center transition-colors cursor-pointer"
+                                                            >
+                                                                <span class="material-symbols-outlined text-[18px]">close</span>
+                                                            </button>
+                                                        @endif
+                                                    </div>
+                                                </div>
+
+                                                <!-- Item Lines inside Bale -->
+                                                <div class="space-y-3">
+                                                    @foreach($bale['items'] ?? [] as $itemIndex => $item)
+                                                        <div class="p-3.5 rounded-xl bg-surface-container-low/60 border border-outline-variant/30 relative space-y-3">
+                                                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                                                                <!-- Item Select -->
+                                                                <div class="lg:col-span-3">
+                                                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Item *</label>
+                                                                    <select wire:model.live="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.raw_material_id" 
+                                                                            class="w-full bg-surface border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:border-primary focus:outline-none">
+                                                                        <option value="">— Select Item —</option>
+                                                                        @foreach($availableMaterials as $mat)
+                                                                            <option value="{{ $mat->id }}">{{ $mat->name }} ({{ $mat->code }})</option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                    @error("bale_items.{$baleIndex}.items.{$itemIndex}.raw_material_id")
+                                                                        <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
+                                                                    @enderror
+                                                                </div>
+
+                                                                <!-- Design Number -->
+                                                                <div class="lg:col-span-2">
+                                                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Design No</label>
+                                                                    <input type="text" 
+                                                                           wire:model.live="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.design_number" 
+                                                                           placeholder="e.g. D-114" 
+                                                                           class="w-full bg-surface border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none" />
+                                                                </div>
+
+                                                                <!-- Quantity / Length -->
+                                                                <div class="lg:col-span-2">
+                                                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Qty ({{ $unitName }}) *</label>
+                                                                    <input type="number" 
+                                                                           step="0.01" 
+                                                                           wire:model.live="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.declared_length" 
+                                                                           placeholder="0.00" 
+                                                                           class="w-full bg-surface border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono font-extrabold text-on-surface focus:border-primary focus:outline-none" />
+                                                                    @error("bale_items.{$baleIndex}.items.{$itemIndex}.declared_length")
+                                                                        <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
+                                                                    @enderror
+                                                                </div>
+
+                                                                <!-- Cost Per Unit -->
+                                                                <div class="lg:col-span-2">
+                                                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Cost Per Unit (₹)</label>
+                                                                    <div class="relative">
+                                                                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant/60">₹</span>
+                                                                        <input type="number" 
+                                                                               step="0.01" 
+                                                                               wire:model.live="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.cost_per_unit" 
+                                                                               placeholder="{{ number_format(floatval($purchase_rate ?: 0), 2) }}" 
+                                                                               class="w-full bg-surface border border-outline-variant/40 rounded-xl pl-6 pr-3 py-2 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none" />
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Stock ID -->
+                                                                <div class="lg:col-span-2">
+                                                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Stock ID</label>
+                                                                    <input type="text" 
+                                                                           wire:model.live="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.stock_id" 
+                                                                           placeholder="e.g. STK-201-001" 
+                                                                           class="w-full bg-surface border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono font-bold text-primary focus:border-primary focus:outline-none" />
+                                                                </div>
+
+                                                                <!-- Photo & Delete Action -->
+                                                                <div class="lg:col-span-1 flex items-center justify-between gap-1.5">
+                                                                    <div class="flex-1 flex items-center gap-1.5 min-w-0">
+                                                                        <input type="file" 
+                                                                               id="photo-bale-{{ $baleIndex }}-{{ $itemIndex }}" 
+                                                                               wire:model="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.photo" 
+                                                                               accept="image/*" 
+                                                                               class="hidden" />
+                                                                        <label for="photo-bale-{{ $baleIndex }}-{{ $itemIndex }}" 
+                                                                               title="Upload Photo"
+                                                                               class="w-full px-2 py-2 bg-surface text-on-surface hover:bg-primary/10 hover:text-primary rounded-xl text-[11px] font-bold cursor-pointer transition-colors flex items-center justify-center gap-1 border border-outline-variant/40">
+                                                                            <span class="material-symbols-outlined text-[16px]">add_a_photo</span>
+                                                                        </label>
+
+                                                                        @if(isset($item['photo']) && is_object($item['photo']))
+                                                                            <div class="relative w-7 h-7 rounded-lg overflow-hidden border border-primary shrink-0">
+                                                                                <img src="{{ $item['photo']->temporaryUrl() }}" class="w-full h-full object-cover">
+                                                                            </div>
+                                                                        @endif
+                                                                    </div>
+
+                                                                    @if(count($bale['items']) > 1)
+                                                                        <button 
+                                                                            type="button" 
+                                                                            wire:click="removeItemFromBale({{ $baleIndex }}, {{ $itemIndex }})" 
+                                                                            title="Remove item from bale"
+                                                                            class="p-2 text-on-surface-variant/60 hover:text-error hover:bg-error/10 rounded-xl transition-colors cursor-pointer shrink-0"
+                                                                        >
+                                                                            <span class="material-symbols-outlined text-[18px]">close</span>
+                                                                        </button>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+
+                                                <!-- Add item to this bale button -->
+                                                <div class="pt-1">
+                                                    <button 
+                                                        type="button" 
+                                                        wire:click="addItemToBale({{ $baleIndex }})" 
+                                                        class="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-container transition-colors py-1 px-2 rounded-lg hover:bg-primary/5 cursor-pointer"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[16px]">add</span>
+                                                        <span>+ Add item to this bale</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+
+                                    <!-- Add Bale button -->
+                                    <div class="pt-2">
+                                        <button 
+                                            type="button" 
+                                            wire:click="addBale" 
+                                            class="w-full border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-2xl py-3 text-xs font-extrabold text-primary transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                            <span>+ Add Bale</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         @endif
 
@@ -278,119 +414,121 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                            <div class="md:col-span-5">
-                                <label for="qty-received" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
-                                    {{ $unitType === 'length_based' ? 'Total Length Calculated (' . strtoupper($unitName) . ')' : 'Quantity Received (' . strtoupper($unitName) . ')' }} <span class="text-error">*</span>
-                                </label>
-                                <input
-                                    id="qty-received"
-                                    type="number"
-                                    step="0.0001"
-                                    wire:model.live="quantity_received"
-                                    {{ $unitType === 'length_based' ? 'readonly' : '' }}
-                                    placeholder="0.0000"
-                                    class="w-full border rounded-xl px-4 py-3 font-body-md text-sm text-left focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none
-                                        {{ $unitType === 'length_based' ? 'bg-surface-container border-outline-variant/40 font-black text-primary cursor-not-allowed' : 'bg-surface border-outline-variant/60 font-bold' }}"
-                                />
-                                @error('quantity_received') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
-                            </div>
-
-                            <div class="md:col-span-4">
-                                <label for="purchase-rate" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
-                                    {{ $unitType === 'length_based' ? 'Rate per ' . strtoupper(rtrim($unitName, 's')) . ' (₹)' : 'Rate per Unit (₹)' }} <span class="text-error">*</span>
-                                </label>
-                                <div class="relative">
-                                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant/70">₹</span>
+                        @if($unitType !== 'length_based')
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                <div class="md:col-span-5">
+                                    <label for="qty-received" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
+                                        Quantity Received ({{ strtoupper($unitName) }}) <span class="text-error">*</span>
+                                    </label>
                                     <input
-                                        id="purchase-rate"
+                                        id="qty-received"
                                         type="number"
-                                        step="0.01"
-                                        wire:model.live="purchase_rate"
-                                        placeholder="0.00"
-                                        class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-8 pr-4 py-3 font-body-md text-sm font-bold text-left focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                                        step="0.0001"
+                                        wire:model.live="quantity_received"
+                                        placeholder="0.0000"
+                                        class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm font-bold text-left focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
                                     />
+                                    @error('quantity_received') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                                 </div>
-                                @error('purchase_rate') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
-                            </div>
 
-                            <div class="md:col-span-3">
-                                <label class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Total Value (₹)</label>
-                                <div class="relative">
-                                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary">₹</span>
-                                    <input
-                                        type="text"
-                                        readonly
-                                        value="{{ number_format($total_amount, 2) }}"
-                                        class="w-full bg-surface-container border border-outline-variant/30 rounded-xl pl-8 pr-4 py-3 font-body-md text-sm font-black text-primary text-left outline-none cursor-not-allowed"
-                                    />
+                                <div class="md:col-span-4">
+                                    <label for="purchase-rate" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
+                                        Rate per Unit (₹) <span class="text-error">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant/70">₹</span>
+                                        <input
+                                            id="purchase-rate"
+                                            type="number"
+                                            step="0.01"
+                                            wire:model.live="purchase_rate"
+                                            placeholder="0.00"
+                                            class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-8 pr-4 py-3 font-body-md text-sm font-bold text-left focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                                        />
+                                    </div>
+                                    @error('purchase_rate') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div class="md:col-span-3">
+                                    <label class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Total Value (₹)</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary">₹</span>
+                                        <input
+                                            type="text"
+                                            readonly
+                                            value="{{ number_format($total_amount, 2) }}"
+                                            class="w-full bg-surface-container border border-outline-variant/30 rounded-xl pl-8 pr-4 py-3 font-body-md text-sm font-black text-primary text-left outline-none cursor-not-allowed"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @endif
                     @else
                         <div class="text-center py-8 text-on-surface-variant/50 italic bg-surface-container-low/20 rounded-xl border border-dashed border-outline-variant/40">
                             <span class="material-symbols-outlined text-4xl mb-2">inventory_2</span>
-                            <p class="text-sm font-semibold">Select a raw material to configure quantities & pricing</p>
+                            <p class="text-sm font-semibold">Select a raw material category to configure quantities & pricing</p>
                         </div>
                     @endif
                 </section>
 
-                <!-- Card 3: Inventory Batch Preview -->
-                @if($raw_material_id && $quantity_received && $purchase_rate)
-                    @php
-                        $selectedMat = $materials->firstWhere('id', $raw_material_id);
-                    @endphp
-                    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-6 shadow-xs">
-                        <div class="flex items-center justify-between mb-6">
-                            <div class="flex items-center gap-2 text-primary">
-                                <span class="material-symbols-outlined text-[20px] font-bold">reorder</span>
-                                <h3 class="font-headline-sm text-headline-sm font-extrabold">Inventory Batch Preview</h3>
-                            </div>
-                            <p class="font-label-sm text-xs text-on-surface-variant/60 flex items-center gap-1 italic">
-                                <span class="material-symbols-outlined text-[16px] text-secondary">info</span>
-                                Auto-generated upon saving.
-                            </p>
+                <!-- Compact Cost Summary Bar -->
+                <section class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-xs">
+                    <div class="flex items-center gap-2 mb-3 text-primary">
+                        <span class="material-symbols-outlined text-[20px] font-bold">payments</span>
+                        <h3 class="font-headline-sm text-xs font-extrabold uppercase tracking-wider">Purchase Cost Summary</h3>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 items-center border-t border-outline-variant/30 pt-4">
+                        <div>
+                            <span class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider block">Total Quantity</span>
+                            <span class="text-sm font-extrabold text-on-surface mt-0.5 block">
+                                @if($quantity_received)
+                                    {{ number_format(floatval($quantity_received), 2) }} {{ $unitName }}
+                                @else
+                                    —
+                                @endif
+                            </span>
                         </div>
-                        <div class="overflow-x-auto border border-outline-variant/40 rounded-xl">
-                            <table class="w-full border-collapse text-left text-sm">
-                                <thead class="bg-surface-container-low border-b border-outline-variant/40">
-                                    <tr class="font-bold text-xs text-on-surface-variant uppercase">
-                                        <th class="px-6 py-3">Batch Number</th>
-                                        <th class="px-6 py-3">Material</th>
-                                        <th class="px-6 py-3">Date</th>
-                                        <th class="px-6 py-3 text-right">Qty Received</th>
-                                        <th class="px-6 py-3 text-right">Effective Rate</th>
-                                        <th class="px-6 py-3 text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="hover:bg-surface-container-low/10 transition-colors">
-                                        <td class="px-6 py-4 font-mono font-bold text-xs text-primary">
-                                            BAT-{{ \Illuminate\Support\Carbon::parse($purchase_date)->year }}-XXXX
-                                        </td>
-                                        <td class="px-6 py-4 font-semibold text-on-surface">
-                                            {{ $selectedMat?->name }}
-                                        </td>
-                                        <td class="px-6 py-4 text-on-surface-variant">
-                                            {{ \Illuminate\Support\Carbon::parse($purchase_date)->format('d M Y') }}
-                                        </td>
-                                        <td class="px-6 py-4 text-right font-bold text-on-surface">
-                                            {{ number_format(floatval($quantity_received), 2) }} {{ $unitName }}
-                                        </td>
-                                        <td class="px-6 py-4 text-right text-on-surface-variant font-bold">
-                                            ₹{{ number_format(floatval($quantity_received) > 0 ? $this->grandTotal / floatval($quantity_received) : floatval($purchase_rate), 2) }}
-                                        </td>
-                                        <td class="px-6 py-4 text-center">
-                                            <span class="bg-secondary-container text-on-secondary-container px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-secondary/20 font-mono">
-                                                Available
-                                            </span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+
+                        <div>
+                            <span class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider block">Avg Unit Rate</span>
+                            <span class="text-sm font-extrabold text-on-surface mt-0.5 block">
+                                @if($purchase_rate)
+                                    ₹{{ number_format(floatval($purchase_rate), 2) }}
+                                @else
+                                    —
+                                @endif
+                            </span>
                         </div>
-                    </section>
-                @endif
+
+                        <div>
+                            <span class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider block">Subtotal Value</span>
+                            <span class="text-sm font-extrabold text-on-surface mt-0.5 block">₹{{ number_format($total_amount, 2) }}</span>
+                        </div>
+
+                        <div>
+                            <span class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider block">
+                                @if($gst_included)
+                                    GST (Included)
+                                @else
+                                    GST ({{ floatval($gst_percent) }}%)
+                                @endif
+                            </span>
+                            <span class="text-sm font-extrabold text-on-surface mt-0.5 block">
+                                @if($gst_included)
+                                    ₹0.00 <span class="text-[10px] text-on-surface-variant font-normal">(Included)</span>
+                                @else
+                                    ₹{{ number_format($this->gstAmount, 2) }}
+                                @endif
+                            </span>
+                        </div>
+
+                        <div>
+                            <span class="text-[11px] font-bold text-primary uppercase tracking-wider block">Grand Total</span>
+                            <span class="text-base font-black text-primary font-mono mt-0.5 block">₹{{ number_format($this->grandTotal, 2) }}</span>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Action Buttons (In-flow & Left-aligned) -->
                 <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-xs flex flex-col sm:flex-row items-center justify-start gap-4">
                     <button type="submit" class="w-full sm:w-auto px-8 py-3.5 text-sm font-extrabold text-on-primary bg-primary hover:bg-primary-container rounded-xl flex items-center justify-center gap-2.5 shadow-md transition-all active:scale-95 cursor-pointer">
@@ -405,125 +543,6 @@
                         <p class="font-label-sm text-xs font-semibold">Secure Entry Session</p>
                     </div>
                 </div>
-            </div>
-
-            <!-- Right Sidebar (Sticky/Cost Summary) -->
-            <div class="w-full lg:w-80 space-y-6 lg:sticky lg:top-[80px]">
-                <!-- Card 4: Purchase Cost Summary -->
-                <section class="bg-primary text-on-primary rounded-xl p-6 shadow-md relative overflow-hidden">
-                    <div class="relative z-10">
-                        <h3 class="font-label-md text-xs font-bold text-on-primary-fixed-variant opacity-80 uppercase tracking-widest mb-6">Cost Summary</h3>
-                        <div class="space-y-4 text-sm">
-                            <div class="flex justify-between items-center">
-                                <span class="opacity-80">Purchase Quantity</span>
-                                <span class="font-bold">
-                                    @if($quantity_received)
-                                        {{ number_format(floatval($quantity_received), 4) }} {{ $unitName }}
-                                    @else
-                                        —
-                                    @endif
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="opacity-80">Unit Rate</span>
-                                <span class="font-bold">
-                                    @if($purchase_rate)
-                                        ₹{{ number_format(floatval($purchase_rate), 2) }}
-                                    @else
-                                        —
-                                    @endif
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center border-t border-on-primary/10 pt-4">
-                                <span class="opacity-80">Subtotal Value</span>
-                                <span class="font-bold">₹{{ number_format($total_amount, 2) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center border-b border-on-primary/10 pb-4">
-                                <span class="opacity-80">
-                                    @if($gst_included)
-                                        GST (Included)
-                                    @else
-                                        GST ({{ floatval($gst_percent) }}%)
-                                    @endif
-                                </span>
-                                <span class="font-bold">
-                                    @if($gst_included)
-                                        ₹0.00 <span class="text-[10px] font-normal opacity-70">(Included)</span>
-                                    @else
-                                        ₹{{ number_format($this->gstAmount, 2) }}
-                                    @endif
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-end pt-2">
-                                <span class="text-base font-extrabold">Grand Total</span>
-                                <span class="text-xl font-black text-secondary-fixed">₹{{ number_format($this->grandTotal, 2) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Background Pattern -->
-                    <div class="absolute -bottom-6 -right-6 opacity-10 rotate-12">
-                        <span class="material-symbols-outlined text-[120px] font-bold">payments</span>
-                    </div>
-                </section>
-                </section>
-
-                <!-- Stats Panel -->
-                @php
-                    $todayEntriesCount = \App\Models\InventoryBatch::whereDate('created_at', \Illuminate\Support\Carbon::today())->count();
-                    $todayTotalValue = \App\Models\InventoryBatch::whereDate('created_at', \Illuminate\Support\Carbon::today())->sum('total_amount');
-                    $latestBatch = \App\Models\InventoryBatch::latest()->first();
-                @endphp
-                <section class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-5 shadow-xs">
-                    <h4 class="font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-4">Today's Activity</h4>
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary">
-                                <span class="material-symbols-outlined text-[20px] font-bold">shopping_cart</span>
-                            </div>
-                            <div>
-                                <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Purchases Today</p>
-                                <p class="text-sm font-extrabold text-on-surface mt-0.5">{{ $todayEntriesCount }} Entries</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary">
-                                <span class="material-symbols-outlined text-[20px] font-bold">account_balance_wallet</span>
-                            </div>
-                            <div>
-                                <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Daily Value</p>
-                                <p class="text-sm font-extrabold text-on-surface mt-0.5">₹{{ number_format($todayTotalValue, 2) }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    @if($latestBatch)
-                        <div class="mt-6 pt-6 border-t border-outline-variant/40">
-                            <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Latest Batch Generated</p>
-                            <div class="flex justify-between items-center">
-                                <span class="font-mono font-bold text-xs text-primary">{{ $latestBatch->batch_number }}</span>
-                                <span class="text-xs text-on-surface-variant font-medium">{{ $latestBatch->created_at->format('h:i A') }}</span>
-                            </div>
-                        </div>
-                    @endif
-                </section>
-
-                <!-- Quick Tips -->
-                <section class="bg-tertiary-fixed text-on-tertiary-fixed rounded-xl p-5 relative overflow-hidden border border-outline-variant/20 shadow-xs">
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="material-symbols-outlined text-[20px] font-bold">lightbulb</span>
-                        <h4 class="font-label-md text-xs font-bold uppercase tracking-wider">Quick Tips</h4>
-                    </div>
-                    <ul class="space-y-3 relative z-10 text-xs font-medium opacity-90">
-                        <li class="flex gap-2">
-                            <span class="material-symbols-outlined text-[16px] mt-0.5 text-primary">check_circle</span>
-                            <span>Verify that quantities received align with supplier packing slips.</span>
-                        </li>
-                        <li class="flex gap-2">
-                            <span class="material-symbols-outlined text-[16px] mt-0.5 text-primary">check_circle</span>
-                            <span>Inventory batches maintain strict costing and traceability per lot.</span>
-                        </li>
-                    </ul>
-                </section>
-            </div>
         </div>
     </form>
 </div>

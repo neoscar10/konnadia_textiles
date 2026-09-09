@@ -184,7 +184,7 @@
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
             @keydown.escape.window="$wire.closeModal()"
-            class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+            class="fixed inset-0 z-50 bg-black/25 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
             style="display: none;"
         >
             <div

@@ -56,6 +56,20 @@
     <!-- Wizard Form Body -->
     <form wire:submit.prevent="save" class="space-y-6">
 
+        @if ($errors->any())
+            <div class="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl text-xs space-y-1.5 shadow-2xs">
+                <div class="font-extrabold text-sm flex items-center gap-1.5 text-rose-900">
+                    <span>⚠️</span>
+                    <span>Please correct the following errors before saving:</span>
+                </div>
+                <ul class="list-disc pl-5 space-y-0.5 font-semibold text-rose-700">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <!-- STEP 1: Basic Info & Customised Product ID -->
         @if($wizardStep === 1)
             <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-sm space-y-6">
@@ -92,9 +106,9 @@
                         <p class="text-xs text-slate-500 mt-0.5">For one-off orders that don't follow a saved pattern specification.</p>
                     </div>
 
-                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input type="checkbox" wire:model="is_customised_product" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0 select-none group">
+                        <input type="checkbox" wire:model.live="is_customised_product" class="sr-only peer">
+                        <div class="w-12 h-6 bg-slate-300 border border-slate-300 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-500/30 peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md peer-checked:bg-amber-500 peer-checked:border-amber-600 transition-all duration-200 group-hover:border-amber-400"></div>
                     </label>
                 </div>
 
@@ -326,7 +340,7 @@
                         <!-- Prominent Toggle Switch -->
                         <label class="relative inline-flex items-center cursor-pointer shrink-0 select-none group">
                             <input type="checkbox" wire:model.live="is_subsidiary_used" class="sr-only peer">
-                            <div class="w-14 h-7 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-500/40 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md peer-checked:bg-amber-600 border-2 border-slate-400/90 peer-checked:border-amber-700 transition-all group-hover:border-slate-500"></div>
+                            <div class="w-12 h-6 bg-slate-300 border border-slate-300 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-500/30 peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md peer-checked:bg-amber-500 peer-checked:border-amber-600 transition-all duration-200 group-hover:border-amber-400"></div>
                         </label>
                     </div>
                 </div>
@@ -342,27 +356,32 @@
 
                         <div class="space-y-2">
                             @foreach($subsidiaryMaterialsList as $sIdx => $sRow)
-                                <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                                    <div class="flex-1">
-                                        <select wire:model.live="subsidiaryMaterialsList.{{ $sIdx }}.raw_material_id" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
-                                            <option value="">-- Select Subsidiary Material --</option>
-                                            @foreach($subsidiaryRawMaterials as $m)
-                                                <option value="{{ $m->id }}">{{ $m->name }} ({{ $m->code }})</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
+                                <div>
+                                    <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                        <div class="flex-1">
+                                            <select wire:model.live="subsidiaryMaterialsList.{{ $sIdx }}.raw_material_id" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+                                                <option value="">-- Select Subsidiary Material --</option>
+                                                @foreach($subsidiaryRawMaterials as $m)
+                                                    <option value="{{ $m->id }}">{{ $m->name }} ({{ $m->code }})</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
 
-                                    <div class="w-36 flex items-center gap-2">
-                                        <input type="number" step="0.0001" wire:model="subsidiaryMaterialsList.{{ $sIdx }}.consumption_quantity" placeholder="Qty" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
-                                        <span class="text-xs font-bold text-slate-500 shrink-0">{{ $sRow['unit'] ?? '' }}</span>
-                                    </div>
+                                        <div class="w-36 flex items-center gap-2">
+                                            <input type="number" step="0.0001" wire:model="subsidiaryMaterialsList.{{ $sIdx }}.consumption_quantity" placeholder="Qty" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+                                            <span class="text-xs font-bold text-slate-500 shrink-0">{{ $sRow['unit'] ?? '' }}</span>
+                                        </div>
 
-                                    <button type="button" wire:click="removeSubsidiaryRow({{ $sIdx }})" class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
-                                        ✕
-                                    </button>
+                                        <button type="button" wire:click="removeSubsidiaryRow({{ $sIdx }})" class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                                            ✕
+                                        </button>
+                                    </div>
+                                    @error("subsidiaryMaterialsList.{$sIdx}.raw_material_id") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
+                                    @error("subsidiaryMaterialsList.{$sIdx}.consumption_quantity") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
                                 </div>
                             @endforeach
                         </div>
+                        @error('subsidiaryMaterialsList') <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
                     </div>
                 @endif
             </div>

@@ -409,7 +409,7 @@
         @php
             $baleToOpen = \App\Models\InventoryBale::find($activeBaleIdToOpen);
         @endphp
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center z-50 p-4">
             <div class="bg-surface border border-outline-variant/60 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-start pb-4 border-b border-outline-variant/40">
                     <div>
@@ -482,7 +482,7 @@
             $diffVal = round($sumRecorded - $declaredLen, 2);
             $signVal = $diffVal > 0 ? "+{$diffVal}" : "{$diffVal}";
         @endphp
-        <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-[60] p-4">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center z-[60] p-4">
             <div class="bg-surface border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
                 <div class="flex items-center gap-3 text-amber-700">
                     <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0">

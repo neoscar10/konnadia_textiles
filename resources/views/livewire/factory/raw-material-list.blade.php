@@ -54,14 +54,13 @@
             <table class="w-full border-collapse text-left">
                 <thead>
                     <tr class="bg-surface-container-low/30 border-b border-outline-variant/60 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                        <th class="px-6 py-4">Code</th>
-                        <th class="px-6 py-4">Name</th>
-                        <th class="px-6 py-4">Category</th>
-                        <th class="px-6 py-4">Width</th>
-                        <th class="px-6 py-4">Unit</th>
-                        <th class="px-6 py-4">Unit Type</th>
-                        <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4 text-right">Actions</th>
+                        <th class="px-6 py-4 whitespace-nowrap">Code</th>
+                        <th class="px-6 py-4 whitespace-nowrap">Name</th>
+                        <th class="px-6 py-4 whitespace-nowrap">Supplier Aliases</th>
+                        <th class="px-6 py-4 whitespace-nowrap">Category</th>
+                        <th class="px-6 py-4 whitespace-nowrap">Std Width</th>
+                        <th class="px-6 py-4 whitespace-nowrap">Status</th>
+                        <th class="px-6 py-4 text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/40">
@@ -76,6 +75,18 @@
                                 <a href="{{ route('factory.raw-materials.show', ['material' => $material->id]) }}" wire:navigate class="font-bold text-sm text-on-surface hover:text-primary transition-colors">
                                     {{ $material->name }}
                                 </a>
+                            </td>
+                            <td class="px-6 py-4">
+                                @forelse($material->supplierAliases as $alias)
+                                    <div class="text-xs font-bold text-on-surface leading-tight">
+                                        "{{ $alias->alias_name }}"
+                                        @if($alias->supplier)
+                                            <span class="text-on-surface-variant/70 font-normal">({{ $alias->supplier->name }})</span>
+                                        @endif
+                                    </div>
+                                @empty
+                                    <span class="text-xs text-on-surface-variant/40">—</span>
+                                @endforelse
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @if($material->category)
@@ -93,26 +104,6 @@
                                     </span>
                                 @else
                                     <span class="text-xs text-on-surface-variant/40">—</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-xs font-bold text-on-surface bg-surface-container-high/50 px-2 py-1 rounded-lg border border-outline-variant/30">
-                                    {{ $material->unit }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($material->category)
-                                    @if($material->category->unit_type->value === 'length_based')
-                                        <span class="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                                            <span class="material-symbols-outlined text-[12px]">straighten</span>
-                                            Length
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                                            <span class="material-symbols-outlined text-[12px]">inventory_2</span>
-                                            Other
-                                        </span>
-                                    @endif
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">

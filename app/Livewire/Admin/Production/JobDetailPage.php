@@ -1848,58 +1848,16 @@ class JobDetailPage extends Component
                 $this->job->update(['production_batch_db_id' => $parentBatch->id, 'production_batch_id' => $parentBatch->batch_code]);
             }
 
+            $workflowService = resolve(ProductionWorkflowService::class);
             foreach ($this->alterationRecords as $row) {
-                $childCount = $parentBatch->childBatches()->count() + 1;
-                $childBatchCode = $parentBatch->batch_code . "-A{$childCount}";
-                while (ProductionBatch::where('batch_code', $childBatchCode)->exists()) {
-                    $childCount++;
-                    $childBatchCode = $parentBatch->batch_code . "-A{$childCount}";
-                }
-                $lastChildBatchCode = $childBatchCode;
-
-                $childBatch = ProductionBatch::create([
-                    'parent_batch_id' => $parentBatch->id,
-                    'batch_code' => $childBatchCode,
-                    'batch_date' => now()->format('Y-m-d'),
-                    'supervisor_id' => $this->job->supervisor_id ?? auth()->id(),
-                    'manufacturing_product_id' => $row['target_product_id'],
-                    'planned_quantity' => (int) $row['target_quantity'],
-                    'priority' => $parentBatch->priority ?? 'Normal',
-                    'status' => 'In Progress',
-                    'remarks' => "Child Alteration Batch derived from Parent Batch {$parentBatch->batch_code} (Source Job {$this->job->job_code})",
-                ]);
-
-                $targetProduct = ManufacturingProduct::find($row['target_product_id']);
-                $firstTask = $targetProduct ? $targetProduct->tasks()->orderByPivot('sequence_number', 'asc')->first() : null;
-                if (!$firstTask) {
-                    $firstTask = Task::where('status', true)->first();
-                }
-
-                $latestJobId = ProductionJob::max('id') ?? 0;
-                $childJobCode = "JOB-" . date('Y') . "-" . str_pad($latestJobId + 1, 4, '0', STR_PAD_LEFT);
-
-                ProductionJob::create([
-                    'job_code' => $childJobCode,
-                    'production_batch_id' => $childBatch->batch_code,
-                    'production_batch_db_id' => $childBatch->id,
-                    'manufacturing_product_id' => $row['target_product_id'],
-                    'task_id' => $firstTask ? $firstTask->id : $this->selectedTaskId,
-                    'supervisor_id' => $childBatch->supervisor_id,
-                    'job_date' => now()->format('Y-m-d'),
-                    'target_quantity' => (int) $row['target_quantity'],
-                    'status' => 'in_progress',
-                    'notes' => "Auto-initialized Job for Alteration Child Batch {$childBatch->batch_code}",
-                ]);
-
-                JobAlteration::create([
-                    'job_code' => $this->job->job_code,
-                    'production_job_id' => $this->job->id,
-                    'source_product_id' => $row['source_product_id'],
-                    'source_quantity' => (int) $row['source_quantity'],
-                    'target_product_id' => $row['target_product_id'],
-                    'target_quantity' => (int) $row['target_quantity'],
-                    'child_production_batch_id' => $childBatch->id,
-                ]);
+                $alt = $workflowService->recordJobAlteration(
+                    job: $this->job,
+                    sourceProductId: (int) $row['source_product_id'],
+                    sourceQty: (int) $row['source_quantity'],
+                    targetProductId: (int) $row['target_product_id'],
+                    targetQty: (int) $row['target_quantity']
+                );
+                $lastChildBatchCode = $alt->childBatch?->batch_code ?? '';
             }
 
             if ($this->job->status === 'pending') {

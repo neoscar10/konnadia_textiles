@@ -387,7 +387,7 @@
     <!-- Review Modals -->
     <!-- Mark Under Review Modal -->
     @if($showReviewModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
                 <h3 class="font-headline-md text-primary mb-md">Mark Under Review</h3>
                 <p class="font-body-md text-on-surface-variant mb-md">Mark this order as under review? You can add an optional review note.</p>
@@ -402,7 +402,7 @@
 
     <!-- Verify Receipt Modal -->
     @if($showVerifyReceiptModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
                 <h3 class="font-headline-md text-primary mb-md">Verify Payment Receipt</h3>
                 <p class="font-body-md text-on-surface-variant mb-md">Verify this payment receipt and mark the receipt status as verified? This will automatically place the order under review.</p>
@@ -417,7 +417,7 @@
 
     <!-- Reject Receipt Modal -->
     @if($showRejectReceiptModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
                 <h3 class="font-headline-md text-error mb-md">Reject Payment Receipt</h3>
                 <p class="font-body-md text-on-surface-variant mb-md">Reject this payment receipt? A rejection reason is **required** and the order status will automatically transition to **Rejected**.</p>
@@ -433,7 +433,7 @@
 
     <!-- Approve Order Modal -->
     @if($showApproveModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
                 <h3 class="font-headline-md text-primary mb-md">Approve Order</h3>
                 <p class="font-body-md text-on-surface-variant mb-md">Approve this order? Approving will automatically deduct the required quantities from the products and combinations inventory stock.</p>
@@ -448,7 +448,7 @@
 
     <!-- Reject Order Modal -->
     @if($showRejectModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
                 <h3 class="font-headline-md text-error mb-md">Reject Order</h3>
                 <p class="font-body-md text-on-surface-variant mb-md">Reject this order? A rejection reason is **required**.</p>
@@ -465,7 +465,7 @@
 
     <!-- Cancel Order Modal -->
     @if($showCancelModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
                 <h3 class="font-headline-md text-error mb-md">Cancel Order</h3>
                 <p class="font-body-md text-on-surface-variant mb-md">Cancel this order? If inventory stock was deducted, it will be automatically restored.</p>
@@ -480,7 +480,7 @@
 
     <!-- Dispatch Item Modal -->
     @if($showItemDispatchModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             @php
                 $selItem = collect($orderData['items'])->firstWhere('id', $selectedItemId);
                 $unitName = $selItem ? ($selItem['unit_short_code'] ?: 'Pcs') : 'qty';
@@ -588,7 +588,7 @@
 
     <!-- Bulk Dispatch Modal -->
     @if($showBulkDispatchModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-lg">
                 <h3 class="font-headline-md text-primary mb-md">Bulk Dispatch Items</h3>
                 <p class="font-body-md text-on-surface-variant mb-md">Confirm quantities and enter a dispatch note for the selected manufactured items.</p>
@@ -686,7 +686,7 @@
 
     <!-- Cancel Item Modal -->
     @if($showItemCancelModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md">
                 <h3 class="font-headline-md text-error mb-md">Cancel Order Item</h3>
                 <p class="font-body-md text-on-surface-variant mb-md">Are you sure you want to cancel this order item? If stock was deducted, it will be automatically restored, and the order total will be updated.</p>
@@ -700,7 +700,7 @@
 
     <!-- Dispatch Success / Print Prompt Modal -->
     @if($showDispatchSuccessModal)
-        <div class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-lg z-50">
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-md text-center">
                 <div class="w-16 h-16 bg-[#5c44c4]/10 text-[#5c44c4] rounded-full flex items-center justify-center mx-auto mb-md border border-[#5c44c4]/20">
                     <span class="material-symbols-outlined text-[36px] font-bold">local_shipping</span>

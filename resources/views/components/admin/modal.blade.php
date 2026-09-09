@@ -39,7 +39,7 @@ if ($maxWidth === '2.5xl') {
         x-transition:leave="ease-in duration-200"
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
-        class="fixed inset-0 bg-primary/40 backdrop-blur-sm transition-opacity" 
+        class="fixed inset-0 bg-black/25 backdrop-blur-xs transition-opacity" 
         @click="show = false"
     ></div>
 

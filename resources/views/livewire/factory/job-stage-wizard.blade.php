@@ -1,10 +1,20 @@
 <div class="space-y-6 max-w-7xl mx-auto pb-12">
     <!-- Top Header & Breadcrumb -->
     <div>
-        <a href="{{ route('admin.production.workbench') }}" wire:navigate class="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline mb-2">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-            <span>Back to Production Batches Hub</span>
-        </a>
+        @php
+            $batchCode = $job->production_batch_id ?? $job->batch?->batch_code;
+        @endphp
+        @if($batchCode)
+            <a href="{{ route('admin.production.batches.jobs', $batchCode) }}" wire:navigate class="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline mb-2">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                <span>Back to Batch {{ $batchCode }} Jobs</span>
+            </a>
+        @else
+            <a href="{{ route('admin.production.jobs.index') }}" wire:navigate class="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline mb-2">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                <span>Back to Production Jobs Hub</span>
+            </a>
+        @endif
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
                 <div class="flex items-center gap-3">
@@ -533,7 +543,7 @@
                             <button type="button" wire:click="$set('activeStep', {{ $isFinalTask ? 3 : 2 }})" class="px-5 py-2.5 bg-surface-container-low border border-outline-variant/60 text-on-surface font-bold text-xs rounded-xl hover:bg-surface-container transition-colors">
                                 ← Back
                             </button>
-                            <button type="button" wire:click="completeActiveStage" class="px-8 py-3 bg-[#8b6508] hover:bg-[#6e5006] text-white font-black text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2">
+                            <button type="button" wire:click="completeActiveStage" class="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer">
                                 <span class="material-symbols-outlined text-[18px]">check_circle</span>
                                 <span>Confirm & Advance Stage</span>
                             </button>

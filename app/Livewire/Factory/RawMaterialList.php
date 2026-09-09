@@ -91,7 +91,7 @@ class RawMaterialList extends Component
 
     public function render()
     {
-        $materials = RawMaterial::with('category')
+        $materials = RawMaterial::with(['category', 'supplierAliases.supplier'])
             ->search($this->search)
             ->when($this->categoryFilter, function ($q) {
                 $q->where('raw_material_category_id', $this->categoryFilter);

@@ -186,9 +186,11 @@ class JobStageWizard extends Component
             // 2. Record Product Output for this stage
             if ($this->producedQty > 0) {
                 JobProductionOutput::create([
-                    'production_job_id' => $this->job->id,
-                    'task_id'           => $taskId,
-                    'quantity_produced' => $this->producedQty,
+                    'job_code'                  => $this->job->job_code,
+                    'production_job_id'         => $this->job->id,
+                    'manufacturing_product_id' => $this->job->manufacturing_product_id,
+                    'task_id'                   => $taskId,
+                    'quantity_produced'         => $this->producedQty,
                 ]);
             }
 
@@ -197,26 +199,28 @@ class JobStageWizard extends Component
             if ($isFinalStep) {
                 if ($this->wastageQty > 0) {
                     JobWastage::create([
-                        'production_job_id' => $this->job->id,
-                        'task_id'           => $taskId,
-                        'quantity_wasted'   => $this->wastageQty,
-                        'reason'            => $this->remarks ?: "Final Task Reconciliation Wastage",
+                        'job_code'                  => $this->job->job_code,
+                        'production_job_id'         => $this->job->id,
+                        'manufacturing_product_id' => $this->job->manufacturing_product_id,
+                        'task_id'                   => $taskId,
+                        'quantity_wasted'           => $this->wastageQty,
+                        'reason'                    => $this->remarks ?: "Final Task Reconciliation Wastage",
                     ]);
                 }
 
+                $workflowService = resolve(ProductionWorkflowService::class);
                 foreach ($this->alterationRows as $altRow) {
                     $altQty    = intval($altRow['altered_qty'] ?? 0);
                     $targetPId = $altRow['target_product_id'] ?? null;
                     if ($altQty > 0 && $targetPId) {
-                        JobAlteration::create([
-                            'job_code'          => $this->job->job_code,
-                            'production_job_id' => $this->job->id,
-                            'source_product_id' => $this->job->manufacturing_product_id ?? $targetPId,
-                            'source_quantity'   => $altQty,
-                            'target_product_id' => $targetPId,
-                            'target_quantity'   => $altQty,
-                            'status'            => 'pending',
-                        ]);
+                        $workflowService->recordJobAlteration(
+                            job: $this->job,
+                            sourceProductId: $this->job->manufacturing_product_id ?? $targetPId,
+                            sourceQty: $altQty,
+                            targetProductId: $targetPId,
+                            targetQty: $altQty,
+                            reason: $this->remarks ?: "Final Task Reconciliation Alteration"
+                        );
                     }
                 }
             }

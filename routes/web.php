@@ -115,6 +115,16 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/factory/cutting-stage', \App\Livewire\Factory\CuttingStageWizard::class)->name('factory.cutting-stage');
     Route::get('/factory/production-jobs/{job}/stage-wizard', \App\Livewire\Factory\JobStageWizard::class)->name('factory.job-stage-wizard');
     Route::get('/admin/production/finished-goods-combination', \App\Livewire\Admin\Production\FinishedGoodsCombinationPage::class)->name('admin.production.finished-goods-combination');
+
+    // Front-End Products & Finished Goods Conversion Hub
+    Route::get('/admin/production/front-end-products', \App\Livewire\Admin\Production\FrontEndProductIndexPage::class)->name('admin.production.front-end-products');
+    Route::get('/admin/production/finished-goods', \App\Livewire\Admin\Production\FinishedGoodsConversionHub::class)->name('admin.production.finished-goods');
+
+    // Overhead Allocation
+    Route::get('/factory/overhead-allocation', \App\Livewire\Factory\OverheadAllocationPage::class)->name('factory.overhead-allocation.index');
+
+    // Wastage & Scrap Log
+    Route::get('/factory/wastage-log', \App\Livewire\Factory\WastageLogPage::class)->name('factory.wastage-log.index');
 });
 
 // Optional Customer Route Group (available to guests and logged-in customers)

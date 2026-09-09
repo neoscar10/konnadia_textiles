@@ -200,4 +200,56 @@ class StorefrontFinishedGoodsConversionTest extends TestCase
             'quantity_consumed' => 20,
         ]);
     }
+
+    /** @test */
+    public function it_supports_creating_new_or_topping_up_existing_storefront_product_during_conversion()
+    {
+        $feCategory = Category::create(['name' => 'Bedsheets', 'slug' => 'bedsheets']);
+
+        $feProduct = \App\Models\FrontEndProduct::create([
+            'name' => 'Luxury Satin Bedsheet',
+            'sku' => 'FE-SATIN-001',
+            'category_id' => $feCategory->id,
+            'is_active' => true,
+        ]);
+
+        \App\Models\FrontEndProductComponent::create([
+            'front_end_product_id' => $feProduct->id,
+            'manufacturing_product_id' => $this->mProductBedSheet->id,
+            'quantity' => 1,
+        ]);
+
+        $service = new FinishedGoodsConversionService();
+
+        // 1. Convert with mode = 'existing' targeting $this->storefrontSetProduct
+        $batchExisting = $service->convertFrontEndProductBatch([
+            'front_end_product_id' => $feProduct->id,
+            'converted_qty' => 5,
+            'unit' => 'Piece (Pcs)',
+            'unit_factor' => 1,
+            'design_id' => 'DSG-TEST-01',
+            'storefront_mode' => 'existing',
+            'existing_storefront_product_id' => $this->storefrontSetProduct->id,
+        ]);
+
+        $this->assertNotNull($batchExisting);
+        $this->assertEquals(5, $this->storefrontSetProduct->fresh()->stock_quantity);
+
+        // 2. Convert with mode = 'new' (creates/updates matching product in category)
+        $batchNew = $service->convertFrontEndProductBatch([
+            'front_end_product_id' => $feProduct->id,
+            'converted_qty' => 12,
+            'unit' => 'Piece (Pcs)',
+            'unit_factor' => 1,
+            'design_id' => 'DSG-TEST-02',
+            'storefront_mode' => 'new',
+        ]);
+
+        $this->assertNotNull($batchNew);
+        $newProduct = Product::where('sku', 'FE-SATIN-001')->first();
+        $this->assertNotNull($newProduct);
+        $this->assertEquals('Luxury Satin Bedsheet', $newProduct->title);
+        $this->assertEquals(12, $newProduct->stock_quantity);
+    }
 }
+

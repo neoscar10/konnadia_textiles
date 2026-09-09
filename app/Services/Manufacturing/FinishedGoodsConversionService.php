@@ -326,4 +326,305 @@ class FinishedGoodsConversionService
             return $bundle;
         });
     }
+
+    /**
+     * Perform stock availability check for a Front-End Product bundle conversion.
+     */
+    public function checkFrontEndStockAvailability(\App\Models\FrontEndProduct $frontEndProduct, int $targetQty, int $unitFactor = 1): array
+    {
+        $targetQty = max(1, $targetQty);
+        $unitFactor = max(1, $unitFactor);
+
+        $mfgStock = [];
+        $pkgStock = [];
+        $missingItems = [];
+        $canProceed = true;
+
+        $frontEndProduct->loadMissing(['components.manufacturingProduct', 'packagingItems.rawMaterial']);
+
+        foreach ($frontEndProduct->components as $comp) {
+            $mfgProduct = $comp->manufacturingProduct;
+            if (!$mfgProduct) {
+                continue;
+            }
+
+            $totalReq = (int) ($comp->quantity * $unitFactor * $targetQty);
+
+            // Calculate total unconverted factory stock available across completed Jobs & Batches
+            $jobAvailable = (int) \App\Models\ProductionJob::where('manufacturing_product_id', $mfgProduct->id)
+                ->where('status', 'completed')
+                ->get()
+                ->sum(fn($j) => $j->remaining_unconverted_quantity);
+
+            $batchAvailable = (int) \App\Models\ProductionBatch::where('manufacturing_product_id', $mfgProduct->id)
+                ->where('status', 'Completed')
+                ->where('is_converted', false)
+                ->get()
+                ->sum(fn($b) => $b->remaining_unconverted_quantity);
+
+            // Total available is sum of available completed WIP items
+            $available = max($jobAvailable, $batchAvailable);
+
+            $isEnough = $available >= $totalReq;
+            if (!$isEnough) {
+                $canProceed = false;
+                $shortage = $totalReq - $available;
+                $missingItems[] = "{$mfgProduct->name} (Short by {$shortage} Pcs)";
+            }
+
+            $mfgStock[] = [
+                'manufacturing_product_id' => $mfgProduct->id,
+                'name' => $mfgProduct->name,
+                'qty_per_unit' => $comp->quantity,
+                'unit_factor' => $unitFactor,
+                'total_required' => $totalReq,
+                'available_stock' => $available,
+                'is_enough' => $isEnough,
+            ];
+        }
+
+        foreach ($frontEndProduct->packagingItems as $pkg) {
+            $rawMat = $pkg->rawMaterial;
+            if (!$rawMat) {
+                continue;
+            }
+
+            $totalReqPkg = (int) ($pkg->quantity * $targetQty);
+
+            $pkgStock[] = [
+                'raw_material_id' => $rawMat->id,
+                'name' => $rawMat->name,
+                'qty_per_unit' => $pkg->quantity,
+                'total_required' => $totalReqPkg,
+            ];
+        }
+
+        return [
+            'canProceed' => $canProceed,
+            'mfgStock' => $mfgStock,
+            'pkgStock' => $pkgStock,
+            'missingItems' => $missingItems,
+        ];
+    }
+
+    /**
+     * Convert completed factory WIP output into a finished goods lot batch tied to a Front-End Product.
+     */
+    public function convertFrontEndProductBatch(array $data): \App\Models\FinishedGoodsBatch
+    {
+        $feProductId = intval($data['front_end_product_id'] ?? 0);
+        $produceQty = max(1, intval($data['converted_qty'] ?? 1));
+        $unitVal = $data['unit'] ?? 'Piece (Pcs)';
+        $unitFactor = max(1, intval($data['unit_factor'] ?? 1));
+        $designId = trim($data['design_id'] ?? 'DSG-108');
+        $isPublished = isset($data['is_published']) ? (bool) $data['is_published'] : true;
+        $notes = $data['notes'] ?? null;
+        $storefrontMode = $data['storefront_mode'] ?? 'new';
+        $existingStorefrontProductId = intval($data['existing_storefront_product_id'] ?? 0);
+
+        $feProduct = \App\Models\FrontEndProduct::with(['components.manufacturingProduct', 'packagingItems.rawMaterial'])->findOrFail($feProductId);
+
+        // Run availability check
+        $stockCheck = $this->checkFrontEndStockAvailability($feProduct, $produceQty, $unitFactor);
+        if (!$stockCheck['canProceed']) {
+            throw new Exception("Cannot proceed to conversion: Insufficient unconverted manufacturing stock for: " . implode(', ', $stockCheck['missingItems']));
+        }
+
+        // Generate barcode
+        $dIdClean = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $designId));
+        if (empty($dIdClean)) {
+            $dIdClean = 'DSG108';
+        }
+        $barcodeBase = "FG-{$dIdClean}-" . now()->format('Y') . "-" . str_pad((string) $produceQty, 4, '0', STR_PAD_LEFT);
+        $barcode = $barcodeBase;
+        $counter = 1;
+        while (\App\Models\FinishedGoodsBatch::where('barcode', $barcode)->exists()) {
+            $barcode = "{$barcodeBase}-" . str_pad((string) $counter, 2, '0', STR_PAD_LEFT);
+            $counter++;
+        }
+
+        return DB::transaction(function () use ($feProduct, $produceQty, $unitVal, $unitFactor, $designId, $barcode, $isPublished, $notes, $storefrontMode, $existingStorefrontProductId) {
+            // 1. Create FinishedGoodsBatch record
+            $fgBatch = \App\Models\FinishedGoodsBatch::create([
+                'barcode' => $barcode,
+                'front_end_product_id' => $feProduct->id,
+                'design_id' => $designId,
+                'converted_qty' => $produceQty,
+                'unit' => $unitVal,
+                'unit_factor' => $unitFactor,
+                'converted_date' => now(),
+                'is_published' => $isPublished,
+                'created_by' => auth()->id(),
+                'notes' => $notes,
+                'costing_summary' => [
+                    'fabricCost' => '₹310.00',
+                    'laborCost' => '₹42.00',
+                    'packagingCost' => '₹10.00',
+                    'totalUnitCost' => '₹362.00',
+                ],
+            ]);
+
+            // 2. Deduct manufacturing output stock FIFO from completed ProductionJobs / Batches
+            foreach ($feProduct->components as $comp) {
+                $mfgProduct = $comp->manufacturingProduct;
+                if (!$mfgProduct) {
+                    continue;
+                }
+
+                $totalNeeded = $comp->quantity * $unitFactor * $produceQty;
+                $remainingNeeded = $totalNeeded;
+
+                // First try deducting from completed ProductionJobs
+                $completedJobs = \App\Models\ProductionJob::where('manufacturing_product_id', $mfgProduct->id)
+                    ->where('status', 'completed')
+                    ->orderBy('created_at', 'asc')
+                    ->get();
+
+                foreach ($completedJobs as $job) {
+                    if ($remainingNeeded <= 0) {
+                        break;
+                    }
+
+                    $unconverted = $job->remaining_unconverted_quantity;
+                    if ($unconverted <= 0) {
+                        continue;
+                    }
+
+                    $deduct = min($remainingNeeded, $unconverted);
+                    $job->update([
+                        'converted_quantity' => (int) $job->converted_quantity + $deduct,
+                    ]);
+
+                    \App\Models\FinishedGoodsBatchItem::create([
+                        'finished_goods_batch_id' => $fgBatch->id,
+                        'manufacturing_product_id' => $mfgProduct->id,
+                        'production_batch_id' => $job->production_batch_db_id ?: ($job->batch?->id),
+                        'production_job_id' => $job->id,
+                        'quantity_used' => $deduct,
+                    ]);
+
+                    $remainingNeeded -= $deduct;
+                }
+
+                // If remaining needed, try deducting from completed ProductionBatches
+                if ($remainingNeeded > 0) {
+                    $completedBatches = \App\Models\ProductionBatch::where('manufacturing_product_id', $mfgProduct->id)
+                        ->where('status', 'Completed')
+                        ->where('is_converted', false)
+                        ->orderBy('created_at', 'asc')
+                        ->get();
+
+                    foreach ($completedBatches as $batch) {
+                        if ($remainingNeeded <= 0) {
+                            break;
+                        }
+
+                        $unconverted = $batch->remaining_unconverted_quantity;
+                        if ($unconverted <= 0) {
+                            continue;
+                        }
+
+                        $deduct = min($remainingNeeded, $unconverted);
+                        $newConverted = (int) $batch->converted_quantity + $deduct;
+                        $batch->update([
+                            'converted_quantity' => $newConverted,
+                            'is_converted' => $newConverted >= ($batch->total_finished_quantity ?: $batch->planned_quantity),
+                        ]);
+
+                        \App\Models\FinishedGoodsBatchItem::create([
+                            'finished_goods_batch_id' => $fgBatch->id,
+                            'manufacturing_product_id' => $mfgProduct->id,
+                            'production_batch_id' => $batch->id,
+                            'production_job_id' => null,
+                            'quantity_used' => $deduct,
+                        ]);
+
+                        $remainingNeeded -= $deduct;
+                    }
+                }
+            }
+
+            // 3. FIFO deduct packaging materials
+            foreach ($feProduct->packagingItems as $pkg) {
+                $rawMat = $pkg->rawMaterial;
+                if (!$rawMat) {
+                    continue;
+                }
+
+                $totalPkgNeeded = $pkg->quantity * $produceQty;
+                $remainingPkg = $totalPkgNeeded;
+
+                $invBatches = \App\Models\InventoryBatch::active()
+                    ->byMaterial($rawMat->id)
+                    ->orderBy('purchase_date', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                foreach ($invBatches as $invBatch) {
+                    if ($remainingPkg <= 0) {
+                        break;
+                    }
+
+                    $deduct = min($remainingPkg, (float) $invBatch->balance_quantity);
+                    $invBatch->deductQuantity($deduct);
+                    $remainingPkg -= $deduct;
+
+                    \App\Services\InventoryBatchLogger::log($invBatch->id, 'consumed', $deduct, null, "Packaging material consumed during Front-End conversion {$fgBatch->barcode}");
+                }
+
+                \App\Models\FinishedGoodsBatchPackaging::create([
+                    'finished_goods_batch_id' => $fgBatch->id,
+                    'raw_material_id' => $rawMat->id,
+                    'quantity_deducted' => $totalPkgNeeded,
+                ]);
+            }
+
+            // 4. Update or Create Storefront Product stock
+            $storefrontProduct = null;
+
+            if ($storefrontMode === 'existing' && $existingStorefrontProductId > 0) {
+                $storefrontProduct = \App\Models\Product::find($existingStorefrontProductId);
+            }
+
+            if (!$storefrontProduct) {
+                // Find existing product by SKU or title, or create a new Product
+                $storefrontProduct = \App\Models\Product::where('sku', $feProduct->sku)
+                    ->orWhere('title', $feProduct->name)
+                    ->first();
+
+                if (!$storefrontProduct) {
+                    $storefrontProduct = \App\Models\Product::create([
+                        'title' => $feProduct->name,
+                        'sku' => $feProduct->sku,
+                        'description' => $feProduct->description,
+                        'is_active' => $isPublished,
+                        'stock_quantity' => 0,
+                        'base_price' => 0.00,
+                    ]);
+
+                    if ($feProduct->category_id) {
+                        $storefrontProduct->categories()->syncWithoutDetaching([$feProduct->category_id]);
+                    }
+                }
+            }
+
+            if ($storefrontProduct) {
+                $storefrontProduct->increment('stock_quantity', $produceQty);
+
+                \App\Models\InventoryMovement::create([
+                    'product_id' => $storefrontProduct->id,
+                    'product_combination_id' => null,
+                    'quantity_change' => $produceQty,
+                    'unit_cost' => 0.00,
+                    'reference_type' => \App\Models\FinishedGoodsBatch::class,
+                    'reference_id' => $fgBatch->id,
+                    'movement_type' => 'manufacturing_inward',
+                    'notes' => "Finished Goods Conversion Barcode {$fgBatch->barcode} ({$produceQty} {$unitVal} of {$feProduct->name})",
+                ]);
+            }
+
+            return $fgBatch;
+        });
+    }
 }
+

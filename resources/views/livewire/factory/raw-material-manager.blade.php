@@ -1,7 +1,7 @@
 <div>
     @if($showModal)
         <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" wire:click="closeModal"></div>
+        <div class="fixed inset-0 bg-black/25 backdrop-blur-xs z-40" wire:click="closeModal"></div>
 
         <!-- Modal -->
         <div class="fixed inset-0 z-50 overflow-y-auto">

@@ -12,8 +12,14 @@ class InventoryBale extends Model
     protected $fillable = [
         'inventory_batch_id',
         'bale_number',
+        'item_name',
+        'design_number',
+        'stock_id',
         'status', // unopened, opened, depleted
         'declared_length',
+        'cost_per_unit',
+        'total_cost',
+        'photo_path',
         'actual_recorded_length',
         'current_balance_length',
         'roll_count',
@@ -21,6 +27,8 @@ class InventoryBale extends Model
 
     protected $casts = [
         'declared_length' => 'float',
+        'cost_per_unit' => 'decimal:2',
+        'total_cost' => 'decimal:2',
         'actual_recorded_length' => 'float',
         'current_balance_length' => 'float',
         'roll_count' => 'integer',

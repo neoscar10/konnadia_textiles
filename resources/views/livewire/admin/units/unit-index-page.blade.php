@@ -69,7 +69,7 @@
 
     <!-- Group Modal -->
     @if($showGroupModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-scrim/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-black/25 backdrop-blur-xs flex items-center justify-center p-4">
             <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-outline-variant/60 transform transition-all">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-bold text-on-surface">{{ $editingGroupId ? 'Edit Unit Group' : 'Create Unit Group' }}</h3>
@@ -105,7 +105,7 @@
 
     <!-- Units Drawer / Modal for Selected Group -->
     @if($selectedGroup)
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-scrim/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-black/25 backdrop-blur-xs flex items-center justify-center p-4">
             <div class="bg-surface-container-lowest rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-outline-variant/60">
                 <div class="flex items-center justify-between mb-4">
                     <div>
@@ -198,7 +198,7 @@
                     return `Every 1 ${this.displayName} (${this.displayCode}) used in manufacturing or stock counts as ${this.formattedRatio} ${this.baseName} (${this.baseCode})`;
                 }
              }"
-             class="fixed inset-0 z-50 overflow-y-auto bg-scrim/40 backdrop-blur-xs flex items-center justify-center p-4">
+             class="fixed inset-0 z-50 overflow-y-auto bg-black/25 backdrop-blur-xs flex items-center justify-center p-4">
             <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-outline-variant/60">
                 <div class="flex items-center justify-between mb-4">
                     <h4 class="text-base font-bold text-on-surface">{{ $editingUnitId ? 'Edit Unit' : 'Add Unit' }}</h4>

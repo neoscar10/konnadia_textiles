@@ -15,6 +15,11 @@ class Labor extends Model
         'monthly_salary' => 'decimal:2',
     ];
 
+    public function scopeActive($query)
+    {
+        return $query->where('status', true);
+    }
+
     public function tasks()
     {
         return $this->belongsToMany(Task::class);

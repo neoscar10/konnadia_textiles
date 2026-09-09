@@ -31,6 +31,7 @@ class JobIndexPage extends Component
     public int $planned_quantity = 200;
     public string $priority = 'Normal';
     public string $notes = '';
+    public array $batchProducts = [];
 
     // Storefront Conversion Modal Properties
     public ?int $target_product_id = null;

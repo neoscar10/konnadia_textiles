@@ -132,6 +132,32 @@ class RawMaterial extends Model
     }
 
     /**
+     * Check if this raw material represents fabric (length-based or fabric category/unit/name).
+     */
+    public function isFabric(): bool
+    {
+        if ($this->unit && in_array($this->unit, ['Meters', 'Yards', 'Feet', 'Inches'])) {
+            return true;
+        }
+
+        if (stripos($this->name, 'fabric') !== false) {
+            return true;
+        }
+
+        if ($this->category) {
+            $unitTypeVal = is_object($this->category->unit_type) ? $this->category->unit_type->value : (string) $this->category->unit_type;
+            if ($unitTypeVal === 'length_based') {
+                return true;
+            }
+            if ($this->category->code === 'CAT-FAB' || stripos($this->category->code, 'FAB') !== false || stripos($this->category->name, 'Fabric') !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Scope: filter only fabric materials (length-based or fabric categories).
      */
     public function scopeFabricsOnly($query)

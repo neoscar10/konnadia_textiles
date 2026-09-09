@@ -18,6 +18,7 @@ class InventoryBatch extends Model
         'supplier_name',
         'purchase_date',
         'invoice_number',
+        'lot_number',
         'quantity_received',
         'quantity_consumed',
         'balance_quantity',

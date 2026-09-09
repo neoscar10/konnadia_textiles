@@ -567,4 +567,107 @@ class ProductionWorkflowService
             return $this->errorResponse($e->getMessage(), ['error' => $e->getMessage()], 400);
         }
     }
+
+    /**
+     * Record a product alteration: creates child ProductionBatch, child ProductionJob, and JobAlteration record.
+     *
+     * @param ProductionJob $job
+     * @param int $sourceProductId
+     * @param int $sourceQty
+     * @param int $targetProductId
+     * @param int $targetQty
+     * @param string|null $reason
+     * @return \App\Models\JobAlteration
+     */
+    public function recordJobAlteration(ProductionJob $job, int $sourceProductId, int $sourceQty, int $targetProductId, int $targetQty, ?string $reason = null): \App\Models\JobAlteration
+    {
+        return DB::transaction(function () use ($job, $sourceProductId, $sourceQty, $targetProductId, $targetQty, $reason) {
+            $parentBatch = $job->batch;
+            if (!$parentBatch && !empty($job->production_batch_id)) {
+                $parentBatch = ProductionBatch::where('batch_code', $job->production_batch_id)->first();
+            }
+            if (!$parentBatch && !empty($job->production_batch_db_id)) {
+                $parentBatch = ProductionBatch::find($job->production_batch_db_id);
+            }
+            if (!$parentBatch) {
+                $candidateCode = 'PB-' . date('Y') . '-' . str_pad($job->id, 4, '0', STR_PAD_LEFT);
+                $parentBatch = ProductionBatch::where('batch_code', $candidateCode)->first();
+                if (!$parentBatch) {
+                    $latestBatchId = (int) (ProductionBatch::max('id') ?? 0);
+                    $candidateCode = 'PB-' . date('Y') . '-' . str_pad($latestBatchId + 1, 4, '0', STR_PAD_LEFT);
+                    while (ProductionBatch::where('batch_code', $candidateCode)->exists()) {
+                        $latestBatchId++;
+                        $candidateCode = 'PB-' . date('Y') . '-' . str_pad($latestBatchId + 1, 4, '0', STR_PAD_LEFT);
+                    }
+                    $parentBatch = ProductionBatch::create([
+                        'batch_code' => $candidateCode,
+                        'manufacturing_product_id' => $job->manufacturing_product_id,
+                        'planned_quantity' => $job->target_quantity,
+                        'status' => 'In Progress',
+                        'supervisor_id' => $job->supervisor_id ?? auth()->id(),
+                    ]);
+                }
+                $job->update(['production_batch_db_id' => $parentBatch->id, 'production_batch_id' => $parentBatch->batch_code]);
+            }
+
+            $childCount = $parentBatch->childBatches()->count() + 1;
+            $childBatchCode = $parentBatch->batch_code . "-A{$childCount}";
+            while (ProductionBatch::where('batch_code', $childBatchCode)->exists()) {
+                $childCount++;
+                $childBatchCode = $parentBatch->batch_code . "-A{$childCount}";
+            }
+
+            $childBatch = ProductionBatch::create([
+                'parent_batch_id' => $parentBatch->id,
+                'batch_code' => $childBatchCode,
+                'batch_date' => now()->format('Y-m-d'),
+                'supervisor_id' => $job->supervisor_id ?? auth()->id(),
+                'manufacturing_product_id' => $targetProductId,
+                'planned_quantity' => (int) $targetQty,
+                'priority' => $parentBatch->priority ?? 'Normal',
+                'status' => 'In Progress',
+                'remarks' => "Child Alteration Batch derived from Parent Batch {$parentBatch->batch_code} (Source Job {$job->job_code})",
+            ]);
+
+            $targetProduct = ManufacturingProduct::find($targetProductId);
+            $firstTask = $targetProduct ? $targetProduct->tasks()->orderByPivot('sequence_number', 'asc')->first() : null;
+            if (!$firstTask) {
+                $firstTask = Task::where('status', true)->first();
+            }
+
+            $latestJobId = ProductionJob::max('id') ?? 0;
+            $childJobCode = "JOB-" . date('Y') . "-" . str_pad($latestJobId + 1, 4, '0', STR_PAD_LEFT);
+            while (ProductionJob::where('job_code', $childJobCode)->exists()) {
+                $latestJobId++;
+                $childJobCode = "JOB-" . date('Y') . "-" . str_pad($latestJobId + 1, 4, '0', STR_PAD_LEFT);
+            }
+
+            $childJob = ProductionJob::create([
+                'job_code' => $childJobCode,
+                'production_batch_id' => $childBatch->batch_code,
+                'production_batch_db_id' => $childBatch->id,
+                'manufacturing_product_id' => $targetProductId,
+                'task_id' => $firstTask ? $firstTask->id : $job->task_id,
+                'supervisor_id' => $childBatch->supervisor_id,
+                'job_date' => now()->format('Y-m-d'),
+                'target_quantity' => (int) $targetQty,
+                'status' => 'in_progress',
+                'notes' => "Auto-initialized Job for Alteration Child Batch {$childBatch->batch_code}",
+            ]);
+
+            $childJob->ensureStageExecutionsExist();
+
+            $alteration = \App\Models\JobAlteration::create([
+                'job_code' => $job->job_code,
+                'production_job_id' => $job->id,
+                'source_product_id' => $sourceProductId,
+                'source_quantity' => (int) $sourceQty,
+                'target_product_id' => $targetProductId,
+                'target_quantity' => (int) $targetQty,
+                'child_production_batch_id' => $childBatch->id,
+            ]);
+
+            return $alteration;
+        });
+    }
 }

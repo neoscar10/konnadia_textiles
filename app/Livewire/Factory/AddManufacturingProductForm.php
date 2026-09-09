@@ -71,19 +71,16 @@ class AddManufacturingProductForm extends Component
             'manufacturing_product_category_id' => 'required|exists:manufacturing_product_categories,id',
             'status'                            => 'required|in:active,inactive',
             'imageUpload'                       => 'nullable|image|max:10240',
+            'patternsList'                      => 'required|array|min:1',
+            'patternsList.*.name'               => 'required|string|max:255',
+            'patternsList.*.fabric_width_id'    => 'required|exists:fabric_widths,id',
+            'patternsList.*.fabric_length'      => 'required|numeric|min:0.01',
+            'patternsList.*.fabric_length_unit' => 'required|string',
+            'patternsList.*.tasks'              => 'nullable|array',
+            'patternsList.*.tasks.*.task_id'    => 'required|exists:tasks,id',
         ];
 
-        if ($this->wizardStep === 2 || $this->wizardStep === 3) {
-            $rules['patternsList'] = 'required|array|min:1';
-            $rules['patternsList.*.name'] = 'required|string|max:255';
-            $rules['patternsList.*.fabric_width_id'] = 'required|exists:fabric_widths,id';
-            $rules['patternsList.*.fabric_length'] = 'required|numeric|min:0.01';
-            $rules['patternsList.*.fabric_length_unit'] = 'required|string';
-            $rules['patternsList.*.tasks'] = 'required|array|min:1';
-            $rules['patternsList.*.tasks.*.task_id'] = 'required|exists:tasks,id';
-        }
-
-        if ($this->wizardStep === 3 && $this->is_subsidiary_used) {
+        if ($this->is_subsidiary_used && !empty($this->subsidiaryMaterialsList)) {
             $rules['subsidiaryMaterialsList']                         = 'array';
             $rules['subsidiaryMaterialsList.*.raw_material_id']      = 'required|exists:raw_materials,id';
             $rules['subsidiaryMaterialsList.*.consumption_quantity'] = 'required|numeric|min:0.0001';
@@ -424,23 +421,59 @@ class AddManufacturingProductForm extends Component
 
     public function save()
     {
-        // Full validation
-        $this->validate();
+        // Auto-fill category default tasks for pattern 0 if tasks list is empty
+        if (!empty($this->manufacturing_product_category_id) && !empty($this->patternsList[0]) && empty($this->patternsList[0]['tasks'])) {
+            $this->loadCategoryDefaultTasksForPattern(0);
+        }
 
-        // 1. Check duplicate subsidiary materials
+        // 1. Filter out completely blank subsidiary rows if user toggled subsidiary used but left empty rows
+        if ($this->is_subsidiary_used && !empty($this->subsidiaryMaterialsList)) {
+            $filtered = array_filter($this->subsidiaryMaterialsList, function ($row) {
+                return !empty($row['raw_material_id']) || !empty($row['consumption_quantity']);
+            });
+            $this->subsidiaryMaterialsList = array_values($filtered);
+            if (empty($this->subsidiaryMaterialsList)) {
+                $this->subsidiaryMaterialsList = [['raw_material_id' => '', 'consumption_quantity' => '', 'unit' => '']];
+            }
+        }
+
+        // 2. Full validation across all steps
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->validator->errors();
+
+            if ($errors->has('name') || $errors->has('manufacturing_product_category_id') || $errors->has('status') || $errors->has('imageUpload')) {
+                $this->wizardStep = 1;
+            } elseif ($errors->has('patternsList') || $errors->has('patternsList.*')) {
+                $this->wizardStep = 2;
+            } else {
+                $this->wizardStep = 3;
+            }
+
+            $firstMsg = $errors->first();
+            $this->dispatch('toast', message: "Cannot save: {$firstMsg}", type: 'error');
+            $this->dispatch('scroll-to-top');
+            throw $e;
+        }
+
+        // 3. Check duplicate subsidiary materials
         if ($this->is_subsidiary_used && count($this->subsidiaryMaterialsList) > 0) {
             $selectedSubIds = array_column($this->subsidiaryMaterialsList, 'raw_material_id');
             $selectedSubIds = array_filter($selectedSubIds);
             if (count($selectedSubIds) !== count(array_unique($selectedSubIds))) {
                 $this->addError('subsidiaryMaterialsList', 'Duplicate subsidiary materials selected. Each material must only appear once per product.');
+                $this->dispatch('toast', message: 'Duplicate subsidiary materials selected. Each material must only appear once.', type: 'error');
                 return;
             }
         }
 
-        // 2. Validate category status
+        // 4. Validate category status
         $category = ManufacturingProductCategory::findOrFail($this->manufacturing_product_category_id);
         if (!$category->status) {
             $this->addError('manufacturing_product_category_id', 'Selected category is inactive.');
+            $this->wizardStep = 1;
+            $this->dispatch('toast', message: 'Selected category is inactive.', type: 'error');
             return;
         }
 

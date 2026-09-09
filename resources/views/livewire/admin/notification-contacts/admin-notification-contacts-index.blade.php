@@ -133,7 +133,7 @@
 
     <!-- Create / Edit Contact Modal -->
     @if($showModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/25 backdrop-blur-xs">
             <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-outline-variant/30 space-y-5 animate-in fade-in zoom-in-95 duration-200">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h3 class="text-base font-extrabold text-[#001229]">
@@ -211,7 +211,7 @@
 
     <!-- Delete Confirmation Modal -->
     @if($confirmingDeletion)
-        <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/25 backdrop-blur-xs">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-outline-variant/30 space-y-4">
                 <div class="flex items-center gap-3 text-rose-600">
                     <span class="material-symbols-outlined text-2xl">warning</span>

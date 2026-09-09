@@ -100,7 +100,7 @@
                     
                     <label class="relative inline-flex items-center cursor-pointer select-none">
                         <input type="checkbox" wire:model.live="consumes_raw_material" class="sr-only peer">
-                        <div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+                        <div class="w-12 h-6 bg-slate-300 border border-slate-300 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-secondary/30 peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md peer-checked:bg-secondary peer-checked:border-secondary transition-all duration-200"></div>
                         <span class="font-label-md text-xs font-bold ml-2 {{ $consumes_raw_material ? 'text-secondary' : 'text-on-surface-variant' }}">
                             {{ $consumes_raw_material ? 'Consumes' : 'Does not consume' }}
                         </span>
@@ -170,7 +170,7 @@
                     
                     <label class="relative inline-flex items-center cursor-pointer select-none">
                         <input type="checkbox" wire:model.live="is_labor_required" class="sr-only peer">
-                        <div class="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tertiary"></div>
+                        <div class="w-12 h-6 bg-slate-300 border border-slate-300 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-tertiary/30 peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md peer-checked:bg-tertiary peer-checked:border-tertiary transition-all duration-200"></div>
                         <span class="font-label-md text-xs font-bold ml-2 {{ $is_labor_required ? 'text-tertiary' : 'text-on-surface-variant' }}">
                             {{ $is_labor_required ? 'Labor Dependent' : 'Non-Labor Stage' }}
                         </span>
