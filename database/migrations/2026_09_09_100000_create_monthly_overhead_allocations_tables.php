@@ -23,17 +23,17 @@ return new class extends Migration
             $table->decimal('total_overhead', 12, 2)->default(0.00);
             $table->decimal('overhead_percentage', 5, 2)->default(0.00);
             $table->string('status')->default('saved');
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users', indexName: 'fk_mo_alloc_created_by')->nullOnDelete();
             $table->timestamps();
         });
 
         Schema::create('monthly_overhead_material_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('monthly_overhead_allocation_id')
-                ->constrained('monthly_overhead_allocations')
+                ->constrained('monthly_overhead_allocations', indexName: 'fk_mo_mat_items_alloc_id')
                 ->onDelete('cascade');
             $table->foreignId('raw_material_id')
-                ->constrained('raw_materials')
+                ->constrained('raw_materials', indexName: 'fk_mo_mat_items_raw_mat_id')
                 ->onDelete('cascade');
             $table->decimal('opening_stock_value', 12, 2)->default(0.00);
             $table->decimal('purchases_value', 12, 2)->default(0.00);
@@ -46,7 +46,7 @@ return new class extends Migration
         Schema::create('monthly_overhead_other_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('monthly_overhead_allocation_id')
-                ->constrained('monthly_overhead_allocations')
+                ->constrained('monthly_overhead_allocations', indexName: 'fk_mo_oth_items_alloc_id')
                 ->onDelete('cascade');
             $table->string('category_name');
             $table->decimal('amount', 12, 2)->default(0.00);
