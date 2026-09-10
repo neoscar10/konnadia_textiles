@@ -140,7 +140,13 @@ class ProductionCostingService
                 ->orWhere(function ($subQ) {
                     $subQ->whereNull('inventory_bale_roll_id')
                          ->where(function($lq) { $lq->whereNull('consumed_length')->orWhere('consumed_length', 0); })
-                         ->where(function($fq) { $fq->whereNull('total_fabric_cost')->orWhere('total_fabric_cost', 0); });
+                         ->where(function($fq) { $fq->whereNull('total_fabric_cost')->orWhere('total_fabric_cost', 0); })
+                         ->whereDoesntHave('inventoryBatch.rawMaterial.category', function ($cq) {
+                             $cq->where('code', 'CAT-FAB')
+                                ->orWhere('code', 'like', '%FAB%')
+                                ->orWhere('name', 'like', '%Fabric%')
+                                ->orWhere('unit_type', 'length_based');
+                         });
                 });
             })
             ->sum('total_cost');
@@ -346,7 +352,13 @@ class ProductionCostingService
                 ->orWhere(function ($subQ) {
                     $subQ->whereNull('inventory_bale_roll_id')
                          ->where(function($lq) { $lq->whereNull('consumed_length')->orWhere('consumed_length', 0); })
-                         ->where(function($fq) { $fq->whereNull('total_fabric_cost')->orWhere('total_fabric_cost', 0); });
+                         ->where(function($fq) { $fq->whereNull('total_fabric_cost')->orWhere('total_fabric_cost', 0); })
+                         ->whereDoesntHave('inventoryBatch.rawMaterial.category', function ($cq) {
+                             $cq->where('code', 'CAT-FAB')
+                                ->orWhere('code', 'like', '%FAB%')
+                                ->orWhere('name', 'like', '%Fabric%')
+                                ->orWhere('unit_type', 'length_based');
+                         });
                 });
             })
             ->sum('total_cost');
