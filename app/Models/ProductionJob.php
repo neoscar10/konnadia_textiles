@@ -395,4 +395,20 @@ class ProductionJob extends Model
 
         return 'unconverted';
     }
+
+    /**
+     * Get configured subsidiary materials for this job (checking pattern BOM first, falling back to product BOM).
+     */
+    public function getEffectiveSubsidiaryMaterials()
+    {
+        if ($this->pattern && $this->pattern->subsidiaryMaterials()->exists()) {
+            return $this->pattern->subsidiaryMaterials;
+        }
+
+        if ($this->manufacturingProduct && $this->manufacturingProduct->subsidiaryMaterials()->exists()) {
+            return $this->manufacturingProduct->subsidiaryMaterials;
+        }
+
+        return collect();
+    }
 }

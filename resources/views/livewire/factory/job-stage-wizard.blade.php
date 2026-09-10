@@ -812,7 +812,12 @@
                             <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 2 : 1 }})" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
                                 ← Back to Labour
                             </button>
-                            @if($isFinalTask)
+                            @if($isFinalTask && $this->hasSubsidiaryMaterials)
+                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 4 : 3 }})" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                                    <span>Next Step: Subsidiary Materials Accounting</span>
+                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                </button>
+                            @elseif($isFinalTask)
                                 <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 4 : 3 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
                                     <span>Next Step: Wastage &amp; Alteration</span>
                                     <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -827,8 +832,162 @@
                     </div>
                 @endif
 
-                <!-- STEP 3/4 (FINAL TASK ONLY): FINAL BATCH RECONCILIATION - ALTERATION, SCRAP & DAMAGE -->
-                @if($isFinalTask && (($isCutting && $activeStep === 4) || (!$isCutting && $activeStep === 3)))
+                <!-- STEP 3/4 (FINAL TASK ONLY): SUBSIDIARY MATERIALS ACCOUNTING -->
+                @if($isFinalTask && $this->hasSubsidiaryMaterials && (($isCutting && $activeStep === 4) || (!$isCutting && $activeStep === 3)))
+                    <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-sm space-y-6">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-amber-600">inventory_2</span>
+                                    <span>Subsidiary Materials Accounting</span>
+                                </h3>
+                                <span class="px-3 py-1 bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                    BOM Cost Accounting
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">
+                                Account for subsidiary materials (buttons, zippers, hooks, labels, etc.) consumed by output units and extra/damaged items.
+                            </p>
+                        </div>
+
+                        <!-- Readonly Output Quantity (Matching Sketch) -->
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                                Total Products That Used Subsidiary Material *
+                            </label>
+                            <div class="relative">
+                                <input type="number" readonly disabled value="{{ $producedQty }}" class="w-full bg-slate-100 border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-black text-slate-900 shadow-inner cursor-not-allowed">
+                                <span class="absolute right-3 top-2.5 text-[10px] font-extrabold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
+                                    Read-only (From Output Step)
+                                </span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 font-medium">Assumed based on output units recorded in previous step.</p>
+                        </div>
+
+                        <!-- Line Items Used -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                                <h4 class="text-xs font-black uppercase tracking-wider text-slate-800">
+                                    Line Items Used
+                                </h4>
+                                <span class="text-[11px] font-bold text-slate-500">
+                                    {{ count($subsidiaryRows) }} Material{{ count($subsidiaryRows) > 1 ? 's' : '' }} Linked in BOM
+                                </span>
+                            </div>
+
+                            @forelse($subsidiaryRows as $sIdx => $sRow)
+                                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 shadow-xs">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
+                                        <div>
+                                            <span class="font-extrabold text-sm text-slate-900">
+                                                {{ $sRow['material_name'] }}
+                                            </span>
+                                            <span class="text-[10px] font-bold text-slate-500 ml-2">({{ $sRow['material_code'] }})</span>
+                                        </div>
+                                        <span class="text-xs font-extrabold bg-amber-500/10 text-amber-900 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                                            BOM Rate: {{ number_format($sRow['bom_per_unit'], 2) }} {{ $sRow['unit'] }} / unit
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center text-xs">
+                                        <!-- Standard Formula Display -->
+                                        <div class="sm:col-span-4 bg-white p-2.5 rounded-xl border border-slate-200">
+                                            <span class="block text-[10px] font-extrabold text-slate-500 uppercase">Standard Required</span>
+                                            <span class="font-black text-slate-900 text-sm">
+                                                {{ number_format($sRow['bom_per_unit'], 2) }} &times; ({{ $producedQty }}) = {{ number_format($sRow['std_req_qty'], 2) }} {{ $sRow['unit'] }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Extra / Damaged Input -->
+                                        <div class="sm:col-span-3">
+                                            <label class="block text-[10px] font-extrabold text-slate-600 uppercase mb-1">
+                                                Extra / Damaged Qty
+                                            </label>
+                                            <input type="number" min="0" step="1" wire:model.live.debounce.300ms="subsidiaryRows.{{ $sIdx }}.extra_qty" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-extrabold text-amber-900 focus:outline-none focus:border-amber-500">
+                                        </div>
+
+                                        <!-- Total Qty Used -->
+                                        <div class="sm:col-span-2 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 text-center">
+                                            <span class="block text-[10px] font-extrabold text-amber-900 uppercase">Total Qty</span>
+                                            <span class="font-black text-amber-900 text-sm">
+                                                {{ number_format($sRow['total_qty'], 2) }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Total Cost for Item -->
+                                        <div class="sm:col-span-3 bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20 text-right">
+                                            <span class="block text-[10px] font-extrabold text-emerald-900 uppercase">Item Cost</span>
+                                            <span class="font-black text-emerald-700 text-sm">
+                                                ₹{{ number_format($sRow['total_cost'], 2) }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Batch Picker & Unit Cost -->
+                                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-2 border-t border-slate-200/60">
+                                        <div class="sm:col-span-8">
+                                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Select Inventory Stock Batch *</label>
+                                            <select wire:model.live="subsidiaryRows.{{ $sIdx }}.inventory_batch_id" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900">
+                                                @forelse($sRow['available_batches'] as $b)
+                                                    <option value="{{ $b['id'] }}">
+                                                        Batch {{ $b['batch_number'] }} — Stock: {{ number_format($b['balance_quantity'], 2) }} {{ $sRow['unit'] }} @ ₹{{ number_format($b['unit_cost'], 2) }}/{{ $sRow['unit'] }}
+                                                    </option>
+                                                @empty
+                                                    <option value="">No Active Batches Available (Stock Shortage)</option>
+                                                @endforelse
+                                            </select>
+                                        </div>
+                                        <div class="sm:col-span-4 text-right">
+                                            <span class="text-[10px] font-bold text-slate-500 block">Applied Unit Rate</span>
+                                            <span class="text-xs font-extrabold text-slate-800">₹{{ number_format($sRow['unit_cost'], 2) }} / {{ $sRow['unit'] }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-xs text-slate-500 font-medium">
+                                    No subsidiary materials configured for this product or pattern BOM.
+                                </div>
+                            @endforelse
+                        </div>
+
+                        <!-- Total Costing Summary Callout (Matching Bottom of Sketch) -->
+                        @php
+                            $totalSubCost = array_sum(array_column($subsidiaryRows, 'total_cost'));
+                            $costParts = array_map(fn($r) => '₹' . number_format($r['total_cost'], 2), $subsidiaryRows);
+                            $costFormula = count($costParts) > 0 ? implode(' + ', $costParts) : '₹0.00';
+                        @endphp
+                        <div class="p-5 bg-slate-900 text-white rounded-2xl shadow-md border border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-wider text-amber-400 block mb-1">
+                                    Subsidiary Material Total Cost Summary
+                                </span>
+                                <p class="text-xs font-mono text-slate-300">
+                                    Total Costing => {{ $costFormula }} => <strong class="text-white font-extrabold">₹{{ number_format($totalSubCost, 2) }}</strong>
+                                </p>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="text-2xl font-black font-display text-emerald-400 tracking-tight">
+                                    ₹{{ number_format($totalSubCost, 2) }}
+                                </span>
+                                <span class="block text-[10px] text-slate-400 font-semibold uppercase">Added to Manufacturing Cost</span>
+                            </div>
+                        </div>
+
+                        <!-- Navigation Buttons -->
+                        <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
+                            <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 3 : 2 }})" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
+                                ← Back to Output Items
+                            </button>
+                            <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 5 : 4 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                                <span>Next Step: Wastage &amp; Alteration</span>
+                                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- STEP 4/5 (FINAL TASK ONLY): FINAL BATCH RECONCILIATION - ALTERATION, SCRAP & DAMAGE -->
+                @if($isFinalTask && (($this->hasSubsidiaryMaterials && (($isCutting && $activeStep === 5) || (!$isCutting && $activeStep === 4))) || (!$this->hasSubsidiaryMaterials && (($isCutting && $activeStep === 4) || (!$isCutting && $activeStep === 3)))))
                     <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-sm space-y-6">
                         <div>
                             <div class="flex items-center justify-between">
@@ -1029,39 +1188,46 @@
                                                 $effectiveRate = $baseRate + $bonusRate;
                                                 $subtotal = round($effectiveRate * $qtyWorked, 2);
                                                 $totalWorkedSum += $qtyWorked;
+                                                $lObj = !empty($lr['labor_id']) ? $labors->firstWhere('id', $lr['labor_id']) : null;
+                                                $bRate = floatval($lr['base_rate'] ?? 0);
+                                                $bnRate = floatval($lr['bonus_rate'] ?? 0);
+                                                $effRate = $bRate + $bnRate;
+                                                $pQty = intval($lr['processed_qty'] ?? 0);
+                                                $subtotal = round($effRate * $pQty, 2);
+
+                                                $totalWorkedSum += $pQty;
                                                 $totalWagesSum += $subtotal;
                                             @endphp
                                             <tr>
-                                                <td class="py-3 px-3">
-                                                    <div class="font-extrabold text-slate-900">{{ $lObj?->name ?? 'Unassigned Worker' }}</div>
-                                                    <div class="text-[10px] text-slate-500 font-medium">{{ $lObj?->trade ?? $activeStage->task?->name ?? 'Laborer' }}</div>
+                                                <td class="py-2.5 px-3">
+                                                    {{ $lObj?->name ?? 'Unassigned Worker' }}
+                                                    <span class="text-[10px] text-slate-500 font-normal">({{ $lObj?->worker_code ?? 'W' }})</span>
                                                 </td>
-                                                <td class="py-3 px-3 text-center font-extrabold">{{ $qtyWorked }} Pcs</td>
-                                                <td class="py-3 px-3 text-right font-mono">₹{{ number_format($baseRate, 2) }}</td>
-                                                <td class="py-3 px-3 text-right font-mono text-emerald-700">+ ₹{{ number_format($bonusRate, 2) }}</td>
-                                                <td class="py-3 px-3 text-right font-mono text-amber-800 font-black">₹{{ number_format($effectiveRate, 2) }}</td>
-                                                <td class="py-3 px-3 text-right font-mono text-emerald-800 font-extrabold text-sm">₹{{ number_format($subtotal, 2) }}</td>
+                                                <td class="py-2.5 px-3 text-center text-amber-800 font-extrabold">{{ $pQty }} Pcs</td>
+                                                <td class="py-2.5 px-3 text-right font-medium">₹{{ number_format($bRate, 2) }}</td>
+                                                <td class="py-2.5 px-3 text-right font-medium text-amber-700">₹{{ number_format($bnRate, 2) }}</td>
+                                                <td class="py-2.5 px-3 text-right text-slate-900">₹{{ number_format($effRate, 2) }}</td>
+                                                <td class="py-2.5 px-3 text-right text-emerald-700 font-black">₹{{ number_format($subtotal, 2) }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
                                     <tfoot>
-                                        <tr class="border-t-2 border-slate-200 font-black text-xs bg-white">
-                                            <td class="py-3 px-3 uppercase tracking-wider text-slate-600">Total / Overall</td>
-                                            <td class="py-3 px-3 text-center text-amber-800 font-extrabold">{{ $totalWorkedSum }} Pcs</td>
-                                            <td colspan="3" class="py-3 px-3 text-right text-slate-600 font-extrabold">Total Stage Labor Wage:</td>
-                                            <td class="py-3 px-3 text-right text-emerald-800 text-sm font-black font-mono">₹{{ number_format($totalWagesSum, 2) }}</td>
+                                        <tr class="border-t-2 border-slate-300 font-black text-xs text-slate-900">
+                                            <td class="py-2.5 px-3 uppercase">TOTAL STAGE WAGES</td>
+                                            <td class="py-2.5 px-3 text-center text-amber-900">{{ $totalWorkedSum }} Pcs</td>
+                                            <td colspan="3"></td>
+                                            <td class="py-2.5 px-3 text-right text-emerald-700 text-sm">₹{{ number_format($totalWagesSum, 2) }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
                             </div>
 
-                            <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-bold">
-                                <span class="text-slate-600">Recorded Stage Output Qty:</span>
-                                <span class="text-emerald-700 font-black text-sm">{{ $producedQty }} Pcs</span>
-                            </div>
-
                             @if($isFinalTask)
-                                <div class="pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-semibold">
+                                <div class="pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-semibold">
+                                    <div class="p-2.5 bg-white rounded-lg border border-slate-200">
+                                        <span class="text-slate-500 text-[11px] block">Subsidiary Cost:</span>
+                                        <span class="font-extrabold text-emerald-700">₹{{ number_format(array_sum(array_column($subsidiaryRows, 'total_cost')), 2) }}</span>
+                                    </div>
                                     <div class="p-2.5 bg-white rounded-lg border border-slate-200">
                                         <span class="text-slate-500 text-[11px] block">Alteration Items:</span>
                                         <span class="font-extrabold text-amber-800">{{ count($alterationRows) }} Item(s)</span>
@@ -1081,7 +1247,7 @@
                         <!-- Action Bar -->
                         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
                             @php
-                                $prevStepNum = $isFinalTask ? ($isCutting ? 4 : 3) : ($isCutting ? 3 : 2);
+                                $prevStepNum = $isFinalTask ? ($this->hasSubsidiaryMaterials ? ($isCutting ? 5 : 4) : ($isCutting ? 4 : 3)) : ($isCutting ? 3 : 2);
                             @endphp
                             <button type="button" wire:click="$set('activeStep', {{ $prevStepNum }})" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
                                 ← Back

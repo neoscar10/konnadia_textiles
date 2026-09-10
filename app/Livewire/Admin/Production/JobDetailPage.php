@@ -321,6 +321,138 @@ class JobDetailPage extends Component
         ];
     }
 
+    public array $subsidiaryRows = [];
+
+    public function getHasSubsidiaryMaterialsProperty(): bool
+    {
+        return $this->job->getEffectiveSubsidiaryMaterials()->isNotEmpty();
+    }
+
+    public function initSubsidiaryRows()
+    {
+        $this->subsidiaryRows = [];
+        $materials = $this->job->getEffectiveSubsidiaryMaterials();
+        
+        $outputQty = 0;
+        if ($this->selectedTaskId) {
+            $outputQty = (int) $this->job->productOutputs()->where('task_id', $this->selectedTaskId)->sum('quantity_produced');
+        }
+        if ($outputQty <= 0) {
+            $outputQty = max(0, intval($this->job->target_quantity));
+        }
+
+        foreach ($materials as $mat) {
+            $bomPerUnit = (float) ($mat->pivot->consumption_quantity ?? 1.0);
+            $stdReqQty = round($bomPerUnit * $outputQty, 4);
+
+            $batches = InventoryBatch::where('raw_material_id', $mat->id)
+                ->where('balance_quantity', '>', 0)
+                ->orderBy('id', 'asc')
+                ->get();
+
+            $selectedBatch = $batches->first();
+            $selectedBatchId = $selectedBatch?->id;
+            $unitCost = (float) ($selectedBatch?->purchase_rate ?: ($selectedBatch?->unit_cost ?: 0.0));
+
+            $this->subsidiaryRows[] = [
+                'raw_material_id'     => $mat->id,
+                'material_name'       => $mat->name,
+                'material_code'       => $mat->code,
+                'unit'                => $mat->unit ?? 'Pieces',
+                'bom_per_unit'        => $bomPerUnit,
+                'output_qty'          => $outputQty,
+                'std_req_qty'         => $stdReqQty,
+                'extra_qty'           => 0,
+                'total_qty'           => $stdReqQty,
+                'inventory_batch_id'  => $selectedBatchId,
+                'unit_cost'           => $unitCost,
+                'total_cost'          => round($stdReqQty * $unitCost, 2),
+                'available_batches'   => $batches->map(fn($b) => [
+                    'id'               => $b->id,
+                    'batch_number'     => $b->batch_number,
+                    'balance_quantity' => (float) $b->balance_quantity,
+                    'unit_cost'        => (float) ($b->purchase_rate ?: $b->unit_cost),
+                ])->toArray(),
+            ];
+        }
+    }
+
+    public function updatedSubsidiaryRows($value, $key)
+    {
+        $parts = explode('.', $key);
+        if (count($parts) >= 2) {
+            $index = (int) $parts[0];
+            $field = $parts[1];
+
+            if (isset($this->subsidiaryRows[$index])) {
+                $row = &$this->subsidiaryRows[$index];
+                if ($field === 'inventory_batch_id') {
+                    $batchId = $row['inventory_batch_id'];
+                    if ($batchId) {
+                        $batch = InventoryBatch::find($batchId);
+                        if ($batch) {
+                            $row['unit_cost'] = (float) ($batch->purchase_rate ?: $batch->unit_cost);
+                        }
+                    }
+                }
+
+                $bomPerUnit = floatval($row['bom_per_unit'] ?? 1);
+                $outputQty  = floatval($row['output_qty'] ?? 10);
+                $stdReqQty  = round($bomPerUnit * $outputQty, 4);
+                $extraQty   = max(0, floatval($row['extra_qty'] ?? 0));
+
+                $row['std_req_qty'] = $stdReqQty;
+                $row['total_qty']   = round($stdReqQty + $extraQty, 4);
+                $row['total_cost']  = round($row['total_qty'] * floatval($row['unit_cost'] ?? 0), 2);
+            }
+        }
+    }
+
+    public function saveSubsidiaryConsumption()
+    {
+        if (!$this->selectedTaskId || empty($this->subsidiaryRows)) {
+            return true;
+        }
+
+        foreach ($this->subsidiaryRows as $sRow) {
+            $totQty  = floatval($sRow['total_qty'] ?? 0);
+            $batchId = $sRow['inventory_batch_id'] ?? null;
+
+            if ($totQty > 0 && $batchId) {
+                $invBatch = InventoryBatch::find($batchId);
+                if ($invBatch) {
+                    if ($totQty > (float) $invBatch->balance_quantity) {
+                        $this->addError('subsidiaryRows', "Selected inventory batch {$invBatch->batch_number} has insufficient balance ({$invBatch->balance_quantity} {$invBatch->unit}) for material {$sRow['material_name']}. Requested: {$totQty}");
+                        return false;
+                    }
+
+                    $invBatch->deductQuantity($totQty);
+                    $unitCost = (float) ($invBatch->purchase_rate ?: $invBatch->unit_cost);
+                    $itemTotalCost = round($totQty * $unitCost, 2);
+
+                    JobMaterialConsumption::create([
+                        'job_code'            => $this->job->job_code,
+                        'production_job_id'    => $this->job->id,
+                        'inventory_batch_id'  => $invBatch->id,
+                        'task_id'             => $this->selectedTaskId,
+                        'quantity_consumed'   => $totQty,
+                        'unit_cost'           => $unitCost,
+                        'total_cost'          => $itemTotalCost,
+                    ]);
+
+                    InventoryBatchLogger::log(
+                        $invBatch->id,
+                        'consumed',
+                        $totQty,
+                        null,
+                        "Subsidiary material consumption ({$sRow['material_name']}) for Job {$this->job->job_code}"
+                    );
+                }
+            }
+        }
+        return true;
+    }
+
     public function completeStageAndProgress()
     {
         if (!$this->selectedTaskId) {
@@ -347,6 +479,12 @@ class JobDetailPage extends Component
         if ($totalLoggedQty < $targetQty && $targetQty > 0) {
             $this->dispatch('toast', message: "Cannot complete stage: Recorded output ({$totalLoggedQty} Pcs) has not met stage target ({$targetQty} Pcs).", type: 'error');
             return;
+        }
+
+        if ($this->isSelectedTaskFinalStep && $this->hasSubsidiaryMaterials) {
+            if ($this->saveSubsidiaryConsumption() === false) {
+                return;
+            }
         }
 
         $stageExecution->update([
