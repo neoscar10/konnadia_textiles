@@ -22,7 +22,11 @@ class JobIndexPage extends Component
     #[Url(history: true)]
     public string $search = '';
 
+    #[Url(history: true)]
     public string $statusFilter = '';
+
+    #[Url(history: true)]
+    public string $supervisorFilter = '';
 
     // Create Modal Properties
     public $manufacturing_product_id = null;
@@ -427,7 +431,7 @@ class JobIndexPage extends Component
 
     public function render()
     {
-        $query = ProductionJob::with(['manufacturingProduct', 'supervisor', 'stageExecutions.task', 'allocations']);
+        $query = ProductionJob::with(['manufacturingProduct', 'factorySupervisor', 'batch.factorySupervisor', 'supervisor', 'stageExecutions.task', 'allocations']);
 
         if (!empty($this->search)) {
             $query->where(function ($q) {
@@ -439,6 +443,13 @@ class JobIndexPage extends Component
 
         if (!empty($this->statusFilter)) {
             $query->where('status', $this->statusFilter);
+        }
+
+        if (!empty($this->supervisorFilter)) {
+            $query->where(function ($q) {
+                $q->where('factory_supervisor_id', $this->supervisorFilter)
+                  ->orWhereHas('batch', fn($b) => $b->where('factory_supervisor_id', $this->supervisorFilter));
+            });
         }
 
         $allJobs = $query->orderBy('created_at', 'desc')->get();

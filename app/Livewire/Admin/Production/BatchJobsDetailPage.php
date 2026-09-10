@@ -278,7 +278,7 @@ class BatchJobsDetailPage extends Component
     {
         $jobs = ProductionJob::where('production_batch_id', $this->batchCode)
             ->orWhere('job_code', $this->batchCode)
-            ->with(['manufacturingProduct', 'supervisor', 'stageExecutions.task', 'allocations'])
+            ->with(['manufacturingProduct', 'factorySupervisor', 'batch.factorySupervisor', 'supervisor', 'stageExecutions.task', 'allocations'])
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -301,7 +301,9 @@ class BatchJobsDetailPage extends Component
 
         $firstJob = $jobs->first();
         $product = $firstJob?->manufacturingProduct;
-        $supervisor = $firstJob?->supervisor;
+        $supervisor = $firstJob?->factorySupervisor 
+            ?? $firstJob?->batch?->factorySupervisor 
+            ?? $firstJob?->supervisor;
         
         $batchDbId = $firstJob?->production_batch_db_id;
         if (!$batchDbId) {

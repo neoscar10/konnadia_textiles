@@ -16,6 +16,7 @@ class ProductionJob extends Model
         'manufacturing_product_id',
         'pattern_id',
         'supervisor_id',
+        'factory_supervisor_id',
         'job_date',
         'target_quantity',
         'converted_quantity',
@@ -111,11 +112,41 @@ class ProductionJob extends Model
     }
 
     /**
-     * Get the supervisor assigned to this job.
+     * Get the supervisor assigned to this job (legacy User record).
      */
     public function supervisor()
     {
         return $this->belongsTo(User::class, 'supervisor_id');
+    }
+
+    /**
+     * Get the factory supervisor assigned to this job.
+     */
+    public function factorySupervisor()
+    {
+        return $this->belongsTo(FactorySupervisor::class, 'factory_supervisor_id');
+    }
+
+    /**
+     * Resolve effective supervisor model (FactorySupervisor preferred over User).
+     */
+    public function getEffectiveSupervisorAttribute()
+    {
+        if ($this->factorySupervisor) {
+            return $this->factorySupervisor;
+        }
+        if ($this->factory_supervisor_id) {
+            $fs = FactorySupervisor::find($this->factory_supervisor_id);
+            if ($fs) return $fs;
+        }
+        if ($this->batch && $this->batch->factorySupervisor) {
+            return $this->batch->factorySupervisor;
+        }
+        if ($this->supervisor_id) {
+            $fs = FactorySupervisor::find($this->supervisor_id);
+            if ($fs) return $fs;
+        }
+        return $this->supervisor;
     }
 
     /**

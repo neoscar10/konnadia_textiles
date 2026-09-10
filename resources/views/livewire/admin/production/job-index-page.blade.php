@@ -82,6 +82,14 @@
                 <option value="cancelled">Cancelled</option>
             </select>
         </div>
+        <div>
+            <select wire:model.live="supervisorFilter" class="bg-surface border border-outline-variant/60 rounded-xl font-label-md text-label-md py-2.5 px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold">
+                <option value="">All Supervisors</option>
+                @foreach($supervisors as $sup)
+                    <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                @endforeach
+            </select>
+        </div>
     </div>
 
     <!-- Data List: Pure Production Batches Hub -->
@@ -101,7 +109,10 @@
                 @forelse($paginatedBatches as $batchCode => $batchJobs)
                     @php
                         $firstJob = $batchJobs->first();
-                        $supervisor = $firstJob?->supervisor;
+                        $supervisorObj = $firstJob?->factorySupervisor 
+                            ?? $firstJob?->batch?->factorySupervisor 
+                            ?? $firstJob?->supervisor;
+                        $supervisorName = $supervisorObj?->name ?? 'Unassigned';
                         $batchUnconvertedSum = $batchJobs->sum(fn($j) => $j->remaining_unconverted_quantity);
                         $plannedTargetQty = $batchJobs->sum(fn($j) => $j->target_quantity);
                         $batchDbId = $firstJob?->production_batch_db_id;
@@ -113,7 +124,8 @@
                                     'manufacturing_product_id' => $firstJob?->manufacturing_product_id,
                                     'planned_quantity' => $plannedTargetQty,
                                     'status' => 'In Progress',
-                                    'supervisor_id' => $supervisor?->id ?: auth()->id(),
+                                    'supervisor_id' => auth()->id(),
+                                    'factory_supervisor_id' => $firstJob?->factory_supervisor_id,
                                 ]);
                             }
                             $batchDbId = $batchObj->id;
@@ -126,7 +138,7 @@
                                 <span class="material-symbols-outlined text-[18px]">layers</span>
                                 {{ $batchCode }}
                             </a>
-                            <span class="text-xs text-outline block">Supervisor: {{ $supervisor?->name ?? 'Unassigned' }}</span>
+                            <span class="text-xs text-outline block">Supervisor: {{ $supervisorName }}</span>
                         </td>
                         <td class="px-6 py-4 space-y-1.5">
                             @forelse($uniqueProducts as $prod)
