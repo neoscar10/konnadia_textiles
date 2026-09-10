@@ -1986,6 +1986,28 @@ class JobDetailPage extends Component
             return;
         }
 
+        foreach ($this->alterationRecords as $rowIdx => $row) {
+            $srcPId = (int) ($row['source_product_id'] ?? 0);
+            $tgtPId = (int) ($row['target_product_id'] ?? 0);
+
+            if ($srcPId > 0 && $tgtPId > 0) {
+                $srcProd = ManufacturingProduct::find($srcPId);
+                $tgtProd = ManufacturingProduct::find($tgtPId);
+
+                if ($srcProd && $tgtProd) {
+                    $srcArea = \App\Services\FabricCuttingAreaService::calculateProductPatternAreaM2($srcProd, $this->job->pattern);
+                    $tgtArea = \App\Services\FabricCuttingAreaService::calculateProductPatternAreaM2($tgtProd, null);
+
+                    if ($srcArea > 0 && $tgtArea > 0 && $tgtArea > ($srcArea + 0.0001)) {
+                        $msg = "Cannot alter to target product '{$tgtProd->name}' ({$tgtArea} m²) because its surface area is larger than source product '{$srcProd->name}' ({$srcArea} m²).";
+                        $this->addError("alterationRecords.{$rowIdx}.target_product_id", $msg);
+                        $this->dispatch('toast', message: $msg, type: 'error');
+                        return;
+                    }
+                }
+            }
+        }
+
         $lastChildBatchCode = '';
 
         DB::transaction(function () use (&$lastChildBatchCode) {

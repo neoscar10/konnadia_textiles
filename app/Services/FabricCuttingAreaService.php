@@ -94,6 +94,101 @@ class FabricCuttingAreaService
     }
 
     /**
+     * Calculate product/pattern surface area in square meters (m^2).
+     */
+    public static function calculateProductPatternAreaM2(?ManufacturingProduct $product, ?ManufacturingProductPattern $pattern = null): float
+    {
+        if (!$product && !$pattern) {
+            return 0.0;
+        }
+
+        if ($pattern && !$product) {
+            $product = $pattern->manufacturingProduct;
+        }
+
+        if (!$pattern && $product) {
+            $pattern = $product->defaultPattern ?? $product->patterns()->first();
+        }
+
+        $length = 0.0;
+        $lengthUnit = 'Meters';
+
+        $width = 0.0;
+        $widthUnit = 'Centimeters';
+
+        if ($pattern) {
+            if ($pattern->relationLoaded('patternFabricWidths') ? $pattern->patternFabricWidths->isNotEmpty() : $pattern->patternFabricWidths()->exists()) {
+                $pfw = $pattern->patternFabricWidths->first() ?? $pattern->patternFabricWidths()->first();
+                if ($pfw) {
+                    $length = (float) ($pfw->fabric_length ?: $pattern->fabric_length ?: 0);
+                    $lengthUnit = $pattern->fabric_length_unit ?: ($product?->fabric_length_unit ?: 'Meters');
+
+                    $fw = $pfw->fabricWidth;
+                    if ($fw) {
+                        $width = (float) ($fw->width_inches ?: $fw->value ?: $fw->width ?: 0);
+                        $widthUnit = $fw->unit ?: 'Inches';
+                    }
+                }
+            }
+
+            if ($length <= 0) {
+                $length = (float) ($pattern->fabric_length ?: 0);
+                $lengthUnit = $pattern->fabric_length_unit ?: ($product?->fabric_length_unit ?: 'Meters');
+            }
+
+            if ($width <= 0 && $pattern->fabricWidth) {
+                $fw = $pattern->fabricWidth;
+                $width = (float) ($fw->width_inches ?: $fw->value ?: $fw->width ?: 0);
+                $widthUnit = $fw->unit ?: 'Inches';
+            }
+        }
+
+        if ($length <= 0 && $product) {
+            $length = (float) ($product->standard_fabric_length ?: 0);
+            $lengthUnit = $product->fabric_length_unit ?: 'Meters';
+        }
+
+        if ($width <= 0 && $product) {
+            $width = (float) ($product->standard_fabric_width ?: 0);
+            $widthUnit = $product->fabric_width_unit ?: 'Centimeters';
+        }
+
+        if ($length <= 0 || $width <= 0) {
+            return 0.0;
+        }
+
+        $lengthMeters = self::convertToMeters($length, $lengthUnit);
+        $widthMeters = self::convertToMeters($width, $widthUnit);
+
+        return round($lengthMeters * $widthMeters, 4);
+    }
+
+    /**
+     * Helper to convert length/width value to meters.
+     */
+    public static function convertToMeters(float $val, ?string $unitStr): float
+    {
+        if ($val <= 0) return 0.0;
+        $unitLower = strtolower(trim($unitStr ?: ''));
+        if (str_contains($unitLower, 'yard') || $unitLower === 'yd') {
+            return $val * 0.9144;
+        }
+        if (str_contains($unitLower, 'foot') || str_contains($unitLower, 'feet') || $unitLower === 'ft') {
+            return $val * 0.3048;
+        }
+        if (str_contains($unitLower, 'inch') || $unitLower === 'in' || $unitLower === '"') {
+            return $val * 0.0254;
+        }
+        if (str_contains($unitLower, 'cm') || str_contains($unitLower, 'centimeter')) {
+            return $val * 0.01;
+        }
+        if (str_contains($unitLower, 'mm') || str_contains($unitLower, 'millimeter')) {
+            return $val * 0.001;
+        }
+        return $val * 1.0;
+    }
+
+    /**
      * Calculate single product piece fabric area in Base Unit^2.
      */
     public static function calculateProductPieceArea(ManufacturingProduct $product, ?int $unitGroupId = null): float

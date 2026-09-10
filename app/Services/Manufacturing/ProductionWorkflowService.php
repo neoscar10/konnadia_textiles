@@ -638,6 +638,24 @@ class ProductionWorkflowService
     public function recordJobAlteration(ProductionJob $job, int $sourceProductId, int $sourceQty, int $targetProductId, int $targetQty, ?string $reason = null, ?int $targetPatternId = null): \App\Models\JobAlteration
     {
         return DB::transaction(function () use ($job, $sourceProductId, $sourceQty, $targetProductId, $targetQty, $reason, $targetPatternId) {
+            // Validate that target product surface area (m^2) is <= source product surface area (m^2)
+            $sourceProduct = ManufacturingProduct::find($sourceProductId);
+            $targetProduct = ManufacturingProduct::find($targetProductId);
+
+            if ($sourceProduct && $targetProduct) {
+                $sourcePattern = $job->pattern_id ? \App\Models\ManufacturingProductPattern::find($job->pattern_id) : null;
+                $targetPattern = $targetPatternId ? \App\Models\ManufacturingProductPattern::find($targetPatternId) : null;
+
+                $sourceArea = \App\Services\FabricCuttingAreaService::calculateProductPatternAreaM2($sourceProduct, $sourcePattern);
+                $targetArea = \App\Services\FabricCuttingAreaService::calculateProductPatternAreaM2($targetProduct, $targetPattern);
+
+                if ($sourceArea > 0 && $targetArea > 0 && $targetArea > ($sourceArea + 0.0001)) {
+                    throw new \InvalidArgumentException(
+                        "Cannot alter to target product '{$targetProduct->name}' ({$targetArea} m²) because its surface area is larger than source product '{$sourceProduct->name}' ({$sourceArea} m²). In practice, products can only be altered to equal or smaller items."
+                    );
+                }
+            }
+
             $parentBatch = $job->batch;
             if (!$parentBatch && !empty($job->production_batch_id)) {
                 $parentBatch = ProductionBatch::where('batch_code', $job->production_batch_id)->first();

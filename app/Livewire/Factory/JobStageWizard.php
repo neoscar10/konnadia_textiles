@@ -690,6 +690,88 @@ class JobStageWizard extends Component
         $this->loadActiveStage();
     }
 
+    public function getFabricCuttingBreakdownProperty(): array
+    {
+        if (empty($this->selectedFabrics) || !$this->job) {
+            return [];
+        }
+
+        $totalCutAreaBase = 0.0;
+        $totalCutLength = 0.0;
+        $totalFabricCutCost = 0.0;
+        $firstRawMaterial = null;
+
+        foreach ($this->selectedFabrics as $fab) {
+            $matId = $fab['raw_material_id'] ?? null;
+            if (!$matId) continue;
+
+            $rawMaterial = RawMaterial::with(['unitGroup', 'unitModel'])->find($matId);
+            if (!$rawMaterial) continue;
+
+            if (!$firstRawMaterial) {
+                $firstRawMaterial = $rawMaterial;
+            }
+
+            $batchId = $fab['inventory_batch_id'] ?? null;
+            $purchaseRate = 0.0;
+            if ($batchId) {
+                $batch = InventoryBatch::find($batchId);
+                if ($batch) {
+                    $purchaseRate = (float) ($batch->purchase_rate ?: $batch->unit_cost);
+                }
+            }
+
+            foreach ($fab['selected_rolls'] ?? [] as $rollId => $rData) {
+                $cutLen = floatval($rData['cut_length'] ?? 0);
+                if ($cutLen <= 0) continue;
+
+                $totalCutLength += $cutLen;
+                $totalFabricCutCost += ($cutLen * $purchaseRate);
+                $totalCutAreaBase += \App\Services\FabricCuttingAreaService::calculateCutArea($cutLen, $rawMaterial);
+            }
+        }
+
+        if (!$firstRawMaterial && $this->job->materialConsumptions->isNotEmpty()) {
+            $consumptions = $this->job->materialConsumptions;
+            $totalCutLength = (float) $consumptions->sum('quantity_consumed');
+            $totalFabricCutCost = (float) $consumptions->sum('total_cost');
+            $firstMat = $consumptions->first()?->inventoryBatch?->rawMaterial;
+            if ($firstMat) {
+                $firstRawMaterial = $firstMat;
+                $totalCutAreaBase = \App\Services\FabricCuttingAreaService::calculateCutArea($totalCutLength, $firstRawMaterial);
+            }
+        }
+
+        if (!$firstRawMaterial) {
+            return [];
+        }
+
+        $targetOutputs = [
+            [
+                'manufacturing_product_id' => $this->job->manufacturing_product_id,
+                'planned_quantity' => $this->job->target_quantity,
+                'pattern_id' => $this->job->pattern_id,
+            ]
+        ];
+
+        $avgRate = $totalCutLength > 0 ? ($totalFabricCutCost / $totalCutLength) : 0.0;
+        return \App\Services\FabricCuttingAreaService::computeCuttingBreakdown(
+            $totalCutLength,
+            $firstRawMaterial,
+            $targetOutputs,
+            $avgRate
+        );
+    }
+
+    public function getCostSummaryProperty(): array
+    {
+        if (!$this->job) {
+            return [];
+        }
+        $costingService = resolve(\App\Services\Manufacturing\ProductionCostingService::class);
+        return $costingService->getJobCostSummary($this->job->id);
+    }
+
     // --- COMPLETE STAGE ACTION ---
     public function completeActiveStage()
     {
@@ -701,6 +783,31 @@ class JobStageWizard extends Component
         if ($this->activeStage->status === 'completed') {
             $this->dispatch('toast', message: "Stage is already completed.", type: 'error');
             return;
+        }
+
+        // Validate alteration surface area before transaction
+        if ($this->isFinalStage($this->activeStage) && !empty($this->alterationRows)) {
+            $srcProduct = $this->job->manufacturingProduct;
+            $srcPattern = $this->job->pattern;
+            $srcArea = \App\Services\FabricCuttingAreaService::calculateProductPatternAreaM2($srcProduct, $srcPattern);
+
+            foreach ($this->alterationRows as $altRow) {
+                $altQty = intval($altRow['altered_qty'] ?? 0);
+                $targetPId = $altRow['target_product_id'] ?? null;
+                $targetPatId = $altRow['target_pattern_id'] ?? null;
+
+                if ($altQty > 0 && $targetPId) {
+                    $targetProduct = ManufacturingProduct::find($targetPId);
+                    $targetPattern = $targetPatId ? \App\Models\ManufacturingProductPattern::find($targetPatId) : null;
+                    if ($targetProduct) {
+                        $targetArea = \App\Services\FabricCuttingAreaService::calculateProductPatternAreaM2($targetProduct, $targetPattern);
+                        if ($srcArea > 0 && $targetArea > 0 && $targetArea > ($srcArea + 0.0001)) {
+                            $this->dispatch('toast', message: "Cannot alter to target product '{$targetProduct->name}' ({$targetArea} m²) because its surface area is larger than source product '{$srcProduct->name}' ({$srcArea} m²).", type: 'error');
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
         DB::transaction(function () {
