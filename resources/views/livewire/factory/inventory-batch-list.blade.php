@@ -88,9 +88,6 @@
                         <th class="px-6 py-4">Purchase Date</th>
                         <th class="px-6 py-4">Supplier & Invoice</th>
                         <th class="px-6 py-4 text-right">Received Qty</th>
-                        <th class="px-6 py-4 text-right">Consumed Qty</th>
-                        <th class="px-6 py-4 text-right">Balance Qty</th>
-                        <th class="px-6 py-4 text-right">Unit Rate</th>
                         <th class="px-6 py-4 text-center">Status</th>
                     </tr>
                 </thead>
@@ -98,9 +95,6 @@
                     @forelse($batches as $batch)
                         @php
                             $totalQty = floatval($batch->quantity_received ?: 0);
-                            $consumedQty = floatval($batch->quantity_consumed ?: 0);
-                            $balanceQty = floatval($batch->balance_quantity ?: 0);
-                            $percent = $totalQty > 0 ? max(0, min(100, ($balanceQty / $totalQty) * 100)) : 0;
                         @endphp
                         <tr class="hover:bg-surface-container-low/20 transition-colors {{ $batch->status === 'depleted' ? 'opacity-70 bg-surface-container-low/10' : '' }}">
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -155,23 +149,6 @@
                             <td class="px-6 py-4 text-right whitespace-nowrap font-semibold">
                                 {{ number_format($totalQty, 2) }} <span class="text-xs text-on-surface-variant/70">{{ $batch->unit }}</span>
                             </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap font-semibold text-on-surface-variant/80">
-                                {{ number_format($consumedQty, 2) }} <span class="text-xs text-on-surface-variant/70">{{ $batch->unit }}</span>
-                            </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap font-bold">
-                                <div>
-                                    <span>{{ number_format($balanceQty, 2) }}</span>
-                                    <span class="text-xs text-on-surface-variant/70">{{ $batch->unit }}</span>
-                                </div>
-                                @if($batch->status === 'active')
-                                    <div class="w-24 bg-outline-variant/30 rounded-full h-1 mt-1.5 overflow-hidden ml-auto">
-                                        <div class="bg-secondary h-full rounded-full transition-all" style="width: {{ $percent }}%"></div>
-                                    </div>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap font-bold text-primary">
-                                ₹{{ number_format(floatval($batch->purchase_rate ?: $batch->unit_cost), 2) }}
-                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 @if($batch->status === 'active')
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-secondary-container text-on-secondary-container border border-secondary/20 font-mono">
@@ -190,7 +167,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-12 text-center">
+                            <td colspan="6" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <span class="material-symbols-outlined text-4xl text-outline mb-2">reorder</span>
                                     <p class="text-sm font-semibold text-on-surface">No inventory batches found</p>
