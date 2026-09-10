@@ -176,12 +176,9 @@
                 </a>
 
                 <!-- Customized Production (Standalone) -->
-                <a href="{{ route('admin.production.customized') }}" wire:navigate class="flex items-center justify-between rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.customized*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs relative'">
-                    <div class="flex items-center gap-md">
-                        <span class="material-symbols-outlined shrink-0" data-icon="settings_suggest">settings_suggest</span>
-                        <span class="font-label-md text-label-md" x-show="sidebarOpen">Customized Production</span>
-                    </div>
-                    <span class="bg-amber-500/20 text-amber-300 text-[10px] font-black px-1.5 py-0.5 rounded uppercase" x-show="sidebarOpen">NEW</span>
+                <a href="{{ route('admin.production.customized') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.customized*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="settings_suggest">settings_suggest</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Customized Production</span>
                 </a>
 
                 <!-- Finished Goods (Standalone) -->
