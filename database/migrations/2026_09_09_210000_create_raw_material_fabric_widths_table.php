@@ -9,18 +9,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('raw_material_fabric_widths', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('raw_material_id')
-                ->constrained('raw_materials', 'id', 'fk_rm_fw_rm_id')
-                ->cascadeOnDelete();
-            $table->foreignId('fabric_width_id')
-                ->constrained('fabric_widths', 'id', 'fk_rm_fw_fw_id')
-                ->cascadeOnDelete();
-            $table->timestamps();
+        if (!Schema::hasTable('raw_material_fabric_widths')) {
+            Schema::create('raw_material_fabric_widths', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('raw_material_id')
+                    ->constrained('raw_materials', 'id', 'fk_rm_fw_rm_id')
+                    ->cascadeOnDelete();
+                $table->foreignId('fabric_width_id')
+                    ->constrained('fabric_widths', 'id', 'fk_rm_fw_fw_id')
+                    ->cascadeOnDelete();
+                $table->timestamps();
 
-            $table->unique(['raw_material_id', 'fabric_width_id'], 'rm_fw_unique');
-        });
+                $table->unique(['raw_material_id', 'fabric_width_id'], 'rm_fw_unique');
+            });
+        }
 
         // Migrate existing standard_width values to pivot table
         $materials = DB::table('raw_materials')->whereNotNull('standard_width')->get();
