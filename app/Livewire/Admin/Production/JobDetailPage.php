@@ -410,43 +410,74 @@ class JobDetailPage extends Component
 
     public function saveSubsidiaryConsumption()
     {
-        if (!$this->selectedTaskId || empty($this->subsidiaryRows)) {
-            return true;
-        }
+        if (!empty($this->subsidiaryConsumptions)) {
+            $this->validate([
+                'subsidiaryConsumptions.*.inventory_batch_id' => 'required|exists:inventory_batches,id',
+                'subsidiaryConsumptions.*.actual_consumed' => 'required|numeric|gt:0',
+            ]);
 
-        foreach ($this->subsidiaryRows as $sRow) {
-            $totQty  = floatval($sRow['total_qty'] ?? 0);
-            $batchId = $sRow['inventory_batch_id'] ?? null;
-
-            if ($totQty > 0 && $batchId) {
-                $invBatch = InventoryBatch::find($batchId);
-                if ($invBatch) {
-                    if ($totQty > (float) $invBatch->balance_quantity) {
-                        $this->addError('subsidiaryRows', "Selected inventory batch {$invBatch->batch_number} has insufficient balance ({$invBatch->balance_quantity} {$invBatch->unit}) for material {$sRow['material_name']}. Requested: {$totQty}");
-                        return false;
-                    }
-
-                    $invBatch->deductQuantity($totQty);
-                    $unitCost = (float) ($invBatch->purchase_rate ?: $invBatch->unit_cost);
-                    $itemTotalCost = round($totQty * $unitCost, 2);
-
+            foreach ($this->subsidiaryConsumptions as $idx => $row) {
+                $batch = InventoryBatch::find($row['inventory_batch_id']);
+                if (!$batch) continue;
+                $consumed = (float) $row['actual_consumed'];
+                if ($consumed > (float) $batch->balance_quantity) {
+                    $this->addError("subsidiaryConsumptions.{$idx}.actual_consumed", "Consumed exceeds available stock.");
+                    return false;
+                }
+                
+                DB::transaction(function () use ($batch, $consumed) {
+                    $unitCost = (float) ($batch->purchase_rate ?: $batch->unit_cost);
+                    $totalCost = round($consumed * $unitCost, 2);
                     JobMaterialConsumption::create([
-                        'job_code'            => $this->job->job_code,
-                        'production_job_id'    => $this->job->id,
-                        'inventory_batch_id'  => $invBatch->id,
-                        'task_id'             => $this->selectedTaskId,
-                        'quantity_consumed'   => $totQty,
-                        'unit_cost'           => $unitCost,
-                        'total_cost'          => $itemTotalCost,
+                        'job_code'           => $this->job->job_code,
+                        'production_job_id'  => $this->job->id,
+                        'inventory_batch_id' => $batch->id,
+                        'task_id'            => $this->selectedTaskId,
+                        'quantity_consumed'  => $consumed,
+                        'unit_cost'          => $unitCost,
+                        'total_cost'         => $totalCost,
                     ]);
 
-                    InventoryBatchLogger::log(
-                        $invBatch->id,
-                        'consumed',
-                        $totQty,
-                        null,
-                        "Subsidiary material consumption ({$sRow['material_name']}) for Job {$this->job->job_code}"
-                    );
+                    $batch->deductQuantity($consumed);
+                });
+            }
+        }
+
+        if (!empty($this->subsidiaryRows)) {
+            foreach ($this->subsidiaryRows as $sRow) {
+                $totQty  = floatval($sRow['total_qty'] ?? 0);
+                $batchId = $sRow['inventory_batch_id'] ?? null;
+
+                if ($totQty > 0 && $batchId) {
+                    $invBatch = InventoryBatch::find($batchId);
+                    if ($invBatch) {
+                        if ($totQty > (float) $invBatch->balance_quantity) {
+                            $this->addError('subsidiaryRows', "Selected inventory batch {$invBatch->batch_number} has insufficient balance ({$invBatch->balance_quantity} {$invBatch->unit}) for material {$sRow['material_name']}. Requested: {$totQty}");
+                            return false;
+                        }
+
+                        $invBatch->deductQuantity($totQty);
+                        $unitCost = (float) ($invBatch->purchase_rate ?: $invBatch->unit_cost);
+                        $itemTotalCost = round($totQty * $unitCost, 2);
+
+                        JobMaterialConsumption::create([
+                            'job_code'            => $this->job->job_code,
+                            'production_job_id'    => $this->job->id,
+                            'inventory_batch_id'  => $invBatch->id,
+                            'task_id'             => $this->selectedTaskId,
+                            'quantity_consumed'   => $totQty,
+                            'unit_cost'           => $unitCost,
+                            'total_cost'          => $itemTotalCost,
+                        ]);
+
+                        InventoryBatchLogger::log(
+                            $invBatch->id,
+                            'consumed',
+                            $totQty,
+                            null,
+                            "Subsidiary material consumption ({$sRow['material_name']}) for Job {$this->job->job_code}"
+                        );
+                    }
                 }
             }
         }
@@ -2859,38 +2890,5 @@ class JobDetailPage extends Component
         ]);
 
         return redirect()->route('admin.production.jobs.index');
-    }
-
-    public function saveSubsidiaryConsumption()
-    {
-        $this->validate([
-            'subsidiaryConsumptions.*.inventory_batch_id' => 'required|exists:inventory_batches,id',
-            'subsidiaryConsumptions.*.actual_consumed' => 'required|numeric|gt:0',
-        ]);
-
-        foreach ($this->subsidiaryConsumptions as $idx => $row) {
-            $batch = InventoryBatch::find($row['inventory_batch_id']);
-            if (!$batch) continue;
-            $consumed = (float) $row['actual_consumed'];
-            if ($consumed > (float) $batch->balance_quantity) {
-                $this->addError("subsidiaryConsumptions.{$idx}.actual_consumed", "Consumed exceeds available stock.");
-                return;
-            }
-            
-            DB::transaction(function () use ($batch, $consumed) {
-                $totalCost = $consumed * (float) $batch->unit_cost;
-                JobMaterialConsumption::create([
-                    'job_code'           => $this->job->job_code,
-                    'production_job_id'  => $this->job->id,
-                    'inventory_batch_id' => $batch->id,
-                    'task_id'            => $this->selectedTaskId,
-                    'quantity_consumed'  => $consumed,
-                    'unit_cost'          => $batch->unit_cost,
-                    'total_cost'         => $totalCost,
-                ]);
-
-                $batch->deductQuantity($consumed);
-            });
-        }
     }
 }
