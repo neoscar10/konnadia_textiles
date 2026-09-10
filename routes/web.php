@@ -120,6 +120,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/production/front-end-products', \App\Livewire\Admin\Production\FrontEndProductIndexPage::class)->name('admin.production.front-end-products');
     Route::get('/admin/production/finished-goods', \App\Livewire\Admin\Production\FinishedGoodsConversionHub::class)->name('admin.production.finished-goods');
 
+    // Customized Production Hub & Dynamic Routing
+    Route::get('/admin/production/customized', \App\Livewire\Admin\Production\CustomizedProductionHub::class)->name('admin.production.customized');
+    Route::get('/admin/production/customized/{id}', \App\Livewire\Admin\Production\CustomizedProductionDetailPage::class)->name('admin.production.customized.detail');
+
+
     // Overhead Allocation
     Route::get('/factory/overhead-allocation', \App\Livewire\Factory\OverheadAllocationPage::class)->name('factory.overhead-allocation.index');
 
