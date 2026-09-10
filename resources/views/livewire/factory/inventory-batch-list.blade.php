@@ -107,6 +107,27 @@
                                 <a href="{{ route('factory.raw-materials.batches.show', ['batch' => $batch->id]) }}" wire:navigate class="font-mono font-black text-primary text-xs bg-primary/10 px-2.5 py-1 rounded-lg hover:underline">
                                     {{ $batch->batch_number }}
                                 </a>
+                                @if($batch->lot_number)
+                                    <span class="block mt-1 text-[10px] font-mono text-outline font-bold">
+                                        Lot: {{ $batch->lot_number }}
+                                    </span>
+                                @endif
+                                @if($batch->bales && $batch->bales->isNotEmpty())
+                                    @php
+                                        $unopenedCount = $batch->bales->where('status', 'unopened')->count();
+                                    @endphp
+                                    <div class="flex items-center gap-1 mt-1">
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded border border-amber-300 font-mono">
+                                            <span class="material-symbols-outlined text-[11px]">inventory_2</span>
+                                            {{ $batch->bales->count() }} Bales
+                                        </span>
+                                        @if($unopenedCount > 0)
+                                            <span class="inline-block text-[9px] font-extrabold bg-amber-500 text-white px-1 py-0.5 rounded font-mono" title="{{ $unopenedCount }} unopened bale(s)">
+                                                {{ $unopenedCount }} Unopened
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div>

@@ -48,10 +48,11 @@ class InventoryBatchList extends Component
 
     public function render()
     {
-        $batches = InventoryBatch::with(['rawMaterial.category'])
+        $batches = InventoryBatch::with(['rawMaterial.category', 'bales', 'supplier'])
             ->when($this->search, function ($q) {
                 $q->where(function ($query) {
                     $query->where('batch_number', 'like', "%{$this->search}%")
+                        ->orWhere('lot_number', 'like', "%{$this->search}%")
                         ->orWhere('supplier_name', 'like', "%{$this->search}%")
                         ->orWhere('invoice_number', 'like', "%{$this->search}%");
                 });

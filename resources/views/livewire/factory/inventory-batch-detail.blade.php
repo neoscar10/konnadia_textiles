@@ -189,13 +189,32 @@
             <div class="p-6 space-y-6">
                 @forelse($batch->bales as $bale)
                     <div class="bg-surface border border-outline-variant/60 rounded-xl p-5 shadow-xs space-y-4">
-                        <div class="flex flex-wrap justify-between items-center gap-4 pb-3 border-b border-outline-variant/40">
-                            <div class="flex items-center gap-3">
-                                <span class="font-mono font-extrabold text-base text-primary">{{ $bale->bale_number }}</span>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase font-mono
-                                    {{ $bale->status === 'unopened' ? 'bg-amber-100 text-amber-900 border border-amber-300' : ($bale->status === 'opened' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-slate-100 text-slate-700') }}">
-                                    {{ strtoupper($bale->status) }}
-                                </span>
+                        <div class="flex flex-wrap justify-between items-start gap-4 pb-3 border-b border-outline-variant/40">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-3">
+                                    <span class="font-mono font-extrabold text-base text-primary">{{ $bale->bale_number }}</span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase font-mono
+                                        {{ $bale->status === 'unopened' ? 'bg-amber-100 text-amber-900 border border-amber-300' : ($bale->status === 'opened' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-slate-100 text-slate-700') }}">
+                                        {{ strtoupper($bale->status) }}
+                                    </span>
+                                </div>
+                                @if($bale->item_name || $bale->design_number || $bale->stock_id)
+                                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                                        @if($bale->item_name)
+                                            <span class="font-bold text-on-surface">{{ $bale->item_name }}</span>
+                                        @endif
+                                        @if($bale->design_number)
+                                            <span class="px-2 py-0.5 bg-surface-container-high rounded text-[11px] font-mono text-on-surface-variant font-semibold">
+                                                Design: <strong>{{ $bale->design_number }}</strong>
+                                            </span>
+                                        @endif
+                                        @if($bale->stock_id)
+                                            <span class="px-2 py-0.5 bg-surface-container-high rounded text-[11px] font-mono text-outline font-semibold">
+                                                Stock ID: <strong>{{ $bale->stock_id }}</strong>
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="flex items-center gap-4 text-xs font-mono">
@@ -203,6 +222,12 @@
                                     <span class="text-on-surface-variant text-[10px] uppercase font-bold block">Purchase Declared</span>
                                     <span class="font-bold text-on-surface">{{ number_format($bale->declared_length, 2) }} {{ $batch->unit }}</span>
                                 </div>
+                                @if($bale->cost_per_unit)
+                                    <div>
+                                        <span class="text-on-surface-variant text-[10px] uppercase font-bold block">Unit Rate</span>
+                                        <span class="font-bold text-on-surface">₹{{ number_format($bale->cost_per_unit, 2) }}/{{ $batch->unit }}</span>
+                                    </div>
+                                @endif
                                 <div>
                                     <span class="text-on-surface-variant text-[10px] uppercase font-bold block">Measured Total</span>
                                     <span class="font-bold text-primary">
