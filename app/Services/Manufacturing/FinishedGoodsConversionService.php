@@ -408,6 +408,106 @@ class FinishedGoodsConversionService
     }
 
     /**
+     * Backward compatibility conversion method for single ProductionBatch.
+     */
+    public function convertBatchToFinishedGoods(ProductionBatch $batch, array $data = []): FinishedGoodsBatch
+    {
+        $productId = $data['productId'] ?? ($data['product_id'] ?? $batch->manufacturingProduct?->product_id);
+
+        if (!$productId) {
+            throw new Exception("Manufacturing Product {$batch->manufacturingProduct?->name} has no mapped Storefront Product/Variant.");
+        }
+
+        $storefrontProduct = Product::findOrFail($productId);
+        $targetQty = (int) ($batch->total_finished_quantity ?: $batch->planned_quantity ?: 1);
+
+        return DB::transaction(function () use ($batch, $storefrontProduct, $targetQty, $data) {
+            $batch->update(['is_converted' => true]);
+            $storefrontProduct->increment('stock_quantity', $targetQty);
+
+            InventoryMovement::create([
+                'product_id' => $storefrontProduct->id,
+                'product_combination_id' => null,
+                'quantity_change' => $targetQty,
+                'unit_cost' => 0.00,
+                'reference_type' => ProductionBatch::class,
+                'reference_id' => $batch->id,
+                'movement_type' => 'manufacturing_inward',
+                'notes' => "Finished Goods Batch Conversion for {$batch->batch_code}",
+            ]);
+
+            if (!empty($data['packaging']) && is_array($data['packaging'])) {
+                $jobId = $batch->jobs()->first()?->id ?? $batch->job?->id;
+                $task = \App\Models\Task::where('code', 'TSK-PKG')->first() ?? \App\Models\Task::first();
+
+                foreach ($data['packaging'] as $pkg) {
+                    $pkgMatId = intval($pkg['raw_material_id'] ?? 0);
+                    $qtyUsed = floatval($pkg['quantity_used'] ?? 0);
+                    if ($pkgMatId <= 0 || $qtyUsed <= 0) continue;
+
+                    $invBatches = \App\Models\InventoryBatch::where('raw_material_id', $pkgMatId)
+                        ->where('balance_quantity', '>', 0)
+                        ->orderBy('id', 'asc')
+                        ->get();
+
+                    $remaining = $qtyUsed;
+                    foreach ($invBatches as $invBatch) {
+                        if ($remaining <= 0) break;
+                        $deduct = min($remaining, (float) $invBatch->balance_quantity);
+                        $invBatch->deductQuantity($deduct);
+
+                        if ($jobId && $task) {
+                            $rate = (float) ($invBatch->purchase_rate ?: $invBatch->unit_cost ?: 0);
+                            \App\Models\JobMaterialConsumption::create([
+                                'production_job_id' => $jobId,
+                                'job_code' => 'CONVERSION',
+                                'inventory_batch_id' => $invBatch->id,
+                                'task_id' => $task->id,
+                                'quantity_consumed' => $deduct,
+                                'unit_cost' => $rate,
+                                'total_cost' => $deduct * $rate,
+                            ]);
+                        }
+
+                        $remaining -= $deduct;
+                    }
+                }
+            }
+
+
+            $feProductId = $batch->front_end_product_id;
+            if (!$feProductId) {
+                $feProduct = FrontEndProduct::first();
+                if (!$feProduct) {
+                    $feProduct = FrontEndProduct::create([
+                        'name' => 'Default Category Assembly',
+                        'sku' => 'FE-DEFAULT',
+                        'is_active' => true,
+                    ]);
+                }
+                $feProductId = $feProduct->id;
+            }
+
+            // Return a FinishedGoodsBatch representation for caller
+            return FinishedGoodsBatch::firstOrCreate(
+                ['barcode' => "FG-BATCH-{$batch->id}"],
+                [
+                    'front_end_product_id' => $feProductId,
+                    'design_id' => 'BATCH-CONV',
+                    'converted_qty' => $targetQty,
+                    'unit' => 'Piece (Pcs)',
+                    'converted_date' => now(),
+                    'is_published' => true,
+                    'created_by' => auth()->id() ?: 1,
+                    'notes' => "Batch conversion for {$batch->batch_code}",
+                ]
+            );
+
+        });
+    }
+
+
+    /**
      * Backward compatibility wrapper for convertJobsToStorefrontBundle.
      */
     public function convertJobsToStorefrontBundle(int $targetProductId, int $assembledSets, array $jobComponents, ?string $notes = null, array $packaging = []): \App\Models\StorefrontProductBundle
