@@ -24,13 +24,13 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 shrink-0">
-
-            @if($unconvertedSum > 0)
+            {{-- Hidden for now since conversion is handled on finished goods page --}}
+            {{-- @if($unconvertedSum > 0)
                 <button type="button" wire:click="openBatchConversionModal" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
                     <span class="material-symbols-outlined text-[20px]">shopping_cart_checkout</span>
                     Convert Batch Goods ({{ number_format($unconvertedSum) }} Pcs Available)
                 </button>
-            @endif
+            @endif --}}
         </div>
     </div>
 
