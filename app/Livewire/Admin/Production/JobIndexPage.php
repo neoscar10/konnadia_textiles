@@ -357,7 +357,7 @@ class JobIndexPage extends Component
         }
     }
 
-    public function saveJob(): void
+    public function saveJob()
     {
         $this->validate([
             'factory_supervisor_id' => 'required|exists:factory_supervisors,id',
@@ -394,6 +394,14 @@ class JobIndexPage extends Component
             $jobCount = count($responseData['data']['jobs'] ?? []);
             $this->dispatch('close-modal', 'create-job-modal');
             $this->dispatch('toast', message: "Production Batch {$batchCode} initiated successfully with {$jobCount} Job(s)!", type: 'success');
+            session()->flash('toast', [
+                'message' => "Production Batch {$batchCode} initiated successfully with {$jobCount} Job(s)!",
+                'type' => 'success'
+            ]);
+
+            if ($batchCode && $batchCode !== 'Batch') {
+                return redirect()->route('admin.production.batches.jobs', $batchCode);
+            }
         } else {
             $errorMessage = $responseData['message'] ?? 'Failed to initiate production batch.';
             $this->addError('factory_supervisor_id', $errorMessage);
