@@ -12,6 +12,7 @@ class FinishedGoodsBatchItem extends Model
     protected $fillable = [
         'finished_goods_batch_id',
         'manufacturing_product_id',
+        'pattern_id',
         'production_batch_id',
         'production_job_id',
         'quantity_used',
@@ -29,6 +30,11 @@ class FinishedGoodsBatchItem extends Model
     public function manufacturingProduct()
     {
         return $this->belongsTo(ManufacturingProduct::class, 'manufacturing_product_id');
+    }
+
+    public function pattern()
+    {
+        return $this->belongsTo(ManufacturingProductPattern::class, 'pattern_id');
     }
 
     public function productionBatch()

@@ -319,6 +319,7 @@ class FabricCuttingAreaService
 
         return [
             'cut_length' => round($cutLength, 2),
+            'total_cut_length' => round($cutLength, 2),
             'standard_required_length' => round($totalStandardRequiredLength, 2),
             'cut_area_base' => round($cutAreaBase, 4),
             'used_area_base' => round($totalUsedAreaBase, 4),

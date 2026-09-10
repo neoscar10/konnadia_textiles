@@ -219,75 +219,115 @@
                         </div>
                     </div>
 
-                    <!-- 360° Real Production Costing & Subsidiary Material Breakdown Card -->
+                    <!-- Total Real Manufacturing Cost Summary Card -->
                     @php
                         $cSummary = $this->costSummary;
                     @endphp
                     @if(!empty($cSummary))
-                        <div class="p-6 bg-emerald-950 text-white rounded-2xl shadow-md border border-emerald-800 space-y-6">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-800/80 pb-4">
+                        <div class="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
                                 <div class="flex items-center gap-3">
-                                    <span class="material-symbols-outlined text-emerald-400 text-3xl">account_balance_wallet</span>
+                                    <span class="material-symbols-outlined text-amber-600 text-3xl">account_balance_wallet</span>
                                     <div>
-                                        <h3 class="text-lg font-black text-white font-display">Total Real Manufacturing Cost Summary</h3>
-                                        <p class="text-xs text-emerald-300">Complete itemized cost rollup including raw fabric, shared cutting wastage, subsidiary materials, stitching, labor wages &amp; overheads.</p>
+                                        <h3 class="text-sm font-black uppercase tracking-wider text-slate-900 font-display">Total Real Manufacturing Cost Summary</h3>
+                                        <p class="text-xs text-slate-500 font-medium">Complete itemized cost rollup including raw fabric, shared cutting wastage, subsidiary materials, stitching, labor wages &amp; overheads.</p>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <span class="text-[10px] uppercase font-bold text-emerald-400 block tracking-wider">Average Cost / Produced Unit</span>
-                                    <span class="text-2xl font-black text-amber-300 font-mono">₹{{ number_format($cSummary['average_cost_per_unit'] ?? 0, 2) }}</span>
-                                    <span class="text-[11px] text-emerald-200 block">Total Cost: ₹{{ number_format($cSummary['total_manufacturing_cost'] ?? 0, 2) }}</span>
+                                <div class="text-left sm:text-right">
+                                    <span class="text-[10px] uppercase font-bold text-slate-500 block tracking-wider">Average Cost / Produced Unit</span>
+                                    <span class="text-2xl font-black text-amber-700 font-mono">₹{{ number_format($cSummary['average_cost_per_unit'] ?? 0, 2) }}</span>
+                                    <span class="text-xs font-bold text-slate-700 block">Total Real Cost: ₹{{ number_format($cSummary['total_manufacturing_cost'] ?? 0, 2) }}</span>
                                 </div>
                             </div>
 
-                            <!-- Cost Component Grid -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                                <!-- Fabric Cost -->
-                                <div class="p-4 bg-emerald-900/60 border border-emerald-700/60 rounded-xl space-y-1">
-                                    <span class="text-[10px] font-extrabold uppercase text-emerald-300 tracking-wider">Fabric Cost</span>
-                                    <div class="text-xl font-black text-white font-mono">₹{{ number_format($cSummary['fabric_cost'] ?? 0, 2) }}</div>
-                                    <span class="text-[11px] text-emerald-200 block">Raw fabric consumed</span>
-                                </div>
-
-                                <!-- Shared Cutting Fabric Wastage -->
-                                <div class="p-4 bg-emerald-900/60 border border-emerald-700/60 rounded-xl space-y-1">
-                                    <span class="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider">Shared Cutting Wastage</span>
-                                    <div class="text-xl font-black text-amber-300 font-mono">₹{{ number_format($cSummary['total_wastage_cost'] ?? 0, 2) }}</div>
-                                    <span class="text-[11px] text-amber-200 block">Area-weighted waste allocation</span>
-                                </div>
-
-                                <!-- Subsidiary Material Cost -->
-                                <div class="p-4 bg-emerald-900/60 border border-emerald-700/60 rounded-xl space-y-1">
-                                    <span class="text-[10px] font-extrabold uppercase text-blue-300 tracking-wider">Subsidiary Material Cost</span>
-                                    <div class="text-xl font-black text-blue-300 font-mono">₹{{ number_format($cSummary['subsidiary_cost'] ?? 0, 2) }}</div>
-                                    <span class="text-[11px] text-blue-200 block">Trims, elastic, threads, labels</span>
-                                </div>
-
-                                <!-- Labor Wages & Overhead -->
-                                <div class="p-4 bg-emerald-900/60 border border-emerald-700/60 rounded-xl space-y-1">
-                                    <span class="text-[10px] font-extrabold uppercase text-purple-300 tracking-wider">Labor Wages &amp; Stitching</span>
-                                    <div class="text-xl font-black text-purple-300 font-mono">₹{{ number_format(($cSummary['total_labor_cost'] ?? 0) + ($cSummary['stitching_cost'] ?? 0), 2) }}</div>
-                                    <span class="text-[11px] text-purple-200 block">Labor: ₹{{ number_format($cSummary['total_labor_cost'] ?? 0, 2) }} · Stitching: ₹{{ number_format($cSummary['stitching_cost'] ?? 0, 2) }}</span>
-                                </div>
+                            <!-- Cost Component Summary Table -->
+                            <div class="overflow-x-auto bg-white rounded-xl border border-slate-200">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-100/80 border-b border-slate-200 text-[11px] text-slate-600 uppercase tracking-wider font-extrabold">
+                                            <th class="py-2.5 px-4">Cost Component</th>
+                                            <th class="py-2.5 px-4">Details / Allocation Basis</th>
+                                            <th class="py-2.5 px-4 text-right">Cost per Unit</th>
+                                            <th class="py-2.5 px-4 text-right">Total Cost</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200 text-slate-700 font-medium">
+                                        <tr>
+                                            <td class="py-2.5 px-4 font-bold text-slate-900">Raw Fabric Cost</td>
+                                            <td class="py-2.5 px-4 text-slate-500">Raw fabric consumed for production</td>
+                                            <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['fabric_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
+                                            <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['fabric_cost'] ?? 0, 2) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-2.5 px-4 font-bold text-slate-900">Shared Cutting Wastage</td>
+                                            <td class="py-2.5 px-4 text-slate-500">Area-weighted waste allocation</td>
+                                            <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['total_wastage_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
+                                            <td class="py-2.5 px-4 text-right font-bold text-amber-700 font-mono">₹{{ number_format($cSummary['total_wastage_cost'] ?? 0, 2) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-2.5 px-4 font-bold text-slate-900">Subsidiary Material Cost</td>
+                                            <td class="py-2.5 px-4 text-slate-500">Trims, elastic, threads, labels, tags</td>
+                                            <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['subsidiary_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
+                                            <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['subsidiary_cost'] ?? 0, 2) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-2.5 px-4 font-bold text-slate-900">Labor Wages &amp; Stitching</td>
+                                            <td class="py-2.5 px-4 text-slate-500">Direct labor wages (₹{{ number_format($cSummary['total_labor_cost'] ?? 0, 2) }}) &amp; Stitching pool (₹{{ number_format($cSummary['stitching_cost'] ?? 0, 2) }})</td>
+                                            <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? (($cSummary['total_labor_cost'] ?? 0) + ($cSummary['stitching_cost'] ?? 0)) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
+                                            <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format(($cSummary['total_labor_cost'] ?? 0) + ($cSummary['stitching_cost'] ?? 0), 2) }}</td>
+                                        </tr>
+                                        @if(($cSummary['packaging_cost'] ?? 0) > 0)
+                                        <tr>
+                                            <td class="py-2.5 px-4 font-bold text-slate-900">Packaging Materials</td>
+                                            <td class="py-2.5 px-4 text-slate-500">Packing bags, boxes, labels</td>
+                                            <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['packaging_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
+                                            <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['packaging_cost'] ?? 0, 2) }}</td>
+                                        </tr>
+                                        @endif
+                                        @if(($cSummary['overhead_cost'] ?? 0) > 0)
+                                        <tr>
+                                            <td class="py-2.5 px-4 font-bold text-slate-900">Allocated Overheads</td>
+                                            <td class="py-2.5 px-4 text-slate-500">General consumables &amp; factory overheads</td>
+                                            <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['overhead_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
+                                            <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['overhead_cost'] ?? 0, 2) }}</td>
+                                        </tr>
+                                        @endif
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="bg-slate-100 border-t-2 border-slate-300 font-black text-slate-900">
+                                            <td class="py-3 px-4 uppercase text-[11px] tracking-wider" colspan="2">Total Real Manufacturing Cost ({{ $cSummary['finished_units'] ?? 1 }} Pcs)</td>
+                                            <td class="py-3 px-4 text-right font-mono text-amber-700">₹{{ number_format($cSummary['average_cost_per_unit'] ?? 0, 2) }} / pc</td>
+                                            <td class="py-3 px-4 text-right font-mono text-emerald-800 text-sm">₹{{ number_format($cSummary['total_manufacturing_cost'] ?? 0, 2) }}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
 
                             <!-- Subsidiary Material Breakdown Detail Table -->
                             @php
                                 $subConsumptions = $job->materialConsumptions()
-                                    ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-SUB'))
+                                    ->where(function($q) {
+                                        $q->whereHas('inventoryBatch.rawMaterial.category', fn($cq) => $cq->where('code', 'CAT-SUB')->orWhere('code', 'like', '%SUB%')->orWhere('name', 'like', '%Subsidiary%'))
+                                          ->orWhereHas('inventoryBatch.rawMaterial', fn($rmq) => $rmq->where('name', 'like', '%button%')->orWhere('name', 'like', '%zipper%')->orWhere('name', 'like', '%thread%')->orWhere('name', 'like', '%elastic%')->orWhere('name', 'like', '%label%'))
+                                          ->orWhere(function($subQ) {
+                                              $subQ->whereNull('inventory_bale_roll_id')
+                                                   ->where(function($lq) { $lq->whereNull('consumed_length')->orWhere('consumed_length', 0); })
+                                                   ->where(function($fq) { $fq->whereNull('total_fabric_cost')->orWhere('total_fabric_cost', 0); });
+                                          });
+                                    })
                                     ->with('inventoryBatch.rawMaterial')
                                     ->get();
                             @endphp
                             @if($subConsumptions->isNotEmpty())
-                                <div class="pt-3 border-t border-emerald-800/80 space-y-3">
-                                    <h4 class="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[16px]">inventory</span>
-                                        <span>Subsidiary Material Cost Breakdown Tracked</span>
+                                <div class="pt-2 space-y-2">
+                                    <h4 class="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-[16px] text-slate-600">inventory</span>
+                                        <span>Subsidiary Material Itemized Consumption</span>
                                     </h4>
-                                    <div class="overflow-x-auto">
+                                    <div class="overflow-x-auto bg-white rounded-xl border border-slate-200">
                                         <table class="w-full text-left border-collapse text-xs">
                                             <thead>
-                                                <tr class="border-b border-emerald-800 text-[10px] text-emerald-400 uppercase tracking-wider font-extrabold">
+                                                <tr class="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-500 uppercase tracking-wider font-extrabold">
                                                     <th class="py-2 px-3">MATERIAL NAME</th>
                                                     <th class="py-2 px-3 text-center">BATCH NUMBER</th>
                                                     <th class="py-2 px-3 text-center">QUANTITY CONSUMED</th>
@@ -295,14 +335,14 @@
                                                     <th class="py-2 px-3 text-right">TOTAL COST</th>
                                                 </tr>
                                             </thead>
-                                            <tbody class="divide-y divide-emerald-800/60 font-semibold">
+                                            <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
                                                 @foreach($subConsumptions as $sc)
                                                     <tr>
-                                                        <td class="py-2 px-3 text-white font-bold">{{ $sc->inventoryBatch?->rawMaterial?->name }}</td>
-                                                        <td class="py-2 px-3 text-center text-emerald-200 font-mono">{{ $sc->inventoryBatch?->batch_number }}</td>
-                                                        <td class="py-2 px-3 text-center text-amber-300 font-bold">{{ $sc->quantity_consumed }} {{ $sc->inventoryBatch?->rawMaterial?->unit }}</td>
-                                                        <td class="py-2 px-3 text-right text-emerald-200">₹{{ number_format($sc->unit_cost, 2) }}</td>
-                                                        <td class="py-2 px-3 text-right text-white font-black">₹{{ number_format($sc->total_cost, 2) }}</td>
+                                                        <td class="py-2 px-3 text-slate-900 font-bold">{{ $sc->inventoryBatch?->rawMaterial?->name ?? 'Subsidiary Item' }}</td>
+                                                        <td class="py-2 px-3 text-center text-slate-500 font-mono">{{ $sc->inventoryBatch?->batch_number ?? '-' }}</td>
+                                                        <td class="py-2 px-3 text-center text-slate-800 font-bold">{{ $sc->quantity_consumed }} {{ $sc->inventoryBatch?->rawMaterial?->unit ?? 'Pcs' }}</td>
+                                                        <td class="py-2 px-3 text-right text-slate-600 font-mono">₹{{ number_format($sc->unit_cost, 2) }}</td>
+                                                        <td class="py-2 px-3 text-right text-slate-900 font-black font-mono">₹{{ number_format($sc->total_cost, 2) }}</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -322,6 +362,14 @@
                                     $stgAllocations = $job->allocations->where('task_id', $stg->task_id);
                                     $stgWages = $stgAllocations->sum('calculated_wage');
                                     $stgOutput = $job->productOutputs->where('task_id', $stg->task_id)->sum('quantity_produced');
+                                    
+                                    // Stage Material / Fabric Cost
+                                    $stgConsumptions = $job->materialConsumptions->where('task_id', $stg->task_id);
+                                    $stgMatCost = (float) $stgConsumptions->sum('total_cost');
+                                    $isCuttingStage = ($stgIdx === 0 || str_contains(strtolower($stg->task?->name ?? ''), 'cut'));
+                                    if ($stgMatCost === 0.0 && $isCuttingStage && !empty($cSummary['fabric_cost'])) {
+                                        $stgMatCost = (float) $cSummary['fabric_cost'];
+                                    }
                                 @endphp
                                 <div class="p-4 bg-white rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
@@ -336,6 +384,9 @@
                                         <p class="text-xs text-slate-500 mt-1 font-medium">
                                             Target: <span class="font-bold text-slate-800">{{ $stg->target_quantity }} Pcs</span>
                                             · Workers Assigned: <span class="font-bold text-slate-800">{{ $stgAllocations->pluck('labor_id')->unique()->count() }}</span>
+                                            @if($isCuttingStage || $stgMatCost > 0)
+                                                · Fabric Cost: <span class="font-bold text-amber-700">₹{{ number_format($stgMatCost, 2) }}</span>
+                                            @endif
                                             · Stage Wages: <span class="font-bold text-emerald-700">₹{{ number_format($stgWages, 2) }}</span>
                                         </p>
                                     </div>
@@ -1265,7 +1316,7 @@
                                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                                         <div class="p-3 bg-white rounded-lg border border-amber-200">
                                             <span class="text-slate-500 text-[10px] uppercase font-bold block">Total Cut Length &amp; Area</span>
-                                            <span class="text-sm font-black text-slate-900">{{ $cBreakdown['total_cut_length'] ?? 0 }} m</span>
+                                            <span class="text-sm font-black text-slate-900">{{ $cBreakdown['total_cut_length'] ?? $cBreakdown['cut_length'] ?? 0 }} m</span>
                                             <span class="text-[11px] text-amber-800 font-bold block">{{ $cBreakdown['cut_area_base'] }} m² Area</span>
                                         </div>
                                         <div class="p-3 bg-white rounded-lg border border-amber-200">
@@ -1372,9 +1423,7 @@
                                     </tbody>
                                     <tfoot>
                                         <tr class="border-t-2 border-slate-300 font-black text-xs text-slate-900">
-                                            <td class="py-2.5 px-3 uppercase">TOTAL STAGE WAGES</td>
-                                            <td class="py-2.5 px-3 text-center text-amber-900">{{ $totalWorkedSum }} Pcs</td>
-                                            <td colspan="3"></td>
+                                            <td colspan="5" class="py-2.5 px-3 uppercase">TOTAL STAGE WAGES</td>
                                             <td class="py-2.5 px-3 text-right text-emerald-700 text-sm">₹{{ number_format($totalWagesSum, 2) }}</td>
                                         </tr>
                                     </tfoot>

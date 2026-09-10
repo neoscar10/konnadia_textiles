@@ -692,7 +692,7 @@ class JobStageWizard extends Component
 
     public function getFabricCuttingBreakdownProperty(): array
     {
-        if (empty($this->selectedFabrics) || !$this->job) {
+        if (!$this->job) {
             return [];
         }
 
@@ -701,33 +701,35 @@ class JobStageWizard extends Component
         $totalFabricCutCost = 0.0;
         $firstRawMaterial = null;
 
-        foreach ($this->selectedFabrics as $fab) {
-            $matId = $fab['raw_material_id'] ?? null;
-            if (!$matId) continue;
+        if (!empty($this->selectedFabrics)) {
+            foreach ($this->selectedFabrics as $fab) {
+                $matId = $fab['raw_material_id'] ?? null;
+                if (!$matId) continue;
 
-            $rawMaterial = RawMaterial::with(['unitGroup', 'unitModel'])->find($matId);
-            if (!$rawMaterial) continue;
+                $rawMaterial = RawMaterial::with(['unitGroup', 'unitModel'])->find($matId);
+                if (!$rawMaterial) continue;
 
-            if (!$firstRawMaterial) {
-                $firstRawMaterial = $rawMaterial;
-            }
-
-            $batchId = $fab['inventory_batch_id'] ?? null;
-            $purchaseRate = 0.0;
-            if ($batchId) {
-                $batch = InventoryBatch::find($batchId);
-                if ($batch) {
-                    $purchaseRate = (float) ($batch->purchase_rate ?: $batch->unit_cost);
+                if (!$firstRawMaterial) {
+                    $firstRawMaterial = $rawMaterial;
                 }
-            }
 
-            foreach ($fab['selected_rolls'] ?? [] as $rollId => $rData) {
-                $cutLen = floatval($rData['cut_length'] ?? 0);
-                if ($cutLen <= 0) continue;
+                $batchId = $fab['inventory_batch_id'] ?? null;
+                $purchaseRate = 0.0;
+                if ($batchId) {
+                    $batch = InventoryBatch::find($batchId);
+                    if ($batch) {
+                        $purchaseRate = (float) ($batch->purchase_rate ?: $batch->unit_cost);
+                    }
+                }
 
-                $totalCutLength += $cutLen;
-                $totalFabricCutCost += ($cutLen * $purchaseRate);
-                $totalCutAreaBase += \App\Services\FabricCuttingAreaService::calculateCutArea($cutLen, $rawMaterial);
+                foreach ($fab['selected_rolls'] ?? [] as $rollId => $rData) {
+                    $cutLen = floatval($rData['cut_length'] ?? 0);
+                    if ($cutLen <= 0) continue;
+
+                    $totalCutLength += $cutLen;
+                    $totalFabricCutCost += ($cutLen * $purchaseRate);
+                    $totalCutAreaBase += \App\Services\FabricCuttingAreaService::calculateCutArea($cutLen, $rawMaterial);
+                }
             }
         }
 

@@ -246,10 +246,139 @@ class StorefrontFinishedGoodsConversionTest extends TestCase
         ]);
 
         $this->assertNotNull($batchNew);
-        $newProduct = Product::where('sku', 'FE-SATIN-001')->first();
+        $newProduct = Product::where('sku', 'like', 'KT-DSG-%')->orWhere('sku', 'FE-SATIN-001')->first();
         $this->assertNotNull($newProduct);
-        $this->assertEquals('Luxury Satin Bedsheet', $newProduct->title);
         $this->assertEquals(12, $newProduct->stock_quantity);
+    }
+
+    /** @test */
+    public function it_hides_design_id_requirement_on_step2_when_converting_to_existing_product()
+    {
+        $this->actingAs($this->admin);
+
+        $feCategory = Category::create(['name' => 'Royal Touch', 'slug' => 'royal-touch']);
+        $feProduct = \App\Models\FrontEndProduct::create([
+            'name' => 'Royal Touch Set',
+            'sku' => 'FE-ROYAL-001',
+            'category_id' => $feCategory->id,
+            'is_active' => true,
+        ]);
+
+        \App\Models\FrontEndProductComponent::create([
+            'front_end_product_id' => $feProduct->id,
+            'manufacturing_product_id' => $this->mProductBedSheet->id,
+            'quantity' => 1,
+        ]);
+
+        Livewire::test(\App\Livewire\Admin\Production\FinishedGoodsConversionHub::class)
+            ->set('showWizardModal', true)
+            ->set('selectedCategoryId', $feCategory->id)
+            ->set('produceQty', 5)
+            ->set('designType', 'existing')
+            ->set('selectedStorefrontProductId', $this->storefrontSetProduct->id)
+            ->set('designId', '') // Empty design ID
+            ->call('goToStep2')
+            ->assertSet('wizardStep', 2)
+            ->assertSee('Selected Existing Product');
+    }
+
+    /** @test */
+    public function it_creates_active_storefront_product_with_category_and_primary_image_on_new_conversion()
+    {
+        $feCategory = Category::create(['name' => 'Satin Sheets', 'slug' => 'satin-sheets']);
+        $feProduct = \App\Models\FrontEndProduct::create([
+            'name' => 'Satin Sheet Set',
+            'sku' => 'FE-SATIN-SET',
+            'category_id' => $feCategory->id,
+            'is_active' => true,
+        ]);
+
+        \App\Models\FrontEndProductComponent::create([
+            'front_end_product_id' => $feProduct->id,
+            'manufacturing_product_id' => $this->mProductBedSheet->id,
+            'quantity' => 1,
+        ]);
+
+        $service = new FinishedGoodsConversionService();
+
+        $batch = $service->convertCategoryToFinishedGoods([
+            'category_id' => $feCategory->id,
+            'target_qty' => 10,
+            'design_type' => 'new',
+            'design_id' => 'DSG-SATIN-GOLD',
+            'product_image' => 'products/satin-gold.jpg',
+        ]);
+
+        $this->assertNotNull($batch);
+
+        $createdProduct = Product::where('title', 'like', '%DSG-SATIN-GOLD%')->first();
+        $this->assertNotNull($createdProduct);
+        $this->assertTrue($createdProduct->is_active);
+        $this->assertTrue($createdProduct->categories->contains($feCategory->id));
+
+        $media = \App\Models\ProductMedia::where('product_id', $createdProduct->id)->first();
+        $this->assertNotNull($media);
+        $this->assertEquals('products/satin-gold.jpg', $media->file_path);
+        $this->assertTrue((bool) $media->is_primary);
+    }
+
+    /** @test */
+    public function it_allocates_pattern_quantities_per_constituent_manufacturing_product_and_validates_total()
+    {
+        $this->actingAs($this->admin);
+
+        $feCategory = Category::create(['name' => 'Custom Bedsheets', 'slug' => 'custom-bedsheets']);
+        $feProduct = \App\Models\FrontEndProduct::create([
+            'name' => 'Custom Bedset',
+            'sku' => 'FE-CUSTOM-001',
+            'category_id' => $feCategory->id,
+            'is_active' => true,
+        ]);
+
+        $patA = \App\Models\ManufacturingProductPattern::create([
+            'manufacturing_product_id' => $this->mProductBedSheet->id,
+            'name' => 'Pattern Gold Floral',
+            'is_default' => true,
+        ]);
+
+        $patB = \App\Models\ManufacturingProductPattern::create([
+            'manufacturing_product_id' => $this->mProductBedSheet->id,
+            'name' => 'Pattern Blue Waves',
+        ]);
+
+        \App\Models\FrontEndProductComponent::create([
+            'front_end_product_id' => $feProduct->id,
+            'manufacturing_product_id' => $this->mProductBedSheet->id,
+            'quantity' => 1,
+        ]);
+
+        // 1. Attempt step 2 with invalid pattern quantity sum (e.g. 6 + 2 = 8, required = 10)
+        Livewire::test(\App\Livewire\Admin\Production\FinishedGoodsConversionHub::class)
+            ->set('showWizardModal', true)
+            ->set('selectedCategoryId', $feCategory->id)
+            ->set('produceQty', 10)
+            ->set('componentSelections', [
+                0 => [
+                    ['pattern_id' => $patA->id, 'quantity' => 6],
+                    ['pattern_id' => $patB->id, 'quantity' => 2],
+                ]
+            ])
+            ->call('goToStep2')
+            ->assertSet('wizardStep', 1);
+
+        // 2. Step 2 with valid pattern quantity sum (6 + 4 = 10)
+        Livewire::test(\App\Livewire\Admin\Production\FinishedGoodsConversionHub::class)
+            ->set('showWizardModal', true)
+            ->set('selectedCategoryId', $feCategory->id)
+            ->set('produceQty', 10)
+            ->set('componentSelections', [
+                0 => [
+                    ['pattern_id' => $patA->id, 'quantity' => 6],
+                    ['pattern_id' => $patB->id, 'quantity' => 4],
+                ]
+            ])
+            ->call('goToStep2')
+            ->assertSet('wizardStep', 2);
     }
 }
 

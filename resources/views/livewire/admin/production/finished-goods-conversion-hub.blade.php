@@ -217,9 +217,7 @@
                                     </div>
                                 </div>
                             @endif
-                        </div>
-
-                        <!-- SECTION 2: MANUFACTURING PRODUCTS ITEM SELECTION -->
+                        </div>                        <!-- SECTION 2: MANUFACTURING PRODUCTS ITEM SELECTION -->
                         <div class="p-5 rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-4">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -227,7 +225,7 @@
                                         <span class="material-symbols-outlined text-primary text-[18px]">precision_manufacturing</span>
                                         Manufacturing Product Items Breakdown
                                     </h3>
-                                    <p class="text-[11px] text-on-surface-variant">Select constituent manufacturing product variants/patterns &amp; design IDs required for this category</p>
+                                    <p class="text-[11px] text-on-surface-variant">Select pattern / fabric design IDs &amp; specify quantities taken for each constituent item</p>
                                 </div>
                             </div>
 
@@ -244,9 +242,13 @@
                                             $stockInfo = collect($stockCheck['mfgStock'])->firstWhere('component_index', $idx);
                                             $availStock = $stockInfo['available_stock'] ?? 0;
                                             $isEnough = $stockInfo['is_enough'] ?? true;
+                                            $allocatedSum = $this->getComponentAllocatedQty($idx);
+                                            $isSumValid = ($allocatedSum === $reqQty);
+                                            $patRows = $componentSelections[$idx] ?? [['pattern_id' => '', 'quantity' => $reqQty]];
                                         @endphp
-                                        <div class="p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/60 space-y-2">
-                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <div class="p-4 rounded-xl bg-surface-container-lowest border {{ $isSumValid ? 'border-outline-variant/60' : 'border-rose-300 dark:border-rose-800' }} space-y-3">
+                                            <!-- Component Header -->
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-outline-variant/40 pb-2">
                                                 <div class="font-bold text-xs text-on-surface">
                                                     {{ $mfg?->name ?? 'Manufacturing Product Item' }}
                                                     <span class="text-on-surface-variant font-normal text-[11px]">(Required Qty: {{ $comp->quantity }} × {{ $produceQty }} = <strong class="text-on-surface font-mono">{{ $reqQty }} Pcs</strong>)</span>
@@ -264,19 +266,64 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Pattern Dropdown with Fabric Design IDs -->
-                                            <div>
-                                                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">Select Pattern / Fabric Design ID</label>
-                                                <select wire:model.live="componentSelections.{{ $idx }}" class="w-full px-3 py-2 bg-surface-container-low text-xs rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface font-semibold">
-                                                    <option value="">Default Pattern / Auto-allocate {{ $designId ? '(Design #' . $designId . ')' : '' }}</option>
-                                                    @if($mfg && $mfg->patterns->isNotEmpty())
-                                                        @foreach($mfg->patterns as $pat)
-                                                            <option value="{{ $pat->id }}">
-                                                                {{ $mfg->name }} — {{ $pat->name }} (Width: {{ $pat->fabricWidth?->name ?? 'Std' }}{{ $designId ? ', Design #' . $designId : '' }})
-                                                            </option>
-                                                        @endforeach
+                                            <!-- Pattern Allocation Rows -->
+                                            <div class="space-y-2.5">
+                                                @foreach($patRows as $pIdx => $pRow)
+                                                    <div class="grid grid-cols-12 gap-2 items-center">
+                                                        <!-- Pattern Dropdown -->
+                                                        <div class="col-span-7 sm:col-span-8">
+                                                            <select wire:model.live="componentSelections.{{ $idx }}.{{ $pIdx }}.pattern_id" class="w-full px-3 py-2 bg-surface-container-low text-xs rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface font-semibold">
+                                                                <option value="">Default Pattern / Auto-allocate {{ $designId ? '(Design #' . $designId . ')' : '' }}</option>
+                                                                @if($mfg && $mfg->patterns->isNotEmpty())
+                                                                    @foreach($mfg->patterns as $pat)
+                                                                        <option value="{{ $pat->id }}">
+                                                                            {{ $pat->name }} (Width: {{ $pat->fabricWidth?->name ?? 'Std' }})
+                                                                        </option>
+                                                                    @endforeach
+                                                                @endif
+                                                            </select>
+                                                        </div>
+
+                                                        <!-- Pattern Quantity Input -->
+                                                        <div class="col-span-4 sm:col-span-3">
+                                                            <div class="relative">
+                                                                <input type="number" min="0" wire:model.live="componentSelections.{{ $idx }}.{{ $pIdx }}.quantity" placeholder="Qty Pcs" class="w-full px-3 py-2 bg-surface-container-low text-xs font-mono font-bold rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface" />
+                                                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-on-surface-variant font-bold">Pcs</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Remove Row Button -->
+                                                        <div class="col-span-1 text-right">
+                                                            @if(count($patRows) > 1)
+                                                                <button type="button" wire:click="removePatternRow({{ $idx }}, {{ $pIdx }})" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors" title="Remove pattern option">
+                                                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                                                </button>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+
+                                            <!-- Component Footer: Add Pattern Button & Validation Total -->
+                                            <div class="flex items-center justify-between pt-2 border-t border-outline-variant/40">
+                                                <button type="button" wire:click="addPatternRow({{ $idx }})" class="text-xs font-extrabold text-primary hover:text-primary/80 flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                                                    <span>+ Add Pattern Allocation</span>
+                                                </button>
+
+                                                <div>
+                                                    @if($isSumValid)
+                                                        <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/10 text-emerald-800 border border-emerald-500/30 flex items-center gap-1">
+                                                            <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                                            Allocated: {{ $allocatedSum }} / {{ $reqQty }} Pcs
+                                                        </span>
+                                                    @else
+                                                        <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/10 text-rose-700 border border-rose-500/30 flex items-center gap-1">
+                                                            <span class="material-symbols-outlined text-[14px]">warning</span>
+                                                            Allocated: {{ $allocatedSum }} / {{ $reqQty }} Pcs (Must match required total!)
+                                                        </span>
                                                     @endif
-                                                </select>
+                                                </div>
                                             </div>
                                         </div>
                                     @endforeach
@@ -337,12 +384,24 @@
                         <div class="space-y-6">
                             <!-- SECTION 1: DESIGN ID & BARCODE PREVIEW -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- DESIGN ID INPUT -->
-                                <div>
-                                    <label class="block text-xs font-extrabold uppercase tracking-wider text-on-surface mb-1">Design ID * <span class="normal-case text-[11px] font-normal text-on-surface-variant">(Used in generating unique product barcode)</span></label>
-                                    <input type="text" wire:model.live="designId" placeholder="e.g. DSG-108-GOLD" class="w-full px-3.5 py-2.5 bg-surface-container-lowest text-xs font-mono font-extrabold rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface placeholder:font-normal" />
-                                    <span class="text-[11px] text-on-surface-variant mt-1 block">e.g. DSG-108-GOLD, 5934</span>
-                                </div>
+                                @if($designType === 'new')
+                                    <!-- DESIGN ID INPUT (NEW DESIGN ONLY) -->
+                                    <div>
+                                        <label class="block text-xs font-extrabold uppercase tracking-wider text-on-surface mb-1">Design ID * <span class="normal-case text-[11px] font-normal text-on-surface-variant">(Used in generating unique product barcode)</span></label>
+                                        <input type="text" wire:model.live="designId" placeholder="e.g. DSG-108-GOLD" class="w-full px-3.5 py-2.5 bg-surface-container-lowest text-xs font-mono font-extrabold rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface placeholder:font-normal" />
+                                        <span class="text-[11px] text-on-surface-variant mt-1 block">e.g. DSG-108-GOLD, 5934</span>
+                                    </div>
+                                @else
+                                    <!-- EXISTING PRODUCT PREVIEW (NO DESIGN ID INPUT REQUIRED) -->
+                                    <div>
+                                        <label class="block text-xs font-extrabold uppercase tracking-wider text-on-surface mb-1">Selected Existing Product</label>
+                                        <div class="px-4 py-2.5 bg-surface-container-lowest rounded-xl border border-outline-variant/60 font-extrabold text-xs text-primary flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[18px]">shopping_bag</span>
+                                            <span>{{ $this->availableStorefrontProducts->firstWhere('id', $selectedStorefrontProductId)?->title ?? 'Storefront Product' }}</span>
+                                        </div>
+                                        <span class="text-[11px] text-on-surface-variant mt-1 block">Existing product already includes design specification.</span>
+                                    </div>
+                                @endif
 
                                 <!-- GENERATED ENTRY BARCODE PREVIEW -->
                                 <div>
@@ -411,13 +470,6 @@
                                             <span>Will automatically attach cutting-stage/receiving photo recorded for constituent materials.</span>
                                         </div>
                                     @endif
-                                </div>
-                            @else
-                                <div class="p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/60">
-                                    <label class="block text-xs font-bold text-on-surface uppercase tracking-wider mb-1">Selected Existing Product</label>
-                                    <div class="text-xs font-extrabold text-primary">
-                                        {{ $this->availableStorefrontProducts->firstWhere('id', $selectedStorefrontProductId)?->title ?? 'Storefront Product' }}
-                                    </div>
                                 </div>
                             @endif
 

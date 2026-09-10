@@ -70,18 +70,21 @@ class FinishedGoodsConversionHub extends Component
         $this->reuseCuttingPhoto = false;
         $this->productImage = null;
         $this->autoSelectStorefrontProduct();
+        $this->ensureComponentSelectionsInitialized();
         $this->recalculateStockCheck();
     }
 
     public function updatedSelectedCategoryId()
     {
         $this->autoSelectStorefrontProduct();
+        $this->ensureComponentSelectionsInitialized();
         $this->recalculateStockCheck();
     }
 
     public function updatedProduceQty()
     {
         $this->produceQty = max(1, intval($this->produceQty));
+        $this->ensureComponentSelectionsInitialized();
         $this->recalculateStockCheck();
     }
 
@@ -92,11 +95,85 @@ class FinishedGoodsConversionHub extends Component
         }
     }
 
+    public function ensureComponentSelectionsInitialized()
+    {
+        $config = $this->categoryConfiguration;
+        if (!$config || $config->components->isEmpty()) {
+            return;
+        }
+
+        foreach ($config->components as $idx => $comp) {
+            $reqQty = (int) ($comp->quantity * max(1, intval($this->produceQty)));
+            $existing = $this->componentSelections[$idx] ?? $this->componentSelections[(string)$idx] ?? null;
+
+            if (!$existing || !is_array($existing) || empty($existing)) {
+                $this->componentSelections[$idx] = [
+                    ['pattern_id' => '', 'quantity' => $reqQty]
+                ];
+            } else {
+                if (count($existing) === 1 && empty($existing[0]['pattern_id'])) {
+                    $this->componentSelections[$idx][0]['quantity'] = $reqQty;
+                }
+            }
+        }
+    }
+
+    public function addPatternRow(int $compIdx)
+    {
+        if (!isset($this->componentSelections[$compIdx])) {
+            $this->componentSelections[$compIdx] = [];
+        }
+        $this->componentSelections[$compIdx][] = ['pattern_id' => '', 'quantity' => 0];
+    }
+
+    public function removePatternRow(int $compIdx, int $pIdx)
+    {
+        if (isset($this->componentSelections[$compIdx][$pIdx])) {
+            unset($this->componentSelections[$compIdx][$pIdx]);
+            $this->componentSelections[$compIdx] = array_values($this->componentSelections[$compIdx]);
+        }
+
+        if (empty($this->componentSelections[$compIdx])) {
+            $comp = $this->categoryConfiguration?->components->get($compIdx);
+            $reqQty = ($comp?->quantity ?? 1) * max(1, intval($this->produceQty));
+            $this->componentSelections[$compIdx] = [
+                ['pattern_id' => '', 'quantity' => $reqQty]
+            ];
+        }
+    }
+
+    public function getComponentAllocatedQty(int $compIdx): int
+    {
+        $rows = $this->componentSelections[$compIdx] ?? $this->componentSelections[(string)$compIdx] ?? [];
+        if (!is_array($rows)) {
+            return 0;
+        }
+        return array_sum(array_map(fn($row) => intval($row['quantity'] ?? 0), $rows));
+    }
+
     public function goToStep2()
     {
         if (!$this->selectedCategoryId) {
             session()->flash('toast', ['type' => 'error', 'message' => 'Please select a Leaf Category.']);
             return;
+        }
+
+        $config = $this->categoryConfiguration;
+        if ($config && $config->components->isNotEmpty()) {
+            foreach ($config->components as $idx => $comp) {
+                $mfg = $comp->manufacturingProduct;
+                $reqQty = (int) ($comp->quantity * max(1, intval($this->produceQty)));
+                $allocated = $this->getComponentAllocatedQty($idx);
+
+                if ($allocated !== $reqQty) {
+                    $mfgName = $mfg?->name ?? ("Item #" . ($idx + 1));
+                    session()->flash('toast', [
+                        'type' => 'error',
+                        'message' => "Total pattern quantity for '{$mfgName}' ({$allocated} Pcs) must equal required quantity of {$reqQty} Pcs."
+                    ]);
+                    return;
+                }
+            }
         }
 
         $this->recalculateStockCheck();
@@ -110,7 +187,13 @@ class FinishedGoodsConversionHub extends Component
 
     public function getGeneratedBarcodeProperty(): string
     {
-        $dIdClean = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', trim($this->designId) ?: 'DSG'));
+        $codeStr = trim($this->designId);
+        if ($this->designType === 'existing' && $this->selectedStorefrontProductId) {
+            $prod = Product::find($this->selectedStorefrontProductId);
+            $codeStr = $prod?->sku ?: $prod?->title ?: 'EXST';
+        }
+
+        $dIdClean = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $codeStr ?: 'DSG'));
         $targetQty = max(1, intval($this->produceQty));
         return "FG-{$dIdClean}-" . now()->format('Y') . "-" . str_pad((string) $targetQty, 4, '0', STR_PAD_LEFT);
     }
@@ -137,6 +220,13 @@ class FinishedGoodsConversionHub extends Component
 
     public function getProductTitlePrefillProperty(): string
     {
+        if ($this->designType === 'existing' && $this->selectedStorefrontProductId) {
+            $prod = Product::find($this->selectedStorefrontProductId);
+            if ($prod) {
+                return $prod->title;
+            }
+        }
+
         $dId = trim($this->designId);
         $catName = $this->selectedCategoryName;
         return trim("{$dId} {$catName}");
@@ -183,6 +273,7 @@ class FinishedGoodsConversionHub extends Component
             return;
         }
 
+        $this->ensureComponentSelectionsInitialized();
         $service = resolve(FinishedGoodsConversionService::class);
         $this->stockCheck = $service->checkCategoryStockAvailability($this->selectedCategoryId, $this->produceQty, $this->componentSelections);
     }
@@ -205,6 +296,7 @@ class FinishedGoodsConversionHub extends Component
         }
 
         $this->autoSelectStorefrontProduct();
+        $this->ensureComponentSelectionsInitialized();
         $this->recalculateStockCheck();
         $this->showWizardModal = true;
     }

@@ -96,22 +96,63 @@ class ProductionCostingService
 
         // 1. Fabric cost
         $fabricCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
-            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
+            ->where(function ($q) {
+                $q->whereHas('inventoryBatch.rawMaterial.category', function ($cq) {
+                    $cq->where('code', 'CAT-FAB')
+                       ->orWhere('code', 'like', '%FAB%')
+                       ->orWhere('name', 'like', '%Fabric%')
+                       ->orWhere('unit_type', 'length_based');
+                })
+                ->orWhereNotNull('inventory_bale_roll_id')
+                ->orWhere('consumed_length', '>', 0)
+                ->orWhere('total_fabric_cost', '>', 0);
+            })
             ->sum('total_cost');
+
+        if ($fabricCost === 0.0) {
+            $fabricCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
+                ->sum('total_fabric_cost');
+        }
+
+        if ($fabricCost === 0.0) {
+            $fabricCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
+                ->whereNotNull('inventory_bale_roll_id')
+                ->sum('total_cost');
+        }
 
         // 2. Subsidiary cost
         $subsidiaryCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
-            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-SUB'))
+            ->where(function ($q) {
+                $q->whereHas('inventoryBatch.rawMaterial.category', function ($cq) {
+                    $cq->where('code', 'CAT-SUB')
+                       ->orWhere('code', 'like', '%SUB%')
+                       ->orWhere('name', 'like', '%Subsidiary%')
+                       ->orWhere('name', 'like', '%Trim%');
+                })
+                ->orWhereHas('inventoryBatch.rawMaterial', function ($rmq) {
+                    $rmq->where('name', 'like', '%button%')
+                        ->orWhere('name', 'like', '%zipper%')
+                        ->orWhere('name', 'like', '%thread%')
+                        ->orWhere('name', 'like', '%elastic%')
+                        ->orWhere('name', 'like', '%label%')
+                        ->orWhere('name', 'like', '%sub%');
+                })
+                ->orWhere(function ($subQ) {
+                    $subQ->whereNull('inventory_bale_roll_id')
+                         ->where(function($lq) { $lq->whereNull('consumed_length')->orWhere('consumed_length', 0); })
+                         ->where(function($fq) { $fq->whereNull('total_fabric_cost')->orWhere('total_fabric_cost', 0); });
+                });
+            })
             ->sum('total_cost');
 
         // 3. Packaging cost
         $packagingCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
-            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-PKG'))
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-PKG')->orWhere('code', 'like', '%PKG%'))
             ->sum('total_cost');
 
         // 4. General Overheads cost (CAT-OHD)
         $overheadDirectCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
-            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-OHD'))
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-OHD')->orWhere('code', 'like', '%OHD%'))
             ->sum('total_cost');
         $overheadAllocatedCost = (float) DB::table('overhead_cost_allocations')
             ->where('production_batch_id', $batch->id)
@@ -120,7 +161,7 @@ class ProductionCostingService
 
         // 5. Stitching cost (allocates pro-rata from pool if no direct consumptions)
         $stitchingCost = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)
-            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-STITCH'))
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-STITCH')->orWhere('code', 'like', '%STITCH%'))
             ->sum('total_cost');
         if ($stitchingCost === 0.0) {
             $batchDate = $batch->batch_date ?: now();
@@ -185,9 +226,15 @@ class ProductionCostingService
         }
 
         $totalWastageCost = array_sum(array_column($wastageLog, 'total_cost'));
+        if ($totalWastageCost === 0.0) {
+            $allocatedWastage = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)->sum('allocated_wastage_cost');
+            if ($allocatedWastage > 0) {
+                $totalWastageCost = $allocatedWastage;
+            }
+        }
 
         // Grand total
-        $totalManufacturingCost = $totalMaterialCost + $totalLaborCost;
+        $totalManufacturingCost = $totalMaterialCost + $totalLaborCost + $totalWastageCost;
 
         // Sum finished yield across all jobs in the batch (or target quantities)
         $totalFinished = 0;
@@ -230,13 +277,20 @@ class ProductionCostingService
      */
     public function getJobCostSummary(int $jobId): array
     {
-        $job = \App\Models\ProductionJob::with(['batch', 'materialConsumptions', 'allocations', 'wastages'])->findOrFail($jobId);
+        $job = \App\Models\ProductionJob::with(['batch', 'materialConsumptions.inventoryBatch.rawMaterial.category', 'allocations', 'wastages'])->findOrFail($jobId);
         $batchId = $job->production_batch_db_id ?: $job->batch?->id;
         $batch = $job->batch ?: \App\Models\ProductionBatch::find($batchId);
 
+        if (!$batch && !empty($job->production_batch_id)) {
+            $batch = \App\Models\ProductionBatch::where('batch_code', $job->production_batch_id)->first();
+            if ($batch && !$job->production_batch_db_id) {
+                $job->update(['production_batch_db_id' => $batch->id]);
+            }
+        }
+
         // Get batch summary for pro-rata apportionment
         $batchSummary = $batch ? $this->getBatchCostSummary($batch->id) : [
-            'fabric_cost' => 0.0, 'overhead_cost' => 0.0, 'stitching_cost' => 0.0, 'total_wastage_cost' => 0.0
+            'fabric_cost' => 0.0, 'subsidiary_cost' => 0.0, 'overhead_cost' => 0.0, 'stitching_cost' => 0.0, 'total_wastage_cost' => 0.0
         ];
 
         $batchJobs = $batch ? \App\Models\ProductionJob::where('production_batch_db_id', $batch->id)
@@ -247,8 +301,26 @@ class ProductionCostingService
 
         // 1. Fabric cost (Job specific or pro-rata from batch if logged on master cutting job)
         $fabricCost = (float) $job->materialConsumptions()
-            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
+            ->where(function ($q) {
+                $q->whereHas('inventoryBatch.rawMaterial.category', function ($cq) {
+                    $cq->where('code', 'CAT-FAB')
+                       ->orWhere('code', 'like', '%FAB%')
+                       ->orWhere('name', 'like', '%Fabric%')
+                       ->orWhere('unit_type', 'length_based');
+                })
+                ->orWhereNotNull('inventory_bale_roll_id')
+                ->orWhere('consumed_length', '>', 0)
+                ->orWhere('total_fabric_cost', '>', 0);
+            })
             ->sum('total_cost');
+
+        if ($fabricCost === 0.0 && (float)$job->materialConsumptions()->sum('total_fabric_cost') > 0) {
+            $fabricCost = (float) $job->materialConsumptions()->sum('total_fabric_cost');
+        }
+
+        if ($fabricCost === 0.0 && (float)$job->materialConsumptions()->whereNotNull('inventory_bale_roll_id')->sum('total_cost') > 0) {
+            $fabricCost = (float) $job->materialConsumptions()->whereNotNull('inventory_bale_roll_id')->sum('total_cost');
+        }
 
         if ($fabricCost === 0.0 && $batchSummary['fabric_cost'] > 0) {
             $fabricCost = round($batchSummary['fabric_cost'] * $apportionRatio, 2);
@@ -256,12 +328,36 @@ class ProductionCostingService
 
         // 2. Subsidiary cost (Job specific)
         $subsidiaryCost = (float) $job->materialConsumptions()
-            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-SUB'))
+            ->where(function ($q) {
+                $q->whereHas('inventoryBatch.rawMaterial.category', function ($cq) {
+                    $cq->where('code', 'CAT-SUB')
+                       ->orWhere('code', 'like', '%SUB%')
+                       ->orWhere('name', 'like', '%Subsidiary%')
+                       ->orWhere('name', 'like', '%Trim%');
+                })
+                ->orWhereHas('inventoryBatch.rawMaterial', function ($rmq) {
+                    $rmq->where('name', 'like', '%button%')
+                        ->orWhere('name', 'like', '%zipper%')
+                        ->orWhere('name', 'like', '%thread%')
+                        ->orWhere('name', 'like', '%elastic%')
+                        ->orWhere('name', 'like', '%label%')
+                        ->orWhere('name', 'like', '%sub%');
+                })
+                ->orWhere(function ($subQ) {
+                    $subQ->whereNull('inventory_bale_roll_id')
+                         ->where(function($lq) { $lq->whereNull('consumed_length')->orWhere('consumed_length', 0); })
+                         ->where(function($fq) { $fq->whereNull('total_fabric_cost')->orWhere('total_fabric_cost', 0); });
+                });
+            })
             ->sum('total_cost');
+
+        if ($subsidiaryCost === 0.0 && $batchSummary['subsidiary_cost'] > 0) {
+            $subsidiaryCost = round($batchSummary['subsidiary_cost'] * $apportionRatio, 2);
+        }
 
         // 3. Packaging cost (Job specific)
         $packagingCost = (float) $job->materialConsumptions()
-            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-PKG'))
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-PKG')->orWhere('code', 'like', '%PKG%'))
             ->sum('total_cost');
 
         // 4. General Overheads (Apportioned)
@@ -283,16 +379,26 @@ class ProductionCostingService
         $wastageLog = [];
         $wastages = $job->wastages()->with(['manufacturingProduct', 'task', 'inventoryBaleRoll.bale'])->get();
 
-        if ($wastages->isEmpty() && $batchSummary['total_wastage_cost'] > 0 && isset($batchSummary['wastage_details']['wastage_log'])) {
-            // Apportion shared batch wastage to job
-            foreach ($batchSummary['wastage_details']['wastage_log'] as $bW) {
-                $apportionedWastageCost = round($bW['total_cost'] * $apportionRatio, 2);
+        if ($wastages->isEmpty() && $batchSummary['total_wastage_cost'] > 0) {
+            if (!empty($batchSummary['wastage_details']['wastage_log'])) {
+                foreach ($batchSummary['wastage_details']['wastage_log'] as $bW) {
+                    $apportionedWastageCost = round($bW['total_cost'] * $apportionRatio, 2);
+                    $wastageLog[] = [
+                        'product_name'    => $bW['product_name'] . ' (Apportioned)',
+                        'task_name'       => $bW['task_name'],
+                        'quantity_wasted' => round($bW['quantity_wasted'] * $apportionRatio, 2),
+                        'unit_cost'       => $bW['unit_cost'],
+                        'total_cost'      => $apportionedWastageCost,
+                    ];
+                }
+            } else {
+                $allocatedWastageCost = round($batchSummary['total_wastage_cost'] * $apportionRatio, 2);
                 $wastageLog[] = [
-                    'product_name'    => $bW['product_name'] . ' (Apportioned)',
-                    'task_name'       => $bW['task_name'],
-                    'quantity_wasted' => round($bW['quantity_wasted'] * $apportionRatio, 2),
-                    'unit_cost'       => $bW['unit_cost'],
-                    'total_cost'      => $apportionedWastageCost,
+                    'product_name'    => 'Shared Cutting Stage Wastage Allocation',
+                    'task_name'       => 'Cutting',
+                    'quantity_wasted' => 1,
+                    'unit_cost'       => $allocatedWastageCost,
+                    'total_cost'      => $allocatedWastageCost,
                 ];
             }
         } else {
@@ -328,8 +434,11 @@ class ProductionCostingService
         }
 
         $totalWastageCost = array_sum(array_column($wastageLog, 'total_cost'));
+        if ($totalWastageCost === 0.0 && (float) $job->materialConsumptions()->sum('allocated_wastage_cost') > 0) {
+            $totalWastageCost = (float) $job->materialConsumptions()->sum('allocated_wastage_cost');
+        }
 
-        $totalManufacturingCost = $totalMaterialCost + $totalLaborCost;
+        $totalManufacturingCost = $totalMaterialCost + $totalLaborCost + $totalWastageCost;
 
         $finishedUnits = (int) $job->total_produced_quantity;
         if ($finishedUnits <= 0) $finishedUnits = (int) $job->target_quantity;
