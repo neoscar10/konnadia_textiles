@@ -77,7 +77,15 @@
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-xs font-extrabold text-on-surface">Task #{{ $idx + 1 }}</span>
                                 <div class="flex items-center gap-1.5">
-                                    @if($taskRow['status'] === 'completed')
+                                    @if(!empty($taskRow['is_skipped']))
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-300">
+                                            SKIPPED
+                                        </span>
+                                        <button type="button" wire:click.stop="unskipStage({{ $taskRow['id'] }})" class="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-800 dark:text-amber-300 hover:text-amber-950 px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 rounded-lg transition-colors">
+                                            <span class="material-symbols-outlined text-[13px]">undo</span>
+                                            <span>Unskip</span>
+                                        </button>
+                                    @elseif($taskRow['status'] === 'completed')
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
                                             COMPLETED
                                         </span>
@@ -91,8 +99,19 @@
                                         </span>
                                     @endif
 
+                                    @if(empty($taskRow['is_skipped']) && $idx > 0 && $taskRow['status'] !== 'completed')
+                                        <button type="button" wire:click.stop="toggleSkipStage({{ $taskRow['id'] }})" class="inline-flex items-center gap-1 text-[10px] font-extrabold text-on-surface-variant hover:text-rose-600 px-2 py-0.5 bg-surface-container-high border border-outline-variant/60 rounded-lg transition-colors">
+                                            <span class="material-symbols-outlined text-[14px]">remove_circle_outline</span>
+                                            <span>Skip</span>
+                                        </button>
+                                    @elseif($idx === 0)
+                                        <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 bg-surface-container-high px-2 py-0.5 rounded border border-outline-variant/60">
+                                            MANDATORY
+                                        </span>
+                                    @endif
+
                                     @if(count($dynamicTaskRows) > 1 && $taskRow['status'] !== 'completed')
-                                        <button type="button" wire:click.stop="removeDynamicTaskStage({{ $idx }})" class="p-1 text-on-surface-variant/60 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors">
+                                        <button type="button" wire:click.stop="removeDynamicTaskStage({{ $idx }})" class="p-1 text-on-surface-variant/60 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors" title="Delete Task Stage">
                                             <span class="material-symbols-outlined text-[16px]">close</span>
                                         </button>
                                     @endif

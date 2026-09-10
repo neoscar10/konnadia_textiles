@@ -134,6 +134,7 @@ class CustomizedProductionDetailPage extends Component
                 'task_id'       => (string) $exec->task_id,
                 'task_name'     => $exec->task?->name ?? "Task #" . ($idx + 1),
                 'status'        => $exec->status,
+                'is_skipped'     => (bool) $exec->is_skipped,
                 'is_final_step' => $isFinal,
             ];
         })->toArray();
@@ -144,6 +145,38 @@ class CustomizedProductionDetailPage extends Component
                 $r['is_final_step'] = ($i === $lastIndex);
             }
         }
+    }
+
+    // --- STAGE SKIP & UNSKIP ACTIONS ---
+    public function toggleSkipStage(int $executionId)
+    {
+        $stage = $this->job->stageExecutions->firstWhere('id', $executionId);
+        if (!$stage || $stage->sequence_number === 1) {
+            $this->dispatch('toast', message: "Cutting/Step 1 is mandatory and cannot be skipped.", type: 'error');
+            return;
+        }
+
+        $workflowService = resolve(ProductionWorkflowService::class);
+        $workflowService->skipStage($this->job->id, $stage->task_id);
+
+        $this->dispatch('toast', message: "Stage {$stage->task?->name} skipped successfully.", type: 'success');
+        $this->loadOrder();
+        $this->initDynamicTaskRows();
+        $this->loadActiveStage();
+    }
+
+    public function unskipStage(int $executionId)
+    {
+        $stage = $this->job->stageExecutions->firstWhere('id', $executionId);
+        if (!$stage) return;
+
+        $workflowService = resolve(ProductionWorkflowService::class);
+        $workflowService->unskipStage($this->job->id, $stage->task_id);
+
+        $this->dispatch('toast', message: "Stage {$stage->task?->name} re-enabled successfully.", type: 'success');
+        $this->loadOrder();
+        $this->initDynamicTaskRows();
+        $this->loadActiveStage();
     }
 
     public function loadActiveStage()

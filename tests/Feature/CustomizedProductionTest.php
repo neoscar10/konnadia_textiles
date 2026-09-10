@@ -171,4 +171,65 @@ class CustomizedProductionTest extends TestCase
                 return $lastStage && (bool) $lastStage->is_final_step;
             });
     }
+
+    /** @test */
+    public function can_skip_and_unskip_dynamic_task_stage()
+    {
+        $this->seed(\Database\Seeders\UnitManagementSeeder::class);
+        $lengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first();
+
+        $category = \App\Models\RawMaterialCategory::create([
+            'name' => 'Fabrics',
+            'code' => 'CAT-FAB-TEST-4',
+            'unit_group_id' => $lengthGroup->id,
+            'is_active' => true,
+        ]);
+
+        $fabric = RawMaterial::create([
+            'name' => 'Cotton Soft',
+            'raw_material_category_id' => $category->id,
+            'unit_group_id' => $lengthGroup->id,
+            'unit' => 'Meters',
+            'is_active' => true,
+        ]);
+
+        $cutting = Task::create(['name' => 'Cutting', 'code' => 'TSK-C2', 'status' => true]);
+        $stitching = Task::create(['name' => 'Stitching', 'code' => 'TSK-S2', 'status' => true]);
+
+        $customOrder = CustomizedProductionOrder::create([
+            'custom_order_id' => 'CUST-PROD-2026-0004',
+            'item_description' => 'Custom Cotton Sheet',
+            'target_quantity' => 20,
+            'raw_material_id' => $fabric->id,
+            'width' => 108,
+            'length' => 120,
+            'length_unit' => 'Inch',
+            'status' => 'in_progress',
+        ]);
+
+        // Load page, add second stage (Stitching)
+        $component = Livewire::actingAs($this->admin)
+            ->test(CustomizedProductionDetailPage::class, ['id' => $customOrder->id])
+            ->call('addDynamicTaskStage');
+
+        $customOrder->refresh();
+
+        $stitchingStage = \App\Models\JobStageExecution::where('production_job_id', $customOrder->production_job_id)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $this->assertNotNull($stitchingStage);
+
+        // Skip stage
+        $component->call('toggleSkipStage', $stitchingStage->id)
+            ->assertHasNoErrors();
+
+        $this->assertTrue((bool)$stitchingStage->fresh()->is_skipped);
+
+        // Unskip stage
+        $component->call('unskipStage', $stitchingStage->id)
+            ->assertHasNoErrors();
+
+        $this->assertFalse((bool)$stitchingStage->fresh()->is_skipped);
+    }
 }
