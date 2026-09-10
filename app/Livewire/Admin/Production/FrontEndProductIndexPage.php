@@ -228,12 +228,19 @@ class FrontEndProductIndexPage extends Component
         );
 
         $mfgProducts = ManufacturingProduct::orderBy('name')->get();
-        $packagingMaterials = RawMaterial::orderBy('name')->get();
+
+        $pkgMaterialIds = collect($this->pkgRows)->pluck('raw_material_id')->filter()->map(fn($id) => (int)$id)->toArray();
+        $packagingMaterials = RawMaterial::packagingOnly($pkgMaterialIds)->orderBy('name')->get();
+
+        if ($packagingMaterials->isEmpty()) {
+            $packagingMaterials = RawMaterial::orderBy('name')->get();
+        }
 
         return view('livewire.admin.production.front-end-product-index-page', [
             'categories' => $paginatedCategories,
             'mfgProducts' => $mfgProducts,
             'packagingMaterials' => $packagingMaterials,
         ])->title('Front-End Products Configuration');
+
     }
 }

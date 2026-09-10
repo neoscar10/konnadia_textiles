@@ -293,9 +293,11 @@ class BatchJobsDetailPage extends Component
             ->with(['combinations', 'units'])
             ->orderBy('title')
             ->get();
-        $packagingRawMaterials = \App\Models\RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
-            ->orderBy('name')
-            ->get();
+        $packagingRawMaterials = \App\Models\RawMaterial::packagingOnly()->orderBy('name')->get();
+        if ($packagingRawMaterials->isEmpty()) {
+            $packagingRawMaterials = \App\Models\RawMaterial::orderBy('name')->get();
+        }
+
 
         $firstJob = $jobs->first();
         $product = $firstJob?->manufacturingProduct;

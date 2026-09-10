@@ -209,4 +209,24 @@ class RawMaterial extends Model
             ->orWhereIn('unit', ['Meters', 'Yards', 'Feet', 'Inches']);
         });
     }
+
+    /**
+     * Scope: filter only packaging materials (category CAT-PKG, code/name containing PKG or Packaging, or RM-PKG code).
+     */
+    public function scopePackagingOnly($query, array $includeIds = [])
+    {
+        return $query->where(function ($q) use ($includeIds) {
+            $q->whereHas('category', function ($cq) {
+                $cq->where('code', 'CAT-PKG')
+                   ->orWhere('code', 'like', '%PKG%')
+                   ->orWhere('name', 'like', '%Packaging%');
+            })
+            ->orWhere('code', 'like', 'RM-PKG%');
+
+            if (!empty($includeIds)) {
+                $q->orWhereIn('id', array_filter($includeIds));
+            }
+        });
+    }
 }
+

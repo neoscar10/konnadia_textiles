@@ -4,7 +4,9 @@ namespace App\Livewire\Admin\Production;
 
 use App\Models\ProductionBatch;
 use App\Models\Product;
+use App\Models\RawMaterial;
 use Livewire\Component;
+
 use Livewire\Attributes\Layout;
 
 #[Layout('components.admin.layout')]
@@ -112,13 +114,15 @@ class FinishedGoodsConversion extends Component
     public function render()
     {
         $products = Product::where('is_active', true)->orderBy('title')->get();
-        $packagingRawMaterials = \App\Models\RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-PKG'))
-            ->orderBy('name')
-            ->get();
+        $packagingRawMaterials = RawMaterial::packagingOnly()->orderBy('name')->get();
+        if ($packagingRawMaterials->isEmpty()) {
+            $packagingRawMaterials = RawMaterial::orderBy('name')->get();
+        }
 
         return view('livewire.admin.production.finished-goods-conversion', [
             'products' => $products,
             'packagingRawMaterials' => $packagingRawMaterials,
         ])->title('Finished Goods Conversion');
+
     }
 }
