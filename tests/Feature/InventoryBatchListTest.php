@@ -128,6 +128,36 @@ class InventoryBatchListTest extends TestCase
             ->assertDontSee('Alpha Suppliers');
     }
 
+    public function test_inventory_batches_display_most_recent_added_purchase_at_the_top()
+    {
+        $this->actingAs($this->admin);
+
+        $olderBatch = InventoryBatch::create([
+            'raw_material_id' => $this->fabric->id,
+            'supplier_name' => 'First Supplier',
+            'purchase_date' => '2026-01-01',
+            'quantity_received' => 100,
+            'balance_quantity' => 100,
+            'purchase_rate' => 50,
+            'total_amount' => 5000,
+        ]);
+
+        $newerBatch = InventoryBatch::create([
+            'raw_material_id' => $this->fabric->id,
+            'supplier_name' => 'Most Recent Supplier',
+            'purchase_date' => '2026-09-09',
+            'quantity_received' => 200,
+            'balance_quantity' => 200,
+            'purchase_rate' => 60,
+            'total_amount' => 12000,
+        ]);
+
+        Livewire::test(InventoryBatchList::class)
+            ->assertViewHas('batches', function ($batches) use ($newerBatch, $olderBatch) {
+                return $batches->first()->id === $newerBatch->id;
+            });
+    }
+
     public function test_inventory_batch_deduct_and_restore_quantity()
     {
         $batch = InventoryBatch::create([

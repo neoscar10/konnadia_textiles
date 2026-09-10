@@ -2,17 +2,22 @@
 
 namespace App\Livewire\Admin\Production;
 
+use App\Models\Category;
 use App\Models\FinishedGoodsBatch;
 use App\Models\FrontEndProduct;
+use App\Models\ManufacturingProduct;
+use App\Models\Product;
+use App\Services\Catalog\CategoryService;
 use App\Services\Manufacturing\FinishedGoodsConversionService;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 #[Layout('components.admin.layout')]
 class FinishedGoodsConversionHub extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     public string $searchBarcode = '';
     public string $barcodeQuery = '';
@@ -29,17 +34,16 @@ class FinishedGoodsConversionHub extends Component
     public bool $showAuditModal = false;
     public ?FinishedGoodsBatch $auditBatch = null;
 
-    // Wizard form properties
-    public ?int $selectedFrontEndProductId = null;
+    // Wizard form properties (Sketch-based flow)
+    public ?int $selectedCategoryId = null;
     public int $produceQty = 10;
-    public string $unitSelection = 'Piece (Pcs)';
-    public int $unitFactor = 1;
-    public string $designId = 'DSG-108-GOLD';
-    public bool $publishStorefront = true;
-    public bool $reusePhoto = true;
-    public string $notes = '';
-    public string $storefrontMode = 'existing';
+    public string $designType = 'new'; // 'new' or 'existing'
+    public string $designId = '';
+    public bool $reuseCuttingPhoto = false;
+    public $productImage = null;
     public ?int $selectedStorefrontProductId = null;
+    public array $componentSelections = [];
+    public string $notes = '';
 
     // Live Stock Check state
     public array $stockCheck = [
@@ -49,57 +53,30 @@ class FinishedGoodsConversionHub extends Component
         'missingItems' => [],
     ];
 
-    public function mount()
+    public function mount(CategoryService $categoryService)
     {
-        $this->storefrontMode = 'existing';
-        $first = FrontEndProduct::where('is_active', true)->first();
-        if ($first) {
-            $this->selectedFrontEndProductId = $first->id;
-            $this->autoSelectStorefrontProduct();
-            $this->recalculateStockCheck();
-        }
-    }
+        $leafCategories = $categoryService->getLeafCategories();
 
-    public function updatedSelectedFrontEndProductId()
-    {
+        // Auto-select first configured leaf category if available
+        $configuredFeProduct = FrontEndProduct::whereNotNull('category_id')->where('is_active', true)->first();
+        if ($configuredFeProduct) {
+            $this->selectedCategoryId = $configuredFeProduct->category_id;
+        } else if ($leafCategories->isNotEmpty()) {
+            $this->selectedCategoryId = $leafCategories->first()->id;
+        }
+
+        $this->designType = 'new';
+        $this->designId = '';
+        $this->reuseCuttingPhoto = false;
+        $this->productImage = null;
         $this->autoSelectStorefrontProduct();
         $this->recalculateStockCheck();
     }
 
-    public function autoSelectStorefrontProduct()
+    public function updatedSelectedCategoryId()
     {
-        $available = $this->availableStorefrontProducts;
-        if ($available->isNotEmpty()) {
-            $this->selectedStorefrontProductId = $available->first()->id;
-            $this->storefrontMode = 'existing';
-        } else {
-            $this->selectedStorefrontProductId = null;
-            $this->storefrontMode = 'new';
-        }
-    }
-
-    public function getAvailableStorefrontProductsProperty()
-    {
-        if (!$this->selectedFrontEndProductId) {
-            return collect();
-        }
-
-        $feProduct = FrontEndProduct::find($this->selectedFrontEndProductId);
-        if (!$feProduct) {
-            return collect();
-        }
-
-        if ($feProduct->category_id) {
-            $products = \App\Models\Product::whereHas('categories', function ($q) use ($feProduct) {
-                $q->where('categories.id', $feProduct->category_id);
-            })->orderBy('title')->get();
-
-            if ($products->isNotEmpty()) {
-                return $products;
-            }
-        }
-
-        return \App\Models\Product::orderBy('title')->get();
+        $this->autoSelectStorefrontProduct();
+        $this->recalculateStockCheck();
     }
 
     public function updatedProduceQty()
@@ -108,53 +85,122 @@ class FinishedGoodsConversionHub extends Component
         $this->recalculateStockCheck();
     }
 
-    public function updatedUnitSelection()
+    public function updatedDesignType()
     {
-        if ($this->unitSelection === 'Pack / Set (10 Pcs)') {
-            $this->unitFactor = 10;
-        } else {
-            $this->unitFactor = 1;
+        if ($this->designType === 'existing') {
+            $this->autoSelectStorefrontProduct();
         }
-        $this->recalculateStockCheck();
     }
 
-    public function recalculateStockCheck()
+    public function goToStep2()
     {
-        if (!$this->selectedFrontEndProductId) {
-            $this->stockCheck = ['canProceed' => false, 'mfgStock' => [], 'pkgStock' => [], 'missingItems' => []];
+        if (!$this->selectedCategoryId) {
+            session()->flash('toast', ['type' => 'error', 'message' => 'Please select a Leaf Category.']);
             return;
         }
 
-        $feProduct = FrontEndProduct::find($this->selectedFrontEndProductId);
-        if (!$feProduct) {
-            return;
-        }
+        $this->recalculateStockCheck();
+        $this->wizardStep = 2;
+    }
 
-        $service = resolve(FinishedGoodsConversionService::class);
-        $this->stockCheck = $service->checkFrontEndStockAvailability($feProduct, $this->produceQty, $this->unitFactor);
+    public function goToStep1()
+    {
+        $this->wizardStep = 1;
     }
 
     public function getGeneratedBarcodeProperty(): string
     {
-        $dIdClean = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $this->designId ?: 'DSG108'));
-        return "FG-{$dIdClean}-" . now()->format('Y') . "-" . str_pad((string) $this->produceQty, 4, '0', STR_PAD_LEFT);
+        $dIdClean = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', trim($this->designId) ?: 'DSG'));
+        $targetQty = max(1, intval($this->produceQty));
+        return "FG-{$dIdClean}-" . now()->format('Y') . "-" . str_pad((string) $targetQty, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function autoSelectStorefrontProduct()
+    {
+        $available = $this->availableStorefrontProducts;
+        if ($available->isNotEmpty()) {
+            $this->selectedStorefrontProductId = $available->first()->id;
+        } else {
+            $this->selectedStorefrontProductId = null;
+        }
+    }
+
+    public function getSelectedCategoryProperty()
+    {
+        return $this->selectedCategoryId ? Category::find($this->selectedCategoryId) : null;
+    }
+
+    public function getSelectedCategoryNameProperty(): string
+    {
+        return $this->selectedCategory?->name ?? 'Royal Touch 108"';
+    }
+
+    public function getProductTitlePrefillProperty(): string
+    {
+        $dId = trim($this->designId);
+        $catName = $this->selectedCategoryName;
+        return trim("{$dId} {$catName}");
+    }
+
+    public function getAvailableStorefrontProductsProperty()
+    {
+        if (!$this->selectedCategoryId) {
+            return collect();
+        }
+
+        return Product::whereHas('categories', function ($q) {
+            $q->where('categories.id', $this->selectedCategoryId);
+        })->orderBy('title')->get();
+    }
+
+    public function getSelectedStorefrontProductStockProperty(): int
+    {
+        if (!$this->selectedStorefrontProductId) {
+            return 0;
+        }
+
+        $prod = Product::find($this->selectedStorefrontProductId);
+        return (int) ($prod?->stock_quantity ?? 0);
+    }
+
+    public function getCategoryConfigurationProperty()
+    {
+        if (!$this->selectedCategoryId) {
+            return null;
+        }
+
+        return FrontEndProduct::with([
+            'components.manufacturingProduct.patterns.fabricWidth',
+            'components.manufacturingProduct.patterns',
+            'packagingItems.rawMaterial'
+        ])->where('category_id', $this->selectedCategoryId)->first();
+    }
+
+    public function recalculateStockCheck()
+    {
+        if (!$this->selectedCategoryId) {
+            $this->stockCheck = ['canProceed' => false, 'mfgStock' => [], 'pkgStock' => [], 'missingItems' => []];
+            return;
+        }
+
+        $service = resolve(FinishedGoodsConversionService::class);
+        $this->stockCheck = $service->checkCategoryStockAvailability($this->selectedCategoryId, $this->produceQty, $this->componentSelections);
     }
 
     public function openWizardModal()
     {
         $this->wizardStep = 1;
         $this->produceQty = 10;
-        $this->unitSelection = 'Piece (Pcs)';
-        $this->unitFactor = 1;
-        $this->designId = 'DSG-108-GOLD';
-        $this->publishStorefront = true;
-        $this->reusePhoto = true;
+        $this->designType = 'new';
+        $this->designId = '';
+        $this->reuseCuttingPhoto = false;
+        $this->productImage = null;
         $this->notes = '';
 
-        if (!$this->selectedFrontEndProductId) {
-            $first = FrontEndProduct::where('is_active', true)->first();
-            if ($first) {
-                $this->selectedFrontEndProductId = $first->id;
+        if (!$this->selectedCategoryId) {
+            $firstFe = FrontEndProduct::whereNotNull('category_id')->where('is_active', true)->first();
+            if ($firstFe) {
+                $this->selectedCategoryId = $firstFe->category_id;
             }
         }
 
@@ -163,56 +209,46 @@ class FinishedGoodsConversionHub extends Component
         $this->showWizardModal = true;
     }
 
-    public function goToWizardStep(int $step)
-    {
-        if ($step === 2) {
-            $this->recalculateStockCheck();
-            if (!$this->stockCheck['canProceed']) {
-                session()->flash('toast', [
-                    'type' => 'error',
-                    'message' => 'Cannot proceed to Step 2: Insufficient unconverted manufacturing stock.',
-                ]);
-                return;
-            }
-
-            if (!$this->selectedStorefrontProductId && $this->availableStorefrontProducts->isNotEmpty()) {
-                $this->selectedStorefrontProductId = $this->availableStorefrontProducts->first()->id;
-                $this->storefrontMode = 'existing';
-            }
-        }
-        $this->wizardStep = $step;
-    }
-
     public function confirmAndExecuteConversion(FinishedGoodsConversionService $conversionService)
     {
-        if (!$this->selectedFrontEndProductId) {
-            session()->flash('toast', ['type' => 'error', 'message' => 'Please select a Target Front-End Product.']);
+        if (!$this->selectedCategoryId) {
+            session()->flash('toast', ['type' => 'error', 'message' => 'Please select a Leaf Category.']);
             return;
         }
 
-        if (!$this->selectedStorefrontProductId && $this->availableStorefrontProducts->isNotEmpty()) {
-            $this->selectedStorefrontProductId = $this->availableStorefrontProducts->first()->id;
-            $this->storefrontMode = 'existing';
+        if ($this->designType === 'new' && empty(trim($this->designId))) {
+            session()->flash('toast', ['type' => 'error', 'message' => 'Please enter a Design ID for the new design.']);
+            return;
+        }
+
+        if ($this->designType === 'existing' && !$this->selectedStorefrontProductId) {
+            session()->flash('toast', ['type' => 'error', 'message' => 'Please select an existing Storefront Product.']);
+            return;
         }
 
         try {
-            $fgBatch = $conversionService->convertFrontEndProductBatch([
-                'front_end_product_id' => $this->selectedFrontEndProductId,
-                'converted_qty' => $this->produceQty,
-                'unit' => $this->unitSelection,
-                'unit_factor' => $this->unitFactor,
+            $imagePath = null;
+            if ($this->productImage) {
+                $imagePath = $this->productImage->store('products', 'public');
+            }
+
+            $fgBatch = $conversionService->convertCategoryToFinishedGoods([
+                'category_id' => $this->selectedCategoryId,
+                'target_qty' => $this->produceQty,
+                'design_type' => $this->designType,
                 'design_id' => $this->designId,
-                'is_published' => $this->publishStorefront,
-                'storefront_mode' => $this->storefrontMode,
                 'existing_storefront_product_id' => $this->selectedStorefrontProductId,
+                'component_selections' => $this->componentSelections,
                 'notes' => $this->notes,
+                'reuse_cutting_photo' => $this->reuseCuttingPhoto,
+                'product_image' => $imagePath,
             ]);
 
             $this->showWizardModal = false;
 
             session()->flash('toast', [
                 'type' => 'success',
-                'message' => "Finished Goods Lot {$fgBatch->barcode} converted successfully! Added {$fgBatch->converted_qty} {$fgBatch->unit} to stock.",
+                'message' => "Finished Goods Lot {$fgBatch->barcode} converted successfully! Added {$fgBatch->converted_qty} set(s) to stock.",
             ]);
 
             $this->openPrintBarcodeModal($fgBatch->id);
@@ -232,19 +268,20 @@ class FinishedGoodsConversionHub extends Component
             return;
         }
 
-        $batch = FinishedGoodsBatch::with(['frontEndProduct', 'items.manufacturingProduct', 'packagingDeductions.rawMaterial'])
-            ->where('barcode', 'like', "%{$query}%")
-            ->first();
+        $cleanQuery = preg_replace('/[^a-zA-Z0-9\-]/', '', $query);
 
-        if (!$batch) {
-            $batch = FinishedGoodsBatch::with(['frontEndProduct', 'items.manufacturingProduct', 'packagingDeductions.rawMaterial'])->latest()->first();
-        }
+        $batch = FinishedGoodsBatch::with(['frontEndProduct', 'items.manufacturingProduct', 'items.productionJob', 'items.productionBatch', 'packagingDeductions.rawMaterial'])
+            ->where('barcode', 'like', "%{$query}%")
+            ->orWhere('barcode', 'like', "%{$cleanQuery}%")
+            ->orWhere('design_id', 'like', "%{$query}%")
+            ->orWhereHas('frontEndProduct', fn($fp) => $fp->where('title', 'like', "%{$query}%")->orWhere('sku', 'like', "%{$query}%"))
+            ->first();
 
         if ($batch) {
             $this->auditBatch = $batch;
             $this->showAuditModal = true;
         } else {
-            session()->flash('toast', ['type' => 'error', 'message' => "No converted batch found for barcode {$query}."]);
+            session()->flash('toast', ['type' => 'error', 'message' => "No converted batch found matching barcode '{$query}'."]);
         }
     }
 
@@ -262,7 +299,7 @@ class FinishedGoodsConversionHub extends Component
         $this->showPrintModal = true;
     }
 
-    public function render()
+    public function render(CategoryService $categoryService)
     {
         $batches = FinishedGoodsBatch::with(['frontEndProduct', 'creator'])
             ->when($this->searchBarcode, function ($q) {
@@ -273,13 +310,15 @@ class FinishedGoodsConversionHub extends Component
             ->latest()
             ->paginate(10);
 
-        $frontendProducts = FrontEndProduct::where('is_active', true)->orderBy('name')->get();
+        $leafCategories = $categoryService->getLeafCategories();
+        $configuredCategoryIds = FrontEndProduct::whereNotNull('category_id')->pluck('category_id')->toArray();
 
         $activePrintBatch = $this->activePrintBatchId ? FinishedGoodsBatch::with('frontEndProduct')->find($this->activePrintBatchId) : null;
 
         return view('livewire.admin.production.finished-goods-conversion-hub', [
             'batches' => $batches,
-            'frontendProducts' => $frontendProducts,
+            'leafCategories' => $leafCategories,
+            'configuredCategoryIds' => $configuredCategoryIds,
             'activePrintBatch' => $activePrintBatch,
         ])->title('Finished Goods Conversion & Barcode Hub');
     }

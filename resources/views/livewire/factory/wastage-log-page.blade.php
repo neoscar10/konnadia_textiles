@@ -9,7 +9,7 @@
             Wastage & Scrap Log
         </h2>
         <p class="font-body-md text-body-md text-on-surface-variant mt-1">
-            Trace unaccounted item losses and scrap generated during final production batch completions.
+            Trace unaccounted item losses, scrap, and damaged goods generated during production batch executions.
         </p>
     </div>
 
@@ -24,7 +24,7 @@
                 {{ number_format($totalWastageQty, 0) }} <span class="font-sans font-body-md text-body-md font-normal text-on-surface-variant">Pcs</span>
             </div>
             <p class="font-body-sm text-body-sm text-on-surface-variant">
-                Across all production runs
+                Across all production runs (Non-zero wastes)
             </p>
         </div>
 
@@ -65,7 +65,7 @@
 
             <div class="flex flex-wrap items-center gap-3">
                 <!-- Search Box -->
-                <div class="relative min-w-[240px]">
+                <div class="relative min-w-[220px]">
                     <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[20px]">search</span>
                     <input 
                         type="text" 
@@ -74,6 +74,13 @@
                         placeholder="Search ID, Batch, Product, Reason..."
                     />
                 </div>
+
+                <!-- Waste Type Filter -->
+                <select wire:model.live="selectedWastageType" class="bg-surface border border-outline-variant rounded-lg font-body-sm text-body-sm px-3 py-2 focus:ring-1 focus:ring-primary">
+                    <option value="">All Waste Types</option>
+                    <option value="scrap">Scrap</option>
+                    <option value="damaged">Damaged</option>
+                </select>
 
                 <!-- Stage Filter -->
                 <select wire:model.live="selectedTask" class="bg-surface border border-outline-variant rounded-lg font-body-sm text-body-sm px-3.5 py-2 focus:ring-1 focus:ring-primary">
@@ -93,6 +100,8 @@
                         <th class="px-5 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Wastage ID</th>
                         <th class="px-5 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Source Batch</th>
                         <th class="px-5 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Manufacturing Product</th>
+                        <th class="px-5 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Pattern Type</th>
+                        <th class="px-5 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center">Waste Type</th>
                         <th class="px-5 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center">Wastage Qty</th>
                         <th class="px-5 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Stage Lost</th>
                         <th class="px-5 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Logged Date</th>
@@ -101,6 +110,14 @@
                 </thead>
                 <tbody class="divide-y divide-outline-variant">
                     @forelse($wastages as $wItem)
+                        @php
+                            $wType = strtolower($wItem->wastage_type ?? 'scrap');
+                            $isDamage = in_array($wType, ['damage', 'damaged']);
+                            $patternName = $wItem->pattern?->name 
+                                ?? $wItem->productionJob?->pattern?->name 
+                                ?? $wItem->manufacturingProduct?->patterns->first()?->name 
+                                ?? 'Standard Pattern';
+                        @endphp
                         <tr class="hover:bg-surface-container transition-colors" wire:key="wastage-{{ $wItem->id }}">
                             <td class="px-5 py-4 font-mono font-bold font-body-sm text-body-sm text-on-surface">
                                 WST-{{ $wItem->created_at->format('Y') }}-{{ str_pad((string) $wItem->id, 4, '0', STR_PAD_LEFT) }}
@@ -111,8 +128,24 @@
                             <td class="px-5 py-4 font-body-md text-body-md font-semibold text-on-surface">
                                 {{ $wItem->manufacturingProduct?->name ?: ($wItem->productionJob?->manufacturingProduct?->name ?: 'N/A') }}
                             </td>
+                            <td class="px-5 py-4 font-body-md text-body-md font-semibold text-on-surface">
+                                {{ $patternName }}
+                            </td>
                             <td class="px-5 py-4 text-center">
-                                <span class="px-3 py-1 rounded-full font-mono font-bold font-label-sm text-label-sm bg-amber-500/10 text-amber-900 border border-amber-500/30">
+                                @if($isDamage)
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full font-mono font-bold font-label-sm text-label-sm bg-rose-500/10 text-rose-800 border border-rose-500/30">
+                                        <span class="material-symbols-outlined text-[14px]">warning</span>
+                                        Damaged
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full font-mono font-bold font-label-sm text-label-sm bg-amber-500/10 text-amber-900 border border-amber-500/30">
+                                        <span class="material-symbols-outlined text-[14px]">delete_sweep</span>
+                                        Scrap
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <span class="px-3 py-1 rounded-full font-mono font-bold font-label-sm text-label-sm bg-slate-500/10 text-slate-900 border border-slate-500/30">
                                     {{ number_format($wItem->quantity_wasted, 0) }} Pcs
                                 </span>
                             </td>
@@ -123,13 +156,13 @@
                                 {{ $wItem->created_at->format('Y-m-d') }}
                             </td>
                             <td class="px-5 py-4 font-body-sm text-body-sm text-on-surface-variant max-w-xs truncate">
-                                {{ $wItem->reason ?: 'Unaccounted scrap during final batch completion' }}
+                                {{ $wItem->reason ?: 'Unaccounted scrap during production batch completion' }}
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-5 py-10 text-center font-body-md text-body-md text-on-surface-variant italic">
-                                No recorded wastage or loss incidents found.
+                            <td colspan="9" class="px-5 py-10 text-center font-body-md text-body-md text-on-surface-variant italic">
+                                No recorded non-zero wastage or loss incidents found.
                             </td>
                         </tr>
                     @endforelse

@@ -15,8 +15,10 @@ class JobAlteration extends Model
         'source_product_id',
         'source_quantity',
         'target_product_id',
+        'target_pattern_id',
         'target_quantity',
         'child_production_batch_id',
+        'child_production_job_id',
     ];
 
     protected $casts = [
@@ -41,11 +43,27 @@ class JobAlteration extends Model
     }
 
     /**
+     * Get the target pattern.
+     */
+    public function targetPattern()
+    {
+        return $this->belongsTo(ManufacturingProductPattern::class, 'target_pattern_id');
+    }
+
+    /**
      * Get the generated child production batch.
      */
     public function childBatch()
     {
         return $this->belongsTo(ProductionBatch::class, 'child_production_batch_id');
+    }
+
+    /**
+     * Get the generated child production job.
+     */
+    public function childProductionJob()
+    {
+        return $this->belongsTo(ProductionJob::class, 'child_production_job_id');
     }
 
     /**

@@ -24,6 +24,14 @@ class FabricWidth extends Model
     ];
 
     /**
+     * Raw materials using this fabric width.
+     */
+    public function rawMaterials()
+    {
+        return $this->belongsToMany(RawMaterial::class, 'raw_material_fabric_widths');
+    }
+
+    /**
      * Product patterns using this fabric width.
      */
     public function productPatterns()
@@ -36,10 +44,11 @@ class FabricWidth extends Model
      */
     public function isInUse(): bool
     {
+        $usedInPivot = $this->rawMaterials()->exists();
         $usedInRawMaterials = RawMaterial::where('standard_width', $this->value)->exists();
         $usedInPatterns = $this->productPatterns()->exists();
 
-        return $usedInRawMaterials || $usedInPatterns;
+        return $usedInPivot || $usedInRawMaterials || $usedInPatterns;
     }
 
     public function scopeActive($query)

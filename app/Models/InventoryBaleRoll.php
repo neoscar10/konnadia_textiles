@@ -11,7 +11,11 @@ class InventoryBaleRoll extends Model
 
     protected $fillable = [
         'inventory_bale_id',
+        'raw_material_id',
+        'fabric_width_id',
         'roll_number',
+        'design_number',
+        'stock_id',
         'initial_length',
         'current_balance_length',
         'status', // active, depleted
@@ -25,6 +29,16 @@ class InventoryBaleRoll extends Model
     public function bale()
     {
         return $this->belongsTo(InventoryBale::class, 'inventory_bale_id');
+    }
+
+    public function rawMaterial()
+    {
+        return $this->belongsTo(RawMaterial::class, 'raw_material_id');
+    }
+
+    public function fabricWidth()
+    {
+        return $this->belongsTo(FabricWidth::class, 'fabric_width_id');
     }
 
     /**

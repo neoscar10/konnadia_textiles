@@ -45,14 +45,6 @@
         </div>
     </div>
 
-    <!-- Info Notice Card -->
-    <div class="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 text-xs text-amber-900 flex items-start gap-3">
-        <span class="text-amber-700 text-base leading-none mt-0.5">ⓘ</span>
-        <div>
-            <strong>Product &amp; Pattern Routing Architecture:</strong> Packaging is defined once per storefront front-end product during Finished Goods conversion. Patterns configured here dictate exact fabric widths, lengths, and task routing generated when Production Batches are created.
-        </div>
-    </div>
-
     <!-- Wizard Form Body -->
     <form wire:submit.prevent="save" class="space-y-6">
 
@@ -70,7 +62,7 @@
             </div>
         @endif
 
-        <!-- STEP 1: Basic Info & Customised Product ID -->
+        <!-- STEP 1: Basic Info -->
         @if($wizardStep === 1)
             <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-sm space-y-6">
                 <div class="border-b border-gray-100 pb-4">
@@ -96,41 +88,6 @@
                         @error('manufacturing_product_category_id') <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
                     </div>
                 </div>
-
-                <!-- Customised Product ID toggle UI -->
-                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-4">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="font-extrabold text-sm text-slate-900">Customised Product ID</span>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-0.5">For one-off orders that don't follow a saved pattern specification.</p>
-                    </div>
-
-                    <label class="relative inline-flex items-center cursor-pointer shrink-0 select-none group">
-                        <input type="checkbox" wire:model.live="is_customised_product" class="sr-only peer">
-                        <div class="w-12 h-6 bg-slate-300 border border-slate-300 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-500/30 peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md peer-checked:bg-amber-500 peer-checked:border-amber-600 transition-all duration-200 group-hover:border-amber-400"></div>
-                    </label>
-                </div>
-
-                @if($is_customised_product)
-                    <div class="grid grid-cols-2 gap-4 p-4 bg-white border border-slate-200 rounded-xl">
-                        <label class="flex items-start gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
-                            <input type="radio" wire:model="customised_mode" value="fixed" class="mt-1 text-amber-600">
-                            <div>
-                                <strong class="block text-xs font-bold text-slate-900">Fixed length</strong>
-                                <span class="text-[11px] text-slate-500">Same standard calculation as a saved pattern</span>
-                            </div>
-                        </label>
-
-                        <label class="flex items-start gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
-                            <input type="radio" wire:model="customised_mode" value="calc" class="mt-1 text-amber-600">
-                            <div>
-                                <strong class="block text-xs font-bold text-slate-900">Calculate at job creation</strong>
-                                <span class="text-[11px] text-slate-500">Length comes from actual fabric used in Cutting job</span>
-                            </div>
-                        </label>
-                    </div>
-                @endif
             </div>
 
             <!-- Navigation Bar Step 1 -->
@@ -151,7 +108,7 @@
                 <div class="border-b border-gray-100 pb-4 flex items-center justify-between">
                     <div>
                         <h3 class="text-base font-extrabold text-slate-900 font-display uppercase tracking-wider">Step 2: Patterns &amp; Task Routing</h3>
-                        <p class="text-xs text-slate-500 mt-1">A pattern represents a size or cut variation of this product. Each pattern owns its fabric width, length, and task routing.</p>
+                        <p class="text-xs text-slate-500 mt-1">A pattern represents a size or cut variation of this product. Each pattern owns its fabric width consumption, task routing, and labor rate.</p>
                     </div>
                     <button type="button" wire:click="addPatternRow" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-full transition-all shadow-2xs">
                         ＋ Add Pattern
@@ -186,7 +143,7 @@
                                 <div class="lg:col-span-7 p-4 bg-white border border-slate-200/90 rounded-2xl space-y-3.5 shadow-2xs">
                                     <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
                                         <div>
-                                            <span class="text-xs font-black uppercase tracking-wider text-slate-800">Task Routing Sequence for {{ $pattern['name'] ?: 'Pattern' }}</span>
+                                            <span class="text-xs font-black uppercase tracking-wider text-slate-800">Task Sequence &amp; Labor Rate for {{ $pattern['name'] ?: 'Pattern' }}</span>
                                             <span class="text-[11px] font-medium text-slate-500 block mt-0.5">Configure task order, labor piece rates, and mark final stage.</span>
                                         </div>
                                     </div>
@@ -245,50 +202,69 @@
 
                                     <div class="pt-1">
                                         <button type="button" wire:click="addPatternTaskRow({{ $pIdx }})" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-extrabold text-xs rounded-xl transition-all shadow-2xs inline-flex items-center gap-1">
-                                            <span>＋ Add Task to Routing</span>
+                                            <span>＋ Add Task</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                <!-- RIGHT SIDE: Pattern Specifications Card -->
+                                <!-- RIGHT SIDE: Pattern Fabric Width Consumption Card -->
                                 <div class="lg:col-span-5 p-4 bg-white border border-slate-200/90 rounded-2xl space-y-4 shadow-2xs">
                                     <div class="border-b border-slate-100 pb-2.5">
-                                        <span class="text-xs font-black uppercase tracking-wider text-slate-800">Pattern Specifications</span>
-                                        <span class="text-[11px] font-medium text-slate-500 block mt-0.5">Fabric dimensions & base labor rate for this pattern.</span>
+                                        <span class="text-xs font-black uppercase tracking-wider text-slate-800">Fabric Width Consumption</span>
+                                        <p class="text-[11px] font-medium text-slate-500 mt-1">Width is picked from the Fabric Width Master; enter the length consumed at that width in whichever length-based unit is convenient.</p>
                                     </div>
 
-                                    <div class="space-y-4">
-                                        <div>
-                                            <label class="block text-xs font-extrabold uppercase text-slate-700 mb-1">Fabric Width Option *</label>
-                                            <select wire:model="patternsList.{{ $pIdx }}.fabric_width_id" class="w-full px-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500">
-                                                <option value="">-- Select Fabric Width --</option>
-                                                @foreach($fabricWidths as $fw)
-                                                    <option value="{{ $fw->id }}">{{ $fw->name }} ({{ $fw->value }} {{ $fw->unit }})</option>
-                                                @endforeach
-                                            </select>
-                                            @error("patternsList.{$pIdx}.fabric_width_id") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
-                                        </div>
+                                    <div class="space-y-3">
+                                        @foreach($pattern['widths'] ?? [] as $wIdx => $wRow)
+                                            <div class="flex items-center gap-2">
+                                                <!-- Width Dropdown -->
+                                                <div class="flex-1 min-w-0">
+                                                    <select wire:model="patternsList.{{ $pIdx }}.widths.{{ $wIdx }}.fabric_width_id" class="w-full px-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500">
+                                                        <option value="">-- Select Width --</option>
+                                                        @foreach($fabricWidths as $fw)
+                                                            <option value="{{ $fw->id }}">{{ $fw->name }} ({{ $fw->value }} {{ $fw->unit }})</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+
+                                                <!-- Length Input -->
+                                                <div class="w-24 shrink-0">
+                                                    <input type="number" step="0.01" wire:model="patternsList.{{ $pIdx }}.widths.{{ $wIdx }}.fabric_length" placeholder="0.00" class="w-full px-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 text-right focus:outline-none focus:border-amber-500">
+                                                </div>
+
+                                                <!-- Length Unit Dropdown -->
+                                                <div class="w-28 shrink-0">
+                                                    <select wire:model="patternsList.{{ $pIdx }}.widths.{{ $wIdx }}.fabric_length_unit" class="w-full px-2 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500">
+                                                        <option value="m">Meter (m)</option>
+                                                        <option value="in">Inch (in)</option>
+                                                        <option value="cm">cm</option>
+                                                        <option value="yd">Yard (yd)</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Remove Width Row Button -->
+                                                @if(count($pattern['widths'] ?? []) > 1)
+                                                    <button type="button" wire:click="removePatternWidthRow({{ $pIdx }}, {{ $wIdx }})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-all shrink-0" title="Remove width option">
+                                                        ✕
+                                                    </button>
+                                                @endif
+                                            </div>
+                                            @error("patternsList.{$pIdx}.widths.{$wIdx}.fabric_width_id") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
+                                            @error("patternsList.{$pIdx}.widths.{$wIdx}.fabric_length") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
+                                        @endforeach
 
                                         <div>
-                                            <label class="block text-xs font-extrabold uppercase text-slate-700 mb-1">Pattern Length *</label>
-                                            <div class="flex gap-2">
-                                                <input type="number" step="0.01" wire:model="patternsList.{{ $pIdx }}.fabric_length" placeholder="Length" class="w-full px-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500">
-                                                <select wire:model="patternsList.{{ $pIdx }}.fabric_length_unit" class="px-2 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 shrink-0">
-                                                    <option value="m">Meter (m)</option>
-                                                    <option value="in">Inch (in)</option>
-                                                    <option value="cm">cm</option>
-                                                    <option value="yd">Yard (yd)</option>
-                                                </select>
-                                            </div>
-                                            @error("patternsList.{$pIdx}.fabric_length") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
+                                            <button type="button" wire:click="addPatternWidthRow({{ $pIdx }})" class="text-xs font-extrabold text-amber-700 hover:text-amber-900 flex items-center gap-1 mt-1">
+                                                <span>＋ Add width</span>
+                                            </button>
                                         </div>
+                                    </div>
 
-                                        <div>
-                                            <label class="block text-xs font-extrabold uppercase text-slate-700 mb-1">Standard Labor Rate (₹)</label>
-                                            <div class="relative flex items-center">
-                                                <span class="absolute left-3 text-xs font-extrabold text-slate-400">₹</span>
-                                                <input type="number" step="0.50" wire:model="patternsList.{{ $pIdx }}.standard_labor_rate" placeholder="Optional rate" class="w-full pl-7 pr-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500">
-                                            </div>
+                                    <div class="pt-2 border-t border-slate-100">
+                                        <label class="block text-xs font-extrabold uppercase text-slate-700 mb-1">Standard Labor Rate (₹)</label>
+                                        <div class="relative flex items-center">
+                                            <span class="absolute left-3 text-xs font-extrabold text-slate-400">₹</span>
+                                            <input type="number" step="0.50" wire:model="patternsList.{{ $pIdx }}.standard_labor_rate" placeholder="Optional rate" class="w-full pl-7 pr-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500">
                                         </div>
                                     </div>
                                 </div>
@@ -298,7 +274,7 @@
                 </div>
             </div>
 
-            <!-- Navigation Bar Step 2 (Mandatory explicit Back & Next buttons) -->
+            <!-- Navigation Bar Step 2 -->
             <div class="flex items-center justify-between pt-2">
                 <button type="button" wire:click="previousStep" class="px-6 py-2.5 bg-white border border-gray-200 hover:bg-slate-50 text-slate-800 font-bold text-sm rounded-full transition-all flex items-center gap-2">
                     <span>←</span>
@@ -315,78 +291,161 @@
         @if($wizardStep === 3)
             <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-sm space-y-6">
                 <div class="border-b border-gray-100 pb-4">
-                    <h3 class="text-base font-extrabold text-slate-900 font-display uppercase tracking-wider">Step 3: Subsidiary Materials Configuration</h3>
-                    <p class="text-xs text-slate-500 mt-1">Add subsidiary materials (zippers, threads, tags) required for this product.</p>
+                    <h3 class="text-base font-extrabold text-slate-900 font-display uppercase tracking-wider">Step 3: Subsidiary Material Configuration</h3>
+                    <p class="text-xs text-slate-500 mt-1">Choose whether every pattern in this product shares one subsidiary-material list, or whether patterns need different subsidiary materials from each other (e.g. a different zip colour per pattern) — either way, set it right here without needing the Patterns tab.</p>
                 </div>
 
-                <div class="p-5 bg-slate-50/80 border-2 border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-slate-300">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl {{ $is_subsidiary_used ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-200/60 text-slate-500 border border-slate-300/60' }} flex items-center justify-center shrink-0 transition-colors">
-                            <span class="material-symbols-outlined text-xl font-bold">category</span>
-                        </div>
-                        <div>
-                            <span class="font-extrabold text-sm text-slate-900 block">Configure Subsidiary Materials</span>
-                            <p class="text-xs text-slate-500 mt-0.5">Enable if this manufacturing product consumes subsidiary raw materials.</p>
-                        </div>
+                <!-- Common List Switch Card -->
+                <div class="p-5 bg-slate-50/80 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <span class="font-extrabold text-sm text-slate-900 block">Common list for all patterns</span>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            @if($is_common_subsidiary)
+                                All patterns share the single subsidiary-material list configured below.
+                            @else
+                                Each pattern below has its own subsidiary-material list — set them right here.
+                            @endif
+                        </p>
                     </div>
 
-                    <div class="flex items-center gap-3 shrink-0">
-                        <!-- Status Badge -->
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider transition-all {{ $is_subsidiary_used ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs' : 'bg-slate-200 text-slate-600 border border-slate-300' }}">
-                            <span class="w-2 h-2 rounded-full {{ $is_subsidiary_used ? 'bg-amber-600 animate-pulse' : 'bg-slate-400' }}"></span>
-                            {{ $is_subsidiary_used ? 'Enabled' : 'Disabled' }}
-                        </span>
-
-                        <!-- Prominent Toggle Switch -->
-                        <label class="relative inline-flex items-center cursor-pointer shrink-0 select-none group">
-                            <input type="checkbox" wire:model.live="is_subsidiary_used" class="sr-only peer">
-                            <div class="w-12 h-6 bg-slate-300 border border-slate-300 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-500/30 peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md peer-checked:bg-amber-500 peer-checked:border-amber-600 transition-all duration-200 group-hover:border-amber-400"></div>
-                        </label>
-                    </div>
+                    <!-- Explicit Dynamic Toggle Button -->
+                    <button type="button" wire:click="toggleCommonSubsidiaryMode" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 {{ $is_common_subsidiary ? 'bg-amber-600' : 'bg-slate-300' }}" style="background-color: {{ $is_common_subsidiary ? '#d97706' : '#cbd5e1' }};" role="switch" aria-checked="{{ $is_common_subsidiary ? 'true' : 'false' }}">
+                        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out {{ $is_common_subsidiary ? 'translate-x-5' : 'translate-x-0' }}" style="transform: {{ $is_common_subsidiary ? 'translateX(20px)' : 'translateX(0px)' }};"></span>
+                    </button>
                 </div>
 
-                @if($is_subsidiary_used)
+                @if($is_common_subsidiary)
+                    <!-- COMMON MODE: Single common list toggle & items -->
+                    <div class="p-5 bg-white border border-slate-200 rounded-2xl space-y-4 shadow-2xs">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div>
+                                <span class="font-extrabold text-sm text-slate-900 block">Common Subsidiary Raw Material Use</span>
+                                <p class="text-xs text-slate-500 mt-0.5">Enable if this manufacturing product consumes common subsidiary materials across all patterns.</p>
+                            </div>
+
+                            <div class="flex items-center gap-3 shrink-0">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider transition-all {{ $is_subsidiary_used ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs' : 'bg-slate-200 text-slate-600 border border-slate-300' }}">
+                                    <span class="w-2 h-2 rounded-full {{ $is_subsidiary_used ? 'bg-amber-600 animate-pulse' : 'bg-slate-400' }}"></span>
+                                    {{ $is_subsidiary_used ? 'Enabled' : 'Disabled' }}
+                                </span>
+
+                                <!-- Explicit Dynamic Toggle Button -->
+                                <button type="button" wire:click="$toggle('is_subsidiary_used')" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 {{ $is_subsidiary_used ? 'bg-amber-600' : 'bg-slate-300' }}" style="background-color: {{ $is_subsidiary_used ? '#d97706' : '#cbd5e1' }};" role="switch" aria-checked="{{ $is_subsidiary_used ? 'true' : 'false' }}">
+                                    <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out {{ $is_subsidiary_used ? 'translate-x-5' : 'translate-x-0' }}" style="transform: {{ $is_subsidiary_used ? 'translateX(20px)' : 'translateX(0px)' }};"></span>
+                                </button>
+                            </div>
+                        </div>
+
+                        @if($is_subsidiary_used)
+                            <div class="space-y-4 pt-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-extrabold uppercase text-slate-800">Common Subsidiary Items</span>
+                                    <button type="button" wire:click="addSubsidiaryRow" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs rounded-lg transition-all">
+                                        ＋ Add Material
+                                    </button>
+                                </div>
+
+                                <div class="space-y-2.5">
+                                    @foreach($subsidiaryMaterialsList as $sIdx => $sRow)
+                                        <div>
+                                            <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                                <div class="flex-1">
+                                                    <select wire:model.live="subsidiaryMaterialsList.{{ $sIdx }}.raw_material_id" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+                                                        <option value="">-- Select Subsidiary Material --</option>
+                                                        @foreach($subsidiaryRawMaterials as $m)
+                                                            <option value="{{ $m->id }}">{{ $m->name }} ({{ $m->code }})</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+
+                                                <div class="w-36 flex items-center gap-2">
+                                                    <input type="number" step="0.0001" wire:model="subsidiaryMaterialsList.{{ $sIdx }}.consumption_quantity" placeholder="Qty" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+                                                    <span class="text-xs font-bold text-slate-500 shrink-0">{{ $sRow['unit'] ?? '' }}</span>
+                                                </div>
+
+                                                <button type="button" wire:click="removeSubsidiaryRow({{ $sIdx }})" class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                                                    ✕
+                                                </button>
+                                            </div>
+                                            @error("subsidiaryMaterialsList.{$sIdx}.raw_material_id") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
+                                            @error("subsidiaryMaterialsList.{$sIdx}.consumption_quantity") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-xs text-slate-500 italic">Subsidiary use is off for all patterns.</p>
+                        @endif
+                    </div>
+                @else
+                    <!-- PER-PATTERN MODE: Individual pattern cards with individual toggles & lists -->
                     <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-extrabold uppercase text-slate-800">Subsidiary Material Items</span>
-                            <button type="button" wire:click="addSubsidiaryRow" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-lg transition-all">
-                                ＋ Add Material
-                            </button>
-                        </div>
+                        @foreach($patternsList as $pIdx => $pattern)
+                            <div class="p-5 bg-white border border-slate-200 rounded-2xl space-y-4 shadow-2xs">
+                                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="w-6 h-6 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center">
+                                            {{ $pIdx + 1 }}
+                                        </span>
+                                        <span class="font-extrabold text-sm text-slate-900">{{ $pattern['name'] ?: 'Pattern ' . ($pIdx + 1) }}</span>
+                                    </div>
 
-                        <div class="space-y-2">
-                            @foreach($subsidiaryMaterialsList as $sIdx => $sRow)
-                                <div>
-                                    <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                                        <div class="flex-1">
-                                            <select wire:model.live="subsidiaryMaterialsList.{{ $sIdx }}.raw_material_id" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
-                                                <option value="">-- Select Subsidiary Material --</option>
-                                                @foreach($subsidiaryRawMaterials as $m)
-                                                    <option value="{{ $m->id }}">{{ $m->name }} ({{ $m->code }})</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-
-                                        <div class="w-36 flex items-center gap-2">
-                                            <input type="number" step="0.0001" wire:model="subsidiaryMaterialsList.{{ $sIdx }}.consumption_quantity" placeholder="Qty" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
-                                            <span class="text-xs font-bold text-slate-500 shrink-0">{{ $sRow['unit'] ?? '' }}</span>
-                                        </div>
-
-                                        <button type="button" wire:click="removeSubsidiaryRow({{ $sIdx }})" class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
-                                            ✕
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs font-bold text-slate-500">
+                                            {{ !empty($pattern['is_subsidiary_used']) ? 'Enabled' : 'Disabled' }}
+                                        </span>
+                                        <!-- Explicit Dynamic Toggle Button -->
+                                        <button type="button" wire:click="togglePatternSubsidiary({{ $pIdx }})" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 {{ !empty($pattern['is_subsidiary_used']) ? 'bg-amber-600' : 'bg-slate-300' }}" style="background-color: {{ !empty($pattern['is_subsidiary_used']) ? '#d97706' : '#cbd5e1' }};" role="switch" aria-checked="{{ !empty($pattern['is_subsidiary_used']) ? 'true' : 'false' }}">
+                                            <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out {{ !empty($pattern['is_subsidiary_used']) ? 'translate-x-5' : 'translate-x-0' }}" style="transform: {{ !empty($pattern['is_subsidiary_used']) ? 'translateX(20px)' : 'translateX(0px)' }};"></span>
                                         </button>
                                     </div>
-                                    @error("subsidiaryMaterialsList.{$sIdx}.raw_material_id") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
-                                    @error("subsidiaryMaterialsList.{$sIdx}.consumption_quantity") <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
                                 </div>
-                            @endforeach
-                        </div>
-                        @error('subsidiaryMaterialsList') <span class="text-xs text-rose-600 font-semibold block mt-1">{{ $message }}</span> @enderror
+
+                                @if(!empty($pattern['is_subsidiary_used']))
+                                    <div class="space-y-3 pt-1">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-extrabold uppercase text-slate-700">Subsidiary Materials for {{ $pattern['name'] }}</span>
+                                            <button type="button" wire:click="addPatternSubsidiaryRow({{ $pIdx }})" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs rounded-lg transition-all">
+                                                ＋ Add Material
+                                            </button>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            @forelse($pattern['subsidiaryMaterials'] ?? [] as $sIdx => $sRow)
+                                                <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                                    <div class="flex-1">
+                                                        <select wire:model.live="patternsList.{{ $pIdx }}.subsidiaryMaterials.{{ $sIdx }}.raw_material_id" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+                                                            <option value="">-- Select Subsidiary Material --</option>
+                                                            @foreach($subsidiaryRawMaterials as $m)
+                                                                <option value="{{ $m->id }}">{{ $m->name }} ({{ $m->code }})</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="w-36 flex items-center gap-2">
+                                                        <input type="number" step="0.0001" wire:model="patternsList.{{ $pIdx }}.subsidiaryMaterials.{{ $sIdx }}.consumption_quantity" placeholder="Qty" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+                                                        <span class="text-xs font-bold text-slate-500 shrink-0">{{ $sRow['unit'] ?? '' }}</span>
+                                                    </div>
+
+                                                    <button type="button" wire:click="removePatternSubsidiaryRow({{ $pIdx }}, {{ $sIdx }})" class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            @empty
+                                                <p class="text-xs text-slate-400 italic">No materials added yet for this pattern. Click "＋ Add Material" above.</p>
+                                            @endforelse
+                                        </div>
+                                    </div>
+                                @else
+                                    <p class="text-xs text-slate-500 italic">Subsidiary use is off for this pattern.</p>
+                                @endif
+                            </div>
+                        @endforeach
                     </div>
                 @endif
             </div>
 
-            <!-- Navigation Bar Step 3 (Mandatory explicit Back & Save buttons) -->
+            <!-- Navigation Bar Step 3 -->
             <div class="flex items-center justify-between pt-2">
                 <button type="button" wire:click="previousStep" class="px-6 py-2.5 bg-white border border-gray-200 hover:bg-slate-50 text-slate-800 font-bold text-sm rounded-full transition-all flex items-center gap-2">
                     <span>←</span>

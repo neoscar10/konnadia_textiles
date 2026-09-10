@@ -148,4 +148,67 @@ class FabricBaleInventoryTest extends TestCase
         $this->assertEquals(50.0, (float) $roll->current_balance_length);
         $this->assertEquals(150.0, (float) $bale->current_balance_length);
     }
+
+    public function test_opening_bale_with_multi_fabric_rolls_populates_material_and_design_details()
+    {
+        $materialA = RawMaterial::first();
+        $category = RawMaterialCategory::first();
+        $materialB = RawMaterial::create([
+            'name' => 'Silk Satin 120GSM',
+            'code' => 'RM-SLK-120',
+            'raw_material_category_id' => $category->id,
+            'unit' => 'Meters',
+            'is_active' => true,
+        ]);
+
+        $batchA = InventoryBatch::create([
+            'raw_material_id' => $materialA->id,
+            'supplier_name' => 'Multi Fabric Supplier',
+            'invoice_number' => 'INV-MULTI-BALE-1',
+            'quantity_received' => 300.0,
+            'balance_quantity' => 300.0,
+            'status' => 'active',
+        ]);
+
+        $baleA = $batchA->bales()->create([
+            'bale_number' => 'BALE-2026-SHARED',
+            'declared_length' => 300.0,
+            'status' => 'unopened',
+        ]);
+
+        $rollData = [
+            [
+                'length' => 100.0,
+                'raw_material_id' => $materialA->id,
+                'design_number' => 'D-101',
+                'stock_id' => 'STK-001',
+            ],
+            [
+                'length' => 100.0,
+                'raw_material_id' => $materialA->id,
+                'design_number' => 'D-101',
+                'stock_id' => 'STK-001',
+            ],
+            [
+                'length' => 100.0,
+                'raw_material_id' => $materialB->id,
+                'design_number' => 'D-202',
+                'stock_id' => 'STK-002',
+            ],
+        ];
+
+        $baleA->openBale($rollData);
+
+        $baleA->refresh();
+        $this->assertEquals('opened', $baleA->status);
+        $this->assertCount(3, $baleA->rolls);
+
+        $rollsMaterialA = $baleA->rolls()->where('raw_material_id', $materialA->id)->get();
+        $rollsMaterialB = $baleA->rolls()->where('raw_material_id', $materialB->id)->get();
+
+        $this->assertCount(2, $rollsMaterialA);
+        $this->assertCount(1, $rollsMaterialB);
+        $this->assertEquals('D-101', $rollsMaterialA->first()->design_number);
+        $this->assertEquals('D-202', $rollsMaterialB->first()->design_number);
+    }
 }

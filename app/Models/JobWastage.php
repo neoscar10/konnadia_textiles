@@ -13,8 +13,10 @@ class JobWastage extends Model
         'job_code',
         'production_job_id',
         'manufacturing_product_id',
+        'pattern_id',
         'inventory_bale_roll_id',
         'task_id',
+        'wastage_type',
         'quantity_wasted',
         'reason',
     ];
@@ -22,6 +24,7 @@ class JobWastage extends Model
     protected $casts = [
         'quantity_wasted' => 'decimal:2',
         'inventory_bale_roll_id' => 'integer',
+        'pattern_id' => 'integer',
     ];
 
     /**
@@ -38,6 +41,14 @@ class JobWastage extends Model
     public function manufacturingProduct()
     {
         return $this->belongsTo(ManufacturingProduct::class);
+    }
+
+    /**
+     * Get the product pattern.
+     */
+    public function pattern()
+    {
+        return $this->belongsTo(ManufacturingProductPattern::class, 'pattern_id');
     }
 
     /**

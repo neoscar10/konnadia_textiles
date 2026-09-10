@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\JobWastage;
 use App\Models\ManufacturingProduct;
+use App\Models\ManufacturingProductPattern;
 use App\Models\ProductionJob;
 use App\Models\ProductionBatch;
 use App\Models\Task;
@@ -46,6 +47,12 @@ class WastageLogPageTest extends TestCase
             'status' => 'active',
         ]);
 
+        $pattern = ManufacturingProductPattern::create([
+            'manufacturing_product_id' => $product->id,
+            'name' => 'King Size Pattern 240x260',
+            'fabric_length' => 2.6,
+        ]);
+
         $taskCutting = Task::create(['name' => 'Fabric Cutting', 'code' => 'TSK-CUT', 'status' => true]);
         $taskIroning = Task::create(['name' => 'Ironing', 'code' => 'TSK-IRN', 'status' => true]);
 
@@ -61,42 +68,68 @@ class WastageLogPageTest extends TestCase
             'production_batch_id' => $batch->batch_code,
             'production_batch_db_id' => $batch->id,
             'manufacturing_product_id' => $product->id,
+            'pattern_id' => $pattern->id,
             'target_quantity' => 200,
             'status' => 'completed',
         ]);
 
+        // Non-zero scrap wastage
         JobWastage::create([
             'job_code' => $job->job_code,
             'production_job_id' => $job->id,
             'manufacturing_product_id' => $product->id,
+            'pattern_id' => $pattern->id,
             'task_id' => $taskCutting->id,
+            'wastage_type' => 'scrap',
             'quantity_wasted' => 10.00,
             'reason' => 'Cutting edge scrap defect',
         ]);
 
+        // Non-zero damage wastage
         JobWastage::create([
             'job_code' => $job->job_code,
             'production_job_id' => $job->id,
             'manufacturing_product_id' => $product->id,
+            'pattern_id' => $pattern->id,
             'task_id' => $taskIroning->id,
+            'wastage_type' => 'damage',
             'quantity_wasted' => 5.00,
             'reason' => 'Burn mark during final ironing',
         ]);
 
+        // Zero wastage record (should be excluded)
+        JobWastage::create([
+            'job_code' => $job->job_code,
+            'production_job_id' => $job->id,
+            'manufacturing_product_id' => $product->id,
+            'pattern_id' => $pattern->id,
+            'task_id' => $taskIroning->id,
+            'wastage_type' => 'scrap',
+            'quantity_wasted' => 0.00,
+            'reason' => 'Zero wastage placeholder',
+        ]);
+
         Livewire::actingAs($this->admin)
             ->test(WastageLogPage::class)
+            ->assertDontSee('Zero wastage placeholder')
+            ->assertSee('King Size Pattern 240x260')
+            ->assertSee('Scrap')
+            ->assertSee('Damaged')
             ->assertViewHas('totalWastageQty', function ($val) {
-                return $val >= 15.0;
+                return (float)$val === 15.0;
             })
             ->assertViewHas('lossIncidentsCount', function ($val) {
-                return $val >= 2;
+                return $val === 2;
             })
             ->set('search', 'Burn mark')
             ->assertSee('Burn mark during final ironing')
             ->assertDontSee('Cutting edge scrap defect')
             ->set('search', '')
-            ->set('selectedTask', $taskCutting->id)
+            ->set('selectedWastageType', 'scrap')
             ->assertSee('Cutting edge scrap defect')
-            ->assertDontSee('Burn mark during final ironing');
+            ->assertDontSee('Burn mark during final ironing')
+            ->set('selectedWastageType', 'damaged')
+            ->assertSee('Burn mark during final ironing')
+            ->assertDontSee('Cutting edge scrap defect');
     }
 }

@@ -98,10 +98,17 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @if($material->standard_width)
-                                    <span class="text-xs font-semibold text-on-surface">
-                                        {{ $material->standard_width }} {{ $material->width_unit }}
-                                    </span>
+                                @php
+                                    $availableWidths = $material->available_widths;
+                                @endphp
+                                @if($availableWidths->isNotEmpty())
+                                    <div class="flex flex-wrap gap-1 max-w-[200px]">
+                                        @foreach($availableWidths as $fw)
+                                            <span class="inline-flex items-center text-xs font-bold text-on-surface bg-surface-container-high/60 border border-outline-variant/60 px-2 py-0.5 rounded-lg">
+                                                {{ $fw->name ?? "{$fw->value} {$fw->unit}" }}
+                                            </span>
+                                        @endforeach
+                                    </div>
                                 @else
                                     <span class="text-xs text-on-surface-variant/40">—</span>
                                 @endif

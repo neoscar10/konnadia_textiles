@@ -196,40 +196,50 @@
                             @endif
                         </div>
 
-                        <!-- Width Configuration (Selected from Fabric Width Master) -->
+                        <!-- Width Configuration (Multi-Select from Fabric Width Master) -->
                         @if($this->isLengthBased())
-                            <div class="bg-surface-container-low/30 border border-outline-variant/40 rounded-xl p-4 space-y-2">
+                            <div class="bg-surface-container-low/30 border border-outline-variant/40 rounded-xl p-4 space-y-3">
                                 <div class="flex items-center justify-between">
-                                    <label for="rm-fabric-width" class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-                                        FABRIC STANDARD WIDTH <span class="text-error">*</span>
+                                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                        FABRIC STANDARD WIDTHS <span class="text-error">*</span>
                                     </label>
-                                    <span class="text-[9px] font-black uppercase text-emerald-800 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">FIXED</span>
+                                    <span class="text-[9px] font-black uppercase text-emerald-800 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">MULTIPLE ALLOWED</span>
+                                </div>
+                                <p class="text-xs text-on-surface-variant/70">
+                                    Select all standard widths this raw material fabric can be produced on. When opening a bale, users will pick from these configured widths.
+                                </p>
+
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                                    @foreach($fabricWidthOptions as $fw)
+                                        @php
+                                            $isSelected = in_array($fw->id, $selected_fabric_width_ids);
+                                        @endphp
+                                        <button
+                                            type="button"
+                                            wire:click="toggleFabricWidth({{ $fw->id }})"
+                                            class="flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all text-left cursor-pointer
+                                                {{ $isSelected
+                                                    ? 'bg-primary/10 text-primary border-primary ring-2 ring-primary/20 shadow-xs'
+                                                    : 'bg-surface-container-lowest text-on-surface border-outline-variant/60 hover:border-primary/50 hover:bg-surface-container-high/40' }}"
+                                        >
+                                            <div class="flex items-center gap-2">
+                                                <span class="material-symbols-outlined text-[18px] {{ $isSelected ? 'text-primary font-bold' : 'text-outline' }}">
+                                                    {{ $isSelected ? 'check_box' : 'check_box_outline_blank' }}
+                                                </span>
+                                                <span>{{ $fw->name }}</span>
+                                            </div>
+                                        </button>
+                                    @endforeach
                                 </div>
 
-                                <div>
-                                    <select
-                                        id="rm-fabric-width"
-                                        wire:model.live="fabric_width_id"
-                                        class="w-full py-2.5 px-4 rounded-xl border font-body-md text-sm font-bold bg-surface-container-lowest focus:outline-none transition-colors
-                                            {{ $errors->has('fabric_width_id') || $errors->has('standard_width') ? 'border-error focus:border-error focus:ring-1 focus:ring-error' : 'border-outline-variant/60 focus:border-primary focus:ring-1 focus:ring-primary' }}"
-                                    >
-                                        <option value="">-- Select Fabric Width --</option>
-                                        @foreach($fabricWidthOptions as $fw)
-                                            <option value="{{ $fw->id }}">
-                                                {{ $fw->name }} ({{ $fw->value }} {{ $fw->unit }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-[11px] text-on-surface-variant/70 mt-1">
-                                        Selected from the Fabric Width Master — manage options under Master Settings.
-                                    </p>
-                                </div>
-
+                                @error('selected_fabric_width_ids')
+                                    <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
+                                @enderror
                                 @error('fabric_width_id')
-                                    <p class="text-error text-[11px] font-semibold mt-1">{{ $message }}</p>
+                                    <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
                                 @enderror
                                 @error('standard_width')
-                                    <p class="text-error text-[11px] font-semibold mt-1">{{ $message }}</p>
+                                    <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
                         @endif

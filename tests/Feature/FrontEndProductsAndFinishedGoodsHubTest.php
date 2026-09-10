@@ -39,6 +39,7 @@ class FrontEndProductsAndFinishedGoodsHubTest extends TestCase
         $this->category = Category::create([
             'name' => 'Bedding',
             'slug' => 'bedding',
+            'is_leaf' => true,
         ]);
 
         $this->mfgBedsheet = ManufacturingProduct::create([
@@ -58,12 +59,14 @@ class FrontEndProductsAndFinishedGoodsHubTest extends TestCase
         $rmCategory = \App\Models\RawMaterialCategory::create([
             'name' => 'Packaging',
             'code' => 'CAT-SUB',
+            'unit_type' => 'other',
         ]);
 
         $this->pkgPolyBag = RawMaterial::create([
             'name' => 'Poly Bag 12×16',
             'code' => 'RM-PKG-001',
             'unit' => 'Piece',
+            'unit_type' => 'other',
             'raw_material_category_id' => $rmCategory->id,
             'is_active' => true,
         ]);
@@ -74,9 +77,7 @@ class FrontEndProductsAndFinishedGoodsHubTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(\App\Livewire\Admin\Production\FrontEndProductIndexPage::class)
-            ->set('name', 'Regal King Bedsheet Set')
-            ->set('sku', 'KT-P-0052')
-            ->set('category_id', $this->category->id)
+            ->call('configureCategory', $this->category->id)
             ->set('mfgRows', [
                 ['manufacturing_product_id' => $this->mfgBedsheet->id, 'quantity' => 1],
                 ['manufacturing_product_id' => $this->mfgPillow->id, 'quantity' => 2],
@@ -84,14 +85,14 @@ class FrontEndProductsAndFinishedGoodsHubTest extends TestCase
             ->set('pkgRows', [
                 ['raw_material_id' => $this->pkgPolyBag->id, 'quantity' => 1],
             ])
-            ->call('saveProduct');
+            ->call('saveCategoryConfiguration');
 
         $this->assertDatabaseHas('front_end_products', [
-            'name' => 'Regal King Bedsheet Set',
-            'sku' => 'KT-P-0052',
+            'category_id' => $this->category->id,
+            'name' => 'Bedding',
         ]);
 
-        $feProduct = FrontEndProduct::where('sku', 'KT-P-0052')->first();
+        $feProduct = FrontEndProduct::where('category_id', $this->category->id)->first();
         $this->assertCount(2, $feProduct->components);
         $this->assertCount(1, $feProduct->packagingItems);
     }
@@ -100,10 +101,10 @@ class FrontEndProductsAndFinishedGoodsHubTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        // 1. Create FrontEndProduct
+        // 1. Create FrontEndProduct for category
         $feProduct = FrontEndProduct::create([
-            'name' => 'Regal King Bedsheet Set',
-            'sku' => 'KT-P-0052',
+            'name' => 'Bedding',
+            'sku' => 'CAT-CFG-' . $this->category->id,
             'category_id' => $this->category->id,
             'is_active' => true,
         ]);
@@ -151,33 +152,31 @@ class FrontEndProductsAndFinishedGoodsHubTest extends TestCase
 
         // 3. Storefront Product
         Product::create([
-            'title' => 'Regal King Bedsheet Set',
-            'sku' => 'KT-P-0052',
+            'title' => '5934 Bedding',
+            'sku' => 'KT-P-5934',
             'stock_quantity' => 0,
         ]);
 
         // Test stock availability check via service
         $service = new FinishedGoodsConversionService();
-        $stockCheck = $service->checkFrontEndStockAvailability($feProduct, 10, 1);
+        $stockCheck = $service->checkCategoryStockAvailability($this->category->id, 10);
 
         $this->assertTrue($stockCheck['canProceed']);
         $this->assertCount(2, $stockCheck['mfgStock']);
 
         // Test Conversion
-        $fgBatch = $service->convertFrontEndProductBatch([
-            'front_end_product_id' => $feProduct->id,
-            'converted_qty' => 10,
-            'unit' => 'Piece (Pcs)',
-            'unit_factor' => 1,
-            'design_id' => 'DSG-108-GOLD',
-            'is_published' => true,
+        $fgBatch = $service->convertCategoryToFinishedGoods([
+            'category_id' => $this->category->id,
+            'target_qty' => 10,
+            'design_type' => 'new',
+            'design_id' => '5934',
         ]);
 
         $this->assertDatabaseHas('finished_goods_batches', [
             'id' => $fgBatch->id,
             'front_end_product_id' => $feProduct->id,
             'converted_qty' => 10,
-            'design_id' => 'DSG-108-GOLD',
+            'design_id' => '5934',
         ]);
 
         // Verify deducts
@@ -187,7 +186,7 @@ class FrontEndProductsAndFinishedGoodsHubTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('products', [
-            'sku' => 'KT-P-0052',
+            'title' => '5934 Bedding',
             'stock_quantity' => 10,
         ]);
     }

@@ -20,22 +20,16 @@ class FrontEndProductIndexPage extends Component
 
     // Modal state
     public bool $showModal = false;
+    public ?int $editingCategoryId = null;
+    public string $categoryName = '';
+    public string $categoryFullPath = '';
     public ?int $editingProductId = null;
-
-    public string $name = '';
-    public string $sku = '';
-    public ?int $category_id = null;
-    public string $leaf_category_name = '';
-    public bool $is_active = true;
-    public string $description = '';
 
     // Dynamic row structures
     public array $mfgRows = [];
     public array $pkgRows = [];
 
     protected $rules = [
-        'name' => 'required|string|max:255',
-        'sku' => 'required|string|max:100',
         'mfgRows' => 'required|array|min:1',
         'mfgRows.*.manufacturing_product_id' => 'required|integer|exists:manufacturing_products,id',
         'mfgRows.*.quantity' => 'required|integer|min:1',
@@ -53,13 +47,10 @@ class FrontEndProductIndexPage extends Component
 
     public function resetForm()
     {
+        $this->editingCategoryId = null;
+        $this->categoryName = '';
+        $this->categoryFullPath = '';
         $this->editingProductId = null;
-        $this->name = '';
-        $this->sku = '';
-        $this->category_id = null;
-        $this->leaf_category_name = '';
-        $this->is_active = true;
-        $this->description = '';
 
         $this->mfgRows = [
             ['manufacturing_product_id' => '', 'quantity' => 1],
@@ -72,13 +63,39 @@ class FrontEndProductIndexPage extends Component
         $this->resetErrorBag();
     }
 
-    public function openCreateModal()
+    public function configureCategory(int $categoryId, CategoryService $categoryService)
     {
         $this->resetForm();
 
-        // Generate default unique SKU if empty
-        $nextNum = FrontEndProduct::withTrashed()->count() + 52;
-        $this->sku = "KT-P-" . str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
+        $category = Category::findOrFail($categoryId);
+        $this->editingCategoryId = $category->id;
+        $this->categoryName = $category->name;
+        $this->categoryFullPath = $categoryService->buildPath($category);
+
+        $feProduct = FrontEndProduct::with(['components', 'packagingItems'])
+            ->where('category_id', $category->id)
+            ->first();
+
+        if ($feProduct) {
+            $this->editingProductId = $feProduct->id;
+            $this->mfgRows = $feProduct->components->map(fn($c) => [
+                'manufacturing_product_id' => $c->manufacturing_product_id,
+                'quantity' => $c->quantity,
+            ])->toArray();
+
+            $this->pkgRows = $feProduct->packagingItems->map(fn($p) => [
+                'raw_material_id' => $p->raw_material_id,
+                'quantity' => $p->quantity,
+            ])->toArray();
+        }
+
+        if (empty($this->mfgRows)) {
+            $this->mfgRows = [['manufacturing_product_id' => '', 'quantity' => 1]];
+        }
+
+        if (empty($this->pkgRows)) {
+            $this->pkgRows = [['raw_material_id' => '', 'quantity' => 1]];
+        }
 
         $this->showModal = true;
     }
@@ -111,85 +128,48 @@ class FrontEndProductIndexPage extends Component
         $this->pkgRows = array_values($this->pkgRows);
     }
 
-    public function editProduct(int $id)
+    public function saveCategoryConfiguration()
     {
-        $product = FrontEndProduct::with(['components', 'packagingItems'])->findOrFail($id);
-
-        $this->editingProductId = $product->id;
-        $this->name = $product->name;
-        $this->sku = $product->sku;
-        $this->category_id = $product->category_id;
-        $this->leaf_category_name = $product->leaf_category_name ?? '';
-        $this->is_active = (bool) $product->is_active;
-        $this->description = $product->description ?? '';
-
-        $this->mfgRows = $product->components->map(fn($c) => [
-            'manufacturing_product_id' => $c->manufacturing_product_id,
-            'quantity' => $c->quantity,
-        ])->toArray();
-
-        if (empty($this->mfgRows)) {
-            $this->mfgRows = [['manufacturing_product_id' => '', 'quantity' => 1]];
+        if (!$this->editingCategoryId) {
+            return;
         }
 
-        $this->pkgRows = $product->packagingItems->map(fn($p) => [
-            'raw_material_id' => $p->raw_material_id,
-            'quantity' => $p->quantity,
-        ])->toArray();
+        $this->validate($this->rules);
 
-        if (empty($this->pkgRows)) {
-            $this->pkgRows = [['raw_material_id' => '', 'quantity' => 1]];
-        }
-
-        $this->showModal = true;
-    }
-
-    public function saveProduct()
-    {
-        $rules = $this->rules;
-        if ($this->editingProductId) {
-            $rules['sku'] = 'required|string|max:100|unique:front_end_products,sku,' . $this->editingProductId;
-        } else {
-            $rules['sku'] = 'required|string|max:100|unique:front_end_products,sku';
-        }
-
-        $this->validate($rules);
-
-        // Filter valid rows
         $validMfgRows = array_filter($this->mfgRows, fn($r) => !empty($r['manufacturing_product_id']) && intval($r['quantity']) > 0);
         if (empty($validMfgRows)) {
-            $this->addError('mfgRows', 'Please add at least one valid manufacturing product.');
+            $this->addError('mfgRows', 'Please add at least one valid manufacturing product requirement.');
             return;
         }
 
         $validPkgRows = array_filter($this->pkgRows, fn($r) => !empty($r['raw_material_id']) && intval($r['quantity']) > 0);
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validMfgRows, $validPkgRows) {
-            $product = FrontEndProduct::updateOrCreate(
-                ['id' => $this->editingProductId],
+            $sku = "CAT-CFG-" . str_pad((string) $this->editingCategoryId, 4, '0', STR_PAD_LEFT);
+
+            $feProduct = FrontEndProduct::updateOrCreate(
+                ['category_id' => $this->editingCategoryId],
                 [
-                    'name' => trim($this->name),
-                    'sku' => trim($this->sku),
-                    'category_id' => $this->category_id ?: null,
-                    'leaf_category_name' => trim($this->leaf_category_name) ?: null,
-                    'is_active' => $this->is_active,
-                    'description' => trim($this->description) ?: null,
+                    'name' => trim($this->categoryName),
+                    'sku' => $sku,
+                    'leaf_category_name' => trim($this->categoryName),
+                    'is_active' => true,
                 ]
             );
 
             // Sync components
-            $product->components()->delete();
+            $feProduct->components()->delete();
             foreach ($validMfgRows as $mfg) {
-                $product->components()->create([
+                $feProduct->components()->create([
                     'manufacturing_product_id' => intval($mfg['manufacturing_product_id']),
                     'quantity' => intval($mfg['quantity']),
                 ]);
             }
 
             // Sync packaging
-            $product->packagingItems()->delete();
+            $feProduct->packagingItems()->delete();
             foreach ($validPkgRows as $pkg) {
-                $product->packagingItems()->create([
+                $feProduct->packagingItems()->create([
                     'raw_material_id' => intval($pkg['raw_material_id']),
                     'quantity' => intval($pkg['quantity']),
                 ]);
@@ -198,49 +178,62 @@ class FrontEndProductIndexPage extends Component
 
         session()->flash('toast', [
             'type' => 'success',
-            'message' => $this->editingProductId ? "Front-End Product updated successfully!" : "Front-End Product created successfully!",
+            'message' => "Category assembly configuration for '{$this->categoryName}' saved successfully!",
         ]);
 
         $this->showModal = false;
         $this->resetForm();
     }
 
-    public function toggleActive(int $id)
-    {
-        $product = FrontEndProduct::findOrFail($id);
-        $product->update(['is_active' => !$product->is_active]);
-
-        session()->flash('toast', [
-            'type' => 'success',
-            'message' => "Front-End Product status updated.",
-        ]);
-    }
-
     public function render(CategoryService $categoryService)
     {
-        $productsQuery = FrontEndProduct::with(['category.parent.parent', 'components.manufacturingProduct', 'packagingItems.rawMaterial'])
-            ->when($this->search, function ($q) {
-                $q->where('name', 'like', "%{$this->search}%")
-                  ->orWhere('sku', 'like', "%{$this->search}%")
-                  ->orWhere('leaf_category_name', 'like', "%{$this->search}%");
-            })
-            ->latest();
+        $allLeafCategories = $categoryService->getLeafCategories();
 
-        $frontendProducts = $productsQuery->paginate(12);
+        if (!empty($this->search)) {
+            $term = strtolower(trim($this->search));
+            $allLeafCategories = $allLeafCategories->filter(function ($cat) use ($term, $categoryService) {
+                $path = strtolower($categoryService->buildPath($cat));
+                return str_contains(strtolower($cat->name), $term) || str_contains($path, $term);
+            });
+        }
+
+        // Map configuration details onto categories
+        $configs = FrontEndProduct::with(['components.manufacturingProduct', 'packagingItems.rawMaterial'])
+            ->whereIn('category_id', $allLeafCategories->pluck('id'))
+            ->get()
+            ->keyBy('category_id');
+
+        $leafCategoriesMapped = $allLeafCategories->map(function ($cat) use ($configs, $categoryService) {
+            $config = $configs->get($cat->id);
+            return (object) [
+                'id' => $cat->id,
+                'name' => $cat->name,
+                'full_path' => $categoryService->buildPath($cat),
+                'is_configured' => $config !== null && $config->components->count() > 0,
+                'config' => $config,
+                'components' => $config ? $config->components : collect(),
+                'packaging' => $config ? $config->packagingItems : collect(),
+            ];
+        });
+
+        // Manual pagination for mapped collection
+        $page = $this->getPage();
+        $perPage = 12;
+        $paginatedCategories = new \Illuminate\Pagination\LengthAwarePaginator(
+            $leafCategoriesMapped->slice(($page - 1) * $perPage, $perPage)->values(),
+            $leafCategoriesMapped->count(),
+            $perPage,
+            $page,
+            ['path' => request()->url()]
+        );
 
         $mfgProducts = ManufacturingProduct::orderBy('name')->get();
-
-        // Packaging raw materials (category subsidiary or all materials)
         $packagingMaterials = RawMaterial::orderBy('name')->get();
 
-        // Load leaf categories using CategoryService (same as admin/products page)
-        $categories = $categoryService->getLeafCategories();
-
         return view('livewire.admin.production.front-end-product-index-page', [
-            'frontendProducts' => $frontendProducts,
+            'categories' => $paginatedCategories,
             'mfgProducts' => $mfgProducts,
             'packagingMaterials' => $packagingMaterials,
-            'categories' => $categories,
-        ])->title('Front-End Products');
+        ])->title('Front-End Products Configuration');
     }
 }

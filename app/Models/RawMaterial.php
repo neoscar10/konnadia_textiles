@@ -81,6 +81,42 @@ class RawMaterial extends Model
     }
 
     /**
+     * Get configured fabric standard widths for this raw material.
+     */
+    public function fabricWidths()
+    {
+        return $this->belongsToMany(FabricWidth::class, 'raw_material_fabric_widths')->orderBy('value', 'asc');
+    }
+
+    /**
+     * Get available fabric widths collection.
+     */
+    public function getAvailableWidthsAttribute()
+    {
+        if ($this->relationLoaded('fabricWidths') && $this->fabricWidths->isNotEmpty()) {
+            return $this->fabricWidths;
+        }
+
+        $widths = $this->fabricWidths()->get();
+        if ($widths->isNotEmpty()) {
+            return $widths;
+        }
+
+        if ($this->standard_width) {
+            return collect([
+                (object) [
+                    'id' => null,
+                    'name' => "{$this->standard_width} " . ($this->width_unit ?? 'Inch'),
+                    'value' => (float) $this->standard_width,
+                    'unit' => $this->width_unit ?? 'Inch',
+                ]
+            ]);
+        }
+
+        return collect();
+    }
+
+    /**
      * Scope: only active materials.
      */
     public function scopeActive($query)

@@ -19,12 +19,14 @@ class ManufacturingProductPattern extends Model
         'fabric_length_unit',
         'standard_labor_rate',
         'is_default',
+        'is_subsidiary_used',
     ];
 
     protected $casts = [
         'fabric_length' => 'decimal:4',
         'standard_labor_rate' => 'decimal:2',
         'is_default' => 'boolean',
+        'is_subsidiary_used' => 'boolean',
     ];
 
     /**
@@ -41,6 +43,24 @@ class ManufacturingProductPattern extends Model
     public function fabricWidth()
     {
         return $this->belongsTo(FabricWidth::class, 'fabric_width_id');
+    }
+
+    /**
+     * Multiple fabric width consumption entries for this pattern.
+     */
+    public function patternFabricWidths()
+    {
+        return $this->hasMany(ManufacturingPatternFabricWidth::class, 'pattern_id');
+    }
+
+    /**
+     * Pattern-specific subsidiary materials.
+     */
+    public function subsidiaryMaterials()
+    {
+        return $this->belongsToMany(RawMaterial::class, 'manufacturing_pattern_subsidiary_materials', 'pattern_id', 'raw_material_id')
+            ->withPivot('consumption_quantity')
+            ->withTimestamps();
     }
 
     /**

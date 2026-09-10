@@ -452,4 +452,32 @@ class RawMaterialMasterTest extends TestCase
             ->assertSet('unit', 'Meters')
             ->assertSet('width_unit', 'Inch');
     }
+
+    public function test_raw_material_supports_multiple_fabric_standard_widths()
+    {
+        $this->actingAs($this->admin);
+        $fabricCat = RawMaterialCategory::where('code', 'CAT-FAB')->first();
+
+        $fw1 = \App\Models\FabricWidth::firstOrCreate(['value' => 44.00], ['name' => '44 Inch', 'unit' => 'Inch', 'status' => true]);
+        $fw2 = \App\Models\FabricWidth::firstOrCreate(['value' => 58.00], ['name' => '58 Inch', 'unit' => 'Inch', 'status' => true]);
+        $fw3 = \App\Models\FabricWidth::firstOrCreate(['value' => 60.00], ['name' => '60 Inch', 'unit' => 'Inch', 'status' => true]);
+
+        Livewire::test(RawMaterialManager::class)
+            ->dispatch('open-raw-material-modal')
+            ->set('raw_material_category_id', $fabricCat->id)
+            ->set('name', 'Multi Width Linen')
+            ->set('unit', 'Meters')
+            ->call('toggleFabricWidth', $fw1->id)
+            ->call('toggleFabricWidth', $fw3->id)
+            ->assertSet('selected_fabric_width_ids', [$fw1->id, $fw3->id])
+            ->call('save')
+            ->assertDispatched('raw-material-saved');
+
+        $mat = RawMaterial::where('name', 'Multi Width Linen')->first();
+        $this->assertNotNull($mat);
+        $this->assertCount(2, $mat->fabricWidths);
+        $this->assertTrue($mat->fabricWidths->contains($fw1));
+        $this->assertTrue($mat->fabricWidths->contains($fw3));
+        $this->assertFalse($mat->fabricWidths->contains($fw2));
+    }
 }

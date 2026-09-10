@@ -18,6 +18,7 @@ class WastageLogPage extends Component
 
     public string $search = '';
     public string $selectedTask = '';
+    public string $selectedWastageType = '';
 
     public function mount()
     {
@@ -30,6 +31,11 @@ class WastageLogPage extends Component
     }
 
     public function updatingSelectedTask()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSelectedWastageType()
     {
         $this->resetPage();
     }
@@ -102,6 +108,7 @@ class WastageLogPage extends Component
                 'production_job_id' => $job1->id,
                 'manufacturing_product_id' => $mfgProduct1->id,
                 'task_id' => $taskIroning->id,
+                'wastage_type' => 'scrap',
                 'quantity_wasted' => 4.00,
                 'reason' => 'Unaccounted scrap during final batch completion',
                 'created_at' => now()->subDays(15),
@@ -112,6 +119,7 @@ class WastageLogPage extends Component
                 'production_job_id' => $job2->id,
                 'manufacturing_product_id' => $mfgProduct2->id,
                 'task_id' => $taskStitching->id,
+                'wastage_type' => 'damage',
                 'quantity_wasted' => 2.00,
                 'reason' => 'Edge tear defect non-alterable',
                 'created_at' => now()->subDays(12),
@@ -121,15 +129,25 @@ class WastageLogPage extends Component
 
     public function render()
     {
-        $query = JobWastage::with(['productionJob.batch', 'manufacturingProduct', 'task', 'inventoryBaleRoll']);
+        $query = JobWastage::with([
+            'productionJob.batch',
+            'productionJob.pattern',
+            'manufacturingProduct.patterns',
+            'pattern',
+            'task',
+            'inventoryBaleRoll'
+        ])->where('quantity_wasted', '>', 0);
 
         if (!empty($this->search)) {
             $term = '%' . trim($this->search) . '%';
             $query->where(function ($q) use ($term) {
                 $q->where('job_code', 'like', $term)
                   ->orWhere('reason', 'like', $term)
+                  ->orWhere('wastage_type', 'like', $term)
                   ->orWhereHas('manufacturingProduct', fn($m) => $m->where('name', 'like', $term)->orWhere('code', 'like', $term))
+                  ->orWhereHas('pattern', fn($p) => $p->where('name', 'like', $term))
                   ->orWhereHas('productionJob', fn($j) => $j->where('job_code', 'like', $term)->orWhere('production_batch_id', 'like', $term))
+                  ->orWhereHas('productionJob.pattern', fn($jp) => $jp->where('name', 'like', $term))
                   ->orWhereHas('productionJob.batch', fn($b) => $b->where('batch_code', 'like', $term))
                   ->orWhereHas('task', fn($t) => $t->where('name', 'like', $term));
             });
@@ -139,13 +157,22 @@ class WastageLogPage extends Component
             $query->where('task_id', $this->selectedTask);
         }
 
+        if (!empty($this->selectedWastageType)) {
+            if (in_array(strtolower($this->selectedWastageType), ['damage', 'damaged'])) {
+                $query->whereIn('wastage_type', ['damage', 'damaged']);
+            } else {
+                $query->where('wastage_type', $this->selectedWastageType);
+            }
+        }
+
         $wastages = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        // Compute summary KPIs
-        $totalWastageQty = (float) JobWastage::sum('quantity_wasted');
-        $lossIncidentsCount = JobWastage::count();
+        // Compute summary KPIs for actual wastes (> 0)
+        $validWastages = JobWastage::where('quantity_wasted', '>', 0);
+        $totalWastageQty = (float) $validWastages->sum('quantity_wasted');
+        $lossIncidentsCount = $validWastages->count();
         
-        $impactedJobIds = JobWastage::whereNotNull('production_job_id')->pluck('production_job_id')->unique();
+        $impactedJobIds = (clone $validWastages)->whereNotNull('production_job_id')->pluck('production_job_id')->unique();
         $impactedBatchCount = ProductionJob::whereIn('id', $impactedJobIds)->whereNotNull('production_batch_db_id')->pluck('production_batch_db_id')->unique()->count();
         if ($impactedBatchCount === 0) {
             $impactedBatchCount = $impactedJobIds->count();

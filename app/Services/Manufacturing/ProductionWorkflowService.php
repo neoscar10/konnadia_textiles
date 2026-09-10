@@ -569,6 +569,59 @@ class ProductionWorkflowService
     }
 
     /**
+     * Unskip a previously skipped stage execution on a job.
+     *
+     * @param mixed $jobId
+     * @param mixed $taskId
+     * @return JsonResponse
+     */
+    public function unskipStage($jobId, $taskId): JsonResponse
+    {
+        try {
+            $result = DB::transaction(function () use ($jobId, $taskId) {
+                $job = ProductionJob::with(['stageExecutions.task'])->findOrFail($jobId);
+                $stageExecution = $job->stageExecutions->firstWhere('task_id', $taskId);
+
+                if (!$stageExecution) {
+                    throw new Exception("Stage not found on job.");
+                }
+
+                // Identify carry-forward target quantity from previous completed stage
+                $prevStage = $job->stageExecutions
+                    ->where('sequence_number', '<', $stageExecution->sequence_number)
+                    ->sortByDesc('sequence_number')
+                    ->first();
+
+                $targetQty = $prevStage 
+                    ? ($prevStage->completed_quantity > 0 ? $prevStage->completed_quantity : $prevStage->target_quantity) 
+                    : $job->target_quantity;
+
+                $stageExecution->update([
+                    'status'          => 'in_progress',
+                    'is_skipped'      => false,
+                    'target_quantity' => $targetQty,
+                    'started_at'      => now(),
+                ]);
+
+                // Reset job overall status to in_progress if it was previously completed
+                if ($job->status === 'completed') {
+                    $job->update(['status' => 'in_progress']);
+                }
+
+                return [
+                    'job'            => $job,
+                    'unskippedStage' => $stageExecution,
+                    'targetQty'      => $targetQty,
+                ];
+            });
+
+            return $this->successResponse("Stage {$result['unskippedStage']->task?->name} unskipped successfully.", $result, 200);
+        } catch (Exception $e) {
+            return $this->errorResponse($e->getMessage(), ['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
      * Record a product alteration: creates child ProductionBatch, child ProductionJob, and JobAlteration record.
      *
      * @param ProductionJob $job
@@ -577,11 +630,12 @@ class ProductionWorkflowService
      * @param int $targetProductId
      * @param int $targetQty
      * @param string|null $reason
+     * @param int|null $targetPatternId
      * @return \App\Models\JobAlteration
      */
-    public function recordJobAlteration(ProductionJob $job, int $sourceProductId, int $sourceQty, int $targetProductId, int $targetQty, ?string $reason = null): \App\Models\JobAlteration
+    public function recordJobAlteration(ProductionJob $job, int $sourceProductId, int $sourceQty, int $targetProductId, int $targetQty, ?string $reason = null, ?int $targetPatternId = null): \App\Models\JobAlteration
     {
-        return DB::transaction(function () use ($job, $sourceProductId, $sourceQty, $targetProductId, $targetQty, $reason) {
+        return DB::transaction(function () use ($job, $sourceProductId, $sourceQty, $targetProductId, $targetQty, $reason, $targetPatternId) {
             $parentBatch = $job->batch;
             if (!$parentBatch && !empty($job->production_batch_id)) {
                 $parentBatch = ProductionBatch::where('batch_code', $job->production_batch_id)->first();
@@ -600,11 +654,11 @@ class ProductionWorkflowService
                         $candidateCode = 'PB-' . date('Y') . '-' . str_pad($latestBatchId + 1, 4, '0', STR_PAD_LEFT);
                     }
                     $parentBatch = ProductionBatch::create([
-                        'batch_code' => $candidateCode,
+                        'batch_code'               => $candidateCode,
                         'manufacturing_product_id' => $job->manufacturing_product_id,
-                        'planned_quantity' => $job->target_quantity,
-                        'status' => 'In Progress',
-                        'supervisor_id' => $job->supervisor_id ?? auth()->id(),
+                        'planned_quantity'         => $job->target_quantity,
+                        'status'                   => 'In Progress',
+                        'supervisor_id'            => $job->supervisor_id ?? auth()->id(),
                     ]);
                 }
                 $job->update(['production_batch_db_id' => $parentBatch->id, 'production_batch_id' => $parentBatch->batch_code]);
@@ -618,22 +672,31 @@ class ProductionWorkflowService
             }
 
             $childBatch = ProductionBatch::create([
-                'parent_batch_id' => $parentBatch->id,
-                'batch_code' => $childBatchCode,
-                'batch_date' => now()->format('Y-m-d'),
-                'supervisor_id' => $job->supervisor_id ?? auth()->id(),
+                'parent_batch_id'          => $parentBatch->id,
+                'batch_code'               => $childBatchCode,
+                'batch_date'               => now()->format('Y-m-d'),
+                'supervisor_id'            => $job->supervisor_id ?? auth()->id(),
                 'manufacturing_product_id' => $targetProductId,
-                'planned_quantity' => (int) $targetQty,
-                'priority' => $parentBatch->priority ?? 'Normal',
-                'status' => 'In Progress',
-                'remarks' => "Child Alteration Batch derived from Parent Batch {$parentBatch->batch_code} (Source Job {$job->job_code})",
+                'pattern_id'               => $targetPatternId,
+                'planned_quantity'         => (int) $targetQty,
+                'priority'                 => $parentBatch->priority ?? 'Normal',
+                'status'                   => 'In Progress',
+                'remarks'                  => "Child Alteration Batch derived from Parent Batch {$parentBatch->batch_code} (Source Job {$job->job_code})",
             ]);
 
             $targetProduct = ManufacturingProduct::find($targetProductId);
-            $firstTask = $targetProduct ? $targetProduct->tasks()->orderByPivot('sequence_number', 'asc')->first() : null;
-            if (!$firstTask) {
-                $firstTask = Task::where('status', true)->first();
+            $targetPattern = $targetPatternId ? \App\Models\ManufacturingProductPattern::with('tasks')->find($targetPatternId) : null;
+
+            $routingTasks = collect();
+            if ($targetPattern && $targetPattern->tasks->isNotEmpty()) {
+                $routingTasks = $targetPattern->tasks;
+            } elseif ($targetProduct && $targetProduct->tasks->isNotEmpty()) {
+                $routingTasks = $targetProduct->tasks;
+            } else {
+                $routingTasks = Task::where('status', true)->get();
             }
+
+            $firstTask = $routingTasks->first() ?? Task::where('status', true)->first();
 
             $latestJobId = ProductionJob::max('id') ?? 0;
             $childJobCode = "JOB-" . date('Y') . "-" . str_pad($latestJobId + 1, 4, '0', STR_PAD_LEFT);
@@ -643,28 +706,41 @@ class ProductionWorkflowService
             }
 
             $childJob = ProductionJob::create([
-                'job_code' => $childJobCode,
-                'production_batch_id' => $childBatch->batch_code,
-                'production_batch_db_id' => $childBatch->id,
+                'job_code'                 => $childJobCode,
+                'production_batch_id'      => $childBatch->batch_code,
+                'production_batch_db_id'   => $childBatch->id,
                 'manufacturing_product_id' => $targetProductId,
-                'task_id' => $firstTask ? $firstTask->id : $job->task_id,
-                'supervisor_id' => $childBatch->supervisor_id,
-                'job_date' => now()->format('Y-m-d'),
-                'target_quantity' => (int) $targetQty,
-                'status' => 'in_progress',
-                'notes' => "Auto-initialized Job for Alteration Child Batch {$childBatch->batch_code}",
+                'pattern_id'               => $targetPattern?->id,
+                'task_id'                  => $firstTask ? $firstTask->id : $job->task_id,
+                'supervisor_id'            => $childBatch->supervisor_id,
+                'job_date'                 => now()->format('Y-m-d'),
+                'target_quantity'          => (int) $targetQty,
+                'status'                   => 'in_progress',
+                'notes'                    => "Auto-initialized Job for Alteration Child Batch {$childBatch->batch_code}",
             ]);
 
-            $childJob->ensureStageExecutionsExist();
+            // Populate stage executions for the child alteration job
+            foreach ($routingTasks as $idx => $task) {
+                \App\Models\JobStageExecution::create([
+                    'production_job_id' => $childJob->id,
+                    'task_id'           => $task->id,
+                    'sequence_number'   => $idx + 1,
+                    'target_quantity'   => (int) $targetQty,
+                    'status'            => $idx === 0 ? 'in_progress' : 'pending',
+                    'started_at'        => $idx === 0 ? now() : null,
+                ]);
+            }
 
             $alteration = \App\Models\JobAlteration::create([
-                'job_code' => $job->job_code,
-                'production_job_id' => $job->id,
-                'source_product_id' => $sourceProductId,
-                'source_quantity' => (int) $sourceQty,
-                'target_product_id' => $targetProductId,
-                'target_quantity' => (int) $targetQty,
+                'job_code'                  => $job->job_code,
+                'production_job_id'         => $job->id,
+                'source_product_id'         => $sourceProductId,
+                'source_quantity'           => (int) $sourceQty,
+                'target_product_id'         => $targetProductId,
+                'target_pattern_id'         => $targetPatternId,
+                'target_quantity'           => (int) $targetQty,
                 'child_production_batch_id' => $childBatch->id,
+                'child_production_job_id'   => $childJob->id,
             ]);
 
             return $alteration;

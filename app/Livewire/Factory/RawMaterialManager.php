@@ -26,6 +26,7 @@ class RawMaterialManager extends Component
     public ?int $unit_group_id = null;
     public ?int $unit_id = null;
     public ?int $fabric_width_id = null;
+    public array $selected_fabric_width_ids = [];
 
     // Supplier Aliases Repeater
     // Structure: [ ['supplier_id' => '', 'alias_name' => '', 'supplier_material_code' => ''] ]
@@ -41,10 +42,52 @@ class RawMaterialManager extends Component
             if ($fw) {
                 $this->standard_width = (float) $fw->value;
                 $this->width_unit = $fw->unit ?? 'Inch';
+                if (!in_array((int) $id, $this->selected_fabric_width_ids)) {
+                    $this->selected_fabric_width_ids[] = (int) $id;
+                }
             }
         } else {
             $this->standard_width = null;
         }
+    }
+
+    public function updatedStandardWidth($val): void
+    {
+        if ($val && (float) $val > 0) {
+            $fw = \App\Models\FabricWidth::where('value', (float) $val)->first()
+                ?? \App\Models\FabricWidth::firstOrCreate(
+                    ['value' => (float) $val],
+                    ['name' => "{$val} Inch", 'unit' => $this->width_unit ?? 'Inch', 'status' => true]
+                );
+            if ($fw && !in_array($fw->id, $this->selected_fabric_width_ids)) {
+                $this->selected_fabric_width_ids = [$fw->id];
+                $this->fabric_width_id = $fw->id;
+            }
+        }
+    }
+
+    public function updatedSelectedFabricWidthIds(): void
+    {
+        $this->selected_fabric_width_ids = array_values(array_map('intval', array_filter($this->selected_fabric_width_ids)));
+        if (!empty($this->selected_fabric_width_ids)) {
+            $firstId = $this->selected_fabric_width_ids[0];
+            $fw = \App\Models\FabricWidth::find($firstId);
+            if ($fw) {
+                $this->fabric_width_id = $fw->id;
+                $this->standard_width = (float) $fw->value;
+                $this->width_unit = $fw->unit ?? 'Inch';
+            }
+        }
+    }
+
+    public function toggleFabricWidth(int $id): void
+    {
+        if (in_array($id, $this->selected_fabric_width_ids)) {
+            $this->selected_fabric_width_ids = array_values(array_diff($this->selected_fabric_width_ids, [$id]));
+        } else {
+            $this->selected_fabric_width_ids[] = $id;
+        }
+        $this->updatedSelectedFabricWidthIds();
     }
 
     public function isLengthBased(): bool
@@ -109,18 +152,26 @@ class RawMaterialManager extends Component
         ];
 
         if ($this->isLengthBased()) {
-            if (!$this->fabric_width_id && $this->standard_width) {
+            if (empty($this->selected_fabric_width_ids) && $this->fabric_width_id) {
+                $this->selected_fabric_width_ids = [(int) $this->fabric_width_id];
+            }
+            if (empty($this->selected_fabric_width_ids) && $this->standard_width) {
                 $fw = \App\Models\FabricWidth::where('value', $this->standard_width)->first() 
                     ?? \App\Models\FabricWidth::firstOrCreate(
                         ['value' => $this->standard_width],
-                        ['name' => "{$this->standard_width}\"", 'label' => "{$this->standard_width}\" Standard Width", 'is_active' => true]
+                        ['name' => "{$this->standard_width}\"", 'status' => true]
                     );
-                $this->fabric_width_id = $fw?->id;
+                if ($fw) {
+                    $this->selected_fabric_width_ids = [$fw->id];
+                    $this->fabric_width_id = $fw->id;
+                }
             }
-            $rules['fabric_width_id'] = 'required|exists:fabric_widths,id';
+            $rules['selected_fabric_width_ids'] = 'required|array|min:1';
+            $rules['selected_fabric_width_ids.*'] = 'exists:fabric_widths,id';
             $rules['standard_width'] = 'required|numeric|gt:0';
             $rules['width_unit'] = 'required|string|max:50';
         } else {
+            $rules['selected_fabric_width_ids'] = 'nullable|array';
             $rules['fabric_width_id'] = 'nullable';
             $rules['standard_width'] = 'nullable';
             $rules['width_unit'] = 'nullable';
@@ -136,6 +187,8 @@ class RawMaterialManager extends Component
             'raw_material_category_id.required' => 'Please select a category.',
             'unit.required' => 'Please select a unit of measurement.',
             'unit.in' => 'The selected unit is not valid for the chosen unit class.',
+            'selected_fabric_width_ids.required' => 'Please select at least one Fabric Standard Width.',
+            'selected_fabric_width_ids.min' => 'Please select at least one Fabric Standard Width.',
             'fabric_width_id.required' => 'Please select a Fabric Standard Width from the master list.',
             'standard_width.required' => 'Standard Width is required for length-based materials.',
             'standard_width.gt' => 'Standard Width must be greater than zero.',
@@ -150,7 +203,7 @@ class RawMaterialManager extends Component
         $this->resetForm();
 
         if ($materialId) {
-            $material = RawMaterial::with(['category.unitGroup', 'unitGroup', 'unitModel', 'supplierAliases.supplier'])->findOrFail($materialId);
+            $material = RawMaterial::with(['category.unitGroup', 'unitGroup', 'unitModel', 'supplierAliases.supplier', 'fabricWidths'])->findOrFail($materialId);
             $this->materialId = $material->id;
             $this->name = $material->name;
             $this->code = $material->code;
@@ -162,9 +215,17 @@ class RawMaterialManager extends Component
             $this->is_active = (bool) $material->is_active;
             $this->raw_material_category_id = $material->raw_material_category_id;
 
-            if ($material->standard_width) {
+            $this->selected_fabric_width_ids = $material->fabricWidths->pluck('id')->map(fn($id) => (int) $id)->toArray();
+            if (empty($this->selected_fabric_width_ids) && $material->standard_width) {
                 $matchedFw = \App\Models\FabricWidth::where('value', $material->standard_width)->first();
-                $this->fabric_width_id = $matchedFw?->id;
+                if ($matchedFw) {
+                    $this->selected_fabric_width_ids = [$matchedFw->id];
+                    $this->fabric_width_id = $matchedFw->id;
+                } else {
+                    $this->fabric_width_id = null;
+                }
+            } else if (!empty($this->selected_fabric_width_ids)) {
+                $this->fabric_width_id = $this->selected_fabric_width_ids[0];
             } else {
                 $this->fabric_width_id = null;
             }
@@ -261,6 +322,14 @@ class RawMaterialManager extends Component
             }
         }
 
+        if ($this->isLengthBased()) {
+            if ($this->standard_width) {
+                $this->updatedStandardWidth($this->standard_width);
+            } else if (!empty($this->selected_fabric_width_ids)) {
+                $this->updatedSelectedFabricWidthIds();
+            }
+        }
+
         $this->validate();
 
         $isLengthBased = $this->isLengthBased();
@@ -297,6 +366,13 @@ class RawMaterialManager extends Component
             $message = "Raw Material [{$material->code}] created successfully!";
         }
 
+        // Sync Fabric Standard Widths
+        if ($isLengthBased) {
+            $material->fabricWidths()->sync($this->selected_fabric_width_ids);
+        } else {
+            $material->fabricWidths()->detach();
+        }
+
         // Sync Supplier Aliases
         $material->supplierAliases()->delete();
         foreach ($this->supplierAliases as $aliasRow) {
@@ -330,6 +406,7 @@ class RawMaterialManager extends Component
         $this->unit_group_id = null;
         $this->unit_id = null;
         $this->fabric_width_id = null;
+        $this->selected_fabric_width_ids = [];
         $this->standard_width = null;
         $this->width_unit = 'Inch';
         $this->is_active = true;

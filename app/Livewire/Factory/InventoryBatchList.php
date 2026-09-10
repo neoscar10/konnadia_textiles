@@ -67,7 +67,7 @@ class InventoryBatchList extends Component
             ->when($this->statusFilter, function ($q) {
                 $q->where('status', $this->statusFilter);
             })
-            ->orderBy('batch_number', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(15);
 
         // Fetch active filter lists
