@@ -504,7 +504,7 @@
                                                     </span>
                                                 </div>
 
-                                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                <div class="space-y-4 w-full">
                                                     @forelse($activeRolls as $roll)
                                                         @php
                                                             $isRollSelected = isset($fab['selected_rolls'][$roll->id]);
@@ -518,30 +518,36 @@
                                                                 $rollWidthText = $rawMaterial->standard_width . ($rawMaterial->width_unit ?? '"');
                                                             }
                                                         @endphp
-                                                        <div class="p-3 rounded-xl border transition-all {{ $isRollSelected ? 'bg-amber-500/10 border-amber-500/50 shadow-2xs' : 'bg-white border-slate-200' }}">
-                                                            <div class="flex items-center justify-between mb-1.5">
-                                                                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-                                                                    <input type="checkbox" wire:click="toggleRollSelection({{ $fIdx }}, {{ $roll->id }})" @checked($isRollSelected) class="rounded text-amber-600 focus:ring-amber-500">
-                                                                    <span class="font-extrabold text-xs text-slate-900">{{ $roll->roll_number }}</span>
-                                                                </label>
-                                                                <span class="text-[11px] font-bold text-slate-500">Bal: {{ $roll->current_balance_length }}m</span>
-                                                            </div>
-
-                                                            <div class="flex flex-wrap items-center gap-1 mb-2">
-                                                                @if($roll->design_number)
-                                                                    <span class="px-1.5 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-extrabold rounded">Design: {{ $roll->design_number }}</span>
-                                                                @endif
-                                                                @if($rollWidthText)
-                                                                    <span class="px-1.5 py-0.5 bg-amber-100 text-amber-900 text-[10px] font-extrabold rounded">Width: {{ $rollWidthText }}</span>
-                                                                @endif
+                                                        <div class="w-full p-4 rounded-2xl border transition-all {{ $isRollSelected ? 'bg-amber-500/5 border-amber-500/60 shadow-sm ring-1 ring-amber-500/30' : 'bg-white border-slate-200 hover:border-slate-300' }}">
+                                                            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
+                                                                <div class="flex flex-wrap items-center gap-3">
+                                                                    <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                                                        <input type="checkbox" wire:click="toggleRollSelection({{ $fIdx }}, {{ $roll->id }})" @checked($isRollSelected) class="w-5 h-5 rounded text-amber-600 focus:ring-amber-500">
+                                                                        <span class="font-black text-sm text-slate-900 px-2.5 py-1 bg-slate-100 rounded-lg border border-slate-200 font-mono">{{ $roll->roll_number }}</span>
+                                                                    </label>
+                                                                    @if($roll->design_number)
+                                                                        <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-200/60">Design: {{ $roll->design_number }}</span>
+                                                                    @endif
+                                                                    @if($rollWidthText)
+                                                                        <span class="px-2.5 py-1 bg-amber-100 text-amber-900 text-xs font-bold rounded-lg border border-amber-200">Width: {{ $rollWidthText }}</span>
+                                                                    @endif
+                                                                </div>
+                                                                <div class="flex items-center gap-2">
+                                                                    <span class="text-xs font-bold text-slate-500">Available Stock:</span>
+                                                                    <span class="px-2.5 py-1 bg-slate-900 text-white font-mono font-extrabold text-xs rounded-lg">{{ $roll->current_balance_length }}m</span>
+                                                                </div>
                                                             </div>
 
                                                             @if($isRollSelected)
-                                                                 <div class="space-y-2 pt-1">
-                                                                     <div class="flex items-center gap-2">
-                                                                         <input type="number" step="0.01" max="{{ $roll->current_balance_length }}" wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length" placeholder="Cut Length (m)" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500/20">
-                                                                         <button type="button" wire:click="setFullRollCut({{ $fIdx }}, {{ $roll->id }})" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-[10px] rounded-md shrink-0">
-                                                                             Full Roll
+                                                                 <div class="space-y-4 pt-3">
+                                                                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                                                                         <div class="flex items-center gap-2 flex-1 max-w-md">
+                                                                             <label class="text-xs font-black text-slate-700 uppercase tracking-wider whitespace-nowrap">Cut Length (m):</label>
+                                                                             <input type="number" step="0.01" max="{{ $roll->current_balance_length }}" wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length" placeholder="Enter length in meters..." class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-black text-slate-900 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                                                                         </div>
+                                                                         <button type="button" wire:click="setFullRollCut({{ $fIdx }}, {{ $roll->id }})" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 shrink-0 active:scale-95">
+                                                                             <span class="material-symbols-outlined text-[16px]">content_cut</span>
+                                                                             Full Roll ({{ $roll->current_balance_length }}m)
                                                                          </button>
                                                                      </div>
 
@@ -550,48 +556,48 @@
                                                                              $rLive = $this->getRollCutBreakdown($roll->id, floatval($currentCut), $fab['raw_material_id'] ?? null);
                                                                          @endphp
                                                                          @if($rLive)
-                                                                             <div class="p-2.5 bg-amber-500/5 border border-amber-500/30 rounded-lg text-xs space-y-1.5 mt-2">
-                                                                                 <div class="flex items-center justify-between font-extrabold text-slate-800">
-                                                                                     <span class="flex items-center gap-1 text-[11px]">
-                                                                                         <span class="material-symbols-outlined text-[14px] text-amber-600">aspect_ratio</span>
-                                                                                         Cut Area: <strong class="text-amber-800 font-mono">{{ $rLive['cut_area_m2'] }} m²</strong>
-                                                                                     </span>
-                                                                                     <span class="px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-black text-[10px]">
-                                                                                         Width: {{ $rLive['roll_width_display'] }}
-                                                                                     </span>
-                                                                                 </div>
-
-                                                                                 <div class="flex items-center justify-between text-[11px] pt-1 border-t border-amber-200/50">
-                                                                                     <span class="font-extrabold text-slate-900">
-                                                                                         Est. Yield: <span class="text-emerald-700 font-black">{{ $rLive['est_yield_pieces'] }} Pcs</span> of {{ $rLive['product_name'] }}
-                                                                                     </span>
-                                                                                     <span class="text-[10px] text-slate-500 font-bold">
-                                                                                         ({{ $rLive['piece_req_length'] }}m / pc)
-                                                                                     </span>
-                                                                                 </div>
-
-                                                                                 @if($rLive['target_qty'] > 0)
-                                                                                     <div class="pt-1 border-t border-amber-200/50 text-[10px] space-y-0.5">
-                                                                                         <div class="flex justify-between text-slate-600 font-medium">
-                                                                                             <span>Job Target ({{ $rLive['target_qty'] }} Pcs Req):</span>
-                                                                                             <span class="font-bold text-slate-800">{{ $rLive['target_req_length'] }}m ({{ $rLive['target_req_area_m2'] }} m²)</span>
+                                                                             <div class="p-4 bg-amber-50 border border-amber-300/80 rounded-xl text-xs space-y-3 shadow-2xs">
+                                                                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pb-3 border-b border-amber-200/80">
+                                                                                     <div class="space-y-1">
+                                                                                         <p class="text-[10px] font-black text-amber-800 uppercase tracking-wider">Cut Area &amp; Dimensions</p>
+                                                                                         <div class="flex items-center gap-2">
+                                                                                             <span class="material-symbols-outlined text-amber-600 text-lg">aspect_ratio</span>
+                                                                                             <span class="text-sm font-black text-slate-900">{{ $rLive['cut_area_m2'] }} m²</span>
                                                                                          </div>
-                                                                                         @if($rLive['wastage_length'] > 0)
-                                                                                             <div class="flex justify-between text-amber-900 font-bold">
-                                                                                                 <span>Surplus / Wastage Length:</span>
-                                                                                                 <span>{{ $rLive['wastage_length'] }}m (₹{{ number_format($rLive['wastage_cost'], 2) }})</span>
-                                                                                             </div>
-                                                                                             <div class="text-[9px] text-emerald-700 font-bold text-right">
-                                                                                                 Yield covers {{ $rLive['target_qty'] }} Pcs target + {{ $rLive['surplus_pieces'] }} surplus Pcs
-                                                                                             </div>
-                                                                                         @elseif($rLive['shortfall_pieces'] > 0)
-                                                                                             <div class="flex justify-between text-red-600 font-bold">
-                                                                                                 <span>Shortfall for Target:</span>
-                                                                                                 <span>{{ $rLive['shortfall_pieces'] }} Pcs short</span>
-                                                                                             </div>
+                                                                                         <p class="text-[11px] text-slate-600 font-bold">Standard Width: <span class="text-amber-900">{{ $rLive['roll_width_display'] }}</span></p>
+                                                                                         <p class="text-[11px] text-slate-500">Cut Length: <span class="font-bold text-slate-800">{{ $currentCut }}m</span></p>
+                                                                                     </div>
+
+                                                                                     <div class="space-y-1">
+                                                                                         <p class="text-[10px] font-black text-emerald-800 uppercase tracking-wider">Est. Production Yield</p>
+                                                                                         <div class="flex items-center gap-2">
+                                                                                             <span class="material-symbols-outlined text-emerald-600 text-lg">check_box</span>
+                                                                                             <span class="text-sm font-black text-emerald-800">{{ $rLive['est_yield_pieces'] }} Pcs</span>
+                                                                                         </div>
+                                                                                         <p class="text-[11px] text-slate-700 font-bold">Product: <span class="text-slate-900 font-extrabold">{{ $rLive['product_name'] }}</span></p>
+                                                                                         <p class="text-[11px] text-slate-600 font-semibold">Pattern Length Req: <span class="font-bold text-slate-900">{{ $rLive['piece_req_length'] }}m / pc</span></p>
+                                                                                     </div>
+
+                                                                                     <div class="space-y-1">
+                                                                                         <p class="text-[10px] font-black text-slate-700 uppercase tracking-wider">Job Target &amp; Allocation</p>
+                                                                                         @if($rLive['target_qty'] > 0)
+                                                                                             <p class="text-[11px] text-slate-700 font-semibold">Job Target: <span class="font-bold text-slate-900">{{ $rLive['target_qty'] }} Pcs Req</span> ({{ $rLive['target_req_length'] }}m / {{ $rLive['target_req_area_m2'] }} m²)</p>
+                                                                                             @if($rLive['wastage_length'] > 0)
+                                                                                                 <p class="text-[11px] text-amber-900 font-bold">Wastage Length: <span>{{ $rLive['wastage_length'] }}m (₹{{ number_format($rLive['wastage_cost'], 2) }})</span></p>
+                                                                                             @elseif($rLive['shortfall_pieces'] > 0)
+                                                                                                 <p class="text-[11px] text-rose-600 font-bold">Shortfall for Target: <span>{{ $rLive['shortfall_pieces'] }} Pcs short</span></p>
+                                                                                             @endif
                                                                                          @endif
                                                                                      </div>
-                                                                                 @endif
+                                                                                 </div>
+
+                                                                                 <div class="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
+                                                                                     <div class="flex items-center gap-1.5 text-emerald-800 font-black bg-emerald-100 px-3 py-1 rounded-lg border border-emerald-300">
+                                                                                         <span class="material-symbols-outlined text-[16px]">verified</span>
+                                                                                         <span>Yield covers {{ $rLive['target_qty'] }} Pcs target + {{ $rLive['surplus_pieces'] }} surplus Pcs</span>
+                                                                                     </div>
+                                                                                     <span class="text-[11px] text-slate-500 font-bold">Live calculation based on standard width &amp; cut pattern area</span>
+                                                                                 </div>
                                                                              </div>
                                                                          @endif
                                                                      @endif
@@ -599,7 +605,7 @@
                                                             @endif
                                                         </div>
                                                     @empty
-                                                        <div class="col-span-full p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-500 font-medium">
+                                                        <div class="w-full p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-500 font-medium">
                                                             No active rolls available for {{ $rawMaterial?->name ?? 'this fabric' }} in Bale {{ $selectedBale->bale_number }}.
                                                         </div>
                                                     @endforelse

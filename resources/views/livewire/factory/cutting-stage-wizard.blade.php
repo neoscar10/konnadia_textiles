@@ -226,74 +226,124 @@
                                         </div>
                                         <span class="text-[11px] text-on-surface-variant font-semibold">Select rolls to cut</span>
                                     </div>
+                                    <div class="space-y-4 w-full">
+                                         @foreach($selectedBale->activeRolls as $roll)
+                                             @php
+                                                 $isSelected = isset($fabRow['selected_rolls'][$roll->id]);
+                                                 $rollData = $fabRow['selected_rolls'][$roll->id] ?? null;
+                                                 $rollWidthText = null;
+                                                 if ($roll->fabricWidth) {
+                                                     $rollWidthText = $roll->fabricWidth->name ? ($roll->fabricWidth->name . ' (' . $roll->fabricWidth->value . $roll->fabricWidth->unit . ')') : ($roll->fabricWidth->value . $roll->fabricWidth->unit);
+                                                 } elseif ($roll->rawMaterial && $roll->rawMaterial->standard_width) {
+                                                     $rollWidthText = $roll->rawMaterial->standard_width . ($roll->rawMaterial->width_unit ?? '"');
+                                                 }
+                                             @endphp
+                                             <div class="w-full bg-surface-container-lowest border rounded-2xl p-4 transition-all {{ $isSelected ? 'border-primary ring-2 ring-primary/20 shadow-sm' : 'border-outline-variant/60' }}">
+                                                 <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-outline-variant/40">
+                                                     <div class="flex flex-wrap items-center gap-3">
+                                                         <label class="flex items-center gap-2 cursor-pointer select-none">
+                                                             <input
+                                                                 type="checkbox"
+                                                                 wire:click="toggleRollSelection({{ $fIdx }}, {{ $roll->id }})"
+                                                                 {{ $isSelected ? 'checked' : '' }}
+                                                                 class="rounded text-primary focus:ring-primary h-5 w-5"
+                                                             />
+                                                             <span class="font-mono font-extrabold text-sm text-primary px-2.5 py-1 bg-primary/10 rounded-lg">{{ $roll->roll_number }}</span>
+                                                         </label>
+                                                         @if($roll->design_number)
+                                                             <span class="px-2.5 py-1 bg-surface-container text-on-surface-variant text-xs font-bold rounded-lg border border-outline-variant/60">Design: {{ $roll->design_number }}</span>
+                                                         @endif
+                                                         @if($rollWidthText)
+                                                             <span class="px-2.5 py-1 bg-primary/10 text-primary text-xs font-bold rounded-lg border border-primary/20">Width: {{ $rollWidthText }}</span>
+                                                         @endif
+                                                     </div>
+                                                     <span class="text-xs font-bold text-on-surface-variant">
+                                                         Available Balance: <strong class="text-on-surface px-2 py-0.5 bg-surface-container rounded-lg font-mono">{{ $roll->current_balance_length }}m</strong> / {{ $roll->initial_length }}m
+                                                     </span>
+                                                 </div>
 
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        @foreach($selectedBale->activeRolls as $roll)
-                                            @php
-                                                $isSelected = isset($fabRow['selected_rolls'][$roll->id]);
-                                                $rollData = $fabRow['selected_rolls'][$roll->id] ?? null;
-                                            @endphp
-                                            <div class="bg-surface-container-lowest border rounded-xl p-4 transition-all {{ $isSelected ? 'border-primary ring-2 ring-primary/20 shadow-sm' : 'border-outline-variant/60' }}">
-                                                <div class="flex justify-between items-center mb-3">
-                                                    <label class="flex items-center gap-2 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            wire:click="toggleRollSelection({{ $fIdx }}, {{ $roll->id }})"
-                                                            {{ $isSelected ? 'checked' : '' }}
-                                                            class="rounded text-primary focus:ring-primary h-4 w-4"
-                                                        />
-                                                        <span class="font-mono font-extrabold text-xs text-primary">{{ $roll->roll_number }}</span>
-                                                    </label>
-                                                    <span class="text-[11px] font-bold text-on-surface-variant">
-                                                        Bal: <strong>{{ $roll->current_balance_length }}m</strong> / {{ $roll->initial_length }}m
-                                                    </span>
-                                                </div>
+                                                 @if($isSelected)
+                                                     <div class="space-y-4 pt-3">
+                                                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-low p-3 rounded-xl border border-outline-variant/40">
+                                                             <div class="flex items-center gap-2 flex-1 max-w-md">
+                                                                 <label class="text-xs font-extrabold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Cut Length (m):</label>
+                                                                 <input
+                                                                     type="number"
+                                                                     step="0.01"
+                                                                     wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length"
+                                                                     max="{{ $roll->current_balance_length }}"
+                                                                     placeholder="Enter length in meters..."
+                                                                     class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-extrabold text-on-surface focus:border-primary focus:outline-none"
+                                                                 />
+                                                             </div>
+                                                             <button
+                                                                 type="button"
+                                                                 wire:click="setFullRollCut({{ $fIdx }}, {{ $roll->id }})"
+                                                                 class="px-4 py-2 bg-primary text-on-primary font-bold text-xs rounded-xl shadow-xs hover:bg-primary-container transition-all flex items-center justify-center gap-1.5 shrink-0 active:scale-95"
+                                                             >
+                                                                 <span class="material-symbols-outlined text-[16px]">content_cut</span>
+                                                                 Cut Full Roll ({{ $roll->current_balance_length }}m)
+                                                             </button>
+                                                         </div>
 
-                                                @if($isSelected)
-                                                    <div class="space-y-2 pt-2 border-t border-outline-variant/30">
-                                                        <div class="flex justify-between items-center">
-                                                            <label class="text-[10px] font-bold text-on-surface-variant uppercase">Length to Cut (m)</label>
-                                                            <button
-                                                                type="button"
-                                                                wire:click="setFullRollCut({{ $fIdx }}, {{ $roll->id }})"
-                                                                class="text-[10px] font-extrabold text-primary hover:underline cursor-pointer"
-                                                            >
-                                                                Cut Full Roll ({{ $roll->current_balance_length }}m)
-                                                            </button>
-                                                        </div>
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length"
-                                                            max="{{ $roll->current_balance_length }}"
-                                                            class="w-full bg-surface border border-outline-variant/60 rounded-lg px-3 py-1.5 text-xs font-bold text-right focus:border-primary focus:outline-none"
-                                                        />
+                                                         @php
+                                                             $cLenVal = floatval($rollData['cut_length'] ?? 0);
+                                                         @endphp
+                                                         @if($cLenVal > 0)
+                                                             @php
+                                                                 $rLive = $this->getRollCutBreakdown($roll->id, $cLenVal, $fabRow['raw_material_id'] ?? null);
+                                                             @endphp
+                                                             @if($rLive)
+                                                                 <div class="p-4 bg-primary/5 border border-primary/20 rounded-xl text-xs space-y-3 shadow-2xs">
+                                                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pb-3 border-b border-primary/10">
+                                                                         <div class="space-y-1">
+                                                                             <p class="text-[10px] font-extrabold text-primary uppercase tracking-wider">Cut Area &amp; Dimensions</p>
+                                                                             <div class="flex items-center gap-2">
+                                                                                 <span class="material-symbols-outlined text-primary text-lg">aspect_ratio</span>
+                                                                                 <span class="text-sm font-black text-on-surface">{{ $rLive['cut_area_m2'] }} m²</span>
+                                                                             </div>
+                                                                             <p class="text-[11px] text-on-surface-variant font-bold">Standard Width: <span class="text-primary">{{ $rLive['roll_width_display'] }}</span></p>
+                                                                             <p class="text-[11px] text-on-surface-variant">Cut Length: <span class="font-bold text-on-surface">{{ $cLenVal }}m</span></p>
+                                                                         </div>
 
-                                                        @php
-                                                            $cLenVal = floatval($rollData['cut_length'] ?? 0);
-                                                        @endphp
-                                                        @if($cLenVal > 0)
-                                                            @php
-                                                                $rLive = $this->getRollCutBreakdown($roll->id, $cLenVal, $fabRow['raw_material_id'] ?? null);
-                                                            @endphp
-                                                            @if($rLive)
-                                                                <div class="p-2 bg-primary/5 border border-primary/20 rounded-lg text-xs space-y-1 mt-2">
-                                                                    <div class="flex items-center justify-between text-[11px] font-bold text-on-surface">
-                                                                        <span>Cut Area: <strong class="text-primary">{{ $rLive['cut_area_m2'] }} m²</strong></span>
-                                                                        <span class="text-[10px] font-extrabold bg-primary/10 text-primary px-1.5 py-0.5 rounded">Width: {{ $rLive['roll_width_display'] }}</span>
-                                                                    </div>
-                                                                    <div class="text-[11px] font-extrabold text-emerald-700 flex justify-between">
-                                                                        <span>Est. Yield: {{ $rLive['est_yield_pieces'] }} Pcs</span>
-                                                                        <span class="text-[10px] text-on-surface-variant font-medium">({{ $rLive['piece_req_length'] }}m / pc)</span>
-                                                                    </div>
-                                                                </div>
-                                                            @endif
-                                                        @endif
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    </div>
+                                                                         <div class="space-y-1">
+                                                                             <p class="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">Est. Production Yield</p>
+                                                                             <div class="flex items-center gap-2">
+                                                                                 <span class="material-symbols-outlined text-emerald-600 text-lg">check_box</span>
+                                                                                 <span class="text-sm font-black text-emerald-700">{{ $rLive['est_yield_pieces'] }} Pcs</span>
+                                                                             </div>
+                                                                             <p class="text-[11px] text-on-surface-variant font-bold">Product: <span class="text-on-surface font-extrabold">{{ $rLive['product_name'] }}</span></p>
+                                                                             <p class="text-[11px] text-on-surface-variant font-semibold">Pattern Length Req: <span class="font-bold text-on-surface">{{ $rLive['piece_req_length'] }}m / pc</span></p>
+                                                                         </div>
+
+                                                                         <div class="space-y-1">
+                                                                             <p class="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider">Job Target &amp; Allocation</p>
+                                                                             @if($rLive['target_qty'] > 0)
+                                                                                 <p class="text-[11px] text-on-surface-variant font-semibold">Job Target: <span class="font-bold text-on-surface">{{ $rLive['target_qty'] }} Pcs Req</span> ({{ $rLive['target_req_length'] }}m / {{ $rLive['target_req_area_m2'] }} m²)</p>
+                                                                                 @if($rLive['wastage_length'] > 0)
+                                                                                     <p class="text-[11px] text-amber-800 font-bold">Wastage Length: <span>{{ $rLive['wastage_length'] }}m (₹{{ number_format($rLive['wastage_cost'], 2) }})</span></p>
+                                                                                 @elseif($rLive['shortfall_pieces'] > 0)
+                                                                                     <p class="text-[11px] text-error font-bold">Shortfall for Target: <span>{{ $rLive['shortfall_pieces'] }} Pcs short</span></p>
+                                                                                 @endif
+                                                                             @endif
+                                                                         </div>
+                                                                     </div>
+
+                                                                     <div class="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
+                                                                         <div class="flex items-center gap-1.5 text-emerald-800 font-extrabold bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+                                                                             <span class="material-symbols-outlined text-[16px]">verified</span>
+                                                                             <span>Yield covers {{ $rLive['target_qty'] }} Pcs target + {{ $rLive['surplus_pieces'] }} surplus Pcs</span>
+                                                                         </div>
+                                                                         <span class="text-[11px] text-on-surface-variant font-bold">Live calculation based on standard width &amp; cut pattern area</span>
+                                                                     </div>
+                                                                 </div>
+                                                             @endif
+                                                         @endif
+                                                     </div>
+                                                 @endif
+                                             </div>
+                                         @endforeach
+                                     </div>
                                 @endif
                             </div>
                         @endif

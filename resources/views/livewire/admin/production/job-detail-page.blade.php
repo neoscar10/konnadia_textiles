@@ -402,14 +402,35 @@
                                                                                                 $rLive = $this->getRollCutBreakdown($rId, floatval($rData['cut_length'] ?? 0), $this->cuttingFabricMaterialId ?? null);
                                                                                             @endphp
                                                                                             @if($rLive)
-                                                                                                <div class="mt-2 p-2 bg-primary/5 border border-primary/20 rounded-xl text-xs space-y-1">
-                                                                                                    <div class="flex items-center justify-between text-[11px] font-bold text-on-surface">
-                                                                                                        <span>Cut Area: <strong class="text-primary">{{ $rLive['cut_area_m2'] }} m²</strong></span>
-                                                                                                        <span class="text-[10px] font-extrabold bg-primary/10 text-primary px-2 py-0.5 rounded">Width: {{ $rLive['roll_width_display'] }}</span>
+                                                                                                <div class="mt-2.5 p-3.5 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border border-primary/20 rounded-2xl text-xs space-y-2.5 shadow-sm">
+                                                                                                    <div class="flex items-center justify-between border-b border-primary/15 pb-2">
+                                                                                                        <span class="text-[11px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
+                                                                                                            <span class="material-symbols-outlined text-sm">content_cut</span>
+                                                                                                            Live Cutting Yield Breakdown
+                                                                                                        </span>
+                                                                                                        <span class="text-[10px] font-extrabold bg-primary text-on-primary px-2.5 py-0.5 rounded-full shadow-xs">
+                                                                                                            Roll Width: {{ $rLive['roll_width_display'] }}
+                                                                                                        </span>
                                                                                                     </div>
-                                                                                                    <div class="text-[11px] font-extrabold text-emerald-700 flex justify-between">
-                                                                                                        <span>Est. Yield: {{ $rLive['est_yield_pieces'] }} Pcs of {{ $rLive['product_name'] }}</span>
-                                                                                                        <span class="text-[10px] text-on-surface-variant font-medium">({{ $rLive['piece_req_length'] }}m / pc)</span>
+
+                                                                                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                                                                        <div class="bg-surface/80 p-2.5 rounded-xl border border-outline-variant/30">
+                                                                                                            <p class="text-[10px] font-bold text-on-surface-variant uppercase">Cut Area & Dimensions</p>
+                                                                                                            <p class="text-sm font-black text-primary mt-0.5">{{ $rLive['cut_area_m2'] }} m²</p>
+                                                                                                            <p class="text-[10px] text-on-surface-variant/80 font-medium mt-0.5">Length: {{ number_format(floatval($rData['cut_length'] ?? 0), 2) }}m</p>
+                                                                                                        </div>
+
+                                                                                                        <div class="bg-surface/80 p-2.5 rounded-xl border border-outline-variant/30">
+                                                                                                            <p class="text-[10px] font-bold text-on-surface-variant uppercase">Est. Production Yield</p>
+                                                                                                            <p class="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{{ $rLive['est_yield_pieces'] }} Pcs</p>
+                                                                                                            <p class="text-[10px] text-on-surface-variant/80 font-medium mt-0.5">Pattern: {{ $rLive['product_name'] }}</p>
+                                                                                                        </div>
+
+                                                                                                        <div class="bg-surface/80 p-2.5 rounded-xl border border-outline-variant/30">
+                                                                                                            <p class="text-[10px] font-bold text-on-surface-variant uppercase">Job Target & Allocation</p>
+                                                                                                            <p class="text-sm font-black text-on-surface mt-0.5">{{ $rLive['piece_req_length'] }}m / pc</p>
+                                                                                                            <p class="text-[10px] text-on-surface-variant/80 font-medium mt-0.5">Target: {{ $rLive['target_quantity'] }} Pcs</p>
+                                                                                                        </div>
                                                                                                     </div>
                                                                                                 </div>
                                                                                             @endif
