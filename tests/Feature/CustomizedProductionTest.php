@@ -125,4 +125,50 @@ class CustomizedProductionTest extends TestCase
         $response->assertSee('CUST-PROD-2026-0002');
         $response->assertSee('Hotel Suite Velvet Dohar');
     }
+
+    /** @test */
+    public function last_dynamic_task_card_defaults_to_final_stage()
+    {
+        $this->seed(\Database\Seeders\UnitManagementSeeder::class);
+        $lengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first();
+
+        $category = \App\Models\RawMaterialCategory::create([
+            'name' => 'Fabrics',
+            'code' => 'CAT-FAB-TEST-3',
+            'unit_group_id' => $lengthGroup->id,
+            'is_active' => true,
+        ]);
+
+        $fabric = RawMaterial::create([
+            'name' => 'Linen White',
+            'raw_material_category_id' => $category->id,
+            'unit_group_id' => $lengthGroup->id,
+            'unit' => 'Meters',
+            'is_active' => true,
+        ]);
+
+        $cutting = Task::create(['name' => 'Cutting', 'code' => 'TSK-C1', 'status' => true]);
+        $stitching = Task::create(['name' => 'Stitching', 'code' => 'TSK-S1', 'status' => true]);
+        $finishing = Task::create(['name' => 'Finishing', 'code' => 'TSK-F1', 'status' => true]);
+
+        $customOrder = CustomizedProductionOrder::create([
+            'custom_order_id' => 'CUST-PROD-2026-0003',
+            'item_description' => 'Custom Linen Dohar',
+            'target_quantity' => 15,
+            'raw_material_id' => $fabric->id,
+            'width' => 100,
+            'length' => 110,
+            'length_unit' => 'Inch',
+            'status' => 'in_progress',
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(CustomizedProductionDetailPage::class, ['id' => $customOrder->id])
+            ->call('addDynamicTaskStage')
+            ->assertViewHas('stageExecutions', function ($stages) {
+                // The last stage must be final stage
+                $lastStage = $stages->last();
+                return $lastStage && (bool) $lastStage->is_final_step;
+            });
+    }
 }

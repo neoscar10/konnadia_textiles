@@ -1,71 +1,58 @@
-<div class="space-y-6">
-    <!-- Navigation Back Link -->
-    <div class="flex items-center justify-between">
-        <a href="{{ route('admin.production.customized') }}" wire:navigate class="inline-flex items-center gap-1.5 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors">
+<div class="space-y-6 max-w-7xl mx-auto pb-12">
+    <!-- Top Header & Navigation Back Link -->
+    <div class="space-y-3">
+        <a href="{{ route('admin.production.customized') }}" wire:navigate class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 hover:text-amber-900 transition-colors">
             <span class="material-symbols-outlined text-[18px]">arrow_back</span>
             <span>Back to Customized Production Hub</span>
         </a>
-    </div>
 
-    <!-- Top Summary Card -->
-    <div class="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/60 shadow-sm space-y-4">
-        <div>
-            <div class="text-[11px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">CUSTOMIZED WORK ORDER SPECIFICATIONS</div>
-            <h1 class="text-2xl font-black tracking-tight text-on-surface mt-0.5">
-                Custom Item: {{ $customOrder->item_description }}
-            </h1>
-        </div>
-
-        <!-- Specification Badges Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/50">
-            <div>
-                <div class="text-[10px] font-bold text-on-surface-variant/70 uppercase">Fabric Material:</div>
-                <div class="text-xs font-black text-on-surface mt-0.5">
-                    {{ $customOrder->fabric_name ?: ($customOrder->rawMaterial?->name ?? 'Custom Fabric') }}
-                </div>
-            </div>
-            <div>
-                <div class="text-[10px] font-bold text-on-surface-variant/70 uppercase">Custom Dimensions:</div>
-                <div class="text-xs font-mono font-black text-on-surface mt-0.5">
-                    {{ $customOrder->dimensions_formatted }}
-                </div>
-            </div>
-            <div>
-                <div class="text-[10px] font-bold text-on-surface-variant/70 uppercase">Target Quantity:</div>
-                <div class="text-xs font-mono font-black text-on-surface mt-0.5">
-                    {{ $customOrder->target_quantity }} Pcs
-                </div>
-            </div>
-            <div>
-                <div class="text-[10px] font-bold text-on-surface-variant/70 uppercase">Special Notes:</div>
-                <div class="text-xs font-medium text-on-surface mt-0.5 truncate">
-                    {{ $customOrder->notes ?: 'None specified' }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    @if($customOrder->status === 'completed')
-        <!-- Completed Hero Banner -->
-        <div class="p-6 rounded-3xl bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white border border-emerald-500/30 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                    <span class="material-symbols-outlined text-3xl">check_circle</span>
+        <!-- Specification Card -->
+        <div class="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/60 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <div class="text-[11px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">CUSTOMIZED WORK ORDER SPECIFICATIONS</div>
+                    <h1 class="text-2xl font-black tracking-tight text-on-surface mt-0.5 font-mono">
+                        {{ $customOrder->custom_order_id }} — {{ $customOrder->item_description }}
+                    </h1>
                 </div>
                 <div>
-                    <h3 class="text-lg font-black text-white">Customized Production Order Completed!</h3>
-                    <p class="text-xs text-emerald-200/80 font-medium">
-                        All dynamic task routings have been executed and {{ $customOrder->target_quantity }} Pcs finished goods are ready.
-                    </p>
+                    <span class="px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-xs {{ $customOrder->status === 'completed' ? 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/30' : 'bg-amber-500/10 text-amber-800 border border-amber-500/30' }}">
+                        {{ ucfirst(str_replace('_', ' ', $customOrder->status)) }}
+                    </span>
                 </div>
             </div>
-            <a href="{{ route('admin.production.customized') }}" wire:navigate class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl shadow transition-all shrink-0">
-                Return to Customized Production Hub →
-            </a>
-        </div>
-    @endif
 
-    <!-- Main Two-Column Layout -->
+            <!-- Specification Badges Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/50">
+                <div>
+                    <div class="text-[10px] font-bold text-on-surface-variant/70 uppercase">Fabric Material:</div>
+                    <div class="text-xs font-black text-on-surface mt-0.5">
+                        {{ $customOrder->fabric_name ?: ($customOrder->rawMaterial?->name ?? 'Custom Fabric') }}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-[10px] font-bold text-on-surface-variant/70 uppercase">Custom Dimensions:</div>
+                    <div class="text-xs font-mono font-black text-on-surface mt-0.5">
+                        {{ $customOrder->dimensions_formatted }}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-[10px] font-bold text-on-surface-variant/70 uppercase">Target Quantity:</div>
+                    <div class="text-xs font-mono font-black text-on-surface mt-0.5">
+                        {{ $customOrder->target_quantity }} Pcs
+                    </div>
+                </div>
+                <div>
+                    <div class="text-[10px] font-bold text-on-surface-variant/70 uppercase">Special Notes:</div>
+                    <div class="text-xs font-medium text-on-surface mt-0.5 truncate">
+                        {{ $customOrder->notes ?: 'None specified' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         <!-- LEFT COLUMN (lg:col-span-4): Dynamic Tasks On-The-Fly Panel -->
@@ -83,9 +70,10 @@
                 <div class="space-y-3">
                     @foreach($dynamicTaskRows as $idx => $taskRow)
                         @php
-                            $isCurrentSelected = ($selectedStageId == $taskRow['id']);
+                            $isCurrentSelected = ($activeStage && $activeStage->id == $taskRow['id']);
                         @endphp
-                        <div wire:click="selectStage({{ $taskRow['id'] }})" class="p-4 rounded-2xl border transition-all cursor-pointer relative {{ $isCurrentSelected ? 'bg-amber-500/10 border-amber-500/50 shadow-md' : 'bg-surface-container-low/40 border-outline-variant/60 hover:bg-surface-container-low' }}">
+                        <div wire:click="selectStage({{ $taskRow['id'] }})" 
+                             class="p-4 rounded-2xl border transition-all cursor-pointer relative {{ $isCurrentSelected ? 'bg-amber-500/10 border-amber-500/60 ring-2 ring-amber-500/20 shadow-md' : 'bg-surface-container-low/40 border-outline-variant/60 hover:bg-surface-container-low' }}">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-xs font-extrabold text-on-surface">Task #{{ $idx + 1 }}</span>
                                 <div class="flex items-center gap-1.5">
@@ -119,7 +107,7 @@
                                     @endforeach
                                 </select>
 
-                                <!-- Final Stage Marking Toggle -->
+                                <!-- Final Stage Radio Toggle -->
                                 <label class="flex items-center gap-2 text-xs font-bold text-on-surface cursor-pointer select-none">
                                     <input type="radio" name="finalStageRadio" wire:click="setFinalStage({{ $idx }})" {{ $taskRow['is_final_step'] ? 'checked' : '' }} class="w-3.5 h-3.5 text-amber-600 focus:ring-amber-500" />
                                     <span class="{{ $taskRow['is_final_step'] ? 'text-amber-800 dark:text-amber-300 font-extrabold' : 'text-on-surface-variant' }}">Final Stage</span>
@@ -129,318 +117,522 @@
                     @endforeach
                 </div>
 
-                <button type="button" wire:click="addDynamicTaskStage" class="w-full py-2.5 px-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-bold rounded-2xl border border-outline-variant/60 transition-all flex items-center justify-center gap-1.5">
+                <button type="button" wire:click="addDynamicTaskStage" class="w-full py-2.5 px-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-bold rounded-2xl border border-outline-variant/60 transition-all flex items-center justify-center gap-1.5 shadow-xs">
                     <span class="material-symbols-outlined text-[16px]">add</span>
                     <span>Add Dynamic Task Stage</span>
                 </button>
             </div>
         </div>
 
-        <!-- RIGHT COLUMN (lg:col-span-8): Selected Task Stage Execution Terminal Engine -->
-        <div class="lg:col-span-8 space-y-4">
-            @if($selectedStage)
-                @php
-                    $taskName = strtolower($selectedStage->task?->name ?? '');
-                    $isCuttingStage = str_contains($taskName, 'cut');
-                @endphp
-
+        <!-- RIGHT COLUMN (lg:col-span-8): Stage Terminal & Execution Engine -->
+        <div class="lg:col-span-8 space-y-6">
+            @if($this->isJobFullyCompleted())
+                <!-- JOB COMPLETION SUMMARY TERMINAL VIEW -->
                 <div class="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/60 shadow-sm space-y-6">
-                    <!-- Terminal Header -->
-                    <div class="flex items-center justify-between border-b border-outline-variant/60 pb-4">
+                    <!-- Hero Banner -->
+                    <div class="p-6 text-white rounded-3xl shadow-md border border-emerald-800 space-y-4" style="background: linear-gradient(135deg, #064e3b 0%, #042f2e 50%, #0f172a 100%);">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner" style="background-color: rgba(16, 185, 129, 0.2); border: 1px solid rgba(52, 211, 153, 0.4);">
+                                    <span class="material-symbols-outlined text-3xl" style="color: #6ee7b7;">task_alt</span>
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-black font-display tracking-tight text-white">Custom Order Completed!</h2>
+                                    <p class="text-xs mt-1 font-medium" style="color: #a7f3d0;">
+                                        All dynamic task routings have been executed for <span class="font-bold text-white">{{ $customOrder->item_description }}</span> ({{ $customOrder->target_quantity }} Pcs).
+                                    </p>
+                                </div>
+                            </div>
+                            <a href="{{ route('admin.production.customized') }}" wire:navigate class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow transition-all shrink-0">
+                                Return to Customized Production Hub →
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Performance Breakdown Cards -->
+                    @php
+                        $finalOutputQty = $job->productOutputs->sum('quantity_produced') ?: $customOrder->target_quantity;
+                        $totalMetersConsumed = round($job->materialConsumptions->sum('quantity_consumed'), 2);
+                        $totalFabricCost = round($job->materialConsumptions->sum('total_cost'), 2);
+                        $totalWorkersCount = $job->allocations->pluck('labor_id')->unique()->filter()->count();
+                        $totalLaborWages = round($job->allocations->sum('calculated_wage'), 2);
+                    @endphp
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-1">
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Final Produced Quantity</span>
+                            <div class="text-xl font-black text-emerald-950 dark:text-emerald-100 font-mono">{{ $finalOutputQty }} Pcs</div>
+                        </div>
+                        <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-1">
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">Total Fabric Consumed</span>
+                            <div class="text-xl font-black text-amber-950 dark:text-amber-100 font-mono">{{ $totalMetersConsumed }} m</div>
+                            <div class="text-xs font-bold text-amber-700">Cost: ₹{{ number_format($totalFabricCost, 2) }}</div>
+                        </div>
+                        <div class="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl space-y-1">
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-blue-800 dark:text-blue-300">Worker Wages Paid</span>
+                            <div class="text-xl font-black text-blue-950 dark:text-blue-100 font-mono">₹{{ number_format($totalLaborWages, 2) }}</div>
+                            <div class="text-xs font-bold text-blue-700">{{ $totalWorkersCount }} Worker(s)</div>
+                        </div>
+                    </div>
+                </div>
+
+            @elseif($activeStage)
+                @php
+                    $isFinalTask = $this->isFinalStage($activeStage);
+                    $isCutting = $this->isCuttingStage($activeStage);
+                @endphp
+                <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/60 shadow-sm overflow-hidden space-y-6 p-6">
+                    <!-- Stage Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/60 pb-4">
                         <div>
-                            <h2 class="text-xl font-black text-on-surface flex items-center gap-2">
-                                {{ $selectedStage->sequence_number }}. {{ $selectedStage->task?->name }}
-                            </h2>
+                            <div class="flex items-center gap-2">
+                                <h2 class="text-xl font-black text-on-surface">
+                                    {{ $activeStage->sequence_number }}. {{ $activeStage->task?->name }}
+                                </h2>
+                                @if($isFinalTask)
+                                    <span class="px-2.5 py-0.5 bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[10px] font-black uppercase rounded-full">
+                                        Final Stage
+                                    </span>
+                                @endif
+                                @if($isCutting)
+                                    <span class="px-2.5 py-0.5 bg-slate-900 text-white text-[10px] font-black uppercase rounded-full">
+                                        Fabric Cutting Stage
+                                    </span>
+                                @endif
+                            </div>
                             <p class="text-xs text-on-surface-variant font-medium mt-0.5">
                                 Dynamic Task Stage Execution Engine
                             </p>
                         </div>
                         <div>
-                            @if($selectedStage->status === 'completed')
-                                <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
-                                    COMPLETED
-                                </span>
-                            @else
-                                <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20">
-                                    IN PROGRESS
-                                </span>
-                            @endif
+                            <span class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider {{ $activeStage->status === 'completed' ? 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-800 border border-amber-500/30' }}">
+                                {{ ucfirst(str_replace('_', ' ', $activeStage->status)) }}
+                            </span>
                         </div>
                     </div>
 
-                    <!-- Stage Step Wizard Navigation Tabs -->
-                    <div class="flex items-center border-b border-outline-variant/60 gap-4 text-xs font-extrabold">
-                        @if($isCuttingStage)
-                            <button type="button" wire:click="setWizardStep(1)" class="pb-3 border-b-2 transition-colors {{ $wizardStep === 1 ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant/60 hover:text-on-surface' }}">
-                                1. Fabric Selection
+                    <!-- Step Sub-Navigation Tabs -->
+                    <div class="flex items-center border-b border-outline-variant/60 gap-2 overflow-x-auto text-xs font-extrabold pb-3">
+                        @if($isCutting)
+                            <button type="button" wire:click="$set('activeStep', 1)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 1 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                1. Fabric Selection &amp; Consumption
                             </button>
-                            <button type="button" wire:click="setWizardStep(2)" class="pb-3 border-b-2 transition-colors {{ $wizardStep === 2 ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant/60 hover:text-on-surface' }}">
-                                2. Labour & Bonus
+                            <button type="button" wire:click="$set('activeStep', 2)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 2 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                2. Labour &amp; Bonus Rate
                             </button>
-                            <button type="button" wire:click="setWizardStep(3)" class="pb-3 border-b-2 transition-colors {{ $wizardStep === 3 ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant/60 hover:text-on-surface' }}">
-                                3. Review & Confirm
+                            <button type="button" wire:click="$set('activeStep', 3)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 3 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                3. Output Items
                             </button>
+                            @if($isFinalTask)
+                                <button type="button" wire:click="$set('activeStep', 4)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 flex items-center gap-1 {{ $activeStep === 4 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                    <span>4. Wastage &amp; Alteration</span>
+                                    <span class="px-1 py-0.2 text-[9px] bg-amber-500/20 text-amber-300 rounded font-black">FINAL</span>
+                                </button>
+                                <button type="button" wire:click="$set('activeStep', 5)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 5 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                    5. Review &amp; Confirm
+                                </button>
+                            @else
+                                <button type="button" wire:click="$set('activeStep', 4)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 4 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                    4. Review &amp; Confirm
+                                </button>
+                            @endif
                         @else
-                            <button type="button" wire:click="setWizardStep(1)" class="pb-3 border-b-2 transition-colors {{ $wizardStep === 1 ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant/60 hover:text-on-surface' }}">
-                                1. Labour & Bonus
+                            <button type="button" wire:click="$set('activeStep', 1)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 1 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                1. Labour &amp; Bonus Rate
                             </button>
-                            <button type="button" wire:click="setWizardStep(2)" class="pb-3 border-b-2 transition-colors {{ $wizardStep === 2 ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant/60 hover:text-on-surface' }}">
-                                2. Review & Confirm
+                            <button type="button" wire:click="$set('activeStep', 2)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 2 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                2. Output Items
                             </button>
+                            @if($isFinalTask)
+                                <button type="button" wire:click="$set('activeStep', 3)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 flex items-center gap-1 {{ $activeStep === 3 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                    <span>3. Wastage &amp; Alteration</span>
+                                    <span class="px-1 py-0.2 text-[9px] bg-amber-500/20 text-amber-300 rounded font-black">FINAL</span>
+                                </button>
+                                <button type="button" wire:click="$set('activeStep', 4)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 4 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                    4. Review &amp; Confirm
+                                </button>
+                            @else
+                                <button type="button" wire:click="$set('activeStep', 3)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 3 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                    3. Review &amp; Confirm
+                                </button>
+                            @endif
                         @endif
                     </div>
 
                     <!-- STEP CONTENTS -->
-                    @if($isCuttingStage)
-                        <!-- CUTTING STAGE WIZARD -->
-                        @if($wizardStep === 1)
-                            <!-- Step 1: Fabric Selection & Roll Cut -->
-                            <div class="space-y-4">
-                                <h3 class="text-xs font-black uppercase tracking-wider text-on-surface">Step 1: Fabric Selection & Roll Cut</h3>
-
+                    <!-- 1. FABRIC SELECTION & CONSUMPTION (CUTTING STAGE) -->
+                    @if($isCutting && $activeStep === 1)
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
                                 <div>
-                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">SELECT FABRIC INVENTORY BATCH *</label>
-                                    <select wire:model.live="cuttingFabricBatchId" class="w-full px-3.5 py-2.5 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface font-semibold">
-                                        <option value="">Select Fabric Batch...</option>
-                                        @foreach($fabricBatches as $fb)
-                                            <option value="{{ $fb->id }}">{{ $fb->batch_number }} — {{ $fb->rawMaterial?->name }} (Available: {{ $fb->balance_quantity }} {{ $fb->unit }})</option>
+                                    <h3 class="text-sm font-black uppercase tracking-wider text-on-surface">Step 1: Fabric Selection, Width &amp; Bale Cutting</h3>
+                                    <p class="text-xs text-on-surface-variant">Select fabric raw material, specify standard fabric width, select bale/rolls, open unopened bales, and record fabric cut lengths.</p>
+                                </div>
+                                <span class="px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-black uppercase tracking-wider">
+                                    RAW MATERIAL CONSUMPTION
+                                </span>
+                            </div>
+
+                            <!-- Previously Recorded Fabric Consumptions -->
+                            @if($job->materialConsumptions->isNotEmpty())
+                                <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-2">
+                                    <div class="text-xs font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wider">Previously Recorded Fabric Consumptions on this Job:</div>
+                                    <div class="space-y-1.5">
+                                        @foreach($job->materialConsumptions as $mc)
+                                            <div class="flex items-center justify-between text-xs font-semibold bg-surface-container-lowest p-2.5 rounded-xl border border-outline-variant/60">
+                                                <div>
+                                                    <span class="font-extrabold text-on-surface">{{ $mc->inventoryBatch?->rawMaterial?->name }}</span>
+                                                    <span class="text-on-surface-variant text-[11px] block">
+                                                        Bale {{ $mc->inventoryBaleRoll?->bale?->bale_number ?? 'Bale' }} · Roll {{ $mc->inventoryBaleRoll?->roll_number ?? 'Roll' }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-right">
+                                                    <span class="font-black text-amber-800 dark:text-amber-300">{{ $mc->quantity_consumed }}m</span>
+                                                    <span class="text-on-surface-variant text-[11px] block font-mono">₹{{ number_format($mc->total_cost, 2) }}</span>
+                                                </div>
+                                            </div>
                                         @endforeach
-                                    </select>
+                                    </div>
                                 </div>
+                            @endif
 
-                                <!-- Active Roll Cards -->
-                                @forelse($cuttingBaleRows as $bIndex => $bRow)
-                                    <div class="p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-3">
-                                        <div class="font-bold text-xs text-on-surface">Bale {{ $bRow['bale_number'] }}</div>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            @foreach($bRow['selected_rolls'] as $rId => $rData)
-                                                <div wire:click="toggleRollSelection({{ $bIndex }}, {{ $rId }})" class="p-3 rounded-xl border cursor-pointer transition-all {{ !empty($rData['is_selected']) ? 'bg-primary/10 border-primary shadow-sm' : 'bg-surface-container-lowest border-outline-variant/60' }}">
-                                                    <div class="flex items-center justify-between mb-1">
-                                                        <span class="font-extrabold text-xs text-on-surface">Roll #{{ $rData['roll_number'] }}</span>
-                                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary-container/40 text-on-secondary-container">
-                                                            Width: {{ $rData['width_display'] }}
-                                                        </span>
-                                                    </div>
-                                                    <div class="text-[11px] text-on-surface-variant font-medium">
-                                                        Length: {{ $rData['max_length'] }}m available
-                                                    </div>
-                                                </div>
-                                            @endforeach
+                            <!-- Fabric Selection Repeater Rows -->
+                            <div class="space-y-5">
+                                @foreach($selectedFabrics as $fIdx => $fab)
+                                    @php
+                                        $rawMaterial = !empty($fab['raw_material_id']) ? $fabricMaterials->firstWhere('id', $fab['raw_material_id']) : null;
+                                        $availableBatches = $rawMaterial ? \App\Models\InventoryBatch::where('raw_material_id', $rawMaterial->id)->where('balance_quantity', '>', 0)->get() : collect();
+                                        $selectedBatch = !empty($fab['inventory_batch_id']) ? $availableBatches->firstWhere('id', $fab['inventory_batch_id']) : null;
+                                        $availableBales = $selectedBatch ? \App\Models\InventoryBale::where('inventory_batch_id', $selectedBatch->id)->where('status', '!=', 'depleted')->get() : collect();
+                                        $selectedBale = !empty($fab['inventory_bale_id']) ? $availableBales->firstWhere('id', $fab['inventory_bale_id']) : null;
+                                    @endphp
+                                    <div class="p-5 bg-surface-container-low/60 border border-outline-variant/60 rounded-2xl space-y-4">
+                                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                                            <!-- Fabric Material -->
+                                            <div class="sm:col-span-4">
+                                                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">FABRIC MATERIAL *</label>
+                                                <select wire:model.live="selectedFabrics.{{ $fIdx }}.raw_material_id" class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface focus:outline-none">
+                                                    <option value="">-- Select Fabric Raw Material --</option>
+                                                    @foreach($fabricMaterials as $fm)
+                                                        <option value="{{ $fm->id }}">{{ $fm->name }} ({{ $fm->code }})</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <!-- Stock Batch -->
+                                            <div class="sm:col-span-4">
+                                                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">STOCK BATCH *</label>
+                                                <select wire:model.live="selectedFabrics.{{ $fIdx }}.inventory_batch_id" class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface focus:outline-none">
+                                                    <option value="">-- Select Batch --</option>
+                                                    @foreach($availableBatches as $b)
+                                                        <option value="{{ $b->id }}">{{ $b->batch_number }} (Bal: {{ $b->balance_quantity }} {{ $b->unit }})</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <!-- Bale Dropdown -->
+                                            <div class="sm:col-span-4">
+                                                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">BALE *</label>
+                                                <select wire:model.live="selectedFabrics.{{ $fIdx }}.inventory_bale_id" class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface focus:outline-none">
+                                                    <option value="">-- Select Bale --</option>
+                                                    @foreach($availableBales as $bale)
+                                                        <option value="{{ $bale->id }}">Bale {{ $bale->bale_number }} ({{ $bale->status === 'opened' ? 'Opened - ' . $bale->rolls()->count() . ' rolls' : 'Unopened - ' . $bale->declared_length . 'm' }})</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
                                         </div>
-                                    </div>
-                                @empty
-                                    <div class="p-6 text-center text-xs text-on-surface-variant italic border rounded-2xl">
-                                        No active rolls found for selected batch. Please choose a fabric batch above.
-                                    </div>
-                                @endforelse
 
-                                <div class="pt-4 flex justify-end">
-                                    <button type="button" wire:click="setWizardStep(2)" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow">
-                                        Next: Labour & Bonus →
-                                    </button>
-                                </div>
-                            </div>
-                        @elseif($wizardStep === 2)
-                            <!-- Step 2: Labour & Piece Quantities -->
-                            <div class="space-y-4">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h3 class="text-xs font-black uppercase tracking-wider text-on-surface">Step 2: Labour Allocation & Piece Quantities</h3>
-                                        <p class="text-[11px] text-on-surface-variant">Assign workers, piece quantity worked upon per worker, base rates, and bonus rates.</p>
-                                    </div>
-                                    <span class="px-3 py-1 rounded-full text-[10px] font-black bg-primary/10 text-primary border border-primary/20">
-                                        Multi-Worker Allocation
-                                    </span>
-                                </div>
-
-                                <div class="space-y-3">
-                                    @foreach($cuttingLaborAllocations as $idx => $alloc)
-                                        <div class="p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-3">
-                                            <div class="flex items-center justify-between">
-                                                <span class="text-xs font-extrabold text-on-surface">Worker #{{ $idx + 1 }}</span>
-                                                @if(count($cuttingLaborAllocations) > 1)
-                                                    <button type="button" wire:click="removeCuttingWorkerRow({{ $idx }})" class="p-1 text-red-500 hover:bg-red-500/10 rounded-lg">
-                                                        <span class="material-symbols-outlined text-[16px]">close</span>
-                                                    </button>
+                                        <!-- Bale Rolls Breakdown / Open Bale Actions -->
+                                        @if($selectedBale)
+                                            <div class="pt-3 border-t border-outline-variant/60 space-y-3">
+                                                @if($selectedBale->status === 'unopened')
+                                                    <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between gap-4">
+                                                        <div>
+                                                            <div class="text-xs font-black text-amber-800 dark:text-amber-300">Bale {{ $selectedBale->bale_number }} is Unopened</div>
+                                                            <div class="text-[11px] text-on-surface-variant">Declared Length: {{ $selectedBale->declared_length }}m. Click to open and record roll count & measured lengths.</div>
+                                                        </div>
+                                                        <button type="button" wire:click="triggerOpenBaleModal({{ $selectedBale->id }})" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-xs shrink-0">
+                                                            Open Bale &amp; Measure Rolls →
+                                                        </button>
+                                                    </div>
+                                                @else
+                                                    <!-- Opened Bale Rolls Selection -->
+                                                    <div class="space-y-2">
+                                                        <div class="text-xs font-extrabold text-on-surface">Available Rolls in Bale {{ $selectedBale->bale_number }}:</div>
+                                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                            @foreach($selectedBale->rolls as $roll)
+                                                                @php
+                                                                    $isSelected = isset($fab['selected_rolls'][$roll->id]);
+                                                                    $rData = $fab['selected_rolls'][$roll->id] ?? null;
+                                                                @endphp
+                                                                <div class="p-3 rounded-xl border transition-all {{ $isSelected ? 'bg-primary/10 border-primary shadow-xs' : 'bg-surface-container-lowest border-outline-variant/60' }}">
+                                                                    <div class="flex items-center justify-between">
+                                                                        <label class="flex items-center gap-2 cursor-pointer">
+                                                                            <input type="checkbox" wire:click="toggleRollSelection({{ $fIdx }}, {{ $roll->id }})" {{ $isSelected ? 'checked' : '' }} class="rounded text-primary focus:ring-primary" />
+                                                                            <span class="font-extrabold text-xs text-on-surface">Roll #{{ $roll->roll_number }}</span>
+                                                                        </label>
+                                                                        <span class="text-[11px] font-mono font-extrabold text-amber-800 dark:text-amber-300">
+                                                                            {{ $roll->current_balance_length }}m avail
+                                                                        </span>
+                                                                    </div>
+                                                                    @if($isSelected)
+                                                                        <div class="mt-2 pt-2 border-t border-outline-variant/60 flex items-center gap-2">
+                                                                            <input type="number" step="0.1" max="{{ $roll->current_balance_length }}" wire:model.live="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length" class="w-full px-2.5 py-1 bg-surface-container-lowest text-xs rounded-lg border border-outline-variant/60 font-mono font-bold" placeholder="Cut Length (m)" />
+                                                                            <button type="button" wire:click="setFullRollCut({{ $fIdx }}, {{ $roll->id }})" class="px-2 py-1 text-[10px] font-extrabold bg-surface-container-high hover:bg-surface-container-highest rounded-lg text-on-surface shrink-0">
+                                                                                Full Roll
+                                                                            </button>
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
                                                 @endif
                                             </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
 
-                                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                                                <div class="sm:col-span-2">
-                                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">WORKER NAME *</label>
-                                                    <select wire:model="cuttingLaborAllocations.{{ $idx }}.labor_id" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-semibold text-on-surface">
-                                                        <option value="">Select Worker...</option>
-                                                        @foreach($allLabors as $l)
-                                                            <option value="{{ $l->id }}">{{ $l->name }} ({{ $l->worker_type ?: 'Cutter' }})</option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">QTY WORKED UPON (PCS) *</label>
-                                                    <input type="number" min="1" wire:model="cuttingLaborAllocations.{{ $idx }}.quantity" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
-                                                </div>
-                                                <div>
-                                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">BASE RATE (₹)</label>
-                                                    <input type="number" step="0.5" wire:model="cuttingLaborAllocations.{{ $idx }}.base_rate" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
-                                                </div>
+                            <div class="flex items-center justify-between pt-2">
+                                <button type="button" wire:click="addFabricRow" class="px-3.5 py-2 bg-surface-container-high text-on-surface text-xs font-bold rounded-xl flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[16px]">add</span>
+                                    <span>+ Add Another Fabric</span>
+                                </button>
+                                <button type="button" wire:click="recordFabricConsumption" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-xs">
+                                    Record Fabric Cut Consumption
+                                </button>
+                            </div>
+
+                            <div class="pt-4 flex justify-end border-t border-outline-variant/60">
+                                <button type="button" wire:click="$set('activeStep', 2)" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
+                                    Next Step: Labour &amp; Bonus Rate →
+                                </button>
+                            </div>
+                        </div>
+                    @elseif($activeStep === ($isCutting ? 2 : 1))
+                        <!-- LABOUR & BONUS RATE STEP -->
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-sm font-black uppercase tracking-wider text-on-surface">Labour Allocation &amp; Piece Quantities</h3>
+                                    <p class="text-xs text-on-surface-variant">Assign workers, piece quantity worked upon per worker, base rates, and bonus rates.</p>
+                                </div>
+                                <span class="px-3 py-1 rounded-full text-[10px] font-black bg-primary/10 text-primary border border-primary/20">
+                                    MULTI-WORKER ALLOCATION
+                                </span>
+                            </div>
+
+                            <div class="space-y-4">
+                                @foreach($laborRows as $idx => $alloc)
+                                    <div class="p-5 bg-surface-container-low/60 border border-outline-variant/60 rounded-2xl space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-extrabold text-on-surface">Worker #{{ $idx + 1 }}</span>
+                                            @if(count($laborRows) > 1)
+                                                <button type="button" wire:click="removeLaborRow({{ $idx }})" class="p-1 text-red-500 hover:bg-red-500/10 rounded-lg">
+                                                    <span class="material-symbols-outlined text-[16px]">close</span>
+                                                </button>
+                                            @endif
+                                        </div>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                            <div class="sm:col-span-2">
+                                                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">WORKER NAME *</label>
+                                                <select wire:model="laborRows.{{ $idx }}.labor_id" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-bold text-on-surface">
+                                                    <option value="">Select Worker...</option>
+                                                    @foreach($labors as $l)
+                                                        <option value="{{ $l->id }}">{{ $l->name }} ({{ $l->worker_type ?: 'Operator' }})</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">QTY WORKED UPON (PCS) *</label>
+                                                <input type="number" min="1" wire:model="laborRows.{{ $idx }}.processed_qty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">BASE RATE (₹)</label>
+                                                <input type="number" step="0.5" wire:model="laborRows.{{ $idx }}.base_rate" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
                                             </div>
                                         </div>
-                                    @endforeach
-                                </div>
+                                    </div>
+                                @endforeach
+                            </div>
 
-                                <button type="button" wire:click="addCuttingWorkerRow" class="px-3.5 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-primary text-xs font-bold rounded-xl flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[16px]">add</span>
-                                    <span>Add Worker Allocation</span>
+                            <button type="button" wire:click="addLaborRow" class="px-3.5 py-2 bg-surface-container-high hover:bg-surface-container-highest text-primary text-xs font-bold rounded-xl flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">add</span>
+                                <span>+ Add Worker Allocation</span>
+                            </button>
+
+                            <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
+                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 1 : 1 }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
+                                    ← Back
                                 </button>
+                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 3 : 2 }})" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
+                                    Next Step: Output Items →
+                                </button>
+                            </div>
+                        </div>
+                    @elseif($activeStep === ($isCutting ? 3 : 2))
+                        <!-- OUTPUT ITEMS STEP -->
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="text-sm font-black uppercase tracking-wider text-on-surface">Step: Production Output Items</h3>
+                                <p class="text-xs text-on-surface-variant">Verify pieces produced in this stage execution.</p>
+                            </div>
 
-                                <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
-                                    <button type="button" wire:click="setWizardStep(1)" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
-                                        ← Back
-                                    </button>
-                                    <button type="button" wire:click="setWizardStep(3)" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow">
-                                        Next: Review & Confirm →
-                                    </button>
+                            <div class="p-5 bg-surface-container-low/60 border border-outline-variant/60 rounded-2xl space-y-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">STAGE TARGET QUANTITY (PCS)</label>
+                                        <input type="number" readonly value="{{ $activeStage->target_quantity }}" class="w-full px-3 py-2 bg-surface-container-high text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface-variant" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">QUANTITY PRODUCED (PCS) *</label>
+                                        <input type="number" min="0" wire:model="producedQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                    </div>
                                 </div>
                             </div>
-                        @else
-                            <!-- Step 3: Review & Confirm -->
-                            <div class="space-y-4">
-                                <h3 class="text-xs font-black uppercase tracking-wider text-on-surface">Step 3: Review & Confirm Stage Execution</h3>
 
-                                <div class="p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-2 text-xs">
-                                    <div class="flex justify-between">
-                                        <span class="font-bold text-on-surface-variant">Custom Item:</span>
-                                        <span class="font-black text-on-surface">{{ $customOrder->item_description }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="font-bold text-on-surface-variant">Target Quantity:</span>
-                                        <span class="font-mono font-black text-on-surface">{{ $customOrder->target_quantity }} Pcs</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="font-bold text-on-surface-variant">Active Task Stage:</span>
-                                        <span class="font-extrabold text-primary">{{ $selectedStage->task?->name }}</span>
-                                    </div>
+                            <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
+                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 2 : 1 }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
+                                    ← Back
+                                </button>
+                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? ($isFinalTask ? 4 : 4) : ($isFinalTask ? 3 : 3) }})" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
+                                    Next Step →
+                                </button>
+                            </div>
+                        </div>
+                    @elseif($isFinalTask && $activeStep === ($isCutting ? 4 : 3))
+                        <!-- WASTAGE & ALTERATION STEP (FINAL STAGE ONLY) -->
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="text-sm font-black uppercase tracking-wider text-on-surface">Step: Final Task Wastage &amp; Reconciliation</h3>
+                                <p class="text-xs text-on-surface-variant">Record scrap, damage, and alterations before completing custom work order.</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-3">
+                                    <label class="block text-xs font-black uppercase text-amber-800 dark:text-amber-300">SCRAP QUANTITY (PCS)</label>
+                                    <input type="number" min="0" wire:model="scrapQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                    <input type="text" wire:model="scrapNotes" placeholder="Reason for scrap..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
                                 </div>
-
-                                <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
-                                    <button type="button" wire:click="setWizardStep(2)" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
-                                        ← Back
-                                    </button>
-                                    @if($selectedStage->status !== 'completed')
-                                        <button type="button" wire:click="completeCurrentStage" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow flex items-center gap-1.5">
-                                            <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                                            <span>Confirm & Complete Task Stage</span>
-                                        </button>
-                                    @endif
+                                <div class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl space-y-3">
+                                    <label class="block text-xs font-black uppercase text-rose-800 dark:text-rose-300">DAMAGE QUANTITY (PCS)</label>
+                                    <input type="number" min="0" wire:model="damageQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                    <input type="text" wire:model="damageNotes" placeholder="Reason for damage..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
                                 </div>
                             </div>
-                        @endif
 
+                            <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
+                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 3 : 2 }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
+                                    ← Back
+                                </button>
+                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 5 : 4 }})" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
+                                    Next Step: Review &amp; Confirm →
+                                </button>
+                            </div>
+                        </div>
                     @else
-                        <!-- NON-CUTTING STAGE WIZARD -->
-                        @if($wizardStep === 1)
-                            <!-- Step 1: Labour & Piece Quantities -->
-                            <div class="space-y-4">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h3 class="text-xs font-black uppercase tracking-wider text-on-surface">Step 1: Labour Allocation & Piece Quantities</h3>
-                                        <p class="text-[11px] text-on-surface-variant">Assign workers, piece quantity worked upon per worker, base rates, and bonus rates.</p>
-                                    </div>
-                                    <span class="px-3 py-1 rounded-full text-[10px] font-black bg-primary/10 text-primary border border-primary/20">
-                                        Multi-Worker Allocation
+                        <!-- REVIEW & CONFIRM STEP -->
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="text-sm font-black uppercase tracking-wider text-on-surface">Step: Review &amp; Confirm Stage Execution</h3>
+                                <p class="text-xs text-on-surface-variant">Review stage summary and complete execution.</p>
+                            </div>
+
+                            <div class="p-5 bg-surface-container-low/60 border border-outline-variant/60 rounded-2xl space-y-3 text-xs">
+                                <div class="flex justify-between border-b border-outline-variant/40 pb-2">
+                                    <span class="font-bold text-on-surface-variant">Custom Item:</span>
+                                    <span class="font-black text-on-surface">{{ $customOrder->item_description }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-outline-variant/40 pb-2">
+                                    <span class="font-bold text-on-surface-variant">Target Quantity:</span>
+                                    <span class="font-mono font-black text-on-surface">{{ $customOrder->target_quantity }} Pcs</span>
+                                </div>
+                                <div class="flex justify-between border-b border-outline-variant/40 pb-2">
+                                    <span class="font-bold text-on-surface-variant">Active Task Stage:</span>
+                                    <span class="font-extrabold text-primary">{{ $activeStage->task?->name }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-outline-variant/40 pb-2">
+                                    <span class="font-bold text-on-surface-variant">Designated Final Stage:</span>
+                                    <span class="font-bold {{ $isFinalTask ? 'text-emerald-600' : 'text-on-surface-variant' }}">
+                                        {{ $isFinalTask ? 'YES (Will complete custom order)' : 'NO' }}
                                     </span>
                                 </div>
+                            </div>
 
-                                <div class="space-y-3">
-                                    @foreach($stageLaborRows as $idx => $alloc)
-                                        <div class="p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-3">
-                                            <div class="flex items-center justify-between">
-                                                <span class="text-xs font-extrabold text-on-surface">Worker #{{ $idx + 1 }}</span>
-                                                @if(count($stageLaborRows) > 1)
-                                                    <button type="button" wire:click="removeNonCuttingWorkerRow({{ $idx }})" class="p-1 text-red-500 hover:bg-red-500/10 rounded-lg">
-                                                        <span class="material-symbols-outlined text-[16px]">close</span>
-                                                    </button>
-                                                @endif
-                                            </div>
-
-                                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                                                <div class="sm:col-span-2">
-                                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">WORKER NAME *</label>
-                                                    <select wire:model="stageLaborRows.{{ $idx }}.labor_id" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-semibold text-on-surface">
-                                                        <option value="">Select Worker...</option>
-                                                        @foreach($allLabors as $l)
-                                                            <option value="{{ $l->id }}">{{ $l->name }} ({{ $l->worker_type ?: 'Operator' }})</option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">QTY WORKED UPON (PCS) *</label>
-                                                    <input type="number" min="1" wire:model="stageLaborRows.{{ $idx }}.quantity" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
-                                                </div>
-                                                <div>
-                                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">BASE RATE (₹)</label>
-                                                    <input type="number" step="0.5" wire:model="stageLaborRows.{{ $idx }}.base_rate" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-
-                                <button type="button" wire:click="addNonCuttingWorkerRow" class="px-3.5 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-primary text-xs font-bold rounded-xl flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[16px]">add</span>
-                                    <span>Add Worker Allocation</span>
+                            <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
+                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? ($isFinalTask ? 4 : 3) : ($isFinalTask ? 3 : 2) }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
+                                    ← Back
                                 </button>
-
-                                <div class="pt-4 flex justify-end">
-                                    <button type="button" wire:click="setWizardStep(2)" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow">
-                                        Next: Review & Confirm →
+                                @if($activeStage->status !== 'completed')
+                                    <button type="button" wire:click="completeActiveStage" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                        <span>Confirm &amp; Complete Task Stage</span>
                                     </button>
-                                </div>
+                                @endif
                             </div>
-                        @else
-                            <!-- Step 2: Review & Confirm -->
-                            <div class="space-y-4">
-                                <h3 class="text-xs font-black uppercase tracking-wider text-on-surface">Step 2: Review & Confirm Stage Execution</h3>
-
-                                <div class="p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-2 text-xs">
-                                    <div class="flex justify-between">
-                                        <span class="font-bold text-on-surface-variant">Custom Item:</span>
-                                        <span class="font-black text-on-surface">{{ $customOrder->item_description }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="font-bold text-on-surface-variant">Output Quantity:</span>
-                                        <span class="font-mono font-black text-on-surface">{{ $stageOutputQty }} Pcs</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="font-bold text-on-surface-variant">Active Stage:</span>
-                                        <span class="font-extrabold text-primary">{{ $selectedStage->task?->name }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="font-bold text-on-surface-variant">Designated Final Stage:</span>
-                                        <span class="font-bold {{ $selectedStage->is_final_step ? 'text-emerald-600' : 'text-on-surface-variant' }}">
-                                            {{ $selectedStage->is_final_step ? 'YES (Will complete custom order)' : 'NO' }}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
-                                    <button type="button" wire:click="setWizardStep(1)" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
-                                        ← Back
-                                    </button>
-                                    @if($selectedStage->status !== 'completed')
-                                        <button type="button" wire:click="completeCurrentStage" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow flex items-center gap-1.5">
-                                            <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                                            <span>Confirm & Complete Task Stage</span>
-                                        </button>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-
+                        </div>
                     @endif
                 </div>
             @endif
         </div>
-
     </div>
+
+    <!-- MODAL: OPEN UNOPENED BALE & MEASURE ROLLS -->
+    @if($showOpenBaleModal)
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/60 p-6 max-w-xl w-full shadow-2xl space-y-5">
+                <div class="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+                    <h3 class="text-base font-black text-on-surface">Open Bale &amp; Measure Rolls</h3>
+                    <button type="button" wire:click="$set('showOpenBaleModal', false)" class="p-1 text-on-surface-variant hover:text-on-surface rounded-lg">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+
+                <div class="space-y-4 text-xs">
+                    <div>
+                        <label class="block font-extrabold uppercase text-on-surface-variant mb-1">NUMBER OF ROLLS IN BALE *</label>
+                        <input type="number" min="1" max="50" wire:model.live.debounce.300ms="baleRollCount" placeholder="e.g. 5" class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl font-bold text-on-surface" />
+                        @error('baleRollCount') <span class="text-red-500 text-[11px] mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    @if(!empty($baleRollLengths))
+                        <div class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                            @foreach($baleRollLengths as $i => $len)
+                                <div class="p-3 bg-surface-container-low/60 border border-outline-variant/60 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase">Roll #{{ $i + 1 }} Measured Length (m) *</label>
+                                        <input type="number" step="0.1" wire:model.live.debounce.300ms="baleRollLengths.{{ $i }}" class="w-full px-2.5 py-1.5 bg-surface-container-lowest border border-outline-variant/60 rounded-lg font-mono font-bold" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-on-surface-variant uppercase">Material Override</label>
+                                        <select wire:model.live="baleRollMaterials.{{ $i }}" class="w-full px-2.5 py-1.5 bg-surface-container-lowest border border-outline-variant/60 rounded-lg text-xs font-semibold">
+                                            @foreach($baleAllowedMaterials as $mat)
+                                                <option value="{{ $mat['id'] }}">{{ $mat['name'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @if($baleMismatchWarning)
+                        <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-800 dark:text-amber-300 font-medium text-[11px]">
+                            {{ $baleMismatchWarning }}
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant/60">
+                    <button type="button" wire:click="$set('showOpenBaleModal', false)" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="submitOpenedBaleForm" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs">
+                        Save Opened Bale Rolls →
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
