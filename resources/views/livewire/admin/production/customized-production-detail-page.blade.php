@@ -170,7 +170,7 @@
 
                     <!-- Performance Breakdown Cards -->
                     @php
-                        $finalOutputQty = $job->productOutputs->sum('quantity_produced') ?: $customOrder->target_quantity;
+                        $finalOutputQty = $job->final_produced_yield;
                         $totalMetersConsumed = round($job->materialConsumptions->sum('quantity_consumed'), 2);
                         $totalFabricCost = round($job->materialConsumptions->sum('total_cost'), 2);
                         $totalWorkersCount = $job->allocations->pluck('labor_id')->unique()->filter()->count();

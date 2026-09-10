@@ -350,6 +350,66 @@ class ProductionJob extends Model
     }
 
     /**
+     * Get final produced yield quantity (from final stage or last active/completed stage).
+     * Evaluates output of the final stage rather than summing outputs across intermediate steps.
+     */
+    public function getFinalProducedYieldAttribute(): int
+    {
+        $stageExecs = $this->stageExecutions()->get();
+        if ($stageExecs->isNotEmpty()) {
+            // Check output of final stage execution (highest sequence number)
+            $finalExec = $stageExecs->sortByDesc('sequence_number')->first();
+            if ($finalExec) {
+                $finalOutput = (int) $this->productOutputs()->where('task_id', $finalExec->task_id)->sum('quantity_produced');
+                if ($finalOutput > 0) {
+                    return $finalOutput;
+                }
+            }
+
+            // Check output of the most recent completed stage
+            $lastCompleted = $stageExecs->where('status', 'completed')->sortByDesc('sequence_number')->first();
+            if ($lastCompleted) {
+                $lastOutput = (int) $this->productOutputs()->where('task_id', $lastCompleted->task_id)->sum('quantity_produced');
+                if ($lastOutput > 0) {
+                    return $lastOutput;
+                }
+                if ($lastCompleted->completed_quantity > 0) {
+                    return (int) $lastCompleted->completed_quantity;
+                }
+            }
+
+            // Check output of current in-progress stage
+            $inProgress = $stageExecs->where('status', 'in_progress')->sortBy('sequence_number')->first();
+            if ($inProgress) {
+                $inProgOutput = (int) $this->productOutputs()->where('task_id', $inProgress->task_id)->sum('quantity_produced');
+                if ($inProgOutput > 0) {
+                    return $inProgOutput;
+                }
+            }
+        }
+
+        // Fallback for product task routing
+        $product = $this->manufacturingProduct;
+        if ($product && $product->tasks()->count() > 0) {
+            $finalTask = $product->tasks->firstWhere('pivot.is_final_step', true) ?? $product->tasks->last();
+            if ($finalTask) {
+                $finalOutput = (int) $this->productOutputs()->where('task_id', $finalTask->id)->sum('quantity_produced');
+                if ($finalOutput > 0) {
+                    return $finalOutput;
+                }
+            }
+        }
+
+        // Fallback for completed job or single task
+        if (($this->attributes['status'] ?? '') === 'completed') {
+            $lastOutput = (int) $this->productOutputs()->latest('id')->value('quantity_produced');
+            return $lastOutput > 0 ? $lastOutput : (int) $this->target_quantity;
+        }
+
+        return (int) min($this->target_quantity, $this->completed_quantity);
+    }
+
+    /**
      * Get total produced quantity available for conversion.
      */
     public function getTotalProducedQuantityAttribute(): int
@@ -357,7 +417,7 @@ class ProductionJob extends Model
         if ($this->status !== 'completed') {
             return 0;
         }
-        return $this->completed_quantity;
+        return $this->final_produced_yield;
     }
 
     /**

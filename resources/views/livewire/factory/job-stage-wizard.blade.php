@@ -175,7 +175,7 @@
 
                     <!-- KPI Performance Summary Grid (4 Cards) -->
                     @php
-                        $finalOutputQty = $job->productOutputs->sum('quantity_produced') ?: $job->target_quantity;
+                        $finalOutputQty = $job->final_produced_yield;
                         $targetQty = max(1, $job->target_quantity);
                         $yieldPercent = round(($finalOutputQty / $targetQty) * 100, 1);
 
