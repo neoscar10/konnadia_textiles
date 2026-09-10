@@ -239,4 +239,137 @@ class FabricCuttingAreaService
             'max_quantities' => $maxQuantities,
         ];
     }
+
+    /**
+     * Calculate live roll cut breakdown & yield preview as user enters cut length:
+     * - Intelligently handles unit conversions between Inches, CM, Meters, Yards, Feet
+     * - Calculates Cut Fabric Area (m^2 and sq in)
+     * - Resolves piece fabric length requirement based on roll width
+     * - Calculates estimated piece yield
+     * - Computes target requirement, surplus/wastage length, area & cost
+     */
+    public static function calculateLiveRollCutBreakdown(
+        float $cutLength,
+        mixed $roll = null,
+        ?RawMaterial $rawMaterial = null,
+        ?ManufacturingProduct $product = null,
+        float $targetQty = 0,
+        float $purchaseRate = 0.0
+    ): array {
+        if ($cutLength <= 0) {
+            return [];
+        }
+
+        // 1. Resolve RawMaterial if not passed directly
+        if (!$rawMaterial && $roll) {
+            $rawMaterial = $roll->rawMaterial ?? $roll->bale?->batch?->rawMaterial;
+        }
+
+        // 2. Resolve Purchase Rate if not passed
+        if ($purchaseRate <= 0 && $roll && isset($roll->bale?->batch)) {
+            $purchaseRate = (float) ($roll->bale->batch->purchase_rate ?: $roll->bale->batch->unit_cost ?: 0);
+        }
+
+        // 3. Resolve Roll Width & Units
+        $widthVal = 0.0;
+        $widthUnitStr = 'Inches';
+
+        if ($roll) {
+            if (isset($roll->fabricWidth) && $roll->fabricWidth) {
+                $fw = $roll->fabricWidth;
+                $widthVal = (float) ($fw->width_inches ?: $fw->value ?: $fw->width ?: 0);
+                $widthUnitStr = $fw->unit ?: 'Inches';
+            } elseif (isset($roll->rawMaterial) && $roll->rawMaterial && $roll->rawMaterial->standard_width) {
+                $widthVal = (float) $roll->rawMaterial->standard_width;
+                $widthUnitStr = $roll->rawMaterial->width_unit ?: 'Inches';
+            }
+        }
+
+        if ($widthVal <= 0 && $rawMaterial && $rawMaterial->standard_width) {
+            $widthVal = (float) $rawMaterial->standard_width;
+            $widthUnitStr = $rawMaterial->width_unit ?: 'Inches';
+        }
+
+        if ($widthVal <= 0) {
+            $widthVal = 60.0;
+            $widthUnitStr = 'Inches';
+        }
+
+        // Convert width to Inches, CM, and Meters
+        $unitLower = strtolower(trim($widthUnitStr));
+        if (str_contains($unitLower, 'cm') || str_contains($unitLower, 'centimeter')) {
+            $widthCm = $widthVal;
+            $widthInches = $widthVal / 2.54;
+            $widthMeters = $widthVal / 100.0;
+        } elseif (str_contains($unitLower, 'meter') || $unitLower === 'm') {
+            $widthMeters = $widthVal;
+            $widthCm = $widthVal * 100.0;
+            $widthInches = $widthVal / 0.0254;
+        } else {
+            // Inches
+            $widthInches = $widthVal;
+            $widthCm = $widthVal * 2.54;
+            $widthMeters = $widthVal * 0.0254;
+        }
+
+        // 4. Convert Cut Length to Meters
+        $cutLengthUnitStr = $rawMaterial?->unit ?: 'Meters';
+        $cutLenLower = strtolower(trim($cutLengthUnitStr));
+
+        if (str_contains($cutLenLower, 'yard') || $cutLenLower === 'yd') {
+            $cutLengthMeters = $cutLength * 0.9144;
+        } elseif (str_contains($cutLenLower, 'foot') || str_contains($cutLenLower, 'feet') || $cutLenLower === 'ft') {
+            $cutLengthMeters = $cutLength * 0.3048;
+        } elseif (str_contains($cutLenLower, 'inch') || $cutLenLower === 'in') {
+            $cutLengthMeters = $cutLength * 0.0254;
+        } else {
+            // Meters
+            $cutLengthMeters = $cutLength * 1.0;
+        }
+
+        // 5. Compute Cut Area (m^2)
+        $cutAreaM2 = $cutLengthMeters * $widthMeters;
+
+        // 6. Resolve Product Piece Requirement Length (in Meters)
+        $pieceReqLength = 2.5; // Default fallback
+        if ($product && $rawMaterial) {
+            $pieceReqLength = self::resolvePatternFabricLength($product, $rawMaterial);
+        } elseif ($product && (float)$product->standard_fabric_length > 0) {
+            $pieceReqLength = (float) $product->standard_fabric_length;
+        }
+
+        // 7. Calculate Yield & Target Consumption
+        $estYieldPieces = $pieceReqLength > 0 ? (int) floor($cutLength / $pieceReqLength) : 0;
+        $targetReqLength = $targetQty > 0 ? ($targetQty * $pieceReqLength) : 0.0;
+        $targetReqAreaM2 = $targetReqLength * $widthMeters;
+
+        $wastageLength = max(0.0, $cutLength - $targetReqLength);
+        $wastageAreaM2 = $wastageLength * $widthMeters;
+        $wastageCost = round($wastageLength * $purchaseRate, 2);
+
+        $surplusPieces = max(0, $estYieldPieces - (int)$targetQty);
+        $shortfallPieces = ($targetQty > 0 && $estYieldPieces < (int)$targetQty) ? ((int)$targetQty - $estYieldPieces) : 0;
+
+        return [
+            'cut_length' => round($cutLength, 2),
+            'cut_length_unit' => $cutLengthUnitStr,
+            'roll_width_inches' => round($widthInches, 1),
+            'roll_width_cm' => round($widthCm, 1),
+            'roll_width_meters' => round($widthMeters, 4),
+            'roll_width_display' => round($widthInches, 1) . '" (' . round($widthCm, 1) . ' cm)',
+            'cut_area_m2' => round($cutAreaM2, 2),
+            'piece_req_length' => round($pieceReqLength, 2),
+            'est_yield_pieces' => $estYieldPieces,
+            'target_qty' => (int) $targetQty,
+            'target_req_length' => round($targetReqLength, 2),
+            'target_req_area_m2' => round($targetReqAreaM2, 2),
+            'wastage_length' => round($wastageLength, 2),
+            'wastage_area_m2' => round($wastageAreaM2, 2),
+            'wastage_cost' => $wastageCost,
+            'surplus_pieces' => $surplusPieces,
+            'shortfall_pieces' => $shortfallPieces,
+            'is_target_met' => $targetQty > 0 && $estYieldPieces >= $targetQty,
+            'product_name' => $product?->name ?? 'Product Piece',
+        ];
+    }
 }

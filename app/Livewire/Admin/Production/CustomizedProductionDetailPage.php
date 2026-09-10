@@ -535,6 +535,27 @@ class CustomizedProductionDetailPage extends Component
         ];
     }
 
+    public function getRollCutBreakdown(int $rollId, float $cutLength, $rawMaterialId = null): array
+    {
+        if ($cutLength <= 0) {
+            return [];
+        }
+
+        $roll = InventoryBaleRoll::with(['fabricWidth', 'rawMaterial', 'bale.batch.rawMaterial'])->find($rollId);
+        $rawMaterial = $rawMaterialId ? RawMaterial::find($rawMaterialId) : null;
+        $targetQty = (float) ($this->customOrder?->target_quantity ?: 20);
+        $purchaseRate = (float) ($roll?->bale?->batch?->unit_cost ?: $roll?->bale?->batch?->purchase_rate ?: 0);
+
+        return \App\Services\FabricCuttingAreaService::calculateLiveRollCutBreakdown(
+            $cutLength,
+            $roll,
+            $rawMaterial,
+            null,
+            $targetQty,
+            $purchaseRate
+        );
+    }
+
     public function triggerOpenBaleModal(int $baleId)
     {
         $bale = InventoryBale::with('batch.rawMaterial')->findOrFail($baleId);

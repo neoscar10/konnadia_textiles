@@ -390,13 +390,30 @@
                                                                                     <div>
                                                                                         <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Cut Length *</label>
                                                                                         <div class="flex items-center gap-1.5">
-                                                                                            <input type="number" step="0.01" min="0.01" max="{{ $rData['max_length'] }}" wire:model.live="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.cut_length" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:ring-2 focus:ring-primary/25">
+                                                                                            <input type="number" step="0.01" min="0.01" max="{{ $rData['max_length'] }}" wire:model.live.debounce.300ms="cuttingBaleRows.{{ $bIndex }}.selected_rolls.{{ $rId }}.cut_length" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary focus:ring-2 focus:ring-primary/25">
                                                                                             @if(!$this->isSelectedStageCompleted)
                                                                                                 <button type="button" wire:click="useFullRoll({{ $bIndex }}, {{ $rId }})" class="px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-black text-[10px] rounded-xl shrink-0 transition-all">
                                                                                                     Use All
                                                                                                 </button>
                                                                                             @endif
                                                                                         </div>
+                                                                                        @if(floatval($rData['cut_length'] ?? 0) > 0)
+                                                                                            @php
+                                                                                                $rLive = $this->getRollCutBreakdown($rId, floatval($rData['cut_length'] ?? 0), $this->cuttingFabricMaterialId ?? null);
+                                                                                            @endphp
+                                                                                            @if($rLive)
+                                                                                                <div class="mt-2 p-2 bg-primary/5 border border-primary/20 rounded-xl text-xs space-y-1">
+                                                                                                    <div class="flex items-center justify-between text-[11px] font-bold text-on-surface">
+                                                                                                        <span>Cut Area: <strong class="text-primary">{{ $rLive['cut_area_m2'] }} m²</strong></span>
+                                                                                                        <span class="text-[10px] font-extrabold bg-primary/10 text-primary px-2 py-0.5 rounded">Width: {{ $rLive['roll_width_display'] }}</span>
+                                                                                                    </div>
+                                                                                                    <div class="text-[11px] font-extrabold text-emerald-700 flex justify-between">
+                                                                                                        <span>Est. Yield: {{ $rLive['est_yield_pieces'] }} Pcs of {{ $rLive['product_name'] }}</span>
+                                                                                                        <span class="text-[10px] text-on-surface-variant font-medium">({{ $rLive['piece_req_length'] }}m / pc)</span>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            @endif
+                                                                                        @endif
                                                                                     </div>
                                                                                     <div>
                                                                                         <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Auto-Calculated Wastage Length</label>

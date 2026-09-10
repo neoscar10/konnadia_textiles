@@ -197,4 +197,56 @@ class FabricCuttingWastageCostAllocationTest extends TestCase
         $this->assertNotNull($smallOutput);
         $this->assertGreaterThan((float)$smallOutput->allocated_wastage_cost, (float)$largeOutput->allocated_wastage_cost);
     }
+
+    public function test_calculate_live_roll_cut_breakdown_with_unit_conversions()
+    {
+        $cat = RawMaterialCategory::firstOrCreate(
+            ['code' => 'CAT-FAB'],
+            ['name' => 'Fabric Material', 'unit_type' => 'length_based', 'status' => 'active']
+        );
+
+        $lengthGroup = UnitGroup::where('code', 'LENGTH')->first() ?? UnitGroup::where('name', 'like', '%Length%')->first();
+        $metersUnit = Unit::where('name', 'Meters')->first();
+
+        // 36 Inches width fabric
+        $fabric = RawMaterial::create([
+            'raw_material_category_id' => $cat->id,
+            'unit_group_id' => $lengthGroup->id,
+            'unit_id' => $metersUnit->id,
+            'name' => '36-Inch Black Fabric',
+            'unit' => 'Meters',
+            'standard_width' => 36.0,
+            'width_unit' => 'Inches',
+            'is_active' => true,
+        ]);
+
+        $mCategory = ManufacturingProductCategory::create(['name' => 'Shirts', 'status' => 'active']);
+        $product = ManufacturingProduct::create([
+            'manufacturing_product_category_id' => $mCategory->id,
+            'name' => 'Black Shirt',
+            'standard_fabric_length' => 2.5, // 2.5m per piece
+            'fabric_length_unit' => 'Meters',
+        ]);
+
+        // Live calculation for 70 meters cut length on a 36-inch (0.9144m) wide roll with 10 Pcs job target @ ₹100/m
+        $live = FabricCuttingAreaService::calculateLiveRollCutBreakdown(
+            70.0,
+            null,
+            $fabric,
+            $product,
+            10.0, // 10 Pcs target
+            100.00 // ₹100/m
+        );
+
+        $this->assertEquals(70.0, $live['cut_length']);
+        $this->assertEquals(36.0, $live['roll_width_inches']);
+        $this->assertEquals(91.4, $live['roll_width_cm']); // 36 * 2.54 = 91.44 cm
+        $this->assertEquals(64.01, $live['cut_area_m2']); // 70 * 0.9144 = 64.008 m^2 -> 64.01 m^2
+        $this->assertEquals(28, $live['est_yield_pieces']); // 70 / 2.5 = 28 Pcs
+        $this->assertEquals(25.0, $live['target_req_length']); // 10 Pcs * 2.5m = 25m
+        $this->assertEquals(45.0, $live['wastage_length']); // 70m - 25m = 45m
+        $this->assertEquals(4500.00, $live['wastage_cost']); // 45m * ₹100 = ₹4,500
+        $this->assertEquals(18, $live['surplus_pieces']); // 28 Pcs - 10 Pcs = 18 Pcs
+        $this->assertTrue($live['is_target_met']);
+    }
 }

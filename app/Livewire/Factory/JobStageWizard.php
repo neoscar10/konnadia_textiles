@@ -415,6 +415,28 @@ class JobStageWizard extends Component
         }
     }
 
+    public function getRollCutBreakdown(int $rollId, float $cutLength, $rawMaterialId = null): array
+    {
+        if ($cutLength <= 0) {
+            return [];
+        }
+
+        $roll = InventoryBaleRoll::with(['fabricWidth', 'rawMaterial', 'bale.batch.rawMaterial'])->find($rollId);
+        $rawMaterial = $rawMaterialId ? RawMaterial::find($rawMaterialId) : null;
+        $product = $this->job->manufacturingProduct;
+        $targetQty = (float) ($this->activeStage?->target_quantity ?: $this->job->target_quantity ?: 10);
+        $purchaseRate = (float) ($roll?->bale?->batch?->unit_cost ?: $roll?->bale?->batch?->purchase_rate ?: 0);
+
+        return \App\Services\FabricCuttingAreaService::calculateLiveRollCutBreakdown(
+            $cutLength,
+            $roll,
+            $rawMaterial,
+            $product,
+            $targetQty,
+            $purchaseRate
+        );
+    }
+
     public function recordFabricConsumption()
     {
         if (!$this->activeStage) return;

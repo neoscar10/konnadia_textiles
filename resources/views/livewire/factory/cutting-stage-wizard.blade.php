@@ -264,10 +264,31 @@
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            wire:model.live="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length"
+                                                            wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length"
                                                             max="{{ $roll->current_balance_length }}"
                                                             class="w-full bg-surface border border-outline-variant/60 rounded-lg px-3 py-1.5 text-xs font-bold text-right focus:border-primary focus:outline-none"
                                                         />
+
+                                                        @php
+                                                            $cLenVal = floatval($rollData['cut_length'] ?? 0);
+                                                        @endphp
+                                                        @if($cLenVal > 0)
+                                                            @php
+                                                                $rLive = $this->getRollCutBreakdown($roll->id, $cLenVal, $fabRow['raw_material_id'] ?? null);
+                                                            @endphp
+                                                            @if($rLive)
+                                                                <div class="p-2 bg-primary/5 border border-primary/20 rounded-lg text-xs space-y-1 mt-2">
+                                                                    <div class="flex items-center justify-between text-[11px] font-bold text-on-surface">
+                                                                        <span>Cut Area: <strong class="text-primary">{{ $rLive['cut_area_m2'] }} m²</strong></span>
+                                                                        <span class="text-[10px] font-extrabold bg-primary/10 text-primary px-1.5 py-0.5 rounded">Width: {{ $rLive['roll_width_display'] }}</span>
+                                                                    </div>
+                                                                    <div class="text-[11px] font-extrabold text-emerald-700 flex justify-between">
+                                                                        <span>Est. Yield: {{ $rLive['est_yield_pieces'] }} Pcs</span>
+                                                                        <span class="text-[10px] text-on-surface-variant font-medium">({{ $rLive['piece_req_length'] }}m / pc)</span>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
+                                                        @endif
                                                     </div>
                                                 @endif
                                             </div>
