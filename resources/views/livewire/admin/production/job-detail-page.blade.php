@@ -407,25 +407,44 @@
                                                                                     </div>
                                                                                 </div>
 
-                                                                                <!-- Live Fabric Area Utilization Breakdown -->
+                                                                                <!-- Live Fabric Area Utilization & Cost Allocation Breakdown -->
                                                                                 @if($rBreakdown)
-                                                                                    <div class="mt-3 p-3 rounded-xl border {{ $rBreakdown['is_over_capacity'] ? 'bg-error-container/20 border-error/40' : 'bg-surface-container-low/60 border-outline-variant/40' }} space-y-1.5 text-xs">
+                                                                                    <div class="mt-3 p-3.5 rounded-xl border {{ $rBreakdown['is_over_capacity'] ? 'bg-error-container/20 border-error/40' : 'bg-surface-container-low/60 border-outline-variant/40' }} space-y-2 text-xs">
                                                                                         <div class="flex flex-wrap justify-between items-center font-semibold text-on-surface">
-                                                                                            <span>Cut Fabric Area: <strong class="text-primary">{{ $rBreakdown['cut_area_base'] }} m²</strong></span>
+                                                                                            <span>Cut Fabric Area: <strong class="text-primary">{{ $rBreakdown['cut_area_base'] }} m²</strong> ({{ $rBreakdown['cut_length'] }}m)</span>
                                                                                             <span>Used Area: <strong class="{{ $rBreakdown['is_over_capacity'] ? 'text-error font-black' : 'text-emerald-700' }}">{{ $rBreakdown['used_area_base'] }} m² ({{ $rBreakdown['usage_percentage'] }}%)</strong></span>
                                                                                         </div>
                                                                                         <div class="flex flex-wrap justify-between items-center text-[11px] pt-1 border-t border-outline-variant/20">
-                                                                                            <span class="text-on-surface-variant">Remaining Unused Area: <strong class="text-on-surface">{{ $rBreakdown['remaining_area_base'] }} m²</strong></span>
-                                                                                            @if($rBreakdown['is_over_capacity'])
-                                                                                                <span class="text-error font-extrabold flex items-center gap-1">
-                                                                                                    <span class="material-symbols-outlined text-[14px]">warning</span> Exceeds Cut Area by {{ $rBreakdown['over_capacity_diff_base'] }} m²!
-                                                                                                </span>
-                                                                                            @else
-                                                                                                <span class="text-emerald-700 font-bold flex items-center gap-1">
-                                                                                                    <span class="material-symbols-outlined text-[14px]">check_circle</span> Within Cut Area Capacity
-                                                                                                </span>
-                                                                                            @endif
+                                                                                            <span class="text-on-surface-variant">Standard Req Length: <strong class="text-on-surface">{{ $rBreakdown['standard_required_length'] ?? 0 }}m</strong></span>
+                                                                                            <span class="text-error font-extrabold flex items-center gap-1">
+                                                                                                <span class="material-symbols-outlined text-[13px]">delete_sweep</span>
+                                                                                                Cutting Wastage: {{ $rBreakdown['wastage_length'] }}m (₹{{ number_format($rBreakdown['total_wastage_cost'] ?? 0, 2) }})
+                                                                                            </span>
                                                                                         </div>
+
+                                                                                        @if(!empty($rBreakdown['product_details']))
+                                                                                            <div class="pt-2 border-t border-outline-variant/20 space-y-1.5">
+                                                                                                <span class="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider block">Area-Weighted Wastage Cost Allocation</span>
+                                                                                                @foreach($rBreakdown['product_details'] as $pDet)
+                                                                                                    <div class="flex justify-between items-center text-[11px] bg-surface-container-lowest/90 px-3 py-1.5 rounded-lg border border-outline-variant/30">
+                                                                                                        <div>
+                                                                                                            <span class="font-bold text-primary">{{ $pDet['name'] }}</span>
+                                                                                                            <span class="text-[10px] text-on-surface-variant font-medium ml-1">({{ $pDet['quantity'] }} pcs · {{ number_format($pDet['total_used_area_base'], 3) }} m²)</span>
+                                                                                                        </div>
+                                                                                                        <div class="text-right">
+                                                                                                            <span class="font-black text-on-surface">₹{{ number_format($pDet['total_fabric_cost'], 2) }}</span>
+                                                                                                            <span class="text-[10px] text-on-surface-variant block">Base: ₹{{ number_format($pDet['base_cost'], 2) }} + Waste: ₹{{ number_format($pDet['allocated_wastage_cost'], 2) }} (₹{{ number_format($pDet['cost_per_piece'], 2) }}/pc)</span>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                @endforeach
+                                                                                            </div>
+                                                                                        @endif
+
+                                                                                        @if($rBreakdown['is_over_capacity'])
+                                                                                            <div class="text-error font-extrabold flex items-center gap-1 text-[11px] pt-1">
+                                                                                                <span class="material-symbols-outlined text-[14px]">warning</span> Exceeds Cut Area by {{ $rBreakdown['over_capacity_diff_base'] }} m²!
+                                                                                            </div>
+                                                                                        @endif
                                                                                     </div>
                                                                                 @endif
 

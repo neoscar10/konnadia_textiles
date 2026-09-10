@@ -314,6 +314,53 @@
                                 </div>
                             @endif
 
+                            @php
+                                $cBreakdown = $this->fabricCuttingBreakdown;
+                            @endphp
+                            @if(!empty($cBreakdown) && !empty($cBreakdown['cut_area_base']))
+                                <div class="bg-surface-container-low/60 border rounded-2xl p-4 mb-4 shadow-xs border-outline-variant/60">
+                                    <div class="flex items-center justify-between mb-3 border-b border-outline-variant/30 pb-2">
+                                        <span class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                                            <span class="material-symbols-outlined text-[18px]">aspect_ratio</span>
+                                            Fabric Area & Auto-Calculated Wastage Summary
+                                        </span>
+                                        <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full {{ $cBreakdown['is_over_capacity'] ? 'bg-error/10 text-error' : 'bg-emerald-100 text-emerald-800' }}">
+                                            {{ $cBreakdown['usage_percentage'] }}% Area Utilized
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-semibold">
+                                        <div class="bg-surface-container-lowest p-2.5 rounded-xl border border-outline-variant/30">
+                                            <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Total Cut Area & Length</span>
+                                            <span class="text-sm font-extrabold text-primary">{{ $cBreakdown['cut_area_base'] }} m²</span>
+                                            <span class="text-[10px] text-on-surface-variant block font-medium">Cut: {{ $cBreakdown['total_cut_length'] ?? 0 }}m</span>
+                                        </div>
+                                        <div class="bg-surface-container-lowest p-2.5 rounded-xl border border-outline-variant/30">
+                                            <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Used Area by Order</span>
+                                            <span class="text-sm font-extrabold {{ $cBreakdown['is_over_capacity'] ? 'text-error' : 'text-emerald-700' }}">{{ $cBreakdown['used_area_base'] }} m²</span>
+                                            <span class="text-[10px] text-on-surface-variant block font-medium">Remaining: {{ $cBreakdown['remaining_area_base'] }} m²</span>
+                                        </div>
+                                        <div class="bg-surface-container-lowest p-2.5 rounded-xl border border-outline-variant/30">
+                                            <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Cutting Wastage</span>
+                                            <span class="text-sm font-extrabold text-error">{{ $cBreakdown['wastage_length'] }} {{ $cBreakdown['unit_name'] ?? 'Meters' }}</span>
+                                            <span class="text-[10px] text-error font-medium block">Auto-Calculated</span>
+                                        </div>
+                                        <div class="bg-surface-container-lowest p-2.5 rounded-xl border border-outline-variant/30">
+                                            <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Total Wastage Cost</span>
+                                            <span class="text-sm font-extrabold text-error">₹{{ number_format($cBreakdown['total_wastage_cost'] ?? 0, 2) }}</span>
+                                            <span class="text-[10px] text-on-surface-variant block font-medium">Allocated to Job Output</span>
+                                        </div>
+                                    </div>
+
+                                    @if($cBreakdown['is_over_capacity'])
+                                        <div class="mt-2.5 bg-error-container/20 border border-error/40 text-error rounded-xl p-2.5 text-xs font-bold flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[16px]">error</span>
+                                            <span>Required custom order fabric area exceeds cut fabric area by {{ $cBreakdown['over_capacity_diff_base'] }} m²! Please increase cut roll lengths.</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+
                             <!-- Fabric Selection Repeater Rows -->
                             <div class="space-y-5">
                                 @foreach($selectedFabrics as $fIdx => $fab)

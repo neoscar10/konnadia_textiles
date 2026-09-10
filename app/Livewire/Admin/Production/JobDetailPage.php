@@ -2207,6 +2207,7 @@ class JobDetailPage extends Component
         }
 
         $rawMaterial = $batch->rawMaterial;
+        $purchaseRate = (float) $batch->unit_cost;
         $breakdowns = [];
 
         foreach ($this->cuttingBaleRows as $bIndex => $bRow) {
@@ -2215,7 +2216,7 @@ class JobDetailPage extends Component
                 $cutLen = floatval($rData['cut_length'] ?? 0);
                 $outputs = $rData['outputs'] ?? [];
 
-                $breakdowns[$rId] = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMaterial, $outputs);
+                $breakdowns[$rId] = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMaterial, $outputs, $purchaseRate);
             }
         }
 
@@ -2473,7 +2474,7 @@ class JobDetailPage extends Component
 
                 // Auto-calculate wastage and enforce fabric area capacity limits
                 if ($rawMaterial) {
-                    $breakdown = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMaterial, $rData['outputs'] ?? []);
+                    $breakdown = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMaterial, $rData['outputs'] ?? [], (float) $batch->unit_cost);
                     if ($breakdown['is_over_capacity']) {
                         $this->addError("cuttingBaleRows", "Cannot save cutting session: For Roll #{$rData['roll_number']}, required fabric area ({$breakdown['used_area_base']} m²) exceeds cut fabric area ({$breakdown['cut_area_base']} m²). Please reduce product output quantities.");
                         return;

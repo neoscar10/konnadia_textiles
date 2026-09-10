@@ -416,21 +416,48 @@
                             </span>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs font-semibold">
                             <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30">
-                                <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Total Cut Area</span>
+                                <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Total Cut Area & Length</span>
                                 <span class="text-base font-extrabold text-primary">{{ $cBreakdown['cut_area_base'] }} m²</span>
+                                <span class="text-[10px] text-on-surface-variant block font-medium">Cut: {{ $cBreakdown['total_cut_length'] ?? 0 }}m · Req: {{ $cBreakdown['standard_required_length'] ?? 0 }}m</span>
                             </div>
                             <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30">
                                 <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Used Area by Products</span>
                                 <span class="text-base font-extrabold {{ $cBreakdown['is_over_capacity'] ? 'text-error' : 'text-emerald-700' }}">{{ $cBreakdown['used_area_base'] }} m²</span>
+                                <span class="text-[10px] text-on-surface-variant block font-medium">Remaining: {{ $cBreakdown['remaining_area_base'] }} m²</span>
                             </div>
                             <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30">
-                                <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Auto-Calculated Wastage</span>
+                                <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Cutting Wastage Length</span>
                                 <span class="text-base font-extrabold text-error">{{ $cBreakdown['wastage_length'] }} {{ $cBreakdown['unit_name'] ?? 'Meters' }}</span>
-                                <span class="text-[10px] text-on-surface-variant block">({{ $cBreakdown['remaining_area_base'] }} m² remaining)</span>
+                                <span class="text-[10px] text-error font-medium block">Auto-Calculated</span>
+                            </div>
+                            <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30">
+                                <span class="text-on-surface-variant block text-[10px] uppercase font-bold">Total Wastage Cost</span>
+                                <span class="text-base font-extrabold text-error">₹{{ number_format($cBreakdown['total_wastage_cost'] ?? 0, 2) }}</span>
+                                <span class="text-[10px] text-on-surface-variant block font-medium">Area-weighted across products</span>
                             </div>
                         </div>
+
+                        @if(!empty($cBreakdown['product_details']))
+                            <div class="mt-4 pt-3 border-t border-outline-variant/30 space-y-2">
+                                <span class="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider block">Target Product Area-Weighted Cost Allocation</span>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    @foreach($cBreakdown['product_details'] as $pDet)
+                                        <div class="flex justify-between items-center text-xs bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30">
+                                            <div>
+                                                <span class="font-bold text-primary block">{{ $pDet['name'] }}</span>
+                                                <span class="text-[10px] text-on-surface-variant font-medium">{{ $pDet['quantity'] }} pcs · {{ number_format($pDet['total_used_area_base'], 3) }} m² surface area</span>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="font-black text-on-surface text-sm">₹{{ number_format($pDet['total_fabric_cost'], 2) }}</span>
+                                                <span class="text-[10px] text-on-surface-variant block">Base: ₹{{ number_format($pDet['base_cost'], 2) }} + Waste: ₹{{ number_format($pDet['allocated_wastage_cost'], 2) }} (₹{{ number_format($pDet['cost_per_piece'], 2) }}/pc)</span>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
 
                         @if($cBreakdown['is_over_capacity'])
                             <div class="mt-3 bg-error-container/20 border border-error/40 text-error rounded-xl p-3 text-xs font-bold flex items-center gap-2">

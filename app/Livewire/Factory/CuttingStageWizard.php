@@ -255,6 +255,8 @@ class CuttingStageWizard extends Component
         }
 
         $totalCutAreaBase = 0.0;
+        $totalCutLength = 0.0;
+        $totalFabricCutCost = 0.0;
         $firstRawMaterial = null;
 
         foreach ($this->selectedFabrics as $fab) {
@@ -268,10 +270,21 @@ class CuttingStageWizard extends Component
                 $firstRawMaterial = $rawMaterial;
             }
 
+            $batchId = $fab['inventory_batch_id'] ?? null;
+            $purchaseRate = 0.0;
+            if ($batchId) {
+                $batch = InventoryBatch::find($batchId);
+                if ($batch) {
+                    $purchaseRate = (float) ($batch->purchase_rate ?: $batch->unit_cost);
+                }
+            }
+
             foreach ($fab['selected_rolls'] ?? [] as $rollId => $rData) {
                 $cutLen = floatval($rData['cut_length'] ?? 0);
                 if ($cutLen <= 0) continue;
 
+                $totalCutLength += $cutLen;
+                $totalFabricCutCost += ($cutLen * $purchaseRate);
                 $totalCutAreaBase += \App\Services\FabricCuttingAreaService::calculateCutArea($cutLen, $rawMaterial);
             }
         }
@@ -284,6 +297,7 @@ class CuttingStageWizard extends Component
         $widthBase = \App\Services\FabricCuttingAreaService::convertToBaseUnit((float) ($firstRawMaterial->standard_width ?: 0), $firstRawMaterial->width_unit ?: 'Centimeters', $unitGroupId);
 
         $totalUsedAreaBase = 0.0;
+        $totalStandardReqLength = 0.0;
         $productDetails = [];
 
         foreach ($this->targetProducts as $tp) {
@@ -299,11 +313,17 @@ class CuttingStageWizard extends Component
             $itemTotalUsedAreaBase = $pieceAreaBase * $qty;
             $totalUsedAreaBase += $itemTotalUsedAreaBase;
 
+            $pieceReqLen = \App\Services\FabricCuttingAreaService::resolvePatternFabricLength($product, $firstRawMaterial);
+            $itemReqLen = $pieceReqLen * $qty;
+            $totalStandardReqLength += $itemReqLen;
+
             $productDetails[$productId] = [
                 'product_id' => $product->id,
                 'name' => $product->name,
                 'piece_area_base' => $pieceAreaBase,
                 'quantity' => $qty,
+                'piece_req_length' => $pieceReqLen,
+                'total_req_length' => $itemReqLen,
                 'total_used_area_base' => $itemTotalUsedAreaBase,
             ];
         }
@@ -311,8 +331,23 @@ class CuttingStageWizard extends Component
         $remainingAreaBase = max(0.0, $totalCutAreaBase - $totalUsedAreaBase);
         $isOverCapacity = $totalUsedAreaBase > ($totalCutAreaBase + 0.0001);
 
+        $patternWastageLen = max(0.0, $totalCutLength - $totalStandardReqLength);
         $wastageLengthBase = $widthBase > 0 ? ($remainingAreaBase / $widthBase) : 0.0;
         $wastageLengthDisplay = \App\Services\FabricCuttingAreaService::convertFromBaseUnit($wastageLengthBase, $firstRawMaterial->unitModel ?? $firstRawMaterial->unit, $unitGroupId);
+        $effectiveWastageLength = max($wastageLengthDisplay, $patternWastageLen);
+
+        $avgRate = $totalCutLength > 0 ? ($totalFabricCutCost / $totalCutLength) : 0.0;
+        $totalWastageCost = round($effectiveWastageLength * $avgRate, 2);
+
+        foreach ($productDetails as $pId => &$det) {
+            $areaRatio = $totalUsedAreaBase > 0 ? ($det['total_used_area_base'] / $totalUsedAreaBase) : (1 / max(1, count($productDetails)));
+            $det['base_cost'] = round($det['total_req_length'] * $avgRate, 2);
+            $det['allocated_wastage_cost'] = round($totalWastageCost * $areaRatio, 2);
+            $det['total_fabric_cost'] = round($det['base_cost'] + $det['allocated_wastage_cost'], 2);
+            $det['cost_per_piece'] = $det['quantity'] > 0 ? round($det['total_fabric_cost'] / $det['quantity'], 2) : 0.0;
+            $det['wastage_per_piece'] = $det['quantity'] > 0 ? round($det['allocated_wastage_cost'] / $det['quantity'], 2) : 0.0;
+        }
+        unset($det);
 
         $maxQuantities = [];
         foreach ($productDetails as $pId => $details) {
@@ -328,10 +363,14 @@ class CuttingStageWizard extends Component
         $usagePercentage = $totalCutAreaBase > 0 ? round(($totalUsedAreaBase / $totalCutAreaBase) * 100, 1) : 0;
 
         return [
+            'total_cut_length' => round($totalCutLength, 2),
+            'standard_required_length' => round($totalStandardReqLength, 2),
             'cut_area_base' => round($totalCutAreaBase, 4),
             'used_area_base' => round($totalUsedAreaBase, 4),
             'remaining_area_base' => round($remainingAreaBase, 4),
-            'wastage_length' => round($wastageLengthDisplay, 2),
+            'wastage_length' => round($effectiveWastageLength, 2),
+            'total_wastage_cost' => $totalWastageCost,
+            'total_fabric_cut_cost' => round($totalFabricCutCost, 2),
             'usage_percentage' => $usagePercentage,
             'is_over_capacity' => $isOverCapacity,
             'over_capacity_diff_base' => $isOverCapacity ? round($totalUsedAreaBase - $totalCutAreaBase, 4) : 0.0,

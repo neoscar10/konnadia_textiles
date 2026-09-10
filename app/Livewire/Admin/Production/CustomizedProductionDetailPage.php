@@ -448,6 +448,93 @@ class CustomizedProductionDetailPage extends Component
         }
     }
 
+    public function getFabricCuttingBreakdownProperty(): array
+    {
+        if (empty($this->selectedFabrics)) {
+            return [];
+        }
+
+        $totalCutAreaBase = 0.0;
+        $totalCutLength = 0.0;
+        $totalFabricCutCost = 0.0;
+        $firstRawMaterial = null;
+
+        foreach ($this->selectedFabrics as $fab) {
+            $matId = $fab['raw_material_id'] ?? null;
+            if (!$matId) continue;
+
+            $rawMaterial = RawMaterial::with(['unitGroup', 'unitModel'])->find($matId);
+            if (!$rawMaterial) continue;
+
+            if (!$firstRawMaterial) {
+                $firstRawMaterial = $rawMaterial;
+            }
+
+            $batchId = $fab['inventory_batch_id'] ?? null;
+            $purchaseRate = 0.0;
+            if ($batchId) {
+                $batch = InventoryBatch::find($batchId);
+                if ($batch) {
+                    $purchaseRate = (float) ($batch->purchase_rate ?: $batch->unit_cost);
+                }
+            }
+
+            foreach ($fab['selected_rolls'] ?? [] as $rollId => $rData) {
+                $cutLen = floatval($rData['cut_length'] ?? 0);
+                if ($cutLen <= 0) continue;
+
+                $totalCutLength += $cutLen;
+                $totalFabricCutCost += ($cutLen * $purchaseRate);
+                $totalCutAreaBase += \App\Services\FabricCuttingAreaService::calculateCutArea($cutLen, $rawMaterial);
+            }
+        }
+
+        if (!$firstRawMaterial) {
+            return [];
+        }
+
+        $unitGroupId = $firstRawMaterial->unit_group_id;
+        $widthBase = \App\Services\FabricCuttingAreaService::convertToBaseUnit((float) ($firstRawMaterial->standard_width ?: 0), $firstRawMaterial->width_unit ?: 'Centimeters', $unitGroupId);
+
+        $targetQty = (float) ($this->customOrder?->target_quantity ?: 20);
+        $orderLen = (float) ($this->customOrder?->length ?: 0);
+        $orderWidth = (float) ($this->customOrder?->width ?: 0);
+        $lenUnit = $this->customOrder?->length_unit ?: 'Meters';
+        $widthUnit = $this->customOrder?->width_unit ?: 'Centimeters';
+
+        if ($orderLen > 0 && $orderWidth > 0) {
+            $pieceLenBase = \App\Services\FabricCuttingAreaService::convertToBaseUnit($orderLen, $lenUnit, $unitGroupId);
+            $pieceWidthBase = \App\Services\FabricCuttingAreaService::convertToBaseUnit($orderWidth, $widthUnit, $unitGroupId);
+            $pieceAreaBase = $pieceLenBase * $pieceWidthBase;
+        } else {
+            $pieceAreaBase = 0.0;
+        }
+
+        $totalUsedAreaBase = $pieceAreaBase * $targetQty;
+        $remainingAreaBase = max(0.0, $totalCutAreaBase - $totalUsedAreaBase);
+        $isOverCapacity = $totalUsedAreaBase > ($totalCutAreaBase + 0.0001);
+
+        $wastageLengthBase = $widthBase > 0 ? ($remainingAreaBase / $widthBase) : 0.0;
+        $wastageLengthDisplay = \App\Services\FabricCuttingAreaService::convertFromBaseUnit($wastageLengthBase, $firstRawMaterial->unitModel ?? $firstRawMaterial->unit, $unitGroupId);
+
+        $avgRate = $totalCutLength > 0 ? ($totalFabricCutCost / $totalCutLength) : 0.0;
+        $totalWastageCost = round($wastageLengthDisplay * $avgRate, 2);
+
+        return [
+            'total_cut_length' => round($totalCutLength, 2),
+            'cut_area_base' => round($totalCutAreaBase, 4),
+            'used_area_base' => round($totalUsedAreaBase, 4),
+            'remaining_area_base' => round($remainingAreaBase, 4),
+            'wastage_length' => round($wastageLengthDisplay, 2),
+            'total_wastage_cost' => $totalWastageCost,
+            'total_fabric_cut_cost' => round($totalFabricCutCost, 2),
+            'usage_percentage' => $totalCutAreaBase > 0 ? round(($totalUsedAreaBase / $totalCutAreaBase) * 100, 1) : 0,
+            'is_over_capacity' => $isOverCapacity,
+            'over_capacity_diff_base' => $isOverCapacity ? round($totalUsedAreaBase - $totalCutAreaBase, 4) : 0.0,
+            'unit_name' => $firstRawMaterial->unit,
+        ];
+    }
+
     public function triggerOpenBaleModal(int $baleId)
     {
         $bale = InventoryBale::with('batch.rawMaterial')->findOrFail($baleId);
