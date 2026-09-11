@@ -101,7 +101,6 @@
                     <th class="px-6 py-4 font-bold">Manufacturing Product</th>
                     <th class="px-6 py-4 font-bold text-center">Total Jobs</th>
                     <th class="px-6 py-4 font-bold text-center">Batch Target Qty</th>
-                    <th class="px-6 py-4 font-bold text-center">Unconverted Stock</th>
                     <th class="px-6 py-4 font-bold text-right">Actions</th>
                 </tr>
             </thead>
@@ -113,7 +112,6 @@
                             ?? $firstJob?->batch?->factorySupervisor 
                             ?? $firstJob?->supervisor;
                         $supervisorName = $supervisorObj?->name ?? 'Unassigned';
-                        $batchUnconvertedSum = $batchJobs->sum(fn($j) => $j->remaining_unconverted_quantity);
                         $plannedTargetQty = $batchJobs->sum(fn($j) => $j->target_quantity);
                         $batchDbId = $firstJob?->production_batch_db_id;
                         if (!$batchDbId && !empty($batchCode)) {
@@ -158,15 +156,6 @@
                         <td class="px-6 py-4 text-center font-black text-on-surface text-sm">
                             {{ number_format($plannedTargetQty) }} Pcs
                         </td>
-                        <td class="px-6 py-4 text-center font-black text-sm">
-                            @if($batchUnconvertedSum > 0)
-                                <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold font-mono">
-                                    {{ number_format($batchUnconvertedSum) }} Pcs
-                                </span>
-                            @else
-                                <span class="text-xs text-outline">0 Pcs</span>
-                            @endif
-                        </td>
                         <td class="px-6 py-4 text-right space-x-2">
 
                             <a href="{{ route('admin.production.batches.jobs', $batchCode) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary text-on-primary hover:bg-primary-container px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95">
@@ -182,7 +171,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-on-surface-variant">
+                        <td colspan="5" class="px-6 py-12 text-center text-on-surface-variant">
                             <span class="material-symbols-outlined text-4xl text-outline mb-2">assignment_late</span>
                             <p class="font-body-lg text-body-lg">No production batches found.</p>
                             <button type="button" wire:click="openCreateModal" class="mt-3 text-primary font-bold text-sm hover:underline">
