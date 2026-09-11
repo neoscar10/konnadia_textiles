@@ -848,7 +848,7 @@ class CustomizedProductionDetailPage extends Component
     public function addAlterationRow()
     {
         $this->alterationRows[] = [
-            'altered_qty'       => 1,
+            'altered_qty'       => 0,
             'target_product_id' => '',
             'target_pattern_id' => '',
         ];

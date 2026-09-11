@@ -666,18 +666,10 @@ class JobStageWizard extends Component
     // --- ALTERATION ROWS ACTIONS ---
     public function addAlterationRow()
     {
-        $defaultProductId = $this->job->manufacturing_product_id;
-        $defaultPatternId = $this->job->pattern_id;
-
-        if (!$defaultPatternId && $defaultProductId) {
-            $firstPattern = ManufacturingProductPattern::where('manufacturing_product_id', $defaultProductId)->first();
-            $defaultPatternId = $firstPattern?->id;
-        }
-
         $this->alterationRows[] = [
-            'altered_qty'       => 1,
-            'target_product_id' => $defaultProductId,
-            'target_pattern_id' => $defaultPatternId,
+            'altered_qty'       => 0,
+            'target_product_id' => '',
+            'target_pattern_id' => '',
         ];
     }
 
@@ -879,7 +871,11 @@ class JobStageWizard extends Component
                 $targetPId = $altRow['target_product_id'] ?? null;
                 $targetPatId = $altRow['target_pattern_id'] ?? null;
 
-                if ($altQty > 0 && $targetPId) {
+                if ($altQty > 0) {
+                    if (!$targetPId || !$targetPatId) {
+                        $this->dispatch('toast', message: "Please select a Target Product and Target Pattern for all alteration items with altered quantity greater than 0.", type: 'error');
+                        return;
+                    }
                     $targetProduct = ManufacturingProduct::find($targetPId);
                     $targetPattern = $targetPatId ? \App\Models\ManufacturingProductPattern::find($targetPatId) : null;
                     if ($targetProduct) {

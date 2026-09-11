@@ -1224,11 +1224,12 @@
                                     <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                                         <div class="sm:col-span-3">
                                             <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">ALTERED QTY (PCS) *</label>
-                                            <input type="number" min="1" wire:model.live="alterationRows.{{ $aIdx }}.altered_qty" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                            <input type="number" min="0" wire:model.live="alterationRows.{{ $aIdx }}.altered_qty" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                                         </div>
                                         <div class="sm:col-span-4">
                                             <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">TARGET PRODUCT *</label>
                                             <select wire:model.live="alterationRows.{{ $aIdx }}.target_product_id" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                                <option value="">-- Select Target Product --</option>
                                                 @foreach($allProducts as $ap)
                                                     <option value="{{ $ap->id }}">{{ $ap->name }} ({{ $ap->code }})</option>
                                                 @endforeach
@@ -1237,7 +1238,7 @@
                                         <div class="sm:col-span-4">
                                             <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">TARGET PATTERN *</label>
                                             <select wire:model="alterationRows.{{ $aIdx }}.target_pattern_id" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
-                                                <option value="">-- Select Pattern --</option>
+                                                <option value="">-- Select Target Pattern --</option>
                                                 @foreach($targetPatterns as $pat)
                                                     <option value="{{ $pat->id }}">{{ $pat->name }}</option>
                                                 @endforeach
