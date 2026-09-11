@@ -226,11 +226,20 @@ class ProductionJobProcessEnhancementsTest extends TestCase
     /** @test */
     public function it_records_scrap_and_damage_wastage_separately()
     {
+        $labor = \App\Models\Labor::create([
+            'name' => 'Test Ironer',
+            'worker_code' => 'W-IRON-01',
+            'daily_rate' => 400,
+            'piece_rate' => 8,
+            'status' => 'active',
+        ]);
+
         $ironingTask = Task::where('name', 'Ironing')->first();
         $ironingStage = $this->job->stageExecutions->firstWhere('task_id', $ironingTask->id);
 
         Livewire::test(JobStageWizard::class, ['id' => $this->job->id])
             ->call('selectStage', $ironingStage->id)
+            ->set('laborRows.0.labor_id', $labor->id)
             ->set('producedQty', 85)
             ->set('scrapQty', 10)
             ->set('scrapNotes', '10 items converted / sold as scrap')
@@ -251,5 +260,21 @@ class ProductionJobProcessEnhancementsTest extends TestCase
             'quantity_wasted'   => 5,
             'reason'            => '5 items severely torn',
         ]);
+    }
+
+    /** @test */
+    public function it_cannot_proceed_or_complete_stage_without_worker_selected()
+    {
+        $ironingTask = Task::where('name', 'Ironing')->first();
+        $ironingStage = $this->job->stageExecutions->firstWhere('task_id', $ironingTask->id);
+
+        Livewire::test(JobStageWizard::class, ['id' => $this->job->id])
+            ->call('selectStage', $ironingStage->id)
+            ->set('laborRows.0.labor_id', '')
+            ->call('goToStep', 2)
+            ->assertHasErrors(['laborRows.0.labor_id'])
+            ->assertSet('activeStep', 1)
+            ->call('completeActiveStage')
+            ->assertHasErrors(['laborRows.0.labor_id']);
     }
 }

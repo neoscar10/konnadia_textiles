@@ -860,6 +860,42 @@ class CustomizedProductionDetailPage extends Component
         $this->alterationRows = array_values($this->alterationRows);
     }
 
+    public function goToStep(int $step)
+    {
+        $isCutting = $this->isCuttingStage($this->activeStage);
+        $laborStep = $isCutting ? 2 : 1;
+
+        if ($step > $laborStep && $this->activeStep <= $laborStep) {
+            if (!$this->validateLaborRows()) {
+                return;
+            }
+        }
+
+        $this->activeStep = $step;
+    }
+
+    public function validateLaborRows(): bool
+    {
+        $hasSelectedWorker = false;
+        foreach ($this->laborRows as $idx => $row) {
+            if (empty($row['labor_id'])) {
+                $this->addError("laborRows.{$idx}.labor_id", "Please select a worker for Worker #" . ($idx + 1) . ".");
+            } else {
+                $hasSelectedWorker = true;
+            }
+
+            if (empty($row['processed_qty']) || intval($row['processed_qty']) <= 0) {
+                $this->addError("laborRows.{$idx}.processed_qty", "Quantity worked must be > 0.");
+            }
+        }
+
+        if (empty($this->laborRows) || !$hasSelectedWorker) {
+            $this->addError('laborRows', 'Please select at least one worker for recorded labor.');
+        }
+
+        return $this->getErrorBag()->isEmpty();
+    }
+
     // --- COMPLETE STAGE ACTION ---
     public function completeActiveStage()
     {
@@ -870,6 +906,12 @@ class CustomizedProductionDetailPage extends Component
 
         if ($this->activeStage->status === 'completed') {
             $this->dispatch('toast', message: "Stage is already completed.", type: 'error');
+            return;
+        }
+
+        if (!$this->validateLaborRows()) {
+            $isCutting = $this->isCuttingStage($this->activeStage);
+            $this->activeStep = $isCutting ? 2 : 1;
             return;
         }
 

@@ -149,8 +149,17 @@ class SubsidiaryMaterialsProductionStepTest extends TestCase
     {
         $this->actingAs($this->admin);
 
+        $labor = \App\Models\Labor::create([
+            'name' => 'Packer Worker',
+            'worker_code' => 'W-PACK-01',
+            'daily_rate' => 450,
+            'piece_rate' => 5,
+            'status' => 'active',
+        ]);
+
         // Set extra 5 buttons damaged/extra
         Livewire::test(\App\Livewire\Factory\JobStageWizard::class, ['id' => $this->prodJob->id])
+            ->set('laborRows.0.labor_id', $labor->id)
             ->set('producedQty', 10)
             ->set('subsidiaryRows.0.extra_qty', 5) // Button total: (2*10)+5 = 25 Pcs
             ->call('completeActiveStage');

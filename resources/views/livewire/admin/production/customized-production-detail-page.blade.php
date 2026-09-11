@@ -232,45 +232,45 @@
                     <!-- Step Sub-Navigation Tabs -->
                     <div class="flex items-center border-b border-outline-variant/60 gap-2 overflow-x-auto text-xs font-extrabold pb-3">
                         @if($isCutting)
-                            <button type="button" wire:click="$set('activeStep', 1)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 1 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                            <button type="button" wire:click="goToStep(1)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 1 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                 1. Fabric Selection &amp; Consumption
                             </button>
-                            <button type="button" wire:click="$set('activeStep', 2)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 2 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                            <button type="button" wire:click="goToStep(2)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 2 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                 2. Labour &amp; Bonus Rate
                             </button>
-                            <button type="button" wire:click="$set('activeStep', 3)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 3 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                            <button type="button" wire:click="goToStep(3)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 3 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                 3. Output Items
                             </button>
                             @if($isFinalTask)
-                                <button type="button" wire:click="$set('activeStep', 4)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 flex items-center gap-1 {{ $activeStep === 4 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                <button type="button" wire:click="goToStep(4)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 flex items-center gap-1 {{ $activeStep === 4 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                     <span>4. Wastage &amp; Alteration</span>
                                     <span class="px-1 py-0.2 text-[9px] bg-amber-500/20 text-amber-300 rounded font-black">FINAL</span>
                                 </button>
-                                <button type="button" wire:click="$set('activeStep', 5)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 5 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                <button type="button" wire:click="goToStep(5)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 5 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                     5. Review &amp; Confirm
                                 </button>
                             @else
-                                <button type="button" wire:click="$set('activeStep', 4)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 4 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                <button type="button" wire:click="goToStep(4)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 4 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                     4. Review &amp; Confirm
                                 </button>
                             @endif
                         @else
-                            <button type="button" wire:click="$set('activeStep', 1)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 1 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                            <button type="button" wire:click="goToStep(1)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 1 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                 1. Labour &amp; Bonus Rate
                             </button>
-                            <button type="button" wire:click="$set('activeStep', 2)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 2 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                            <button type="button" wire:click="goToStep(2)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 2 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                 2. Output Items
                             </button>
                             @if($isFinalTask)
-                                <button type="button" wire:click="$set('activeStep', 3)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 flex items-center gap-1 {{ $activeStep === 3 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                <button type="button" wire:click="goToStep(3)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 flex items-center gap-1 {{ $activeStep === 3 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                     <span>3. Wastage &amp; Alteration</span>
                                     <span class="px-1 py-0.2 text-[9px] bg-amber-500/20 text-amber-300 rounded font-black">FINAL</span>
                                 </button>
-                                <button type="button" wire:click="$set('activeStep', 4)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 4 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                <button type="button" wire:click="goToStep(4)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 4 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                     4. Review &amp; Confirm
                                 </button>
                             @else
-                                <button type="button" wire:click="$set('activeStep', 3)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 3 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
+                                <button type="button" wire:click="goToStep(3)" class="px-3 py-1.5 rounded-xl transition-all shrink-0 {{ $activeStep === 3 ? 'bg-primary text-on-primary font-black shadow-xs' : 'text-on-surface-variant hover:text-on-surface' }}">
                                     3. Review &amp; Confirm
                                 </button>
                             @endif
@@ -545,7 +545,7 @@
                             </div>
 
                             <div class="pt-4 flex justify-end border-t border-outline-variant/60">
-                                <button type="button" wire:click="$set('activeStep', 2)" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
+                                <button type="button" wire:click="goToStep(2)" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
                                     Next Step: Labour &amp; Bonus Rate →
                                 </button>
                             </div>
@@ -563,6 +563,12 @@
                                 </span>
                             </div>
 
+                            @error('laborRows')
+                                <div class="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-700 rounded-xl text-xs font-bold mb-3">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
                             <div class="space-y-4">
                                 @foreach($laborRows as $idx => $alloc)
                                     <div class="p-5 bg-surface-container-low/60 border border-outline-variant/60 rounded-2xl space-y-3">
@@ -578,20 +584,26 @@
                                         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                                             <div class="sm:col-span-2">
                                                 <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">WORKER NAME *</label>
-                                                <select wire:model="laborRows.{{ $idx }}.labor_id" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-bold text-on-surface">
+                                                <select wire:model.live="laborRows.{{ $idx }}.labor_id" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-bold text-on-surface">
                                                     <option value="">Select Worker...</option>
                                                     @foreach($labors as $l)
                                                         <option value="{{ $l->id }}">{{ $l->name }} ({{ $l->worker_type ?: 'Operator' }})</option>
                                                     @endforeach
                                                 </select>
+                                                @error("laborRows.{$idx}.labor_id")
+                                                    <span class="text-xs font-bold text-rose-600 block mt-1">{{ $message }}</span>
+                                                @enderror
                                             </div>
                                             <div>
                                                 <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">QTY WORKED UPON (PCS) *</label>
-                                                <input type="number" min="1" wire:model="laborRows.{{ $idx }}.processed_qty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                                <input type="number" min="1" wire:model.live="laborRows.{{ $idx }}.processed_qty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                                @error("laborRows.{$idx}.processed_qty")
+                                                    <span class="text-xs font-bold text-rose-600 block mt-1">{{ $message }}</span>
+                                                @enderror
                                             </div>
                                             <div>
                                                 <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">BASE RATE (₹)</label>
-                                                <input type="number" step="0.5" wire:model="laborRows.{{ $idx }}.base_rate" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                                <input type="number" step="0.5" wire:model.live="laborRows.{{ $idx }}.base_rate" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
                                             </div>
                                         </div>
                                     </div>
@@ -604,10 +616,10 @@
                             </button>
 
                             <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 1 : 1 }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
+                                <button type="button" wire:click="goToStep({{ $isCutting ? 1 : 1 }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
                                     ← Back
                                 </button>
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 3 : 2 }})" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
+                                <button type="button" wire:click="goToStep({{ $isCutting ? 3 : 2 }})" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
                                     Next Step: Output Items →
                                 </button>
                             </div>
@@ -628,16 +640,16 @@
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">QUANTITY PRODUCED (PCS) *</label>
-                                        <input type="number" min="0" wire:model="producedQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                        <input type="number" min="0" wire:model.live.debounce.500ms="producedQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
                                     </div>
                                 </div>
                             </div>
 
                             <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 2 : 1 }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
+                                <button type="button" wire:click="goToStep({{ $isCutting ? 2 : 1 }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
                                     ← Back
                                 </button>
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? ($isFinalTask ? 4 : 4) : ($isFinalTask ? 3 : 3) }})" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
+                                <button type="button" wire:click="goToStep({{ $isCutting ? ($isFinalTask ? 4 : 4) : ($isFinalTask ? 3 : 3) }})" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
                                     Next Step →
                                 </button>
                             </div>
@@ -653,21 +665,21 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-3">
                                     <label class="block text-xs font-black uppercase text-amber-800 dark:text-amber-300">SCRAP QUANTITY (PCS)</label>
-                                    <input type="number" min="0" wire:model="scrapQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
-                                    <input type="text" wire:model="scrapNotes" placeholder="Reason for scrap..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
+                                    <input type="number" min="0" wire:model.live.debounce.500ms="scrapQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                    <input type="text" wire:model.live.debounce.500ms="scrapNotes" placeholder="Reason for scrap..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
                                 </div>
                                 <div class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl space-y-3">
                                     <label class="block text-xs font-black uppercase text-rose-800 dark:text-rose-300">DAMAGE QUANTITY (PCS)</label>
-                                    <input type="number" min="0" wire:model="damageQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
-                                    <input type="text" wire:model="damageNotes" placeholder="Reason for damage..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
+                                    <input type="number" min="0" wire:model.live.debounce.500ms="damageQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                    <input type="text" wire:model.live.debounce.500ms="damageNotes" placeholder="Reason for damage..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
                                 </div>
                             </div>
 
                             <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 3 : 2 }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
+                                <button type="button" wire:click="goToStep({{ $isCutting ? 3 : 2 }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
                                     ← Back
                                 </button>
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 5 : 4 }})" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
+                                <button type="button" wire:click="goToStep({{ $isCutting ? 5 : 4 }})" class="px-5 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs">
                                     Next Step: Review &amp; Confirm →
                                 </button>
                             </div>
@@ -702,7 +714,7 @@
                             </div>
 
                             <div class="pt-4 flex items-center justify-between border-t border-outline-variant/60">
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? ($isFinalTask ? 4 : 3) : ($isFinalTask ? 3 : 2) }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
+                                <button type="button" wire:click="goToStep({{ $isCutting ? ($isFinalTask ? 4 : 3) : ($isFinalTask ? 3 : 2) }})" class="px-4 py-2 bg-surface-container-high text-xs font-bold rounded-xl">
                                     ← Back
                                 </button>
                                 @if($activeStage->status !== 'completed')

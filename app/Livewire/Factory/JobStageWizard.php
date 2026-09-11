@@ -814,6 +814,41 @@ class JobStageWizard extends Component
         return $costingService->getJobCostSummary($this->job->id);
     }
 
+    public function goToStep(int $step)
+    {
+        $laborStep = $this->isCuttingStage($this->activeStage) ? 2 : 1;
+
+        if ($step > $laborStep && $this->activeStep <= $laborStep) {
+            if (!$this->validateLaborRows()) {
+                return;
+            }
+        }
+
+        $this->activeStep = $step;
+    }
+
+    public function validateLaborRows(): bool
+    {
+        $hasSelectedWorker = false;
+        foreach ($this->laborRows as $idx => $row) {
+            if (empty($row['labor_id'])) {
+                $this->addError("laborRows.{$idx}.labor_id", "Please select a worker for Worker #" . ($idx + 1) . ".");
+            } else {
+                $hasSelectedWorker = true;
+            }
+
+            if (empty($row['processed_qty']) || intval($row['processed_qty']) <= 0) {
+                $this->addError("laborRows.{$idx}.processed_qty", "Quantity worked must be > 0.");
+            }
+        }
+
+        if (empty($this->laborRows) || !$hasSelectedWorker) {
+            $this->addError('laborRows', 'Please select at least one worker for recorded labor.');
+        }
+
+        return $this->getErrorBag()->isEmpty();
+    }
+
     // --- COMPLETE STAGE ACTION ---
     public function completeActiveStage()
     {
@@ -824,6 +859,12 @@ class JobStageWizard extends Component
 
         if ($this->activeStage->status === 'completed') {
             $this->dispatch('toast', message: "Stage is already completed.", type: 'error');
+            return;
+        }
+
+        if (!$this->validateLaborRows()) {
+            $laborStep = $this->isCuttingStage($this->activeStage) ? 2 : 1;
+            $this->activeStep = $laborStep;
             return;
         }
 

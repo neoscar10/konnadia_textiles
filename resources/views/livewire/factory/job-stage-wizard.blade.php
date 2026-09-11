@@ -465,75 +465,75 @@
                     <div class="flex items-center border-b border-gray-100 bg-white px-6 overflow-x-auto">
                         @if($isCutting)
                             <button type="button" 
-                                    wire:click="$set('activeStep', 1)" 
+                                    wire:click="goToStep(1)" 
                                     class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 1 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                 1. Fabric Selection &amp; Consumption
                             </button>
                             <button type="button" 
-                                    wire:click="$set('activeStep', 2)" 
+                                    wire:click="goToStep(2)" 
                                     class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 2 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                 2. Labour &amp; Bonus Rate
                             </button>
                             <button type="button" 
-                                    wire:click="$set('activeStep', 3)" 
+                                    wire:click="goToStep(3)" 
                                     class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 3 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                 3. Output Items
                             </button>
                             @if($isFinalTask)
                                 <button type="button" 
-                                        wire:click="$set('activeStep', 4)" 
+                                        wire:click="goToStep(4)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 4 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                     <span>4. Subsidiary Materials</span>
                                 </button>
                                 <button type="button" 
-                                        wire:click="$set('activeStep', 5)" 
+                                        wire:click="goToStep(5)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 5 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                     <span>5. Wastage &amp; Alteration</span>
                                     <span class="px-1.5 py-0.5 text-[9px] bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded font-black uppercase">Final</span>
                                 </button>
                                 <button type="button" 
-                                        wire:click="$set('activeStep', 6)" 
+                                        wire:click="goToStep(6)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 6 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                     6. Review &amp; Confirm
                                 </button>
                             @else
                                 <button type="button" 
-                                        wire:click="$set('activeStep', 4)" 
+                                        wire:click="goToStep(4)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 4 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                     4. Review &amp; Confirm
                                 </button>
                             @endif
                         @else
                             <button type="button" 
-                                    wire:click="$set('activeStep', 1)" 
+                                    wire:click="goToStep(1)" 
                                     class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 1 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                 1. Labour &amp; Bonus Rate
                             </button>
                             <button type="button" 
-                                    wire:click="$set('activeStep', 2)" 
+                                    wire:click="goToStep(2)" 
                                     class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 2 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                 2. Output Items
                             </button>
                             @if($isFinalTask)
                                 <button type="button" 
-                                        wire:click="$set('activeStep', 3)" 
+                                        wire:click="goToStep(3)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 3 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                     <span>3. Subsidiary Materials</span>
                                 </button>
                                 <button type="button" 
-                                        wire:click="$set('activeStep', 4)" 
+                                        wire:click="goToStep(4)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 4 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                     <span>4. Wastage &amp; Alteration</span>
                                     <span class="px-1.5 py-0.5 text-[9px] bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded font-black uppercase">Final</span>
                                 </button>
                                 <button type="button" 
-                                        wire:click="$set('activeStep', 5)" 
+                                        wire:click="goToStep(5)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 5 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                     5. Review &amp; Confirm
                                 </button>
                             @else
                                 <button type="button" 
-                                        wire:click="$set('activeStep', 3)" 
+                                        wire:click="goToStep(3)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 3 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
                                     3. Review &amp; Confirm
                                 </button>
@@ -817,6 +817,12 @@
                         </div>
 
                         <!-- Worker Rows Table -->
+                        @error('laborRows')
+                            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700 mb-3">
+                                {{ $message }}
+                            </div>
+                        @enderror
+
                         <div class="space-y-4">
                             @foreach($laborRows as $index => $row)
                                 @php
@@ -839,6 +845,9 @@
                                                     <option value="{{ $l->id }}">{{ $l->name }} ({{ $l->worker_code ?? 'W' }})</option>
                                                 @endforeach
                                             </select>
+                                            @error("laborRows.{$index}.labor_id")
+                                                <span class="text-xs font-bold text-rose-600 block mt-1">{{ $message }}</span>
+                                            @enderror
                                         </div>
 
                                         <!-- Qty Worked Upon -->
@@ -847,6 +856,9 @@
                                                 QTY WORKED (PCS) *
                                             </label>
                                             <input type="number" min="1" wire:model.live="laborRows.{{ $index }}.processed_qty" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                            @error("laborRows.{$index}.processed_qty")
+                                                <span class="text-xs font-bold text-rose-600 block mt-1">{{ $message }}</span>
+                                            @enderror
                                         </div>
 
                                         <!-- Base Rate -->
@@ -918,14 +930,14 @@
                         <!-- Next Navigation -->
                         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
                             @if($isCutting)
-                                <button type="button" wire:click="$set('activeStep', 1)" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
+                                <button type="button" wire:click="goToStep(1)" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
                                     ← Back to Fabric Selection
                                 </button>
                             @else
                                 <div></div>
                             @endif
 
-                            <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 3 : 2 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                            <button type="button" wire:click="goToStep({{ $isCutting ? 3 : 2 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
                                 <span>Next Step: Output Items</span>
                                 <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                             </button>
@@ -971,16 +983,16 @@
 
                         <!-- Navigation Buttons -->
                         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
-                            <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 2 : 1 }})" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
+                            <button type="button" wire:click="goToStep({{ $isCutting ? 2 : 1 }})" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
                                 ← Back to Labour
                             </button>
                             @if($isFinalTask)
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 4 : 3 }})" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                                <button type="button" wire:click="goToStep({{ $isCutting ? 4 : 3 }})" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
                                     <span>Next Step: Subsidiary Material Usage &amp; Recording</span>
                                     <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                                 </button>
                             @else
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 4 : 3 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                                <button type="button" wire:click="goToStep({{ $isCutting ? 4 : 3 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
                                     <span>Next Step: Review &amp; Confirm</span>
                                     <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                                 </button>
