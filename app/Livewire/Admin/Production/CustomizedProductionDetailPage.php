@@ -53,12 +53,12 @@ class CustomizedProductionDetailPage extends Component
 
     // Labor Allocation Rows
     public array $laborRows = [];
-    public int $producedQty = 0;
+    public $producedQty = 0;
 
     // Categorized Wastage & Reconciliation
-    public float $scrapQty = 0;
+    public $scrapQty = 0;
     public string $scrapNotes = '';
-    public float $damageQty = 0;
+    public $damageQty = 0;
     public string $damageNotes = '';
 
     // Alteration Rows

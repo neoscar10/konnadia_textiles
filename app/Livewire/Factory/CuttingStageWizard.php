@@ -604,8 +604,6 @@ class CuttingStageWizard extends Component
     protected function syncLaborAndOutputs()
     {
         $unique = $this->uniqueAllocatedProducts;
-        $firstLabor = Labor::active()->orderBy('name')->first();
-        $defaultLaborId = $firstLabor?->id;
 
         $newLaborAllocations = [];
         $newOutputs = [];
@@ -634,7 +632,7 @@ class CuttingStageWizard extends Component
                     'total_cut_quantity' => $qty,
                     'workers' => [
                         [
-                            'labor_id' => $defaultLaborId,
+                            'labor_id' => null,
                             'quantity' => $qty,
                             'base_rate' => 15.00,
                             'bonus_rate' => 0.00,
@@ -662,13 +660,12 @@ class CuttingStageWizard extends Component
     public function addWorkerToProduct(string $productKey)
     {
         if (isset($this->laborAllocations[$productKey])) {
-            $firstLabor = Labor::active()->orderBy('name')->first();
             $totalCut = intval($this->laborAllocations[$productKey]['total_cut_quantity'] ?? 0);
             $usedSoFar = array_sum(array_column($this->laborAllocations[$productKey]['workers'] ?? [], 'quantity'));
             $remQty = max(0, $totalCut - $usedSoFar);
 
             $this->laborAllocations[$productKey]['workers'][] = [
-                'labor_id' => $firstLabor?->id,
+                'labor_id' => null,
                 'quantity' => $remQty,
                 'base_rate' => 15.00,
                 'bonus_rate' => 0.00,
@@ -702,19 +699,25 @@ class CuttingStageWizard extends Component
     public function goToStep(int $step)
     {
         if ($step > 1) {
-            $this->validateStep1();
+            if (!$this->validateStep1()) {
+                return;
+            }
             $this->syncLaborAndOutputs();
         }
         if ($step > 2) {
-            $this->validateStep2();
+            if (!$this->validateStep2()) {
+                return;
+            }
         }
         if ($step > 3) {
-            $this->validateStep3();
+            if (!$this->validateStep3()) {
+                return;
+            }
         }
         $this->currentStep = $step;
     }
 
-    protected function validateStep1()
+    protected function validateStep1(): bool
     {
         $hasSelectedRolls = false;
         $hasOverCapacity = false;
@@ -774,12 +777,10 @@ class CuttingStageWizard extends Component
             $this->addError('step1_rolls', 'One or more rolls have allocated product area exceeding the cut area. Please fix over-capacity errors before proceeding.');
         }
 
-        if ($this->getErrorBag()->isNotEmpty()) {
-            throw new Exception("Step 1 validation failed.");
-        }
+        return $this->getErrorBag()->isEmpty();
     }
 
-    protected function validateStep2()
+    protected function validateStep2(): bool
     {
         foreach ($this->laborAllocations as $key => $group) {
             $totalCut = intval($group['total_cut_quantity'] ?? 0);
@@ -813,12 +814,10 @@ class CuttingStageWizard extends Component
             }
         }
 
-        if ($this->getErrorBag()->isNotEmpty()) {
-            throw new Exception("Step 2 validation failed.");
-        }
+        return $this->getErrorBag()->isEmpty();
     }
 
-    protected function validateStep3()
+    protected function validateStep3(): bool
     {
         foreach ($this->outputItems as $idx => $out) {
             if (empty($out['expected_quantity']) || intval($out['expected_quantity']) <= 0) {
@@ -826,18 +825,12 @@ class CuttingStageWizard extends Component
             }
         }
 
-        if ($this->getErrorBag()->isNotEmpty()) {
-            throw new Exception("Step 3 validation failed.");
-        }
+        return $this->getErrorBag()->isEmpty();
     }
 
     public function submitCuttingStage()
     {
-        $this->validateStep1();
-        $this->validateStep2();
-        $this->validateStep3();
-
-        if ($this->getErrorBag()->isNotEmpty()) {
+        if (!$this->validateStep1() || !$this->validateStep2() || !$this->validateStep3()) {
             return;
         }
 

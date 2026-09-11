@@ -959,10 +959,11 @@
                         <!-- Completion Status Card -->
                         @php
                             $target = max(1, $activeStage->target_quantity);
-                            $rate = round(($producedQty / $target) * 100, 1);
+                            $val = max(0, intval($producedQty ?? 0));
+                            $rate = round(($val / $target) * 100, 1);
                         @endphp
                         <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-1 text-emerald-900">
-                            <div class="font-extrabold text-sm">Recorded Stage Output: {{ $producedQty }} Pcs</div>
+                            <div class="font-extrabold text-sm">Recorded Stage Output: {{ max(0, intval($producedQty ?? 0)) }} Pcs</div>
                             <div class="text-xs font-semibold text-emerald-800">
                                 Target Batch Qty: {{ $activeStage->target_quantity }} Pcs · Completion Rate: {{ $rate }}%
                             </div>
@@ -1181,7 +1182,7 @@
                                 <span>Final Task Output: <span class="font-extrabold text-emerald-800">{{ $producedQty }} Pcs</span></span>
                                 <span>·</span>
                                 @php
-                                    $discrepancy = max(0, $job->target_quantity - $producedQty);
+                                    $discrepancy = max(0, $job->target_quantity - intval($producedQty ?? 0));
                                 @endphp
                                 <span>Non-Good / Discrepancy Items: <span class="font-extrabold text-rose-700">{{ $discrepancy }} Pcs</span></span>
                             </div>

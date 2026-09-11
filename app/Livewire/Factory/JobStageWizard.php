@@ -47,13 +47,13 @@ class JobStageWizard extends Component
 
     // Stage Processing Inputs
     public array $laborRows = [];
-    public int $producedQty = 0;
+    public $producedQty = 0;
     public array $subsidiaryRows = [];
     
     // Categorized Wastage & Discrepancy
-    public float $scrapQty = 0;
+    public $scrapQty = 0;
     public string $scrapNotes = '';
-    public float $damageQty = 0;
+    public $damageQty = 0;
     public string $damageNotes = '';
 
     // Alteration Rows
@@ -881,13 +881,14 @@ class JobStageWizard extends Component
             }
 
             // 2. Record Product Output for this stage
-            if ($this->producedQty > 0) {
+            $actualProduced = max(0, intval($this->producedQty ?? 0));
+            if ($actualProduced > 0) {
                 JobProductionOutput::create([
                     'job_code'                 => $this->job->job_code,
                     'production_job_id'        => $this->job->id,
                     'manufacturing_product_id' => $this->job->manufacturing_product_id,
                     'task_id'                  => $taskId,
-                    'quantity_produced'        => $this->producedQty,
+                    'quantity_produced'        => $actualProduced,
                 ]);
             }
 

@@ -182,6 +182,8 @@ class SharedCuttingStageWorkflowTest extends TestCase
             ])
             ->call('goToStep', 2)
             ->assertSet('currentStep', 2)
+            ->set("laborAllocations.{$this->product1->id}_0.workers.0.labor_id", $this->labor->id)
+            ->set("laborAllocations.{$this->product2->id}_0.workers.0.labor_id", $this->labor->id)
             ->call('goToStep', 3)
             ->assertSet('currentStep', 3)
             ->call('goToStep', 4)
@@ -204,6 +206,42 @@ class SharedCuttingStageWorkflowTest extends TestCase
             $this->assertNotNull($stage2);
             $this->assertEquals('in_progress', $stage2->status);
         }
+    }
+
+    /** @test */
+    public function cannot_proceed_from_step2_without_selecting_worker()
+    {
+        $this->actingAs($this->admin);
+
+        $batch = ProductionBatch::create([
+            'factory_supervisor_id' => $this->supervisor->id,
+            'status' => 'In Cutting',
+            'planned_quantity' => 0,
+        ]);
+
+        Livewire::test(CuttingStageWizard::class, ['batch' => $batch->batch_code])
+            ->set('selectedFabrics.0.raw_material_id', $this->fabric->id)
+            ->set('selectedFabrics.0.inventory_batch_id', $this->batch->id)
+            ->set('selectedFabrics.0.inventory_bale_id', $this->bale->id)
+            ->set("selectedFabrics.0.selected_rolls.{$this->roll1->id}", [
+                'roll_id' => $this->roll1->id,
+                'roll_number' => $this->roll1->roll_number,
+                'max_length' => 1000.0,
+                'cut_length' => 100.0,
+                'products' => [
+                    [
+                        'manufacturing_product_id' => $this->product1->id,
+                        'pattern_id' => null,
+                        'planned_quantity' => 20,
+                    ],
+                ],
+            ])
+            ->call('goToStep', 2)
+            ->assertSet('currentStep', 2)
+            // Attempt to go to step 3 without selecting a worker for laborAllocations
+            ->call('goToStep', 3)
+            ->assertSet('currentStep', 2)
+            ->assertHasErrors(["laborAllocations.{$this->product1->id}_0.workers.0.labor_id"]);
     }
 
     /** @test */
@@ -246,7 +284,8 @@ class SharedCuttingStageWorkflowTest extends TestCase
 
         $key = "{$this->product1->id}_0";
 
-        // Add second worker
+        // Set first worker and add second worker
+        $component->set("laborAllocations.{$key}.workers.0.labor_id", $this->labor->id);
         $component->call('addWorkerToProduct', $key);
         $component->set("laborAllocations.{$key}.workers.0.quantity", 12);
         $component->set("laborAllocations.{$key}.workers.1.labor_id", $labor2->id);
