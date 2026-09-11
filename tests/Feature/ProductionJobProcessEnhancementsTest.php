@@ -265,6 +265,14 @@ class ProductionJobProcessEnhancementsTest extends TestCase
     /** @test */
     public function it_cannot_proceed_or_complete_stage_without_worker_selected()
     {
+        $labor = \App\Models\Labor::create([
+            'name'        => 'Test Ironer',
+            'worker_code' => 'W-IRON-01',
+            'daily_rate'  => 400,
+            'piece_rate'  => 8,
+            'status'      => 'active',
+        ]);
+
         $ironingTask = Task::where('name', 'Ironing')->first();
         $ironingStage = $this->job->stageExecutions->firstWhere('task_id', $ironingTask->id);
 
@@ -275,6 +283,10 @@ class ProductionJobProcessEnhancementsTest extends TestCase
             ->assertHasErrors(['laborRows.0.labor_id'])
             ->assertSet('activeStep', 1)
             ->call('completeActiveStage')
-            ->assertHasErrors(['laborRows.0.labor_id']);
+            ->assertHasErrors(['laborRows.0.labor_id'])
+            ->set('laborRows.0.labor_id', $labor->id)
+            ->call('goToStep', 2)
+            ->assertHasNoErrors()
+            ->assertSet('activeStep', 2);
     }
 }

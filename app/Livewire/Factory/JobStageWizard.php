@@ -819,8 +819,14 @@ class JobStageWizard extends Component
         $this->activeStep = $step;
     }
 
+    public function updatedLaborRows($value, $key)
+    {
+        $this->resetErrorBag();
+    }
+
     public function validateLaborRows(): bool
     {
+        $this->resetErrorBag();
         $hasSelectedWorker = false;
         foreach ($this->laborRows as $idx => $row) {
             if (empty($row['labor_id'])) {
