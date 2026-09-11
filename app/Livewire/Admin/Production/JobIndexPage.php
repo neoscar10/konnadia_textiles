@@ -84,28 +84,10 @@ class JobIndexPage extends Component
     {
         $this->resetValidation();
         $this->reset(['notes']);
-        $this->planned_quantity = 200;
         $this->priority = 'Normal';
-        
-        $firstProduct = ManufacturingProduct::first();
-        $firstPattern = null;
-        if ($firstProduct) {
-            $this->manufacturing_product_id = $firstProduct->id;
-            $patterns = \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $firstProduct->id)->get();
-            $firstPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
-            $this->pattern_id = $firstPattern?->id;
-        }
 
         $firstSupervisor = \App\Models\FactorySupervisor::active()->orderBy('name')->first();
         $this->factory_supervisor_id = $firstSupervisor?->id;
-
-        $this->batchProducts = [
-            [
-                'manufacturing_product_id' => $firstProduct?->id,
-                'pattern_id'               => $firstPattern?->id,
-                'planned_quantity'         => 200,
-            ]
-        ];
 
         $this->dispatch('open-modal', 'create-job-modal');
     }
@@ -367,45 +349,30 @@ class JobIndexPage extends Component
             'factory_supervisor_id' => 'required|exists:factory_supervisors,id',
             'priority'              => 'required|in:Urgent,Normal,Low',
             'notes'                 => 'nullable|string|max:1000',
-            'batchProducts'         => 'required|array|min:1',
-            'batchProducts.*.manufacturing_product_id' => 'required|exists:manufacturing_products,id',
-            'batchProducts.*.pattern_id'               => 'nullable|exists:manufacturing_product_patterns,id',
-            'batchProducts.*.planned_quantity'         => 'required|numeric|min:1',
         ], [
             'factory_supervisor_id.required' => 'Please select a supervisor.',
-            'batchProducts.required'         => 'Please add at least one manufacturing product.',
         ]);
 
-        $firstItem = $this->batchProducts[0] ?? ['manufacturing_product_id' => null, 'pattern_id' => null, 'planned_quantity' => 200];
-        $totalPlanned = array_sum(array_column($this->batchProducts, 'planned_quantity'));
-
         $workflowService = resolve(\App\Services\Manufacturing\ProductionWorkflowService::class);
-        $response = $workflowService->initiateBatch(
-            $firstItem['manufacturing_product_id'],
+        $response = $workflowService->initiateEmptyBatch(
             $this->factory_supervisor_id,
-            $totalPlanned,
             $this->priority,
             $this->notes,
-            now()->format('Y-m-d'),
-            $firstItem['pattern_id'],
-            $this->batchProducts
+            now()->format('Y-m-d')
         );
 
         $responseData = $response->getData(true);
 
         if (isset($responseData['success']) && $responseData['success']) {
             $batchCode = $responseData['data']['batch']['batch_code'] ?? 'Batch';
-            $jobCount = count($responseData['data']['jobs'] ?? []);
             $this->dispatch('close-modal', 'create-job-modal');
-            $this->dispatch('toast', message: "Production Batch {$batchCode} initiated successfully with {$jobCount} Job(s)!", type: 'success');
+            $this->dispatch('toast', message: "Production Batch {$batchCode} initiated! Redirecting to shared cutting stage...", type: 'success');
             session()->flash('toast', [
-                'message' => "Production Batch {$batchCode} initiated successfully with {$jobCount} Job(s)!",
+                'message' => "Production Batch {$batchCode} initiated! Please complete the shared fabric cutting stage.",
                 'type' => 'success'
             ]);
 
-            if ($batchCode && $batchCode !== 'Batch') {
-                return redirect()->route('admin.production.batches.jobs', $batchCode);
-            }
+            return redirect()->route('factory.cutting-stage', ['batch' => $batchCode]);
         } else {
             $errorMessage = $responseData['message'] ?? 'Failed to initiate production batch.';
             $this->addError('factory_supervisor_id', $errorMessage);

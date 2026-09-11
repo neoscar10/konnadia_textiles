@@ -24,14 +24,7 @@ class ProductCardResource extends JsonResource
         $availService = app(ProductAvailabilityService::class);
         $availability = $availService->getProductAvailability($this->resource);
 
-        $primaryImage = $this->primaryMedia ? $this->primaryMedia->file_path : null;
-        if (!$primaryImage && $this->media->first()) {
-            $primaryImage = $this->media->first()->file_path;
-        }
-
-        $primaryImageUrl = $primaryImage 
-            ? (str_starts_with($primaryImage, 'http') ? $primaryImage : url(Storage::url($primaryImage)))
-            : url('/images/product-placeholder.svg');
+        $primaryImageUrl = $this->thumbnail_url;
 
         $categories = $this->categories->sortByDesc('is_leaf')->map(function ($cat) {
             // Build simple recursive path

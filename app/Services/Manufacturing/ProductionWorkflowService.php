@@ -16,6 +16,47 @@ class ProductionWorkflowService
     use ApiResponseTrait;
 
     /**
+     * Initiate a new Production Batch without jobs upfront.
+     * The batch will be sent to the shared cutting stage where product SKUs and quantities are assigned.
+     *
+     * @param mixed $supervisorId
+     * @param string $priority
+     * @param string|null $remarks
+     * @param string|null $batchDate
+     * @return JsonResponse
+     */
+    public function initiateEmptyBatch($supervisorId, string $priority = 'Normal', ?string $remarks = null, ?string $batchDate = null): JsonResponse
+    {
+        try {
+            $batch = DB::transaction(function () use ($supervisorId, $priority, $remarks, $batchDate) {
+                $factorySupervisor = $supervisorId ? \App\Models\FactorySupervisor::find($supervisorId) : null;
+
+                return ProductionBatch::create([
+                    'batch_date'            => $batchDate ?? now()->format('Y-m-d'),
+                    'supervisor_id'         => auth()->id() ?: 1,
+                    'factory_supervisor_id' => $factorySupervisor?->id,
+                    'planned_quantity'      => 0,
+                    'priority'              => $priority,
+                    'status'                => 'In Cutting',
+                    'remarks'               => $remarks,
+                ]);
+            });
+
+            return $this->successResponse(
+                "Production Batch {$batch->batch_code} created successfully.",
+                ['batch' => $batch],
+                201
+            );
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                $e->getMessage(),
+                ['error' => $e->getMessage()],
+                400
+            );
+        }
+    }
+
+    /**
      * Initiate a new Production Batch and automatically create its first linked Job
      * based on the product's routing task.
      *

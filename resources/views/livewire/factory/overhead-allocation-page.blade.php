@@ -7,7 +7,7 @@
                 Overhead Allocation Module
             </h2>
             <p class="font-body-md text-body-md text-on-surface-variant mt-1">
-                Track subsidiary material usage, fixed salaried staff costs, and monthly operational overheads relative to total production value.
+                Track stitching & overhead material usage, fixed salaried staff costs, and monthly operational overheads relative to total production value.
             </p>
         </div>
 
@@ -32,11 +32,11 @@
         <!-- Left Side: Detail Cards (7/12 on LG, 8/12 on XL) -->
         <div class="lg:col-span-7 xl:col-span-8 space-y-6">
             
-            <!-- CARD 1: STITCHING & SUBSIDIARY MATERIAL - CLOSING STOCK -->
+            <!-- CARD 1: STITCHING & OVERHEAD MATERIAL - CLOSING STOCK -->
             <div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 space-y-4">
                 <div>
                     <h3 class="font-label-md text-label-md font-bold uppercase tracking-wider text-on-surface">
-                        Stitching & Subsidiary Material — Closing Stock, {{ $currentMonthName }}
+                        Stitching & General Overhead Material — Closing Stock, {{ $currentMonthName }}
                     </h3>
                 </div>
 
@@ -45,10 +45,10 @@
                         <thead>
                             <tr class="bg-surface-container-low border-b border-outline-variant">
                                 <th class="px-5 py-3.5 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Material</th>
-                                <th class="px-5 py-3.5 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Opening Stock</th>
+                                <th class="px-5 py-3.5 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Opening Stock (Qty)</th>
                                 <th class="px-5 py-3.5 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Purchases This Month</th>
-                                <th class="px-5 py-3.5 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center">Closing Stock *</th>
-                                <th class="px-5 py-3.5 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Consumed (Cost)</th>
+                                <th class="px-5 py-3.5 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center">Closing Stock (Qty) *</th>
+                                <th class="px-5 py-3.5 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Consumed Qty & Cost</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant">
@@ -56,33 +56,36 @@
                                 <tr class="hover:bg-surface-container transition-colors" wire:key="mat-row-{{ $row['raw_material_id'] }}">
                                     <td class="px-5 py-4">
                                         <div class="font-body-md text-body-md font-semibold text-on-surface">{{ $row['name'] }}</div>
-                                        <div class="font-mono text-label-sm text-on-surface-variant">{{ $row['unit'] }} • {{ $row['code'] }}</div>
+                                        <div class="font-mono text-label-sm text-on-surface-variant">{{ $row['unit'] }} • {{ $row['code'] }} • ₹{{ number_format($row['unit_cost'], 2) }}/{{ $row['unit'] }}</div>
                                     </td>
                                     <td class="px-5 py-4 text-right font-mono font-body-sm text-on-surface-variant">
-                                        ₹{{ number_format($row['opening_stock_value'], 2) }}
+                                        <div class="font-bold text-on-surface">{{ number_format($row['opening_stock_qty'], 2) }} {{ $row['unit'] }}</div>
+                                        <div class="text-xs text-slate-400">₹{{ number_format($row['opening_stock_value'], 2) }}</div>
                                     </td>
                                     <td class="px-5 py-4 text-right font-mono font-body-sm text-on-surface-variant">
-                                        ₹{{ number_format($row['purchases_value'], 2) }}
+                                        <div class="font-bold text-on-surface">{{ number_format($row['purchases_qty'], 2) }} {{ $row['unit'] }}</div>
+                                        <div class="text-xs text-slate-400">₹{{ number_format($row['purchases_value'], 2) }}</div>
                                     </td>
                                     <td class="px-5 py-4 text-center">
-                                        <div class="inline-flex items-center justify-center">
-                                            <span class="text-on-surface-variant font-label-md text-label-md mr-1">₹</span>
+                                        <div class="inline-flex items-center justify-center gap-1.5">
                                             <input 
                                                 type="number" 
                                                 step="0.01"
-                                                wire:model.live.debounce.300ms="materialRows.{{ $index }}.closing_stock_value" 
+                                                wire:model.live.debounce.300ms="materialRows.{{ $index }}.closing_stock_qty" 
                                                 class="w-24 px-3 py-1.5 text-center font-mono font-bold font-body-sm text-body-sm bg-surface border border-outline-variant rounded-lg focus:ring-1 focus:ring-primary transition"
                                             />
+                                            <span class="text-xs font-bold text-on-surface-variant">{{ $row['unit'] }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-5 py-4 text-right font-mono font-bold text-body-md text-on-surface">
-                                        ₹{{ number_format($row['consumed_cost'], 2) }}
+                                    <td class="px-5 py-4 text-right font-mono">
+                                        <div class="font-bold text-body-md text-on-surface">₹{{ number_format($row['consumed_cost'], 2) }}</div>
+                                        <div class="text-xs text-emerald-600 font-semibold">{{ number_format($row['consumed_qty'], 2) }} {{ $row['unit'] }} used</div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="5" class="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant italic">
-                                        No subsidiary or stitching raw materials recorded.
+                                        No stitching or general overhead raw materials recorded.
                                     </td>
                                 </tr>
                             @endforelse
@@ -93,7 +96,7 @@
                 <!-- Stitching Total Footer -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-3 font-body-sm text-body-sm gap-2 border-t border-outline-variant">
                     <span class="font-body-md text-body-md text-on-surface-variant">
-                        Total stitching material cost <span class="font-body-sm text-body-sm">(and its % of this month's production value)</span>
+                        Total stitching & overhead material cost <span class="font-body-sm text-body-sm">(and its % of this month's production value)</span>
                     </span>
                     <div class="font-mono font-body-md text-body-md font-bold text-on-surface">
                         ₹{{ number_format($stitchingTotal, 2) }}
@@ -257,7 +260,7 @@
                 <!-- Breakdown List -->
                 <div class="space-y-3 font-body-md text-body-md">
                     <div class="flex items-center justify-between text-on-surface-variant">
-                        <span>Stitching material</span>
+                        <span>Stitching & overhead material</span>
                         <span class="font-mono font-bold text-on-surface">
                             ₹{{ number_format($stitchingTotal, 0) }} 
                             <span class="font-sans text-label-sm font-semibold text-on-surface-variant">({{ $productionValue > 0 ? number_format(($stitchingTotal / $productionValue) * 100, 1) : '0.0' }}%)</span>

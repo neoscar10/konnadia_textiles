@@ -20,8 +20,7 @@ class AdminDesignCatalogResource extends JsonResource
         $categoryService = app(CategoryService::class);
         $availabilityService = app(ProductAvailabilityService::class);
 
-        $primaryMedia = $this->primaryMedia ?: $this->media->first();
-        $primaryMediaUrl = $primaryMedia ? url(Storage::url($primaryMedia->file_path)) : null;
+        $primaryMediaUrl = $this->thumbnail_url;
 
         // Build category breadcrumb paths
         $categoryPaths = [];

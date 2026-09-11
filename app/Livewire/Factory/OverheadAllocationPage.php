@@ -90,12 +90,20 @@ class OverheadAllocationPage extends Component
             ];
         }
 
-        // Fetch Raw Materials strictly of category CAT-SUB, CAT-STITCH, CAT-OHD or category name containing subsidiary/stitching
+        // Fetch Raw Materials strictly of category CAT-STITCH, CAT-OHD (stitching & general overheads)
+        // Strictly exclude CAT-SUB and subsidiary materials
         $materials = RawMaterial::with('category')
             ->whereHas('category', function ($c) {
-                $c->whereIn('code', ['CAT-SUB', 'CAT-STITCH', 'CAT-OHD'])
-                  ->orWhere('name', 'like', '%subsidiary%')
-                  ->orWhere('name', 'like', '%stitching%');
+                $c->whereIn('code', ['CAT-STITCH', 'CAT-OHD'])
+                  ->orWhere(function ($subQ) {
+                      $subQ->where('name', 'like', '%stitching%')
+                           ->orWhere('name', 'like', '%overhead%')
+                           ->orWhere('name', 'like', '%consumable%');
+                  });
+            })
+            ->whereHas('category', function ($c) {
+                $c->where('code', '!=', 'CAT-SUB')
+                  ->where('name', 'not like', '%subsidiary%');
             })
             ->where('is_active', true)
             ->get();
@@ -115,46 +123,59 @@ class OverheadAllocationPage extends Component
             $matId = $mat->id;
             
             // Purchases in selected month
-            $purchasesVal = (float) InventoryBatch::where('raw_material_id', $matId)
+            $batches = InventoryBatch::where('raw_material_id', $matId)
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->get()
-                ->sum(fn($b) => (float)($b->total_amount ?: ($b->received_quantity * ($b->purchase_rate ?: $b->unit_cost ?: 10))));
+                ->get();
 
-            // Opening stock value
-            if (isset($prevItemsMap[$matId])) {
-                $openingVal = (float) $prevItemsMap[$matId]->closing_stock_value;
+            $purchasesQty = (float) $batches->sum('quantity_received');
+            $purchasesVal = (float) $batches->sum(fn($b) => (float)($b->total_amount ?: ($b->received_quantity * ($b->purchase_rate ?: $b->unit_cost ?: 10))));
+
+            // Determine effective unit cost for cost derivation
+            if ($purchasesQty > 0 && $purchasesVal > 0) {
+                $unitCost = round($purchasesVal / $purchasesQty, 2);
             } else {
-                // Fallback to estimated initial stock value
-                $unitCost = (float) ($mat->unit_cost ?: 100);
-                $currentStock = (float) ($mat->stock_balance ?: $mat->opening_stock_quantity ?: 40);
-                $openingVal = $currentStock * $unitCost * 0.7; // Estimate
+                $unitCost = (float) ($mat->unit_cost ?: ($mat->purchase_rate ?: 100));
             }
+            if ($unitCost <= 0) $unitCost = 100.00;
 
-            if ($openingVal <= 0) {
-                $openingVal = 1000.00;
+            // Opening stock quantity (stock at start of month)
+            if (isset($prevItemsMap[$matId])) {
+                $openingQty = (float) ($prevItemsMap[$matId]->closing_stock_qty ?? 0);
+                if ((float)($prevItemsMap[$matId]->unit_cost ?? 0) > 0) {
+                    $unitCost = (float) $prevItemsMap[$matId]->unit_cost;
+                }
+            } else {
+                $openingQty = (float) ($mat->opening_stock_quantity ?: 0.00);
             }
 
             if (isset($existingItemsMap[$matId])) {
                 $eItem = $existingItemsMap[$matId];
                 $closingQty = (float) $eItem->closing_stock_qty;
-                $closingVal = (float) $eItem->closing_stock_value;
+                if ((float)($eItem->unit_cost ?? 0) > 0) {
+                    $unitCost = (float) $eItem->unit_cost;
+                }
             } else {
-                $closingQty = 20.00;
-                $unitCost = (float) ($mat->unit_cost ?: 100);
-                $closingVal = max(0, ($openingVal + $purchasesVal) * 0.5);
+                $closingQty = max(0.0, $openingQty + $purchasesQty - 1.0);
             }
 
-            $consumedCost = max(0, $openingVal + $purchasesVal - $closingVal);
+            $consumedQty = max(0.0, $openingQty + $purchasesQty - $closingQty);
+            $openingVal = round($openingQty * $unitCost, 2);
+            $closingVal = round($closingQty * $unitCost, 2);
+            $consumedCost = round($consumedQty * $unitCost, 2);
 
             $this->materialRows[] = [
                 'raw_material_id' => $matId,
                 'name' => $mat->name,
                 'code' => $mat->code,
                 'unit' => $mat->unit ?: 'Pcs',
+                'unit_cost' => round($unitCost, 2),
+                'opening_stock_qty' => round($openingQty, 2),
                 'opening_stock_value' => round($openingVal, 2),
+                'purchases_qty' => round($purchasesQty, 2),
                 'purchases_value' => round($purchasesVal, 2),
                 'closing_stock_qty' => round($closingQty, 2),
                 'closing_stock_value' => round($closingVal, 2),
+                'consumed_qty' => round($consumedQty, 2),
                 'consumed_cost' => round($consumedCost, 2),
             ];
         }
@@ -162,19 +183,22 @@ class OverheadAllocationPage extends Component
 
     public function updatedMaterialRows($value, $key)
     {
-        // Re-calculate consumed cost when closing stock value or qty changes
+        // Re-calculate consumed quantity and cost when closing stock quantity changes
         $parts = explode('.', $key);
         if (count($parts) >= 2) {
             $index = intval($parts[0]);
-            $field = $parts[1] ?? '';
 
             if (isset($this->materialRows[$index])) {
                 $row = &$this->materialRows[$index];
-                $openVal = floatval($row['opening_stock_value'] ?? 0);
-                $purchVal = floatval($row['purchases_value'] ?? 0);
-                $closeVal = floatval($row['closing_stock_value'] ?? 0);
+                $openQty = floatval($row['opening_stock_qty'] ?? 0);
+                $purchQty = floatval($row['purchases_qty'] ?? 0);
+                $closeQty = floatval($row['closing_stock_qty'] ?? 0);
+                $unitCost = floatval($row['unit_cost'] ?? 0);
 
-                $row['consumed_cost'] = round(max(0, $openVal + $purchVal - $closeVal), 2);
+                $consumedQty = max(0.0, $openQty + $purchQty - $closeQty);
+                $row['consumed_qty'] = round($consumedQty, 2);
+                $row['closing_stock_value'] = round($closeQty * $unitCost, 2);
+                $row['consumed_cost'] = round($consumedQty * $unitCost, 2);
             }
         }
     }
@@ -245,10 +269,14 @@ class OverheadAllocationPage extends Component
             MonthlyOverheadMaterialItem::create([
                 'monthly_overhead_allocation_id' => $allocation->id,
                 'raw_material_id' => $mRow['raw_material_id'],
+                'opening_stock_qty' => $mRow['opening_stock_qty'],
                 'opening_stock_value' => $mRow['opening_stock_value'],
+                'purchases_qty' => $mRow['purchases_qty'],
                 'purchases_value' => $mRow['purchases_value'],
+                'unit_cost' => $mRow['unit_cost'],
                 'closing_stock_qty' => $mRow['closing_stock_qty'],
                 'closing_stock_value' => $mRow['closing_stock_value'],
+                'consumed_qty' => $mRow['consumed_qty'],
                 'consumed_cost' => $mRow['consumed_cost'],
             ]);
         }

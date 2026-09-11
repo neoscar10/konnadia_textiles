@@ -28,7 +28,7 @@ class FinishedGoodsConversionHub extends Component
 
     public bool $showPrintModal = false;
     public ?int $activePrintBatchId = null;
-    public int $printStickerQty = 10;
+    public $printStickerQty = 10;
     public string $printStickerSize = 'Standard Sticker (50mm × 25mm)';
 
     public bool $showAuditModal = false;
@@ -36,7 +36,7 @@ class FinishedGoodsConversionHub extends Component
 
     // Wizard form properties (Sketch-based flow)
     public ?int $selectedCategoryId = null;
-    public int $produceQty = 10;
+    public $produceQty = '';
     public string $designType = 'new'; // 'new' or 'existing'
     public string $designId = '';
     public bool $reuseCuttingPhoto = false;
@@ -65,6 +65,7 @@ class FinishedGoodsConversionHub extends Component
             $this->selectedCategoryId = $leafCategories->first()->id;
         }
 
+        $this->produceQty = '';
         $this->designType = 'new';
         $this->designId = '';
         $this->reuseCuttingPhoto = false;
@@ -83,8 +84,12 @@ class FinishedGoodsConversionHub extends Component
 
     public function updatedProduceQty()
     {
-        $this->produceQty = max(1, intval($this->produceQty));
         $this->ensureComponentSelectionsInitialized();
+        $this->recalculateStockCheck();
+    }
+
+    public function updatedComponentSelections()
+    {
         $this->recalculateStockCheck();
     }
 
@@ -102,16 +107,24 @@ class FinishedGoodsConversionHub extends Component
             return;
         }
 
+        $targetQty = max(0, intval($this->produceQty));
+
         foreach ($config->components as $idx => $comp) {
-            $reqQty = (int) ($comp->quantity * max(1, intval($this->produceQty)));
+            $reqQty = (int) ($comp->quantity * $targetQty);
             $existing = $this->componentSelections[$idx] ?? $this->componentSelections[(string)$idx] ?? null;
+
+            $mfg = $comp->manufacturingProduct;
+            $defaultPatId = ($mfg && $mfg->patterns->isNotEmpty()) ? (string) $mfg->patterns->first()->id : '';
 
             if (!$existing || !is_array($existing) || empty($existing)) {
                 $this->componentSelections[$idx] = [
-                    ['pattern_id' => '', 'quantity' => $reqQty]
+                    ['pattern_id' => $defaultPatId, 'quantity' => $reqQty]
                 ];
             } else {
-                if (count($existing) === 1 && empty($existing[0]['pattern_id'])) {
+                if (count($existing) === 1) {
+                    if (empty($existing[0]['pattern_id']) && $defaultPatId) {
+                        $this->componentSelections[$idx][0]['pattern_id'] = $defaultPatId;
+                    }
                     $this->componentSelections[$idx][0]['quantity'] = $reqQty;
                 }
             }
@@ -123,7 +136,10 @@ class FinishedGoodsConversionHub extends Component
         if (!isset($this->componentSelections[$compIdx])) {
             $this->componentSelections[$compIdx] = [];
         }
-        $this->componentSelections[$compIdx][] = ['pattern_id' => '', 'quantity' => 0];
+        $comp = $this->categoryConfiguration?->components->get($compIdx);
+        $mfg = $comp?->manufacturingProduct;
+        $defaultPatId = ($mfg && $mfg->patterns->isNotEmpty()) ? (string) $mfg->patterns->first()->id : '';
+        $this->componentSelections[$compIdx][] = ['pattern_id' => $defaultPatId, 'quantity' => 0];
     }
 
     public function removePatternRow(int $compIdx, int $pIdx)
@@ -135,9 +151,12 @@ class FinishedGoodsConversionHub extends Component
 
         if (empty($this->componentSelections[$compIdx])) {
             $comp = $this->categoryConfiguration?->components->get($compIdx);
-            $reqQty = ($comp?->quantity ?? 1) * max(1, intval($this->produceQty));
+            $targetQty = max(0, intval($this->produceQty));
+            $reqQty = ($comp?->quantity ?? 1) * $targetQty;
+            $mfg = $comp?->manufacturingProduct;
+            $defaultPatId = ($mfg && $mfg->patterns->isNotEmpty()) ? (string) $mfg->patterns->first()->id : '';
             $this->componentSelections[$compIdx] = [
-                ['pattern_id' => '', 'quantity' => $reqQty]
+                ['pattern_id' => $defaultPatId, 'quantity' => $reqQty]
             ];
         }
     }
@@ -158,11 +177,17 @@ class FinishedGoodsConversionHub extends Component
             return;
         }
 
+        if (empty($this->produceQty) || intval($this->produceQty) <= 0) {
+            session()->flash('toast', ['type' => 'error', 'message' => 'Target Quantity (Sets) is required and must be at least 1.']);
+            return;
+        }
+
+        $targetQty = intval($this->produceQty);
         $config = $this->categoryConfiguration;
         if ($config && $config->components->isNotEmpty()) {
             foreach ($config->components as $idx => $comp) {
                 $mfg = $comp->manufacturingProduct;
-                $reqQty = (int) ($comp->quantity * max(1, intval($this->produceQty)));
+                $reqQty = (int) ($comp->quantity * $targetQty);
                 $allocated = $this->getComponentAllocatedQty($idx);
 
                 if ($allocated !== $reqQty) {
@@ -194,7 +219,7 @@ class FinishedGoodsConversionHub extends Component
         }
 
         $dIdClean = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $codeStr ?: 'DSG'));
-        $targetQty = max(1, intval($this->produceQty));
+        $targetQty = max(0, intval($this->produceQty));
         return "FG-{$dIdClean}-" . now()->format('Y') . "-" . str_pad((string) $targetQty, 4, '0', STR_PAD_LEFT);
     }
 
@@ -274,14 +299,55 @@ class FinishedGoodsConversionHub extends Component
         }
 
         $this->ensureComponentSelectionsInitialized();
+        $targetQty = max(0, intval($this->produceQty));
         $service = resolve(FinishedGoodsConversionService::class);
-        $this->stockCheck = $service->checkCategoryStockAvailability($this->selectedCategoryId, $this->produceQty, $this->componentSelections);
+        $this->stockCheck = $service->checkCategoryStockAvailability($this->selectedCategoryId, $targetQty, $this->componentSelections);
+    }
+
+    public function getPatternAvailableStock(?ManufacturingProduct $mfg, int $patternId, int $totalMfgStock): int
+    {
+        if (!$mfg) {
+            return 0;
+        }
+
+        $jobStock = (int) \App\Models\ProductionJob::where('manufacturing_product_id', $mfg->id)
+            ->where('pattern_id', $patternId)
+            ->where('status', 'completed')
+            ->get()
+            ->sum(fn($j) => $j->remaining_unconverted_quantity);
+
+        $batchStock = (int) \App\Models\ProductionBatch::where('manufacturing_product_id', $mfg->id)
+            ->where('pattern_id', $patternId)
+            ->where('status', 'Completed')
+            ->where('is_converted', false)
+            ->get()
+            ->sum(fn($b) => $b->remaining_unconverted_quantity);
+
+        $specificStock = max($jobStock, $batchStock);
+
+        if ($specificStock > 0) {
+            return $specificStock;
+        }
+
+        if ($totalMfgStock > 0) {
+            $hasOtherPatternJobs = \App\Models\ProductionJob::where('manufacturing_product_id', $mfg->id)
+                ->whereNotNull('pattern_id')
+                ->where('pattern_id', '!=', $patternId)
+                ->where('status', 'completed')
+                ->exists();
+
+            if (!$hasOtherPatternJobs || $mfg->patterns->count() === 1) {
+                return $totalMfgStock;
+            }
+        }
+
+        return 0;
     }
 
     public function openWizardModal()
     {
         $this->wizardStep = 1;
-        $this->produceQty = 10;
+        $this->produceQty = '';
         $this->designType = 'new';
         $this->designId = '';
         $this->reuseCuttingPhoto = false;
@@ -305,6 +371,11 @@ class FinishedGoodsConversionHub extends Component
     {
         if (!$this->selectedCategoryId) {
             session()->flash('toast', ['type' => 'error', 'message' => 'Please select a Leaf Category.']);
+            return;
+        }
+
+        if (empty($this->produceQty) || intval($this->produceQty) <= 0) {
+            session()->flash('toast', ['type' => 'error', 'message' => 'Target Quantity (Sets) is required and must be at least 1.']);
             return;
         }
 

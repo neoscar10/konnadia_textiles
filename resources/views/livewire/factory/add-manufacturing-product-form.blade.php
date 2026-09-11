@@ -260,13 +260,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="pt-2 border-t border-slate-100">
-                                        <label class="block text-xs font-extrabold uppercase text-slate-700 mb-1">Standard Labor Rate (₹)</label>
-                                        <div class="relative flex items-center">
-                                            <span class="absolute left-3 text-xs font-extrabold text-slate-400">₹</span>
-                                            <input type="number" step="0.50" wire:model="patternsList.{{ $pIdx }}.standard_labor_rate" placeholder="Optional rate" class="w-full pl-7 pr-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500">
-                                        </div>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>

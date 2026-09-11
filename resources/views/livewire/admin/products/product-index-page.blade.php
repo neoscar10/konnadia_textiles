@@ -79,7 +79,7 @@
                                 <div class="flex items-center gap-sm">
                                     <div class="w-10 h-10 rounded bg-surface-container flex-shrink-0 overflow-hidden flex items-center justify-center border border-outline-variant/30">
                                         @if($prod->primaryMedia)
-                                            <img src="{{ Storage::url($prod->primaryMedia->file_path) }}" class="w-full h-full object-cover">
+                                            <img src="{{ $prod->primaryMedia->thumbnail_url }}" class="w-full h-full object-cover">
                                         @else
                                             <span class="material-symbols-outlined text-outline">image</span>
                                         @endif
@@ -460,6 +460,95 @@
                         </div>
                     </div>
                 @endif
+            </div>
+
+            <!-- Assembly & Packaging Requirements (Front-End Product Mapping) -->
+            <div class="space-y-md border-t border-outline-variant/20 pt-lg">
+                <div>
+                    <h4 class="font-title-md text-primary flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">widgets</span>
+                        Assembly & Packaging Requirements
+                    </h4>
+                    <p class="text-xs text-on-surface-variant font-medium mt-0.5">Configure constituent manufacturing products and packaging materials for finished goods conversion in this leaf category.</p>
+                </div>
+
+                <!-- Section 1: Manufacturing Products Required -->
+                <div class="p-md rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-md">
+                    <div class="flex items-center justify-between">
+                        <h5 class="text-xs font-extrabold uppercase tracking-wider text-on-surface">Manufacturing Products Required</h5>
+                    </div>
+
+                    <div class="space-y-sm">
+                        @foreach($mfgRows as $idx => $mfg)
+                            <div class="flex items-center gap-sm">
+                                <div class="flex-1">
+                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">MANUFACTURING PRODUCT ITEM</label>
+                                    <select wire:model="mfgRows.{{ $idx }}.manufacturing_product_id" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                        <option value="">Select Manufacturing Product...</option>
+                                        @foreach($mfgProducts as $p)
+                                            <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->category?->name ?? 'General' }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="w-32">
+                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">QTY PER SET</label>
+                                    <input type="number" min="1" wire:model="mfgRows.{{ $idx }}.quantity" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface font-mono font-bold" />
+                                </div>
+                                @if(count($mfgRows) > 1)
+                                    <div class="pt-5">
+                                        <button type="button" wire:click="removeMfgRow({{ $idx }})" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                            <span class="material-symbols-outlined text-[18px]">close</span>
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <button type="button" wire:click="addMfgRow" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-primary text-xs font-bold rounded-xl transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">add</span>
+                        <span>Add manufacturing product</span>
+                    </button>
+                </div>
+
+                <!-- Section 2: Packaging Materials -->
+                <div class="p-md rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-md">
+                    <div>
+                        <h5 class="text-xs font-extrabold uppercase tracking-wider text-on-surface">Packaging Materials Required</h5>
+                    </div>
+
+                    <div class="space-y-sm">
+                        @foreach($pkgRows as $idx => $pkg)
+                            <div class="flex items-center gap-sm">
+                                <div class="flex-1">
+                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">PACKAGING MATERIAL</label>
+                                    <select wire:model="pkgRows.{{ $idx }}.raw_material_id" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
+                                        <option value="">Select Packaging Material...</option>
+                                        @foreach($packagingMaterials as $mat)
+                                            <option value="{{ $mat->id }}">{{ $mat->name }} ({{ $mat->code }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="w-32">
+                                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">QTY PER SET</label>
+                                    <input type="number" min="1" wire:model="pkgRows.{{ $idx }}.quantity" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface font-mono font-bold" />
+                                </div>
+                                @if(count($pkgRows) > 1)
+                                    <div class="pt-5">
+                                        <button type="button" wire:click="removePkgRow({{ $idx }})" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                            <span class="material-symbols-outlined text-[18px]">close</span>
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <button type="button" wire:click="addPkgRow" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-primary text-xs font-bold rounded-xl transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">add</span>
+                        <span>Add packaging material</span>
+                    </button>
+                </div>
             </div>
         </div>
         <x-slot name="footer">

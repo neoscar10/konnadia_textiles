@@ -59,7 +59,7 @@
                 <!-- Product Image Area -->
                 <a href="{{ route('admin.products.show', ['id' => $prod->id]) }}" class="block aspect-square w-full bg-slate-50 border-b border-slate-100 overflow-hidden relative group">
                     @if($prod->primaryMedia)
-                        <img src="{{ Storage::url($prod->primaryMedia->file_path) }}" 
+                        <img src="{{ $prod->primaryMedia->thumbnail_url }}" 
                              alt="{{ $prod->title }}" 
                              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         >

@@ -504,7 +504,7 @@
     <x-admin.modal id="create-job-modal" title="Create New Production Batch" maxWidth="2xl">
         <form wire:submit.prevent="saveJob" class="space-y-5">
             <p class="text-on-surface-variant text-xs">
-                Select factory supervisor and manufacturing product(s). Adding multiple products will spawn individual production jobs for each product within the batch.
+                Select factory supervisor, set batch priority, and add notes. Products to produce will be defined during the fabric cutting stage.
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -526,71 +526,8 @@
                     @endif
                     @error('factory_supervisor_id') <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
                 </div>
-            </div>
 
-            <!-- Dynamic Product Items List -->
-            <div class="space-y-3 pt-2">
-                <div class="flex items-center justify-between">
-                    <label class="block text-xs font-black text-on-surface-variant uppercase tracking-wider">
-                        MANUFACTURING PRODUCTS TO CREATE *
-                    </label>
-                    <button type="button" wire:click="addBatchProductRow" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                        <span class="material-symbols-outlined text-sm">add_circle</span> + Add Product
-                    </button>
-                </div>
-
-                <div class="space-y-3">
-                    @foreach($batchProducts as $pIndex => $pRow)
-                        @php
-                            $rowProdId = $pRow['manufacturing_product_id'] ?? null;
-                            $rowPatterns = $rowProdId ? \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $rowProdId)->get() : collect();
-                        @endphp
-                        <div wire:key="batch-prod-row-{{ $pIndex }}" class="p-4 bg-surface-container-low border border-outline-variant/60 rounded-xl space-y-3">
-                            <div class="flex items-center justify-between text-xs font-extrabold text-on-surface-variant">
-                                <span>Product Job #{{ $pIndex + 1 }}</span>
-                                @if(count($batchProducts) > 1)
-                                    <button type="button" wire:click="removeBatchProductRow({{ $pIndex }})" class="text-rose-600 hover:bg-rose-500/10 p-1 rounded-lg transition-colors">
-                                        <span class="material-symbols-outlined text-[16px]">delete</span>
-                                    </button>
-                                @endif
-                            </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                                <!-- Manufacturing Product -->
-                                <div class="sm:col-span-5">
-                                    <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">PRODUCT *</label>
-                                    <select wire:model.live="batchProducts.{{ $pIndex }}.manufacturing_product_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
-                                        @foreach($allProducts as $product)
-                                            <option value="{{ $product->id }}">{{ $product->name }} ({{ $product->code }})</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <!-- Pattern -->
-                                <div class="sm:col-span-4">
-                                    <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">PATTERN *</label>
-                                    <select wire:model.live="batchProducts.{{ $pIndex }}.pattern_id" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
-                                        @forelse($rowPatterns as $pat)
-                                            <option value="{{ $pat->id }}">{{ $pat->name }}{{ $pat->is_default ? ' (Default)' : '' }}</option>
-                                        @empty
-                                            <option value="">Standard Fold</option>
-                                        @endforelse
-                                    </select>
-                                </div>
-
-                                <!-- Target Quantity -->
-                                <div class="sm:col-span-3">
-                                    <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">TARGET QTY *</label>
-                                    <input type="number" min="1" wire:model="batchProducts.{{ $pIndex }}.planned_quantity" placeholder="200" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            <!-- Priority & Notes -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Priority -->
                 <div>
                     <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider mb-1">PRIORITY *</label>
                     <select wire:model="priority" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface">
@@ -599,6 +536,8 @@
                         <option value="Low">Low</option>
                     </select>
                 </div>
+
+                <!-- Remarks / Notes -->
                 <div>
                     <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider mb-1">REMARKS / NOTES</label>
                     <input type="text" wire:model="notes" placeholder="Optional notes for shop floor supervisor..." class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface">
@@ -608,8 +547,9 @@
             <!-- Modal Action Buttons -->
             <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40">
                 <x-admin.button type="button" variant="ghost" @click="show = false">Cancel</x-admin.button>
-                <button type="submit" class="px-6 py-2.5 bg-[#001229] hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all active:scale-95">
-                    Create Production Batch
+                <button type="submit" class="px-6 py-2.5 bg-[#001229] hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all active:scale-95 flex items-center gap-2">
+                    Proceed to Cutting Stage
+                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                 </button>
             </div>
         </form>

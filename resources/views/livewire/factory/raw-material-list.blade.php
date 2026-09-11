@@ -77,11 +77,18 @@
                                 </a>
                             </td>
                             <td class="px-6 py-4">
-                                @forelse($material->supplierAliases as $alias)
-                                    <div class="text-xs font-bold text-on-surface leading-tight">
-                                        "{{ $alias->alias_name }}"
-                                        @if($alias->supplier)
-                                            <span class="text-on-surface-variant/70 font-normal">({{ $alias->supplier->name }})</span>
+                                @php
+                                    $groupedAliases = $material->supplierAliases->groupBy(fn($a) => strtolower(trim($a->alias_name)));
+                                @endphp
+                                @forelse($groupedAliases as $aliasGroup)
+                                    @php
+                                        $aliasName = $aliasGroup->first()->alias_name;
+                                        $supNames = $aliasGroup->pluck('supplier.name')->filter()->unique()->implode(', ');
+                                    @endphp
+                                    <div class="text-xs font-bold text-on-surface leading-tight mb-0.5">
+                                        "{{ $aliasName }}"
+                                        @if($supNames)
+                                            <span class="text-on-surface-variant/70 font-normal">({{ $supNames }})</span>
                                         @endif
                                     </div>
                                 @empty

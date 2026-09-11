@@ -829,10 +829,7 @@
                                             <div class="flex items-center justify-between p-3 bg-white border border-outline-variant/20 rounded-xl hover:bg-slate-50 transition-all">
                                                 <div class="flex items-center gap-3">
                                                     @php
-                                                        $primaryImage = $prod->primaryMedia ? $prod->primaryMedia->file_path : null;
-                                                        $imageUrl = $primaryImage 
-                                                            ? (str_starts_with($primaryImage, 'http') ? $primaryImage : Storage::disk('public')->url($primaryImage)) 
-                                                            : asset('images/product-placeholder.svg');
+                                                        $imageUrl = $prod->thumbnail_url;
                                                     @endphp
                                                     <img src="{{ $imageUrl }}" class="w-10 h-10 object-cover rounded-lg border bg-slate-50">
                                                     <div>
@@ -1178,10 +1175,7 @@
                                             @forelse($catProducts as $p)
                                                 <div class="flex-shrink-0 w-32 p-2.5 bg-white/5 border border-white/10 rounded-xl space-y-2">
                                                     @php
-                                                        $primaryImage = $p->primaryMedia ? $p->primaryMedia->file_path : null;
-                                                        $imageUrl = $primaryImage 
-                                                            ? (str_starts_with($primaryImage, 'http') ? $primaryImage : asset('storage/' . $primaryImage)) 
-                                                            : asset('images/product-placeholder.svg');
+                                                        $imageUrl = $p->thumbnail_url;
                                                     @endphp
                                                     <img src="{{ $imageUrl }}" class="w-full h-16 object-cover rounded-lg border border-white/5 bg-slate-800">
                                                     <div class="space-y-1">
@@ -1211,10 +1205,7 @@
                                                 @if($p)
                                                     <div class="flex-shrink-0 w-32 p-2.5 bg-white/5 border border-white/10 rounded-xl space-y-2">
                                                         @php
-                                                            $primaryImage = $p->primaryMedia ? $p->primaryMedia->file_path : null;
-                                                            $imageUrl = $primaryImage 
-                                                                ? (str_starts_with($primaryImage, 'http') ? $primaryImage : asset('storage/' . $primaryImage)) 
-                                                                : asset('images/product-placeholder.svg');
+                                                            $imageUrl = $p->thumbnail_url;
                                                         @endphp
                                                         <img src="{{ $imageUrl }}" class="w-full h-16 object-cover rounded-lg border border-white/5 bg-slate-800">
                                                         <div class="space-y-1">

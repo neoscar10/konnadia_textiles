@@ -238,4 +238,65 @@ class CategoryManagementTest extends TestCase
             ->call('openCategoryDefaults')
             ->assertStatus(200);
     }
+
+    public function test_category_defaults_modal_can_configure_assembly_and_packaging_requirements()
+    {
+        $category = Category::create([
+            'name' => 'Formal Shirts',
+            'slug' => 'formal-shirts',
+            'is_leaf' => true,
+            'is_active' => true,
+        ]);
+
+        $mfgProduct = \App\Models\ManufacturingProduct::create([
+            'name' => 'Stitched Formal Shirt',
+            'code' => 'MP-TEST-001',
+        ]);
+
+        $rmCategory = \App\Models\RawMaterialCategory::firstOrCreate(
+            ['code' => 'CAT-PKG'],
+            ['name' => 'Packaging', 'is_active' => true]
+        );
+
+        $rawMaterial = \App\Models\RawMaterial::create([
+            'name' => 'Shirt Box 10x12',
+            'code' => 'RM-PKG-001',
+            'raw_material_category_id' => $rmCategory->id,
+        ]);
+
+        Livewire::actingAs($this->superAdmin)
+            ->test(CategoryIndexPage::class, ['currentCategoryId' => $category->id])
+            ->call('openCategoryDefaults')
+            ->set('categoryDefaults.base_price', '500.00')
+            ->set('categoryDefaults.description', 'Default description')
+            ->set('categoryDefaults.gst_percentage', '5.0')
+            ->set('categoryDefaults.minimum_order_quantity', 1)
+            ->set('categoryDefaults.product_type', 'retail')
+            ->set('categoryDefaults.units.level1_name', 'Piece')
+            ->set('categoryDefaults.units.level1_code', 'pcs')
+            ->set('mfgRows', [
+                ['manufacturing_product_id' => $mfgProduct->id, 'quantity' => 2]
+            ])
+            ->set('pkgRows', [
+                ['raw_material_id' => $rawMaterial->id, 'quantity' => 1]
+            ])
+            ->call('saveCategoryDefaults')
+            ->assertHasNoErrors();
+
+        $feProduct = \App\Models\FrontEndProduct::where('category_id', $category->id)->first();
+        $this->assertNotNull($feProduct);
+        $this->assertEquals('Formal Shirts', $feProduct->name);
+
+        $this->assertDatabaseHas('front_end_product_components', [
+            'front_end_product_id' => $feProduct->id,
+            'manufacturing_product_id' => $mfgProduct->id,
+            'quantity' => 2,
+        ]);
+
+        $this->assertDatabaseHas('front_end_product_packagings', [
+            'front_end_product_id' => $feProduct->id,
+            'raw_material_id' => $rawMaterial->id,
+            'quantity' => 1,
+        ]);
+    }
 }

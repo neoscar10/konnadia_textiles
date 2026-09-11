@@ -161,40 +161,10 @@ class JobStageWizard extends Component
         }
     }
 
-    public function updatedProducedQty()
+    public function updated($property)
     {
-        $this->recalculateSubsidiaryRows();
-    }
-
-    public function updatedSubsidiaryRows($value, $key)
-    {
-        $parts = explode('.', $key);
-        if (count($parts) >= 2) {
-            $index = (int) $parts[0];
-            $field = $parts[1];
-
-            if (isset($this->subsidiaryRows[$index])) {
-                $row = &$this->subsidiaryRows[$index];
-                if ($field === 'inventory_batch_id') {
-                    $batchId = $row['inventory_batch_id'];
-                    if ($batchId) {
-                        $batch = InventoryBatch::find($batchId);
-                        if ($batch) {
-                            $row['unit_cost'] = (float) ($batch->purchase_rate ?: $batch->unit_cost);
-                        }
-                    }
-                }
-
-                $bomPerUnit = floatval($row['bom_per_unit'] ?? 1);
-                $outputQty  = max(0, intval($this->producedQty));
-                $stdReqQty  = round($bomPerUnit * $outputQty, 4);
-                $extraQty   = max(0, floatval($row['extra_qty'] ?? 0));
-
-                $row['output_qty']  = $outputQty;
-                $row['std_req_qty'] = $stdReqQty;
-                $row['total_qty']   = round($stdReqQty + $extraQty, 4);
-                $row['total_cost']  = round($row['total_qty'] * floatval($row['unit_cost'] ?? 0), 2);
-            }
+        if ($property === 'producedQty' || str_starts_with($property, 'subsidiaryRows')) {
+            $this->recalculateSubsidiaryRows();
         }
     }
 
@@ -209,6 +179,15 @@ class JobStageWizard extends Component
             $row['output_qty']  = $outputQty;
             $row['std_req_qty'] = $stdReqQty;
             $row['total_qty']   = round($stdReqQty + $extraQty, 4);
+
+            $batchId = $row['inventory_batch_id'] ?? null;
+            if ($batchId) {
+                $batch = InventoryBatch::find($batchId);
+                if ($batch) {
+                    $row['unit_cost'] = (float) ($batch->purchase_rate ?: ($batch->unit_cost ?: 0.0));
+                }
+            }
+
             $row['total_cost']  = round($row['total_qty'] * floatval($row['unit_cost'] ?? 0), 2);
         }
     }
@@ -572,6 +551,20 @@ class JobStageWizard extends Component
                         $rate = (float) ($batch->purchase_rate ?: $batch->unit_cost);
                         $cost = round($cutLen * $rate, 2);
 
+                        $rawMat = $batch->rawMaterial;
+                        $allocWastageCost = 0.0;
+                        if ($rawMat) {
+                            $targetOutputs = [
+                                [
+                                    'manufacturing_product_id' => $this->job->manufacturing_product_id,
+                                    'planned_quantity' => $this->job->target_quantity,
+                                    'pattern_id' => $this->job->pattern_id,
+                                ]
+                            ];
+                            $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMat, $targetOutputs, $rate);
+                            $allocWastageCost = (float) ($bd['total_wastage_cost'] ?? 0.0);
+                        }
+
                         JobMaterialConsumption::create([
                             'job_code'               => $this->job->job_code,
                             'production_job_id'       => $this->job->id,
@@ -582,6 +575,8 @@ class JobStageWizard extends Component
                             'unit_cost'              => $rate,
                             'total_cost'             => $cost,
                             'consumed_length'        => $cutLen,
+                            'calculated_base_cost'   => round(max(0, $cost - $allocWastageCost), 2),
+                            'allocated_wastage_cost' => $allocWastageCost,
                             'total_fabric_cost'      => $cost,
                         ]);
 
@@ -598,9 +593,54 @@ class JobStageWizard extends Component
         });
 
         $this->job->refresh();
-        $this->dispatch('toast', message: 'Fabric cut consumption recorded successfully!', type: 'success');
-        $this->selectedFabrics = [];
-        $this->addFabricRow();
+    }
+
+    public function addSubsidiaryRow()
+    {
+        $subMaterials = RawMaterial::whereHas('category', function ($q) {
+            $q->where('code', 'CAT-SUB')->orWhere('code', 'like', '%SUB%')->orWhere('name', 'like', '%Subsidiary%')->orWhere('name', 'like', '%Trim%');
+        })->orWhere(function ($q) {
+            $q->where('name', 'like', '%button%')->orWhere('name', 'like', '%zipper%')->orWhere('name', 'like', '%thread%')->orWhere('name', 'like', '%elastic%')->orWhere('name', 'like', '%label%');
+        })->get();
+
+        if ($subMaterials->isEmpty()) {
+            $subMaterials = RawMaterial::where('status', 'active')->get();
+        }
+
+        $firstMat = $subMaterials->first();
+        $matId = $firstMat?->id;
+        $outputQty = max(0, intval($this->producedQty));
+
+        $batches = $matId ? InventoryBatch::where('raw_material_id', $matId)->where('balance_quantity', '>', 0)->get() : collect();
+        $selectedBatch = $batches->first();
+        $unitCost = (float) ($selectedBatch?->purchase_rate ?: ($selectedBatch?->unit_cost ?: 0.0));
+
+        $this->subsidiaryRows[] = [
+            'raw_material_id'     => $matId,
+            'material_name'       => $firstMat?->name ?? 'Subsidiary Material',
+            'material_code'       => $firstMat?->code ?? '',
+            'unit'                => $firstMat?->unit ?? 'Pcs',
+            'bom_per_unit'        => 1.0,
+            'output_qty'          => $outputQty,
+            'std_req_qty'         => $outputQty,
+            'extra_qty'           => 0,
+            'total_qty'           => $outputQty,
+            'inventory_batch_id'  => $selectedBatch?->id,
+            'unit_cost'           => $unitCost,
+            'total_cost'          => round($outputQty * $unitCost, 2),
+            'available_batches'   => $batches->map(fn($b) => [
+                'id'               => $b->id,
+                'batch_number'     => $b->batch_number,
+                'balance_quantity' => (float) $b->balance_quantity,
+                'unit_cost'        => (float) ($b->purchase_rate ?: $b->unit_cost),
+            ])->toArray(),
+        ];
+    }
+
+    public function removeSubsidiaryRow(int $index)
+    {
+        unset($this->subsidiaryRows[$index]);
+        $this->subsidiaryRows = array_values($this->subsidiaryRows);
     }
 
     // --- LABOR ROWS ACTIONS ---

@@ -121,16 +121,12 @@
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
             <div class="space-y-2">
-                <p class="text-on-surface-variant font-bold uppercase text-[10px]">Raw Material</p>
-                @if($batch->rawMaterial)
-                    <a href="{{ route('factory.raw-materials.show', ['material' => $batch->rawMaterial->id]) }}" wire:navigate class="text-base font-black text-primary hover:underline block">
-                        {{ $batch->rawMaterial->name }} ({{ $batch->rawMaterial->code }})
-                    </a>
-                @else
-                    <p class="text-base font-bold text-on-surface">—</p>
-                @endif
+                <p class="text-on-surface-variant font-bold uppercase text-[10px]">Raw Material(s)</p>
+                <p class="text-base font-black text-primary block">
+                    {{ $batch->materialsNameSummary }}
+                </p>
                 <p class="text-on-surface-variant">
-                    Category: <strong>{{ $batch->rawMaterial?->category?->name ?: '—' }}</strong>
+                    Category: <strong>{{ $batch->rawMaterial?->category?->name ?: 'Fabric' }}</strong>
                 </p>
             </div>
 
@@ -198,7 +194,27 @@
                                         {{ strtoupper($bale->status) }}
                                     </span>
                                 </div>
-                                @if($bale->item_name || $bale->design_number || $bale->stock_id)
+                                @if($bale->baleItems && $bale->baleItems->isNotEmpty())
+                                    <div class="mt-2 pt-2 border-t border-outline-variant/30 space-y-1.5 w-full">
+                                        <span class="text-[10px] font-extrabold uppercase text-on-surface-variant/70 block">Items in this Bale:</span>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                            @foreach($bale->baleItems as $bItem)
+                                                <div class="p-2.5 bg-surface-container-low rounded-xl border border-outline-variant/30 text-xs flex items-center justify-between gap-2 shadow-2xs">
+                                                    <div>
+                                                        <span class="font-bold text-on-surface block">{{ $bItem->rawMaterial?->name ?? $bItem->item_name }}</span>
+                                                        @if($bItem->design_number || $bItem->stock_id)
+                                                            <span class="text-[10px] text-on-surface-variant font-mono block mt-0.5">
+                                                                {{ $bItem->design_number ? 'Design: ' . $bItem->design_number : '' }}
+                                                                {{ $bItem->stock_id ? ' | Stock: ' . $bItem->stock_id : '' }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                    <span class="font-mono font-extrabold text-primary shrink-0 text-xs">{{ number_format($bItem->declared_length, 2) }}m</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @elseif($bale->item_name || $bale->design_number || $bale->stock_id)
                                     <div class="flex flex-wrap items-center gap-2 text-xs">
                                         @if($bale->item_name)
                                             <span class="font-bold text-on-surface">{{ $bale->item_name }}</span>
@@ -456,23 +472,43 @@
 
                     @if(!empty($baleRollCount) && count($baleRollLengths) > 0)
                         <div class="space-y-3">
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Measured Length of Each Roll (Meters) *</label>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Measured Length & Fabric Material of Each Roll *</label>
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                @foreach($baleRollLengths as $i => $len)
-                                    <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-1">
-                                        <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase">Roll #{{ $i + 1 }}</label>
-                                        <div class="relative">
-                                            <input type="number" step="0.01" min="0.01" wire:model.live="baleRollLengths.{{ $i }}" placeholder="0.00" class="w-full bg-surface border border-outline-variant/60 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-primary">
-                                            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-outline font-bold">m</span>
+                                @php
+                                    $baleMats = $baleToOpen?->availableMaterials ?? collect();
+                                @endphp
+                                @foreach($baleRollLengths as $i => $rollItem)
+                                    <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase">Roll #{{ $i + 1 }}</label>
                                         </div>
-                                        @error("baleRollLengths.{$i}") <p class="text-[10px] font-bold text-error mt-0.5">{{ $message }}</p> @enderror
+
+                                        @if($baleMats->count() > 1)
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-on-surface-variant/70 uppercase">Fabric Item *</label>
+                                                <select wire:model.live="baleRollLengths.{{ $i }}.raw_material_id" class="w-full bg-surface border border-outline-variant/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-primary">
+                                                    @foreach($baleMats as $mat)
+                                                        <option value="{{ $mat->id }}">{{ $mat->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        @endif
+
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-on-surface-variant/70 uppercase">Measured Length *</label>
+                                            <div class="relative">
+                                                <input type="number" step="0.01" min="0.01" wire:model.live="baleRollLengths.{{ $i }}.length" placeholder="0.00" class="w-full bg-surface border border-outline-variant/60 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-primary">
+                                                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-outline font-bold">m</span>
+                                            </div>
+                                            @error("baleRollLengths.{$i}.length") <p class="text-[10px] font-bold text-error mt-0.5">{{ $message }}</p> @enderror
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>
                         </div>
 
                         @php
-                            $measuredTotal = array_sum(array_map('floatval', array_filter($baleRollLengths, fn($v) => $v !== '' && $v !== null)));
+                            $measuredTotal = array_sum(array_map(fn($item) => is_array($item) ? floatval($item['length'] ?? 0) : floatval($item), array_filter($baleRollLengths)));
                         @endphp
                         <div class="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex justify-between items-center text-xs">
                             <span class="font-bold text-on-surface">Total Measured Rolls Length:</span>

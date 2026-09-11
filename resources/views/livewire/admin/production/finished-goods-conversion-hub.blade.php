@@ -155,7 +155,7 @@
                             <!-- Target Quantity -->
                             <div>
                                 <label class="block text-[11px] font-extrabold uppercase tracking-wider text-on-surface mb-1.5">Target Quantity (Sets) *</label>
-                                <input type="number" min="1" wire:model.live="produceQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs font-mono font-bold rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface" />
+                                <input type="number" min="1" wire:model.live="produceQty" placeholder="e.g. 10" class="w-full px-3 py-2 bg-surface-container-lowest text-xs font-mono font-bold rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface" />
                             </div>
 
                             <!-- Select Design Option (New vs Existing Design) -->
@@ -238,7 +238,7 @@
                                     @foreach($this->categoryConfiguration->components as $idx => $comp)
                                         @php
                                             $mfg = $comp->manufacturingProduct;
-                                            $reqQty = $comp->quantity * $produceQty;
+                                            $reqQty = $comp->quantity * max(0, intval($produceQty));
                                             $stockInfo = collect($stockCheck['mfgStock'])->firstWhere('component_index', $idx);
                                             $availStock = $stockInfo['available_stock'] ?? 0;
                                             $isEnough = $stockInfo['is_enough'] ?? true;
@@ -251,7 +251,7 @@
                                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-outline-variant/40 pb-2">
                                                 <div class="font-bold text-xs text-on-surface">
                                                     {{ $mfg?->name ?? 'Manufacturing Product Item' }}
-                                                    <span class="text-on-surface-variant font-normal text-[11px]">(Required Qty: {{ $comp->quantity }} × {{ $produceQty }} = <strong class="text-on-surface font-mono">{{ $reqQty }} Pcs</strong>)</span>
+                                                    <span class="text-on-surface-variant font-normal text-[11px]">(Required Qty: {{ $comp->quantity }} × {{ intval($produceQty) }} = <strong class="text-on-surface font-mono">{{ $reqQty }} Pcs</strong>)</span>
                                                 </div>
                                                 <div>
                                                     @if($isEnough)
@@ -273,13 +273,20 @@
                                                         <!-- Pattern Dropdown -->
                                                         <div class="col-span-7 sm:col-span-8">
                                                             <select wire:model.live="componentSelections.{{ $idx }}.{{ $pIdx }}.pattern_id" class="w-full px-3 py-2 bg-surface-container-low text-xs rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface font-semibold">
-                                                                <option value="">Default Pattern / Auto-allocate {{ $designId ? '(Design #' . $designId . ')' : '' }}</option>
                                                                 @if($mfg && $mfg->patterns->isNotEmpty())
+                                                                    @if(empty($pRow['pattern_id']))
+                                                                        <option value="" disabled selected>-- Select Pattern --</option>
+                                                                    @endif
                                                                     @foreach($mfg->patterns as $pat)
+                                                                        @php
+                                                                            $pStock = $this->getPatternAvailableStock($mfg, $pat->id, $availStock);
+                                                                        @endphp
                                                                         <option value="{{ $pat->id }}">
-                                                                            {{ $pat->name }} (Width: {{ $pat->fabricWidth?->name ?? 'Std' }})
+                                                                            {{ $pat->name }}{{ $pat->fabricWidth ? ' (Width: ' . $pat->fabricWidth->name . ')' : '' }} — Stock: {{ $pStock }} Pcs
                                                                         </option>
                                                                     @endforeach
+                                                                @else
+                                                                    <option value="">Default Pattern / Auto-allocate {{ $designId ? '(Design #' . $designId . ')' : '' }} — Stock: {{ $availStock }} Pcs</option>
                                                                 @endif
                                                             </select>
                                                         </div>
@@ -341,7 +348,7 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     @foreach($this->categoryConfiguration->packagingItems as $pkg)
                                         @php
-                                            $pkgReq = $pkg->quantity * $produceQty;
+                                            $pkgReq = $pkg->quantity * max(0, intval($produceQty));
                                             $pkgMat = $pkg->rawMaterial;
                                             $pkgStockInfo = collect($stockCheck['pkgStock'])->firstWhere('raw_material_id', $pkgMat?->id);
                                             $pkgAvail = $pkgStockInfo['available_stock'] ?? 0;
@@ -349,7 +356,7 @@
                                         <div class="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/60 flex items-center justify-between text-xs">
                                             <div>
                                                 <div class="font-bold text-on-surface">{{ $pkgMat?->name ?? 'Packaging Material' }}</div>
-                                                <div class="text-[11px] text-on-surface-variant">Qty per set: {{ $pkg->quantity }} × {{ $produceQty }} = <strong class="font-mono text-on-surface">{{ $pkgReq }}</strong></div>
+                                                <div class="text-[11px] text-on-surface-variant">Qty per set: {{ $pkg->quantity }} × {{ intval($produceQty) }} = <strong class="font-mono text-on-surface">{{ $pkgReq }}</strong></div>
                                             </div>
                                             <div class="text-right font-mono font-bold text-[11px] text-on-surface-variant">
                                                 Stock: {{ $pkgAvail }}
@@ -371,7 +378,7 @@
                                 </div>
                                 <div class="text-[11px] opacity-90 mt-0.5">
                                     @if($stockCheck['canProceed'] ?? true)
-                                        All required manufacturing products and packaging materials are available in factory inventory for {{ $produceQty }} Piece (Pcs).
+                                        All required manufacturing products and packaging materials are available in factory inventory for {{ intval($produceQty) }} Piece (Pcs).
                                     @else
                                         {{ implode(', ', $stockCheck['missingItems'] ?? []) }}
                                     @endif

@@ -20,6 +20,20 @@
 
     <form wire:submit="savePurchaseEntry">
         <div class="w-full space-y-6">
+            @if ($errors->any())
+                <div class="p-4 rounded-xl bg-error/10 border border-error/30 text-error flex items-start gap-3 shadow-xs">
+                    <span class="material-symbols-outlined text-[22px] shrink-0 mt-0.5">error</span>
+                    <div>
+                        <h4 class="font-bold text-sm">Please correct the missing or invalid field(s) before saving:</h4>
+                        <ul class="list-disc list-inside text-xs mt-1.5 space-y-1 font-medium">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            @endif
+
             <!-- Card 1: Purchase Information -->
             <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-6 shadow-xs">
                 <div class="flex items-center gap-2 mb-6 text-primary">
@@ -42,6 +56,7 @@
                             @endforeach
                         </select>
                         @error('supplier_name') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                        @error('supplier_id') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
@@ -88,38 +103,40 @@
                         <h3 class="font-headline-sm text-headline-sm font-extrabold">Raw Material Category Selection</h3>
                     </div>
                     
-                    <div class="mb-6">
-                        <label for="category-picker" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Select Raw Material Category <span class="text-error">*</span></label>
-                        <select
-                            id="category-picker"
-                            wire:model.live="raw_material_category_id"
-                            class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold"
-                        >
-                            <option value="">— Select Category —</option>
-                            @foreach($categories as $cat)
-                                <option value="{{ $cat->id }}">{{ $cat->name }} ({{ $cat->code }})</option>
-                            @endforeach
-                        </select>
-                        @error('raw_material_category_id') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
-                    </div>
-
-                    <!-- Non-Fabric Single Material Picker -->
-                    @if($raw_material_category_id && $unitType !== 'length_based')
-                        <div class="mb-6 bg-surface-container-low rounded-xl p-5 border border-outline-variant/30">
-                            <label for="material-picker" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Select Raw Material Item <span class="text-error">*</span></label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="category-picker" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Select Raw Material Category <span class="text-error">*</span></label>
                             <select
-                                id="material-picker"
-                                wire:model.live="raw_material_id"
-                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-semibold"
+                                id="category-picker"
+                                wire:model.live="raw_material_category_id"
+                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold"
                             >
-                                <option value="">— Select Material Item —</option>
-                                @foreach($availableMaterials as $material)
-                                    <option value="{{ $material->id }}">{{ $material->name }} ({{ $material->code }})</option>
+                                <option value="">— Select Category —</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }} ({{ $cat->code }})</option>
                                 @endforeach
                             </select>
-                            @error('raw_material_id') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                            @error('raw_material_category_id') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                         </div>
-                    @endif
+
+                        <!-- Non-Fabric Single Material Picker -->
+                        @if($raw_material_category_id && $unitType !== 'length_based')
+                            <div>
+                                <label for="material-picker" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Select Raw Material Item <span class="text-error">*</span></label>
+                                <select
+                                    id="material-picker"
+                                    wire:model.live="raw_material_id"
+                                    class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-semibold"
+                                >
+                                    <option value="">— Select Material Item —</option>
+                                    @foreach($availableMaterials as $material)
+                                        <option value="{{ $material->id }}">{{ $material->name }} ({{ $material->code }})</option>
+                                    @endforeach
+                                </select>
+                                @error('raw_material_id') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
+                    </div>
 
                     <!-- Dynamic Purchase Fields -->
                     @if($raw_material_category_id)
@@ -136,16 +153,6 @@
                                             Each bale receives its own fabric raw material item, design number, stock ID, and quantity breakdown.
                                         </p>
                                     </div>
-                                    <!-- Toggle Switch: All bales equal length -->
-                                    <label class="flex items-center gap-2.5 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            wire:model.live="all_bales_equal_length"
-                                            class="sr-only peer"
-                                        />
-                                        <div class="relative w-11 h-6 bg-outline-variant/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                        <span class="font-label-md text-xs font-extrabold text-on-surface">All bale lengths are equal</span>
-                                    </label>
                                 </div>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -164,23 +171,6 @@
                                         />
                                         @error('num_bales') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                                     </div>
-
-                                    @if($all_bales_equal_length)
-                                        <div>
-                                            <label for="declared-bale-length" class="block font-label-md text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 whitespace-nowrap">
-                                                Length per Bale ({{ $unitName }}) *
-                                            </label>
-                                            <input
-                                                id="declared-bale-length"
-                                                type="number"
-                                                step="0.01"
-                                                wire:model.live="declared_bale_length"
-                                                placeholder="e.g., 300"
-                                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 font-body-md text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-bold text-left"
-                                            />
-                                            @error('declared_bale_length') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
-                                        </div>
-                                    @endif
                                 </div>
 
                                 <!-- Dynamic Bale Items Cards Grid -->
@@ -222,6 +212,9 @@
                                                                 class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-primary focus:border-primary focus:outline-none"
                                                             />
                                                         </div>
+                                                        @error("bale_items.{$baleIndex}.bale_number")
+                                                            <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
+                                                        @enderror
                                                     </div>
 
                                                     <div class="flex items-center gap-4 justify-between sm:justify-end">
@@ -288,7 +281,7 @@
 
                                                                 <!-- Cost Per Unit -->
                                                                 <div class="lg:col-span-2">
-                                                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Cost Per Unit (₹)</label>
+                                                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Cost Per Unit (₹) <span class="text-error">*</span></label>
                                                                     <div class="relative">
                                                                         <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant/60">₹</span>
                                                                         <input type="number" 
@@ -297,6 +290,9 @@
                                                                                placeholder="{{ number_format(floatval($purchase_rate ?: 0), 2) }}" 
                                                                                class="w-full bg-surface border border-outline-variant/40 rounded-xl pl-6 pr-3 py-2 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none" />
                                                                     </div>
+                                                                    @error("bale_items.{$baleIndex}.items.{$itemIndex}.cost_per_unit")
+                                                                        <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
+                                                                    @enderror
                                                                 </div>
 
                                                                 <!-- Stock ID -->
@@ -396,19 +392,22 @@
                                 </label>
 
                                 @if(!$gst_included)
-                                    <div class="flex items-center gap-1.5 bg-surface border border-outline-variant/60 rounded-xl px-3 py-1.5 shadow-2xs">
-                                        <label for="gst-percent" class="text-xs font-bold text-on-surface-variant shrink-0">GST %:</label>
-                                        <input
-                                            id="gst-percent"
-                                            type="number"
-                                            step="0.5"
-                                            min="0"
-                                            max="100"
-                                            wire:model.live="gst_percent"
-                                            placeholder="18"
-                                            class="w-16 bg-transparent border-none text-xs font-bold text-primary focus:ring-0 p-0 text-right outline-none"
-                                        />
-                                        <span class="text-xs font-bold text-on-surface-variant">%</span>
+                                    <div class="flex flex-col items-end">
+                                        <div class="flex items-center gap-1.5 bg-surface border border-outline-variant/60 rounded-xl px-3 py-1.5 shadow-2xs">
+                                            <label for="gst-percent" class="text-xs font-bold text-on-surface-variant shrink-0">GST %:</label>
+                                            <input
+                                                id="gst-percent"
+                                                type="number"
+                                                step="0.5"
+                                                min="0"
+                                                max="100"
+                                                wire:model.live="gst_percent"
+                                                placeholder="18"
+                                                class="w-16 bg-transparent border-none text-xs font-bold text-primary focus:ring-0 p-0 text-right outline-none"
+                                            />
+                                            <span class="text-xs font-bold text-on-surface-variant">%</span>
+                                        </div>
+                                        @error('gst_percent') <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p> @enderror
                                     </div>
                                 @endif
                             </div>

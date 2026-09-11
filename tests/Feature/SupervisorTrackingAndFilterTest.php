@@ -60,23 +60,11 @@ class SupervisorTrackingAndFilterTest extends TestCase
             ->set('factory_supervisor_id', $this->supervisorA->id)
             ->set('priority', 'Normal')
             ->set('notes', 'Test batch with Alice')
-            ->set('batchProducts', [
-                [
-                    'manufacturing_product_id' => $this->mProduct->id,
-                    'pattern_id' => null,
-                    'planned_quantity' => 100,
-                ],
-            ])
             ->call('saveJob');
 
         $batch = ProductionBatch::latest()->first();
         $this->assertNotNull($batch);
         $this->assertEquals($this->supervisorA->id, $batch->factory_supervisor_id);
-
-        $job = ProductionJob::latest()->first();
-        $this->assertNotNull($job);
-        $this->assertEquals($this->supervisorA->id, $job->factory_supervisor_id);
-        $this->assertEquals('Alice Supervisor', $job->effective_supervisor->name);
     }
 
     /** @test */

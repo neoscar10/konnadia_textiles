@@ -106,40 +106,63 @@
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
                                     <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">SUPPLIER ALIASES</label>
-                                    <span class="text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">NEW</span>
+                                    <span class="text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">MULTIPLE SUPPLIERS ALLOWED</span>
                                 </div>
                             </div>
-                            <p class="text-xs text-on-surface-variant/70">Every supplier can name this material differently — add as many aliases as needed.</p>
+                            <p class="text-xs text-on-surface-variant/70">Create an alias and assign one or multiple suppliers that use this name.</p>
 
                             @if(empty($supplierAliases))
                                 <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl text-center text-xs text-on-surface-variant/70 italic font-medium">
-                                    No aliases yet — every supplier can call this material something different, add one below.
+                                    No aliases yet — click below to add an alias and link suppliers to it.
                                 </div>
                             @else
-                                <div class="space-y-2.5">
+                                <div class="space-y-3">
                                     @foreach($supplierAliases as $aIdx => $alias)
-                                        <div wire:key="supplier-alias-row-{{ $aIdx }}" class="p-2.5 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
-                                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                                                <div class="sm:col-span-5">
-                                                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Supplier *</label>
-                                                    <select wire:model="supplierAliases.{{ $aIdx }}.supplier_id" class="w-full py-1.5 px-3 rounded-lg border border-outline-variant/60 bg-surface-container-lowest text-xs font-semibold text-on-surface">
-                                                        <option value="">-- Select Supplier --</option>
-                                                        @foreach($suppliers as $sup)
-                                                            <option value="{{ $sup->id }}">{{ $sup->name }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-
-                                                <div class="sm:col-span-6">
+                                        <div wire:key="supplier-alias-row-{{ $aIdx }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-3">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <div class="flex-1">
                                                     <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Supplier Alias Name / Code *</label>
-                                                    <input type="text" wire:model="supplierAliases.{{ $aIdx }}.alias_name" placeholder="e.g. Poplin Premium 44in" class="w-full py-1.5 px-3 rounded-lg border border-outline-variant/60 bg-surface-container-lowest text-xs font-semibold text-on-surface">
+                                                    <input type="text" wire:model="supplierAliases.{{ $aIdx }}.alias_name" placeholder="e.g. Poplin Premium 44in / scar" class="w-full py-1.5 px-3 rounded-lg border border-outline-variant/60 bg-surface-container-lowest text-xs font-semibold text-on-surface">
                                                 </div>
-
-                                                <div class="sm:col-span-1 flex justify-end pt-3 sm:pt-0">
-                                                    <button type="button" wire:click="removeSupplierAliasRow({{ $aIdx }})" class="p-1 text-error hover:bg-error-container/20 rounded-lg transition-colors" title="Remove Alias">
+                                                <div class="pt-4">
+                                                    <button type="button" wire:click="removeSupplierAliasRow({{ $aIdx }})" class="p-1.5 text-error hover:bg-error-container/20 rounded-lg transition-colors" title="Remove Alias">
                                                         <span class="material-symbols-outlined text-base">delete</span>
                                                     </button>
                                                 </div>
+                                            </div>
+
+                                            <div>
+                                                <div class="flex items-center justify-between mb-1.5">
+                                                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Associated Suppliers (multiple allowed) *</label>
+                                                    <span class="text-[9px] font-bold text-on-surface-variant/70">
+                                                        {{ count($alias['supplier_ids'] ?? []) }} selected
+                                                    </span>
+                                                </div>
+
+                                                @if($suppliers->isNotEmpty())
+                                                    <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                                        @foreach($suppliers as $sup)
+                                                            @php
+                                                                $isSupSelected = in_array((string)$sup->id, $alias['supplier_ids'] ?? []) || in_array($sup->id, $alias['supplier_ids'] ?? []);
+                                                            @endphp
+                                                            <button
+                                                                type="button"
+                                                                wire:click="toggleSupplierForAlias({{ $aIdx }}, {{ $sup->id }})"
+                                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer select-none
+                                                                    {{ $isSupSelected
+                                                                        ? 'bg-primary text-on-primary border-primary shadow-xs'
+                                                                        : 'bg-surface-container-lowest text-on-surface border-outline-variant/60 hover:border-primary/60 hover:bg-surface-container-high/40' }}"
+                                                            >
+                                                                <span class="material-symbols-outlined text-[14px] {{ $isSupSelected ? 'text-on-primary' : 'text-outline' }}">
+                                                                    {{ $isSupSelected ? 'check_circle' : 'add_circle' }}
+                                                                </span>
+                                                                <span>{{ $sup->name }}</span>
+                                                            </button>
+                                                        @endforeach
+                                                    </div>
+                                                @else
+                                                    <p class="text-xs text-on-surface-variant/50 italic">No suppliers available. Create suppliers first.</p>
+                                                @endif
                                             </div>
                                         </div>
                                     @endforeach

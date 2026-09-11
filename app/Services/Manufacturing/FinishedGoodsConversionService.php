@@ -238,13 +238,16 @@ class FinishedGoodsConversionService
             // Handle product media attachment
             $productImagePath = $data['product_image'] ?? null;
             $reuseCuttingPhoto = !empty($data['reuse_cutting_photo']);
+            $thumbnailService = app(\App\Services\Catalog\ImageThumbnailService::class);
 
             if ($storefrontProduct) {
                 if ($productImagePath) {
+                    $thumbPath = $thumbnailService->generateThumbnail($productImagePath);
                     \App\Models\ProductMedia::where('product_id', $storefrontProduct->id)->update(['is_primary' => false]);
                     \App\Models\ProductMedia::create([
                         'product_id' => $storefrontProduct->id,
                         'file_path' => $productImagePath,
+                        'thumbnail_path' => $thumbPath,
                         'file_type' => 'image',
                         'mime_type' => 'image/jpeg',
                         'size' => 0,
@@ -259,10 +262,12 @@ class FinishedGoodsConversionService
                         ->value('photo_path');
 
                     if ($balePhoto) {
+                        $thumbPath = $thumbnailService->generateThumbnail($balePhoto);
                         \App\Models\ProductMedia::where('product_id', $storefrontProduct->id)->update(['is_primary' => false]);
                         \App\Models\ProductMedia::create([
                             'product_id' => $storefrontProduct->id,
                             'file_path' => $balePhoto,
+                            'thumbnail_path' => $thumbPath,
                             'file_type' => 'image',
                             'mime_type' => 'image/jpeg',
                             'size' => 0,

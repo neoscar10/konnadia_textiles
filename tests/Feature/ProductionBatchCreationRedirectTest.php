@@ -42,7 +42,7 @@ class ProductionBatchCreationRedirectTest extends TestCase
     }
 
     /** @test */
-    public function it_redirects_to_batch_jobs_detail_page_when_production_batch_is_created()
+    public function it_redirects_to_shared_cutting_stage_when_production_batch_is_created()
     {
         $this->actingAs($this->admin);
 
@@ -50,19 +50,12 @@ class ProductionBatchCreationRedirectTest extends TestCase
             ->set('factory_supervisor_id', $this->supervisor->id)
             ->set('priority', 'Normal')
             ->set('notes', 'Test production batch creation redirect')
-            ->set('batchProducts', [
-                [
-                    'manufacturing_product_id' => $this->mProduct->id,
-                    'pattern_id' => null,
-                    'planned_quantity' => 50,
-                ],
-            ])
             ->call('saveJob');
 
         $batch = \App\Models\ProductionBatch::latest()->first();
         $this->assertNotNull($batch);
 
-        $test->assertRedirect(route('admin.production.batches.jobs', $batch->batch_code));
+        $test->assertRedirect(route('factory.cutting-stage', ['batch' => $batch->batch_code]));
         $test->assertSessionHas('toast');
     }
 }

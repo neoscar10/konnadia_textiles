@@ -252,15 +252,8 @@ class ProductCatalogService
                 ->first();
         }
 
-        $primaryImage = $product->primaryMedia ? $product->primaryMedia->file_path : null;
-        if (!$primaryImage && $product->media->first()) {
-            $primaryImage = $product->media->first()->file_path;
-        }
-
-        // Format primary image URL
-        $primaryImageUrl = $primaryImage 
-            ? (str_starts_with($primaryImage, 'http') ? $primaryImage : Storage::url($primaryImage))
-            : url('/images/product-placeholder.svg');
+        // Format primary image URL for card listing
+        $primaryImageUrl = $product->thumbnail_url;
 
         $categories = $product->categories->map(fn($cat) => [
             'id' => $cat->id,
@@ -327,7 +320,8 @@ class ProductCatalogService
 
         $media = $product->media->map(fn($m) => [
             'id' => $m->id,
-            'url' => str_starts_with($m->file_path, 'http') ? $m->file_path : Storage::url($m->file_path),
+            'url' => $m->image_url,
+            'thumbnail_url' => $m->thumbnail_url,
             'is_primary' => (bool)$m->is_primary,
             'sort_order' => $m->sort_order,
         ])->toArray();
@@ -337,6 +331,7 @@ class ProductCatalogService
             $media[] = [
                 'id' => 0,
                 'url' => url('/images/product-placeholder.svg'),
+                'thumbnail_url' => url('/images/product-placeholder.svg'),
                 'is_primary' => true,
                 'sort_order' => 0
             ];

@@ -21,20 +21,21 @@ class InventoryBatchDetail extends Component
 
     public function mount(InventoryBatch $batch)
     {
-        // Eager load related data: raw material, unit models, consumptions, stage executions, logs, bales, and rolls
+        // Eager load related data: raw material, unit models, consumptions, stage executions, logs, bales, baleItems, and rolls
         $this->batch = $batch->load([
             'rawMaterial.category',
             'rawMaterial.unitGroup',
             'rawMaterial.unitModel',
             'consumptions.job.manufacturingProduct',
             'logs.user',
-            'bales.rolls',
+            'bales.baleItems.rawMaterial',
+            'bales.rolls.rawMaterial',
         ]);
     }
 
     public function triggerOpenBaleModal(int $baleId)
     {
-        $bale = \App\Models\InventoryBale::with('batch')->findOrFail($baleId);
+        $bale = \App\Models\InventoryBale::with(['batch', 'baleItems.rawMaterial'])->findOrFail($baleId);
         $this->activeBaleIdToOpen = $bale->id;
         $this->baleRollCount = '';
         $this->baleRollLengths = [];
@@ -55,10 +56,16 @@ class InventoryBatchDetail extends Component
         $count = max(1, min(50, intval($count)));
         $this->baleRollCount = $count;
 
+        $bale = \App\Models\InventoryBale::find($this->activeBaleIdToOpen);
+        $defaultMatId = $bale?->availableMaterials->first()?->id;
+
         $currentCount = count($this->baleRollLengths);
         if ($currentCount < $count) {
             for ($i = $currentCount; $i < $count; $i++) {
-                $this->baleRollLengths[$i] = '';
+                $this->baleRollLengths[$i] = [
+                    'length' => '',
+                    'raw_material_id' => $defaultMatId,
+                ];
             }
         } else if ($currentCount > $count) {
             $this->baleRollLengths = array_slice($this->baleRollLengths, 0, $count);
@@ -78,7 +85,11 @@ class InventoryBatchDetail extends Component
         $bale = \App\Models\InventoryBale::find($this->activeBaleIdToOpen);
         if (!$bale) return;
 
-        $filledLengths = array_filter($this->baleRollLengths, fn($val) => $val !== '' && $val !== null);
+        $filledLengths = array_filter(
+            array_map(fn($item) => is_array($item) ? ($item['length'] ?? '') : $item, $this->baleRollLengths),
+            fn($val) => $val !== '' && $val !== null
+        );
+
         if (empty($filledLengths)) {
             $this->baleMismatchWarning = null;
             return;
@@ -105,15 +116,17 @@ class InventoryBatchDetail extends Component
             return;
         }
 
-        foreach ($this->baleRollLengths as $i => $len) {
+        foreach ($this->baleRollLengths as $i => $item) {
+            $len = is_array($item) ? ($item['length'] ?? '') : $item;
             if ($len === '' || $len === null || (float)$len <= 0) {
-                $this->addError("baleRollLengths.{$i}", "Please enter a valid length for Roll #" . ($i + 1));
+                $this->addError("baleRollLengths.{$i}.length", "Please enter a valid length for Roll #" . ($i + 1));
                 return;
             }
         }
 
         $bale = \App\Models\InventoryBale::findOrFail($this->activeBaleIdToOpen);
-        $sum = array_sum(array_map('floatval', $this->baleRollLengths));
+        $lengths = array_map(fn($item) => is_array($item) ? floatval($item['length'] ?? 0) : floatval($item), $this->baleRollLengths);
+        $sum = array_sum($lengths);
         $declared = (float) $bale->declared_length;
 
         if (abs($sum - $declared) > 0.001 && !$this->showMismatchConfirmationModal) {
@@ -141,7 +154,8 @@ class InventoryBatchDetail extends Component
             'rawMaterial.unitModel',
             'consumptions.job.manufacturingProduct',
             'logs.user',
-            'bales.rolls',
+            'bales.baleItems.rawMaterial',
+            'bales.rolls.rawMaterial',
         ]);
 
         $this->dispatch('toast', message: "Bale {$bale->bale_number} opened with {$bale->roll_count} rolls! Measured length ({$result['total_recorded_length']}m) recorded for stock calculations.", type: 'success');

@@ -124,7 +124,7 @@
                                 <div class="flex items-center gap-sm">
                                     <div class="w-10 h-10 rounded bg-surface-container flex-shrink-0 overflow-hidden flex items-center justify-center border border-outline-variant/30">
                                         @if($prod->primaryMedia)
-                                            <img src="{{ Storage::url($prod->primaryMedia->file_path) }}" class="w-full h-full object-cover">
+                                            <img src="{{ $prod->primaryMedia->thumbnail_url }}" class="w-full h-full object-cover">
                                         @else
                                             <span class="material-symbols-outlined text-outline">image</span>
                                         @endif

@@ -92,31 +92,25 @@ class RawMaterialManager extends Component
 
     public function isLengthBased(): bool
     {
-        if ($this->unit_group_id) {
-            $group = UnitGroup::find($this->unit_group_id);
-            if ($group && (strtoupper($group->code) === 'LENGTH' || str_contains(strtolower($group->name), 'length'))) {
-                return true;
-            }
+        if (!$this->raw_material_category_id) {
+            return false;
         }
 
-        if ($this->raw_material_category_id) {
-            $category = RawMaterialCategory::with('unitGroup')->find($this->raw_material_category_id);
-            if ($category && $category->unitGroup && (strtoupper($category->unitGroup->code) === 'LENGTH' || str_contains(strtolower($category->unitGroup->name), 'length'))) {
-                return true;
-            }
-            if ($category && $category->unit_type === RawMaterialUnitType::LENGTH_BASED) {
-                return true;
-            }
+        $category = RawMaterialCategory::find($this->raw_material_category_id);
+        if (!$category) {
+            return false;
         }
 
-        return false;
+        $unitTypeVal = is_object($category->unit_type) ? $category->unit_type->value : (string) $category->unit_type;
+
+        return ($unitTypeVal === 'length_based' || $category->code === 'CAT-FAB' || stripos($category->code, 'FAB') !== false || stripos($category->name, 'Fabric') !== false);
     }
 
     public function addSupplierAliasRow(): void
     {
         $this->supplierAliases[] = [
-            'supplier_id' => '',
             'alias_name' => '',
+            'supplier_ids' => [],
             'supplier_material_code' => '',
         ];
     }
@@ -125,6 +119,22 @@ class RawMaterialManager extends Component
     {
         unset($this->supplierAliases[$index]);
         $this->supplierAliases = array_values($this->supplierAliases);
+    }
+
+    public function toggleSupplierForAlias(int $aIdx, int $supplierId): void
+    {
+        if (!isset($this->supplierAliases[$aIdx])) return;
+
+        $supplierIds = $this->supplierAliases[$aIdx]['supplier_ids'] ?? [];
+        $strId = (string) $supplierId;
+
+        if (in_array($strId, $supplierIds) || in_array($supplierId, $supplierIds)) {
+            $supplierIds = array_values(array_filter($supplierIds, fn($id) => (int)$id !== $supplierId));
+        } else {
+            $supplierIds[] = $strId;
+        }
+
+        $this->supplierAliases[$aIdx]['supplier_ids'] = array_values(array_unique($supplierIds));
     }
 
     protected function rules()
@@ -147,8 +157,9 @@ class RawMaterialManager extends Component
             'unit' => $unitRule,
             'is_active' => 'required|boolean',
             'supplierAliases' => 'array',
-            'supplierAliases.*.supplier_id' => 'nullable|exists:suppliers,id',
             'supplierAliases.*.alias_name' => 'nullable|string|max:255',
+            'supplierAliases.*.supplier_ids' => 'nullable|array',
+            'supplierAliases.*.supplier_id' => 'nullable',
         ];
 
         if ($this->isLengthBased()) {
@@ -230,11 +241,16 @@ class RawMaterialManager extends Component
                 $this->fabric_width_id = null;
             }
 
-            $this->supplierAliases = $material->supplierAliases->map(fn($a) => [
-                'supplier_id' => (string) $a->supplier_id,
-                'alias_name' => $a->alias_name,
-                'supplier_material_code' => $a->supplier_material_code ?? '',
-            ])->toArray();
+            $groupedAliases = $material->supplierAliases->groupBy(fn($a) => strtolower(trim($a->alias_name)));
+            $this->supplierAliases = [];
+            foreach ($groupedAliases as $items) {
+                $first = $items->first();
+                $this->supplierAliases[] = [
+                    'alias_name' => $first->alias_name,
+                    'supplier_ids' => $items->pluck('supplier_id')->map(fn($id) => (string) $id)->toArray(),
+                    'supplier_material_code' => $first->supplier_material_code ?? '',
+                ];
+            }
         }
 
         $this->updateAvailableUnits();
@@ -376,13 +392,22 @@ class RawMaterialManager extends Component
         // Sync Supplier Aliases
         $material->supplierAliases()->delete();
         foreach ($this->supplierAliases as $aliasRow) {
-            if (!empty($aliasRow['supplier_id']) && !empty($aliasRow['alias_name'])) {
-                RawMaterialSupplierAlias::create([
-                    'raw_material_id' => $material->id,
-                    'supplier_id' => (int) $aliasRow['supplier_id'],
-                    'alias_name' => trim($aliasRow['alias_name']),
-                    'supplier_material_code' => !empty($aliasRow['supplier_material_code']) ? trim($aliasRow['supplier_material_code']) : null,
-                ]);
+            $aliasName = trim($aliasRow['alias_name'] ?? '');
+            $supplierIds = is_array($aliasRow['supplier_ids'] ?? null)
+                ? $aliasRow['supplier_ids']
+                : (!empty($aliasRow['supplier_id']) ? [$aliasRow['supplier_id']] : []);
+
+            if (!empty($aliasName) && !empty($supplierIds)) {
+                foreach ($supplierIds as $supId) {
+                    if (!empty($supId)) {
+                        RawMaterialSupplierAlias::create([
+                            'raw_material_id' => $material->id,
+                            'supplier_id' => (int) $supId,
+                            'alias_name' => $aliasName,
+                            'supplier_material_code' => !empty($aliasRow['supplier_material_code']) ? trim($aliasRow['supplier_material_code']) : null,
+                        ]);
+                    }
+                }
             }
         }
 

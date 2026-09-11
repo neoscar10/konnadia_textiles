@@ -44,6 +44,31 @@ class InventoryBale extends Model
         return $this->hasMany(InventoryBaleRoll::class, 'inventory_bale_id');
     }
 
+    public function baleItems()
+    {
+        return $this->hasMany(InventoryBaleItem::class, 'inventory_bale_id');
+    }
+
+    public function getAvailableMaterialsAttribute()
+    {
+        $this->loadMissing(['baleItems.rawMaterial', 'batch.rawMaterial']);
+        $materials = collect();
+
+        if ($this->baleItems && $this->baleItems->isNotEmpty()) {
+            foreach ($this->baleItems as $bItem) {
+                if ($bItem->rawMaterial && !$materials->contains('id', $bItem->raw_material_id)) {
+                    $materials->push($bItem->rawMaterial);
+                }
+            }
+        }
+
+        if ($materials->isEmpty() && $this->batch?->rawMaterial) {
+            $materials->push($this->batch->rawMaterial);
+        }
+
+        return $materials;
+    }
+
     public function activeRolls()
     {
         return $this->hasMany(InventoryBaleRoll::class, 'inventory_bale_id')->where('status', 'active');
@@ -57,16 +82,18 @@ class InventoryBale extends Model
         $sum = 0;
         $rolls = [];
 
+        $defaultMatId = $this->availableMaterials->first()?->id ?? $this->batch?->raw_material_id;
+
         foreach ($rollLengths as $index => $item) {
             if (is_array($item)) {
                 $length = (float) ($item['length'] ?? 0);
-                $matId  = !empty($item['raw_material_id']) ? (int) $item['raw_material_id'] : ($this->batch?->raw_material_id);
+                $matId  = !empty($item['raw_material_id']) ? (int) $item['raw_material_id'] : $defaultMatId;
                 $fwId   = !empty($item['fabric_width_id']) ? (int) $item['fabric_width_id'] : null;
                 $design = !empty($item['design_number']) ? trim($item['design_number']) : ($this->design_number);
                 $stock  = !empty($item['stock_id']) ? trim($item['stock_id']) : ($this->stock_id);
             } else {
                 $length = (float) $item;
-                $matId  = $this->batch?->raw_material_id;
+                $matId  = $defaultMatId;
                 $fwId   = null;
                 $design = $this->design_number;
                 $stock  = $this->stock_id;

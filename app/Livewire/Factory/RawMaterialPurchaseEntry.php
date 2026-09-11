@@ -34,7 +34,6 @@ class RawMaterialPurchaseEntry extends Component
 
     // Fabric Bale specific properties
     public $num_bales = 1;
-    public $declared_bale_length = '';
     public bool $all_bales_equal_length = true;
     public array $individual_bale_lengths = [];
 
@@ -122,7 +121,6 @@ class RawMaterialPurchaseEntry extends Component
 
         $first = reset($this->bale_items);
         if (is_array($first) && !isset($first['items'])) {
-            // Convert 1D item array (e.g. from tests or legacy structure) into nested bale structure
             $newBales = [];
             foreach ($this->bale_items as $i => $item) {
                 $baleNum = $item['bale_number'] ?? ('BALE-' . Carbon::now()->year . '-' . str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT));
@@ -162,7 +160,7 @@ class RawMaterialPurchaseEntry extends Component
             if (isset($existingBale['items']) && is_array($existingBale['items']) && count($existingBale['items']) > 0) {
                 $items = $existingBale['items'];
             } else {
-                $len = $existingBale['declared_length'] ?? ($this->individual_bale_lengths[$i] ?? $this->declared_bale_length);
+                $len = $existingBale['declared_length'] ?? ($this->individual_bale_lengths[$i] ?? '');
                 $rate = $existingBale['cost_per_unit'] ?? $this->purchase_rate;
                 $matId = $existingBale['raw_material_id'] ?? $defaultMatId;
 
@@ -249,7 +247,6 @@ class RawMaterialPurchaseEntry extends Component
         $defaultMatId = $availableMaterials->first()?->id;
 
         $baleNumber = 'BALE-' . Carbon::now()->year . '-' . str_pad((string) ($baleIndex + 1), 4, '0', STR_PAD_LEFT);
-        $defaultLen = ($this->all_bales_equal_length && $this->declared_bale_length !== '') ? $this->declared_bale_length : '';
 
         $this->bale_items[] = [
             'bale_number' => $baleNumber,
@@ -258,7 +255,7 @@ class RawMaterialPurchaseEntry extends Component
                     'raw_material_id' => $defaultMatId ? intval($defaultMatId) : null,
                     'design_number' => '',
                     'stock_id' => 'STK-' . Carbon::now()->format('ymd') . '-' . ($baleIndex + 1) . '-1',
-                    'declared_length' => $defaultLen,
+                    'declared_length' => '',
                     'cost_per_unit' => $this->purchase_rate ?: '',
                     'photo' => null,
                 ]
@@ -319,6 +316,8 @@ class RawMaterialPurchaseEntry extends Component
             if ($supplier) {
                 $this->supplier_name = $supplier->name;
             }
+        } else {
+            $this->supplier_name = '';
         }
     }
 
@@ -352,7 +351,6 @@ class RawMaterialPurchaseEntry extends Component
                 ? RawMaterial::where('raw_material_category_id', $this->raw_material_category_id)->active()->orderBy('name')->get()
                 : collect();
             $defaultMatId = $availableMaterials->first()?->id;
-            $defaultLen = ($this->all_bales_equal_length && $this->declared_bale_length !== '') ? $this->declared_bale_length : '';
 
             for ($i = $currentCount; $i < $count; $i++) {
                 $baleNumber = 'BALE-' . Carbon::now()->year . '-' . str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT);
@@ -363,7 +361,7 @@ class RawMaterialPurchaseEntry extends Component
                             'raw_material_id' => $defaultMatId ? intval($defaultMatId) : null,
                             'design_number' => '',
                             'stock_id' => 'STK-' . Carbon::now()->format('ymd') . '-' . ($i + 1) . '-1',
-                            'declared_length' => $defaultLen,
+                            'declared_length' => '',
                             'cost_per_unit' => $this->purchase_rate ?: '',
                             'photo' => null,
                         ]
@@ -374,20 +372,6 @@ class RawMaterialPurchaseEntry extends Component
             $this->bale_items = array_slice($this->bale_items, 0, $count);
         }
 
-        $this->recalculateTotal();
-    }
-
-    public function updatedAllBalesEqualLength($value)
-    {
-        if ($value && !empty($this->declared_bale_length)) {
-            $this->normalizeBaleItems();
-            foreach ($this->bale_items as $i => &$bale) {
-                if (count($bale['items']) === 1) {
-                    $bale['items'][0]['declared_length'] = $this->declared_bale_length;
-                }
-            }
-            unset($bale);
-        }
         $this->recalculateTotal();
     }
 
@@ -404,20 +388,6 @@ class RawMaterialPurchaseEntry extends Component
 
     public function updatedBaleItems()
     {
-        $this->recalculateTotal();
-    }
-
-    public function updatedDeclaredBaleLength($value)
-    {
-        if ($this->all_bales_equal_length) {
-            $this->normalizeBaleItems();
-            foreach ($this->bale_items as $i => &$bale) {
-                if (count($bale['items']) === 1) {
-                    $bale['items'][0]['declared_length'] = $value;
-                }
-            }
-            unset($bale);
-        }
         $this->recalculateTotal();
     }
 
@@ -490,7 +460,7 @@ class RawMaterialPurchaseEntry extends Component
             'supplier_id' => 'nullable|exists:suppliers,id',
             'supplier_name' => 'required|string|max:255',
             'purchase_date' => 'required|date|before_or_equal:today',
-            'invoice_number' => 'required|string|max:100',
+            'invoice_number' => 'required|string|max:100|unique:inventory_batches,invoice_number',
             'lot_number' => 'required|string|max:100',
             'raw_material_category_id' => 'required|exists:raw_material_categories,id',
         ];
@@ -503,7 +473,8 @@ class RawMaterialPurchaseEntry extends Component
             $rules['bale_items.*.items'] = 'required|array|min:1';
             $rules['bale_items.*.items.*.raw_material_id'] = 'required|exists:raw_materials,id';
             $rules['bale_items.*.items.*.declared_length'] = 'required|numeric|gt:0';
-            $rules['purchase_rate'] = 'nullable|numeric';
+            $rules['bale_items.*.items.*.cost_per_unit'] = 'required|numeric|gt:0';
+            $rules['purchase_rate'] = 'nullable|numeric|gt:0';
         } else {
             $rules['raw_material_id'] = 'required|exists:raw_materials,id';
             $rules['quantity_received'] = 'required|numeric|gt:0';
@@ -520,19 +491,22 @@ class RawMaterialPurchaseEntry extends Component
     protected function messages()
     {
         return [
-            'supplier_name.required' => 'Supplier Name is required.',
+            'supplier_name.required' => 'Supplier is required. Please select or enter a supplier.',
             'purchase_date.required' => 'Purchase Date is required.',
+            'purchase_date.before_or_equal' => 'Purchase Date cannot be in the future.',
             'invoice_number.required' => 'Invoice Number is required.',
+            'invoice_number.unique' => 'This Invoice Number has already been recorded in a purchase entry.',
             'lot_number.required' => 'Lot Number is required.',
             'raw_material_category_id.required' => 'Please select a raw material category.',
             'raw_material_id.required' => 'Please select a raw material item.',
             'num_bales.required' => 'Number of Bales is required.',
             'num_bales.min' => 'Number of Bales must be at least 1.',
-            'declared_bale_length.required' => 'Declared Length per Bale is required.',
-            'declared_bale_length.gt' => 'Declared Length per Bale must be greater than zero.',
+            'bale_items.*.bale_number.required' => 'Bale number is required.',
             'bale_items.*.items.*.raw_material_id.required' => 'Please select the raw material item for each item line.',
             'bale_items.*.items.*.declared_length.required' => 'Declared length is required for each item line.',
             'bale_items.*.items.*.declared_length.gt' => 'Length for each item line must be greater than zero.',
+            'bale_items.*.items.*.cost_per_unit.required' => 'Cost per unit (purchase rate) is required for each item line.',
+            'bale_items.*.items.*.cost_per_unit.gt' => 'Cost per unit (purchase rate) must be greater than zero.',
             'bale_items.*.raw_material_id.required' => 'Please select the raw material item for each bale.',
             'bale_items.*.declared_length.required' => 'Declared length is required for each bale item.',
             'bale_items.*.declared_length.gt' => 'Length for each bale item must be greater than zero.',
@@ -555,96 +529,96 @@ class RawMaterialPurchaseEntry extends Component
 
         DB::transaction(function () use (&$batchesCreated) {
             if ($this->unitType === 'length_based') {
-                // Group item lines across all bales by raw_material_id
-                $groupedItems = [];
-                foreach ($this->bale_items as $baleIndex => $bale) {
-                    $baleNumber = trim($bale['bale_number'] ?? '') ?: ('BALE-' . Carbon::now()->year . '-' . str_pad((string)($baleIndex + 1), 4, '0', STR_PAD_LEFT));
-                    
-                    foreach ($bale['items'] as $itemIndex => $it) {
-                        $matId = intval($it['raw_material_id']);
-                        $groupedItems[$matId][] = array_merge($it, [
-                            'bale_number' => $baleNumber,
-                            'bale_index' => $baleIndex,
-                            'item_index' => $itemIndex,
-                        ]);
+                $totalQty = 0.0;
+                foreach ($this->bale_items as $bale) {
+                    foreach ($bale['items'] ?? [] as $it) {
+                        $totalQty += floatval($it['declared_length'] ?? 0);
                     }
                 }
 
                 $effectiveGrandTotal = $this->grandTotal;
-                $effectiveSubtotal = max(0.01, $this->total_amount);
+                $effectiveRate = $totalQty > 0 ? round($effectiveGrandTotal / $totalQty, 4) : floatval($this->purchase_rate ?: 0);
 
-                foreach ($groupedItems as $matId => $items) {
-                    $material = RawMaterial::with(['unitGroup', 'unitModel'])->findOrFail($matId);
+                $firstMatId = intval($this->bale_items[0]['items'][0]['raw_material_id'] ?? 0);
+                $firstMaterial = $firstMatId ? RawMaterial::with(['unitGroup', 'unitModel'])->find($firstMatId) : null;
 
-                    $matQty = array_sum(array_map(fn($it) => floatval($it['declared_length']), $items));
-                    $matSubtotal = 0.0;
-                    foreach ($items as $it) {
-                        $rate = floatval(($it['cost_per_unit'] !== '' && $it['cost_per_unit'] !== null) ? $it['cost_per_unit'] : $this->purchase_rate);
-                        $matSubtotal += (floatval($it['declared_length']) * $rate);
+                $numBales = count($this->bale_items);
+
+                $baseQty = $totalQty;
+                if ($firstMaterial && $firstMaterial->unitModel) {
+                    $baseQty = $firstMaterial->unitModel->toBaseQuantity($totalQty);
+                }
+
+                $batch = InventoryBatch::create([
+                    'raw_material_id' => $firstMatId ?: null,
+                    'supplier_id' => $this->supplier_id,
+                    'supplier_name' => $this->supplier_name,
+                    'purchase_date' => $this->purchase_date,
+                    'invoice_number' => trim($this->invoice_number),
+                    'lot_number' => trim($this->lot_number),
+                    'quantity_received' => $totalQty,
+                    'balance_quantity' => $totalQty,
+                    'base_quantity' => $baseQty,
+                    'base_current_balance' => $baseQty,
+                    'quantity_consumed' => 0.0000,
+                    'purchase_rate' => $effectiveRate,
+                    'total_amount' => $effectiveGrandTotal,
+                    'unit' => $firstMaterial?->unit ?? 'Meters',
+                    'purchase_unit_id' => $firstMaterial?->unit_id,
+                    'num_bales' => $numBales,
+                    'status' => 'active',
+                ]);
+
+                foreach ($this->bale_items as $baleIndex => $bale) {
+                    $baleNumber = trim($bale['bale_number'] ?? '') ?: ('BALE-' . Carbon::now()->year . '-' . str_pad((string)($baleIndex + 1), 4, '0', STR_PAD_LEFT));
+
+                    $baleLen = 0.0;
+                    $baleTotalCost = 0.0;
+
+                    foreach ($bale['items'] ?? [] as $it) {
+                        $len = floatval($it['declared_length'] ?? 0);
+                        $rate = floatval(($it['cost_per_unit'] !== '' && $it['cost_per_unit'] !== null) ? $it['cost_per_unit'] : ($this->purchase_rate ?: 0));
+                        $baleLen += $len;
+                        $baleTotalCost += ($len * $rate);
                     }
 
-                    // Proportionally distribute grand total / GST to each material's batch
-                    $ratio = $effectiveSubtotal > 0 ? ($matSubtotal / $effectiveSubtotal) : (1 / count($groupedItems));
-                    $batchTotalAmount = round($effectiveGrandTotal * $ratio, 2);
-                    $effectiveRate = $matQty > 0 ? round($batchTotalAmount / $matQty, 4) : floatval($this->purchase_rate);
-
-                    $baseQty = $matQty;
-                    if ($material->unitModel) {
-                        $baseQty = $material->unitModel->toBaseQuantity($matQty);
-                    }
-
-                    $distinctBaleNumbers = array_unique(array_column($items, 'bale_number'));
-                    $numBales = count($distinctBaleNumbers);
-                    $avgDeclaredLength = $numBales > 0 ? ($matQty / $numBales) : 0;
-
-                    $batch = InventoryBatch::create([
-                        'raw_material_id' => $matId,
-                        'supplier_id' => $this->supplier_id,
-                        'supplier_name' => $this->supplier_name,
-                        'purchase_date' => $this->purchase_date,
-                        'invoice_number' => $this->invoice_number,
-                        'lot_number' => trim($this->lot_number),
-                        'quantity_received' => $matQty,
-                        'balance_quantity' => $matQty,
-                        'base_quantity' => $baseQty,
-                        'base_current_balance' => $baseQty,
-                        'quantity_consumed' => 0.0000,
-                        'purchase_rate' => $effectiveRate,
-                        'total_amount' => $batchTotalAmount,
-                        'unit' => $material->unit,
-                        'purchase_unit_id' => $material->unit_id,
-                        'num_bales' => $numBales,
-                        'declared_bale_length' => $avgDeclaredLength,
-                        'status' => 'active',
+                    $invBale = $batch->bales()->create([
+                        'bale_number' => $baleNumber,
+                        'item_name' => $firstMaterial?->name,
+                        'status' => 'unopened',
+                        'declared_length' => $baleLen,
+                        'current_balance_length' => $baleLen,
+                        'total_cost' => round($baleTotalCost, 2),
                     ]);
 
-                    foreach ($items as $it) {
-                        $len = floatval($it['declared_length']);
-                        $rate = floatval(($it['cost_per_unit'] !== '' && $it['cost_per_unit'] !== null) ? $it['cost_per_unit'] : $this->purchase_rate);
-                        $baleTotal = round($len * $rate, 2);
+                    foreach ($bale['items'] ?? [] as $it) {
+                        $len = floatval($it['declared_length'] ?? 0);
+                        $rate = floatval(($it['cost_per_unit'] !== '' && $it['cost_per_unit'] !== null) ? $it['cost_per_unit'] : ($this->purchase_rate ?: 0));
+                        $itemTotal = round($len * $rate, 2);
 
                         $photoPath = null;
                         if (isset($it['photo']) && is_object($it['photo']) && method_exists($it['photo'], 'store')) {
                             $photoPath = $it['photo']->store('bale_photos', 'public');
                         }
 
-                        $batch->bales()->create([
-                            'bale_number' => $it['bale_number'],
-                            'item_name' => $material->name,
+                        $itMatId = intval($it['raw_material_id']);
+                        $itMat = RawMaterial::find($itMatId);
+
+                        $invBale->baleItems()->create([
+                            'raw_material_id' => $itMatId,
+                            'item_name' => $itMat?->name ?? ($firstMaterial?->name ?? ''),
                             'design_number' => trim($it['design_number'] ?? '') ?: null,
                             'stock_id' => trim($it['stock_id'] ?? '') ?: null,
-                            'status' => 'unopened',
                             'declared_length' => $len,
-                            'current_balance_length' => $len,
                             'cost_per_unit' => $rate,
-                            'total_cost' => $baleTotal,
+                            'total_cost' => $itemTotal,
                             'photo_path' => $photoPath,
                         ]);
                     }
-
-                    InventoryBatchLogger::log($batch->id, 'created', $batch->quantity_received, null, "Fabric purchase entry recorded ({$numBales} bales, Lot: {$batch->lot_number})");
-                    $batchesCreated[] = $batch;
                 }
+
+                InventoryBatchLogger::log($batch->id, 'created', $batch->quantity_received, null, "Fabric purchase entry recorded ({$numBales} bales, Lot: {$batch->lot_number})");
+                $batchesCreated[] = $batch;
             } else {
                 $material = RawMaterial::with(['unitGroup', 'unitModel'])->findOrFail($this->raw_material_id);
                 $qtyReceived = floatval($this->quantity_received);
@@ -657,7 +631,7 @@ class RawMaterialPurchaseEntry extends Component
                     'supplier_id' => $this->supplier_id,
                     'supplier_name' => $this->supplier_name,
                     'purchase_date' => $this->purchase_date,
-                    'invoice_number' => $this->invoice_number,
+                    'invoice_number' => trim($this->invoice_number),
                     'lot_number' => trim($this->lot_number),
                     'quantity_received' => $qtyReceived,
                     'balance_quantity' => $qtyReceived,

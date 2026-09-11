@@ -137,6 +137,38 @@ class InventoryBatch extends Model
         return $this->hasMany(InventoryBale::class, 'inventory_batch_id');
     }
 
+    public function getAllRawMaterialsAttribute()
+    {
+        $materials = collect();
+
+        if ($this->rawMaterial) {
+            $materials->push($this->rawMaterial);
+        }
+
+        if ($this->relationLoaded('bales')) {
+            foreach ($this->bales as $bale) {
+                if ($bale->relationLoaded('baleItems')) {
+                    foreach ($bale->baleItems as $bItem) {
+                        if ($bItem->rawMaterial && !$materials->contains('id', $bItem->raw_material_id)) {
+                            $materials->push($bItem->rawMaterial);
+                        }
+                    }
+                }
+            }
+        }
+
+        return $materials;
+    }
+
+    public function getMaterialsNameSummaryAttribute(): string
+    {
+        $mats = $this->allRawMaterials;
+        if ($mats->isNotEmpty()) {
+            return $mats->pluck('name')->implode(', ');
+        }
+        return $this->rawMaterial?->name ?? 'Raw Material';
+    }
+
     /**
      * Create child unopened bales for this fabric batch.
      */

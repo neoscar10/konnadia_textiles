@@ -213,6 +213,34 @@ class RawMaterialMasterTest extends TestCase
         ]);
     }
 
+    public function test_fabric_standard_width_hidden_for_packaging_and_non_fabric_categories()
+    {
+        $this->actingAs($this->admin);
+        $pkgCat = RawMaterialCategory::where('code', 'CAT-PKG')->first();
+        $fabricCat = RawMaterialCategory::where('code', 'CAT-FAB')->first();
+
+        // Packaging category -> isLengthBased is false
+        $componentPkg = Livewire::test(RawMaterialManager::class)
+            ->dispatch('open-raw-material-modal')
+            ->set('raw_material_category_id', $pkgCat->id);
+
+        $this->assertFalse($componentPkg->instance()->isLengthBased());
+
+        $componentPkg
+            ->set('name', 'Master Shipping Carton Box')
+            ->set('unit', 'Pieces')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('raw-material-saved');
+
+        // Fabric category -> isLengthBased is true
+        $componentFab = Livewire::test(RawMaterialManager::class)
+            ->dispatch('open-raw-material-modal')
+            ->set('raw_material_category_id', $fabricCat->id);
+
+        $this->assertTrue($componentFab->instance()->isLengthBased());
+    }
+
     // ─── UNIT CONVERSIONS ────────────────────────────────────────────────
 
     public function test_raw_material_length_conversions()
@@ -298,6 +326,32 @@ class RawMaterialMasterTest extends TestCase
             ->set('search', 'Muslin')
             ->assertSee('Muslin Cotton')
             ->assertDontSee('Polyester Blend');
+    }
+
+    public function test_raw_material_list_ordered_by_recency_and_paginated_15_per_page()
+    {
+        $this->actingAs($this->admin);
+        $cat = RawMaterialCategory::where('code', 'CAT-FAB')->first();
+
+        // Create 20 materials sequentially
+        for ($i = 1; $i <= 20; $i++) {
+            RawMaterial::create([
+                'name' => "Material Item {$i}",
+                'raw_material_category_id' => $cat->id,
+                'unit' => 'Meters',
+                'standard_width' => 44.00,
+                'width_unit' => 'Inch',
+            ]);
+        }
+
+        // Test first page has 15 items with most recent at top
+        $test = Livewire::test(RawMaterialList::class);
+
+        $viewData = $test->viewData('materials');
+        $this->assertEquals(15, $viewData->count());
+        $this->assertEquals(20, $viewData->total());
+        $this->assertEquals('Material Item 20', $viewData->first()->name);
+        $this->assertEquals('Material Item 6', $viewData->last()->name);
     }
 
     // ─── CATEGORY FILTER ──────────────────────────────────────────────────

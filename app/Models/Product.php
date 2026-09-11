@@ -75,6 +75,40 @@ class Product extends Model
     }
 
     /**
+     * Primary thumbnail URL accessor.
+     */
+    public function getThumbnailUrlAttribute(): string
+    {
+        if ($this->primaryMedia) {
+            return $this->primaryMedia->thumbnail_url;
+        }
+
+        $first = $this->media->first();
+        if ($first) {
+            return $first->thumbnail_url;
+        }
+
+        return url('/images/product-placeholder.svg');
+    }
+
+    /**
+     * Primary image URL accessor.
+     */
+    public function getImageUrlAttribute(): string
+    {
+        if ($this->primaryMedia) {
+            return $this->primaryMedia->image_url;
+        }
+
+        $first = $this->media->first();
+        if ($first) {
+            return $first->image_url;
+        }
+
+        return url('/images/product-placeholder.svg');
+    }
+
+    /**
      * Variation groups relationship.
      */
     public function variationGroups()

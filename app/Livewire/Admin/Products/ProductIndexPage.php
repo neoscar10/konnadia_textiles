@@ -113,6 +113,38 @@ class ProductIndexPage extends Component
         ],
     ];
 
+    // Assembly & Packaging Requirements (FrontEndProduct mapping)
+    public array $mfgRows = [];
+    public array $pkgRows = [];
+
+    public function addMfgRow(): void
+    {
+        $this->mfgRows[] = [
+            'manufacturing_product_id' => '',
+            'quantity' => 1,
+        ];
+    }
+
+    public function removeMfgRow(int $index): void
+    {
+        unset($this->mfgRows[$index]);
+        $this->mfgRows = array_values($this->mfgRows);
+    }
+
+    public function addPkgRow(): void
+    {
+        $this->pkgRows[] = [
+            'raw_material_id' => '',
+            'quantity' => 1,
+        ];
+    }
+
+    public function removePkgRow(int $index): void
+    {
+        unset($this->pkgRows[$index]);
+        $this->pkgRows = array_values($this->pkgRows);
+    }
+
     protected $queryString = [
         'search' => ['except' => ''],
         'filterCategory' => ['except' => ''],
@@ -402,10 +434,37 @@ class ProductIndexPage extends Component
             ];
         }
 
+        // Load FrontEndProduct configuration for this leaf category
+        $feProduct = \App\Models\FrontEndProduct::with(['components', 'packagingItems'])
+            ->where('category_id', $this->currentCategoryId)
+            ->first();
+
+        if ($feProduct) {
+            $this->mfgRows = $feProduct->components->map(fn($c) => [
+                'manufacturing_product_id' => $c->manufacturing_product_id,
+                'quantity' => $c->quantity,
+            ])->toArray();
+
+            $this->pkgRows = $feProduct->packagingItems->map(fn($p) => [
+                'raw_material_id' => $p->raw_material_id,
+                'quantity' => $p->quantity,
+            ])->toArray();
+        } else {
+            $this->mfgRows = [['manufacturing_product_id' => '', 'quantity' => 1]];
+            $this->pkgRows = [['raw_material_id' => '', 'quantity' => 1]];
+        }
+
+        if (empty($this->mfgRows)) {
+            $this->mfgRows = [['manufacturing_product_id' => '', 'quantity' => 1]];
+        }
+        if (empty($this->pkgRows)) {
+            $this->pkgRows = [['raw_material_id' => '', 'quantity' => 1]];
+        }
+
         $this->dispatch('open-modal', 'category-defaults');
     }
 
-    public function saveCategoryDefaults(): void
+    public function saveCategoryDefaults(CategoryService $categoryService): void
     {
         abort_if(!auth()->user()->hasRole('super_admin') && !auth()->user()->can('access categories'), 403, 'Unauthorized action.');
         $this->validate([
@@ -420,9 +479,48 @@ class ProductIndexPage extends Component
 
         if ($this->currentCategoryId) {
             $category = Category::findOrFail($this->currentCategoryId);
-            $category->update([
-                'default_product_config' => $this->categoryDefaults,
-            ]);
+
+            $validMfgRows = array_filter($this->mfgRows, fn($r) => !empty($r['manufacturing_product_id']) && intval($r['quantity']) > 0);
+            $validPkgRows = array_filter($this->pkgRows, fn($r) => !empty($r['raw_material_id']) && intval($r['quantity']) > 0);
+
+            DB::transaction(function () use ($categoryService, $category, $validMfgRows, $validPkgRows) {
+                $categoryService->saveCategoryDefaults($category, $this->categoryDefaults);
+
+                if (!empty($validMfgRows)) {
+                    $sku = "CAT-CFG-" . str_pad((string) $this->currentCategoryId, 4, '0', STR_PAD_LEFT);
+                    $feProduct = \App\Models\FrontEndProduct::updateOrCreate(
+                        ['category_id' => $this->currentCategoryId],
+                        [
+                            'name' => trim($category->name),
+                            'sku' => $sku,
+                            'leaf_category_name' => trim($category->name),
+                            'is_active' => true,
+                        ]
+                    );
+
+                    $feProduct->components()->delete();
+                    foreach ($validMfgRows as $mfg) {
+                        $feProduct->components()->create([
+                            'manufacturing_product_id' => intval($mfg['manufacturing_product_id']),
+                            'quantity' => intval($mfg['quantity']),
+                        ]);
+                    }
+
+                    $feProduct->packagingItems()->delete();
+                    foreach ($validPkgRows as $pkg) {
+                        $feProduct->packagingItems()->create([
+                            'raw_material_id' => intval($pkg['raw_material_id']),
+                            'quantity' => intval($pkg['quantity']),
+                        ]);
+                    }
+                } else {
+                    $feProduct = \App\Models\FrontEndProduct::where('category_id', $this->currentCategoryId)->first();
+                    if ($feProduct) {
+                        $feProduct->components()->delete();
+                        $feProduct->packagingItems()->delete();
+                    }
+                }
+            });
 
             $this->dispatch('toast', message: 'Category default configuration saved.', type: 'success');
             $this->dispatch('close-modal', 'category-defaults');
@@ -1006,12 +1104,21 @@ class ProductIndexPage extends Component
             $availableTags = collect();
         }
 
+        $mfgProducts = \App\Models\ManufacturingProduct::orderBy('name')->get();
+        $pkgMaterialIds = collect($this->pkgRows)->pluck('raw_material_id')->filter()->map(fn($id) => (int)$id)->toArray();
+        $packagingMaterials = \App\Models\RawMaterial::packagingOnly($pkgMaterialIds)->orderBy('name')->get();
+        if ($packagingMaterials->isEmpty()) {
+            $packagingMaterials = \App\Models\RawMaterial::orderBy('name')->get();
+        }
+
         return view('livewire.admin.products.product-index-page', [
             'products' => $products,
             'categories' => $categories,
             'customerLevels' => $customerLevels,
             'leafCategories' => $leafCategories,
             'availableTags' => $availableTags,
+            'mfgProducts' => $mfgProducts,
+            'packagingMaterials' => $packagingMaterials,
         ]);
     }
 }

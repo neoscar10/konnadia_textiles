@@ -64,6 +64,14 @@ class ManufacturingProduct extends Model
     }
 
     /**
+     * Scope query to active manufacturing products.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
      * Get the manufacturing product category this product belongs to.
      */
     public function category()

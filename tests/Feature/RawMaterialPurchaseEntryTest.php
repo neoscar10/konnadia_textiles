@@ -100,8 +100,28 @@ class RawMaterialPurchaseEntryTest extends TestCase
         Livewire::test(RawMaterialPurchaseEntry::class)
             ->set('raw_material_category_id', $this->fabricCategory->id)
             ->set('num_bales', 2)
-            ->set('declared_bale_length', '75.25')
-            ->set('purchase_rate', '120.00')
+            ->set('bale_items', [
+                [
+                    'bale_number' => 'Bale #1',
+                    'items' => [
+                        [
+                            'raw_material_id' => $this->fabric->id,
+                            'declared_length' => '75.25',
+                            'cost_per_unit' => '120.00',
+                        ]
+                    ]
+                ],
+                [
+                    'bale_number' => 'Bale #2',
+                    'items' => [
+                        [
+                            'raw_material_id' => $this->fabric->id,
+                            'declared_length' => '75.25',
+                            'cost_per_unit' => '120.00',
+                        ]
+                    ]
+                ]
+            ])
             ->assertSet('quantity_received', '150.5')
             ->assertSet('total_amount', 18060.00);
     }
@@ -121,14 +141,18 @@ class RawMaterialPurchaseEntryTest extends TestCase
             ->set('num_bales', 1)
             ->set('bale_items', [
                 [
-                    'raw_material_id' => $this->fabric->id,
                     'bale_number' => 'Bale #1',
-                    'item_name' => 'Cotton Voile',
-                    'design_number' => 'DN-001',
-                    'stock_id' => 'STK-001',
-                    'declared_length' => '250.00',
-                    'cost_per_unit' => '100.00',
-                    'photo' => null,
+                    'items' => [
+                        [
+                            'raw_material_id' => $this->fabric->id,
+                            'item_name' => 'Cotton Voile',
+                            'design_number' => 'DN-001',
+                            'stock_id' => 'STK-001',
+                            'declared_length' => '250.00',
+                            'cost_per_unit' => '100.00',
+                            'photo' => null,
+                        ]
+                    ]
                 ]
             ])
             ->call('savePurchaseEntry')
@@ -197,6 +221,7 @@ class RawMaterialPurchaseEntryTest extends TestCase
     {
         $this->actingAs($this->admin);
 
+        // Test Fabric (length_based) validation errors for missing rates & lengths
         Livewire::test(RawMaterialPurchaseEntry::class)
             ->set('raw_material_category_id', $this->fabricCategory->id)
             ->set('supplier_name', '')
@@ -204,7 +229,18 @@ class RawMaterialPurchaseEntryTest extends TestCase
             ->set('invoice_number', '')
             ->set('lot_number', '')
             ->set('num_bales', '')
-            ->set('purchase_rate', '')
+            ->set('bale_items', [
+                [
+                    'bale_number' => 'Bale #1',
+                    'items' => [
+                        [
+                            'raw_material_id' => $this->fabric->id,
+                            'declared_length' => '',
+                            'cost_per_unit' => '',
+                        ]
+                    ]
+                ]
+            ])
             ->call('savePurchaseEntry')
             ->assertHasErrors([
                 'supplier_name',
@@ -212,7 +248,52 @@ class RawMaterialPurchaseEntryTest extends TestCase
                 'invoice_number',
                 'lot_number',
                 'num_bales',
+                'bale_items.0.items.0.declared_length',
+                'bale_items.0.items.0.cost_per_unit',
             ]);
+
+        // Test Non-Fabric (other) validation errors for missing quantity & purchase rate
+        Livewire::test(RawMaterialPurchaseEntry::class)
+            ->set('raw_material_category_id', $this->subsidiaryCategory->id)
+            ->set('supplier_name', 'Supplier')
+            ->set('purchase_date', '2026-09-11')
+            ->set('invoice_number', 'INV-NON-FAB-ERR')
+            ->set('lot_number', 'LOT-NON-FAB-ERR')
+            ->set('raw_material_id', $this->button->id)
+            ->set('quantity_received', '')
+            ->set('purchase_rate', '')
+            ->call('savePurchaseEntry')
+            ->assertHasErrors([
+                'quantity_received',
+                'purchase_rate',
+            ]);
+    }
+
+    public function test_invoice_number_must_be_unique()
+    {
+        $this->actingAs($this->admin);
+
+        InventoryBatch::create([
+            'raw_material_id' => $this->fabric->id,
+            'supplier_name' => 'Supplier A',
+            'purchase_date' => '2026-05-20',
+            'invoice_number' => 'INV-UNIQUE-1',
+            'quantity_received' => 100,
+            'balance_quantity' => 100,
+            'purchase_rate' => 50,
+            'total_amount' => 5000,
+            'unit' => 'Meters',
+        ]);
+
+        Livewire::test(RawMaterialPurchaseEntry::class)
+            ->set('supplier_name', 'Supplier B')
+            ->set('purchase_date', '2026-05-21')
+            ->set('invoice_number', 'INV-UNIQUE-1')
+            ->set('lot_number', 'LOT-001')
+            ->set('raw_material_category_id', $this->fabricCategory->id)
+            ->set('num_bales', 1)
+            ->call('savePurchaseEntry')
+            ->assertHasErrors(['invoice_number' => 'unique']);
     }
 
     public function test_purchase_form_supports_individual_bale_lengths_when_equal_length_toggled_off()
@@ -229,34 +310,46 @@ class RawMaterialPurchaseEntryTest extends TestCase
             ->set('all_bales_equal_length', false)
             ->set('bale_items', [
                 [
-                    'raw_material_id' => $this->fabric->id,
                     'bale_number' => 'Bale #1',
-                    'item_name' => '',
-                    'design_number' => '',
-                    'stock_id' => 'STK-001',
-                    'declared_length' => '300',
-                    'cost_per_unit' => '100.00',
-                    'photo' => null,
+                    'items' => [
+                        [
+                            'raw_material_id' => $this->fabric->id,
+                            'item_name' => '',
+                            'design_number' => '',
+                            'stock_id' => 'STK-001',
+                            'declared_length' => '300',
+                            'cost_per_unit' => '100.00',
+                            'photo' => null,
+                        ]
+                    ]
                 ],
                 [
-                    'raw_material_id' => $this->fabric->id,
                     'bale_number' => 'Bale #2',
-                    'item_name' => '',
-                    'design_number' => '',
-                    'stock_id' => 'STK-002',
-                    'declared_length' => '280',
-                    'cost_per_unit' => '100.00',
-                    'photo' => null,
+                    'items' => [
+                        [
+                            'raw_material_id' => $this->fabric->id,
+                            'item_name' => '',
+                            'design_number' => '',
+                            'stock_id' => 'STK-002',
+                            'declared_length' => '280',
+                            'cost_per_unit' => '100.00',
+                            'photo' => null,
+                        ]
+                    ]
                 ],
                 [
-                    'raw_material_id' => $this->fabric->id,
                     'bale_number' => 'Bale #3',
-                    'item_name' => '',
-                    'design_number' => '',
-                    'stock_id' => 'STK-003',
-                    'declared_length' => '310',
-                    'cost_per_unit' => '100.00',
-                    'photo' => null,
+                    'items' => [
+                        [
+                            'raw_material_id' => $this->fabric->id,
+                            'item_name' => '',
+                            'design_number' => '',
+                            'stock_id' => 'STK-003',
+                            'declared_length' => '310',
+                            'cost_per_unit' => '100.00',
+                            'photo' => null,
+                        ]
+                    ]
                 ],
             ])
             ->assertSet('quantity_received', '890')
@@ -291,24 +384,32 @@ class RawMaterialPurchaseEntryTest extends TestCase
             ->set('num_bales', 2)
             ->set('bale_items', [
                 [
-                    'raw_material_id' => $this->fabric->id,
                     'bale_number' => 'Bale #1',
-                    'item_name' => 'Cotton Voile Print',
-                    'design_number' => 'DN-4021',
-                    'stock_id' => 'STK-2026-01',
-                    'declared_length' => '300.00',
-                    'cost_per_unit' => '120.00',
-                    'photo' => null,
+                    'items' => [
+                        [
+                            'raw_material_id' => $this->fabric->id,
+                            'item_name' => 'Cotton Voile Print',
+                            'design_number' => 'DN-4021',
+                            'stock_id' => 'STK-2026-01',
+                            'declared_length' => '300.00',
+                            'cost_per_unit' => '120.00',
+                            'photo' => null,
+                        ]
+                    ]
                 ],
                 [
-                    'raw_material_id' => $this->fabric->id,
                     'bale_number' => 'Bale #2',
-                    'item_name' => 'Cotton Voile Solid',
-                    'design_number' => 'DN-4022',
-                    'stock_id' => 'STK-2026-02',
-                    'declared_length' => '250.00',
-                    'cost_per_unit' => '130.00',
-                    'photo' => null,
+                    'items' => [
+                        [
+                            'raw_material_id' => $this->fabric->id,
+                            'item_name' => 'Cotton Voile Solid',
+                            'design_number' => 'DN-4022',
+                            'stock_id' => 'STK-2026-02',
+                            'declared_length' => '250.00',
+                            'cost_per_unit' => '130.00',
+                            'photo' => null,
+                        ]
+                    ]
                 ]
             ])
             ->call('savePurchaseEntry')
@@ -324,20 +425,22 @@ class RawMaterialPurchaseEntryTest extends TestCase
         $bales = $batch->bales;
         $this->assertCount(2, $bales);
 
-        $this->assertEquals('DN-4021', $bales[0]->design_number);
-        $this->assertEquals('STK-2026-01', $bales[0]->stock_id);
-        $this->assertEquals(300.00, (float) $bales[0]->declared_length);
-        $this->assertEquals(120.00, (float) $bales[0]->cost_per_unit);
-        $this->assertEquals(36000.00, (float) $bales[0]->total_cost);
+        $item1 = $bales[0]->baleItems->first();
+        $this->assertEquals('DN-4021', $item1->design_number);
+        $this->assertEquals('STK-2026-01', $item1->stock_id);
+        $this->assertEquals(300.00, (float) $item1->declared_length);
+        $this->assertEquals(120.00, (float) $item1->cost_per_unit);
+        $this->assertEquals(36000.00, (float) $item1->total_cost);
 
-        $this->assertEquals('DN-4022', $bales[1]->design_number);
-        $this->assertEquals('STK-2026-02', $bales[1]->stock_id);
-        $this->assertEquals(250.00, (float) $bales[1]->declared_length);
-        $this->assertEquals(130.00, (float) $bales[1]->cost_per_unit);
-        $this->assertEquals(32500.00, (float) $bales[1]->total_cost);
+        $item2 = $bales[1]->baleItems->first();
+        $this->assertEquals('DN-4022', $item2->design_number);
+        $this->assertEquals('STK-2026-02', $item2->stock_id);
+        $this->assertEquals(250.00, (float) $item2->declared_length);
+        $this->assertEquals(130.00, (float) $item2->cost_per_unit);
+        $this->assertEquals(32500.00, (float) $item2->total_cost);
     }
 
-    public function test_multi_material_per_bale_creates_distinct_batches()
+    public function test_multi_material_per_bale_creates_single_batch()
     {
         $this->actingAs($this->admin);
 
@@ -362,40 +465,45 @@ class RawMaterialPurchaseEntryTest extends TestCase
             ->set('num_bales', 2)
             ->set('bale_items', [
                 [
-                    'raw_material_id' => $fabric1->id,
                     'bale_number' => 'Bale #1',
-                    'design_number' => 'DN-F1',
-                    'stock_id' => 'STK-01',
-                    'declared_length' => '200.00',
-                    'cost_per_unit' => '150.00',
-                    'photo' => null,
+                    'items' => [
+                        [
+                            'raw_material_id' => $fabric1->id,
+                            'design_number' => 'DN-F1',
+                            'stock_id' => 'STK-01',
+                            'declared_length' => '200.00',
+                            'cost_per_unit' => '150.00',
+                            'photo' => null,
+                        ]
+                    ]
                 ],
                 [
-                    'raw_material_id' => $fabric2->id,
                     'bale_number' => 'Bale #2',
-                    'design_number' => 'DN-F2',
-                    'stock_id' => 'STK-02',
-                    'declared_length' => '150.00',
-                    'cost_per_unit' => '180.00',
-                    'photo' => null,
+                    'items' => [
+                        [
+                            'raw_material_id' => $fabric2->id,
+                            'design_number' => 'DN-F2',
+                            'stock_id' => 'STK-02',
+                            'declared_length' => '150.00',
+                            'cost_per_unit' => '180.00',
+                            'photo' => null,
+                        ]
+                    ]
                 ],
             ])
             ->call('savePurchaseEntry')
             ->assertRedirect(route('factory.raw-materials.index'));
 
         $batches = InventoryBatch::where('invoice_number', 'INV-MULTI-100')->get();
-        $this->assertCount(2, $batches);
+        $this->assertCount(1, $batches);
 
-        $batch1 = $batches->firstWhere('raw_material_id', $fabric1->id);
-        $batch2 = $batches->firstWhere('raw_material_id', $fabric2->id);
-
-        $this->assertNotNull($batch1);
-        $this->assertNotNull($batch2);
-        $this->assertEquals(200.00, (float) $batch1->quantity_received);
-        $this->assertEquals(150.00, (float) $batch2->quantity_received);
+        $batch = $batches->first();
+        $this->assertNotNull($batch);
+        $this->assertEquals(350.00, (float) $batch->quantity_received);
+        $this->assertCount(2, $batch->bales);
     }
 
-    public function test_multiple_items_inside_single_bale_creates_inventory_bales_properly()
+    public function test_multiple_items_inside_single_bale_creates_inventory_bale_items_properly()
     {
         $this->actingAs($this->admin);
 
@@ -441,27 +549,23 @@ class RawMaterialPurchaseEntryTest extends TestCase
             ->assertRedirect(route('factory.raw-materials.index'));
 
         $batches = InventoryBatch::where('invoice_number', 'INV-BALE-MULTI-1')->get();
-        $this->assertCount(2, $batches);
+        $this->assertCount(1, $batches);
 
-        $batch1 = $batches->firstWhere('raw_material_id', $fabric1->id);
-        $batch2 = $batches->firstWhere('raw_material_id', $fabric2->id);
+        $batch = $batches->first();
+        $this->assertEquals(100.00, (float) $batch->quantity_received);
 
-        $this->assertNotNull($batch1);
-        $this->assertNotNull($batch2);
+        $bale = $batch->bales()->first();
+        $this->assertEquals('BALE-2026-0201', $bale->bale_number);
 
-        $this->assertEquals(45.00, (float) $batch1->quantity_received);
-        $this->assertEquals(55.00, (float) $batch2->quantity_received);
+        $items = $bale->baleItems;
+        $this->assertCount(2, $items);
 
-        // Both inventory bales should share the same bale_number "BALE-2026-0201"
-        $bale1 = $batch1->bales()->first();
-        $bale2 = $batch2->bales()->first();
+        $item1 = $items->firstWhere('raw_material_id', $fabric1->id);
+        $item2 = $items->firstWhere('raw_material_id', $fabric2->id);
 
-        $this->assertEquals('BALE-2026-0201', $bale1->bale_number);
-        $this->assertEquals('DN-101', $bale1->design_number);
-        $this->assertEquals('STK-201-001', $bale1->stock_id);
+        $this->assertEquals('DN-101', $item1->design_number);
+        $this->assertEquals(45.00, (float) $item1->declared_length);
 
-        $this->assertEquals('BALE-2026-0201', $bale2->bale_number);
-        $this->assertEquals('DN-102', $bale2->design_number);
-        $this->assertEquals('STK-201-002', $bale2->stock_id);
+        $this->assertEquals('DN-102', $item2->design_number);
     }
 }

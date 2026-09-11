@@ -96,7 +96,7 @@ class RawMaterialList extends Component
             ->when($this->categoryFilter, function ($q) {
                 $q->where('raw_material_category_id', $this->categoryFilter);
             })
-            ->orderBy('code')
+            ->orderBy('id', 'desc')
             ->paginate(15);
 
         $categories = RawMaterialCategory::active()->orderBy('name')->get();

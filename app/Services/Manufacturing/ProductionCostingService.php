@@ -236,6 +236,43 @@ class ProductionCostingService
             $allocatedWastage = (float) JobMaterialConsumption::whereIn('production_job_id', $jobIds)->sum('allocated_wastage_cost');
             if ($allocatedWastage > 0) {
                 $totalWastageCost = $allocatedWastage;
+            } else {
+                $cuttingConsumptions = JobMaterialConsumption::whereIn('production_job_id', $jobIds)
+                    ->where(function($q) {
+                        $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
+                    })
+                    ->get();
+                if ($cuttingConsumptions->isNotEmpty()) {
+                    foreach ($cuttingConsumptions as $cCons) {
+                        $cutLen = (float) ($cCons->consumed_length ?: $cCons->quantity_consumed);
+                        $rate = (float) $cCons->unit_cost;
+                        $rawMat = $cCons->inventoryBatch?->rawMaterial;
+                        if ($rawMat && $cutLen > 0) {
+                            $targetOutputs = [];
+                            foreach ($batchJobs as $bj) {
+                                $targetOutputs[] = [
+                                    'manufacturing_product_id' => $bj->manufacturing_product_id,
+                                    'planned_quantity' => $bj->target_quantity,
+                                    'pattern_id' => $bj->pattern_id,
+                                ];
+                            }
+                            $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMat, $targetOutputs, $rate);
+                            $wCost = (float) ($bd['total_wastage_cost'] ?? 0);
+                            if ($wCost > 0) {
+                                $totalWastageCost += $wCost;
+                            }
+                        }
+                    }
+                    if ($totalWastageCost > 0) {
+                        $wastageLog[] = [
+                            'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
+                            'task_name'       => 'Cutting',
+                            'quantity_wasted' => 1,
+                            'unit_cost'       => $totalWastageCost,
+                            'total_cost'      => $totalWastageCost,
+                        ];
+                    }
+                }
             }
         }
 
@@ -447,7 +484,65 @@ class ProductionCostingService
 
         $totalWastageCost = array_sum(array_column($wastageLog, 'total_cost'));
         if ($totalWastageCost === 0.0 && (float) $job->materialConsumptions()->sum('allocated_wastage_cost') > 0) {
-            $totalWastageCost = (float) $job->materialConsumptions()->sum('allocated_wastage_cost');
+            $allocatedWastageCost = (float) $job->materialConsumptions()->sum('allocated_wastage_cost');
+            $totalWastageCost = $allocatedWastageCost;
+            $wastageLog[] = [
+                'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
+                'task_name'       => 'Cutting',
+                'quantity_wasted' => 1,
+                'unit_cost'       => $allocatedWastageCost,
+                'total_cost'      => $allocatedWastageCost,
+            ];
+        }
+
+        if ($totalWastageCost === 0.0 && (float) \App\Models\JobMaterialConsumption::whereIn('production_job_id', $jobIds)->sum('allocated_wastage_cost') > 0) {
+            $allocatedWastageCost = round((float) \App\Models\JobMaterialConsumption::whereIn('production_job_id', $jobIds)->sum('allocated_wastage_cost') * $apportionRatio, 2);
+            $totalWastageCost = $allocatedWastageCost;
+            $wastageLog[] = [
+                'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
+                'task_name'       => 'Cutting',
+                'quantity_wasted' => 1,
+                'unit_cost'       => $allocatedWastageCost,
+                'total_cost'      => $allocatedWastageCost,
+            ];
+        }
+
+        if ($totalWastageCost === 0.0) {
+            $cuttingConsumptions = \App\Models\JobMaterialConsumption::whereIn('production_job_id', $jobIds)
+                ->where(function($q) {
+                    $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
+                })
+                ->get();
+            if ($cuttingConsumptions->isNotEmpty()) {
+                foreach ($cuttingConsumptions as $cCons) {
+                    $cutLen = (float) ($cCons->consumed_length ?: $cCons->quantity_consumed);
+                    $rate = (float) $cCons->unit_cost;
+                    $rawMat = $cCons->inventoryBatch?->rawMaterial;
+                    if ($rawMat && $cutLen > 0) {
+                        $targetOutputs = [
+                            [
+                                'manufacturing_product_id' => $job->manufacturing_product_id,
+                                'planned_quantity' => $job->target_quantity,
+                                'pattern_id' => $job->pattern_id,
+                            ]
+                        ];
+                        $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMat, $targetOutputs, $rate);
+                        $wCost = (float) ($bd['total_wastage_cost'] ?? 0);
+                        if ($wCost > 0) {
+                            $totalWastageCost += round($wCost * $apportionRatio, 2);
+                        }
+                    }
+                }
+                if ($totalWastageCost > 0) {
+                    $wastageLog[] = [
+                        'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
+                        'task_name'       => 'Cutting',
+                        'quantity_wasted' => 1,
+                        'unit_cost'       => $totalWastageCost,
+                        'total_cost'      => $totalWastageCost,
+                    ];
+                }
+            }
         }
 
         $totalManufacturingCost = $totalMaterialCost + $totalLaborCost + $totalWastageCost;

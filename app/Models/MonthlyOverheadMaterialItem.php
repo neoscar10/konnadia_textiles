@@ -12,18 +12,26 @@ class MonthlyOverheadMaterialItem extends Model
     protected $fillable = [
         'monthly_overhead_allocation_id',
         'raw_material_id',
+        'opening_stock_qty',
         'opening_stock_value',
+        'purchases_qty',
         'purchases_value',
+        'unit_cost',
         'closing_stock_qty',
         'closing_stock_value',
+        'consumed_qty',
         'consumed_cost',
     ];
 
     protected $casts = [
+        'opening_stock_qty' => 'decimal:2',
         'opening_stock_value' => 'decimal:2',
+        'purchases_qty' => 'decimal:2',
         'purchases_value' => 'decimal:2',
+        'unit_cost' => 'decimal:2',
         'closing_stock_qty' => 'decimal:2',
         'closing_stock_value' => 'decimal:2',
+        'consumed_qty' => 'decimal:2',
         'consumed_cost' => 'decimal:2',
     ];
 

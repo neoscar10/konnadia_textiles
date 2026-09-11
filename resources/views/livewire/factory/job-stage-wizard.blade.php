@@ -179,8 +179,14 @@
                         $targetQty = max(1, $job->target_quantity);
                         $yieldPercent = round(($finalOutputQty / $targetQty) * 100, 1);
 
+                        $cSummary = $this->costSummary;
+
                         $totalMetersConsumed = round($job->materialConsumptions->sum('quantity_consumed'), 2);
-                        $totalFabricCost = round($job->materialConsumptions->sum('total_cost'), 2);
+                        if ($totalMetersConsumed <= 0 && $job->batch) {
+                            $totalMetersConsumed = round(\App\Models\JobMaterialConsumption::whereIn('production_job_id', $job->batch->jobs->pluck('id'))->sum('quantity_consumed'), 2);
+                        }
+
+                        $totalFabricCost = round(($cSummary['fabric_cost'] ?? 0) > 0 ? $cSummary['fabric_cost'] : $job->materialConsumptions->sum('total_cost'), 2);
 
                         $totalWorkersCount = $job->allocations->pluck('labor_id')->unique()->filter()->count();
                         $totalLaborWages = round($job->allocations->sum('calculated_wage'), 2);
@@ -477,13 +483,18 @@
                                 <button type="button" 
                                         wire:click="$set('activeStep', 4)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 4 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
-                                    <span>4. Wastage &amp; Alteration</span>
-                                    <span class="px-1.5 py-0.5 text-[9px] bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded font-black uppercase">Final</span>
+                                    <span>4. Subsidiary Materials</span>
                                 </button>
                                 <button type="button" 
                                         wire:click="$set('activeStep', 5)" 
-                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 5 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
-                                    5. Review &amp; Confirm
+                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 5 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
+                                    <span>5. Wastage &amp; Alteration</span>
+                                    <span class="px-1.5 py-0.5 text-[9px] bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded font-black uppercase">Final</span>
+                                </button>
+                                <button type="button" 
+                                        wire:click="$set('activeStep', 6)" 
+                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 6 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
+                                    6. Review &amp; Confirm
                                 </button>
                             @else
                                 <button type="button" 
@@ -507,13 +518,18 @@
                                 <button type="button" 
                                         wire:click="$set('activeStep', 3)" 
                                         class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 3 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
-                                    <span>3. Wastage &amp; Alteration</span>
-                                    <span class="px-1.5 py-0.5 text-[9px] bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded font-black uppercase">Final</span>
+                                    <span>3. Subsidiary Materials</span>
                                 </button>
                                 <button type="button" 
                                         wire:click="$set('activeStep', 4)" 
-                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 4 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
-                                    4. Review &amp; Confirm
+                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 4 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
+                                    <span>4. Wastage &amp; Alteration</span>
+                                    <span class="px-1.5 py-0.5 text-[9px] bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded font-black uppercase">Final</span>
+                                </button>
+                                <button type="button" 
+                                        wire:click="$set('activeStep', 5)" 
+                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 5 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
+                                    5. Review &amp; Confirm
                                 </button>
                             @else
                                 <button type="button" 
@@ -957,14 +973,9 @@
                             <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 2 : 1 }})" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
                                 ← Back to Labour
                             </button>
-                            @if($isFinalTask && $this->hasSubsidiaryMaterials)
+                            @if($isFinalTask)
                                 <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 4 : 3 }})" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
-                                    <span>Next Step: Subsidiary Materials Accounting</span>
-                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                                </button>
-                            @elseif($isFinalTask)
-                                <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 4 : 3 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
-                                    <span>Next Step: Wastage &amp; Alteration</span>
+                                    <span>Next Step: Subsidiary Material Usage &amp; Recording</span>
                                     <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                                 </button>
                             @else
@@ -978,20 +989,20 @@
                 @endif
 
                 <!-- STEP 3/4 (FINAL TASK ONLY): SUBSIDIARY MATERIALS ACCOUNTING -->
-                @if($isFinalTask && $this->hasSubsidiaryMaterials && (($isCutting && $activeStep === 4) || (!$isCutting && $activeStep === 3)))
+                @if($isFinalTask && (($isCutting && $activeStep === 4) || (!$isCutting && $activeStep === 3)))
                     <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-sm space-y-6">
                         <div>
                             <div class="flex items-center justify-between">
                                 <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
                                     <span class="material-symbols-outlined text-amber-600">inventory_2</span>
-                                    <span>Subsidiary Materials Accounting</span>
+                                    <span>Step {{ $isCutting ? '4' : '3' }}: Subsidiary Material Usage &amp; Recording</span>
                                 </h3>
                                 <span class="px-3 py-1 bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded-full text-[10px] font-black uppercase tracking-wider">
                                     BOM Cost Accounting
                                 </span>
                             </div>
                             <p class="text-xs text-slate-500 mt-1">
-                                Account for subsidiary materials (buttons, zippers, hooks, labels, etc.) consumed by output units and extra/damaged items.
+                                Record subsidiary materials (buttons, zippers, hooks, labels, tags, etc.) consumed for output items and extra/damaged items.
                             </p>
                         </div>
 
@@ -1015,9 +1026,15 @@
                                 <h4 class="text-xs font-black uppercase tracking-wider text-slate-800">
                                     Line Items Used
                                 </h4>
-                                <span class="text-[11px] font-bold text-slate-500">
-                                    {{ count($subsidiaryRows) }} Material{{ count($subsidiaryRows) > 1 ? 's' : '' }} Linked in BOM
-                                </span>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[11px] font-bold text-slate-500">
+                                        {{ count($subsidiaryRows) }} Material{{ count($subsidiaryRows) > 1 ? 's' : '' }} Recorded
+                                    </span>
+                                    <button type="button" wire:click="addSubsidiaryRow" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs rounded-lg transition-all flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[14px]">add</span>
+                                        <span>+ Add Material</span>
+                                    </button>
+                                </div>
                             </div>
 
                             @forelse($subsidiaryRows as $sIdx => $sRow)
@@ -1029,9 +1046,14 @@
                                             </span>
                                             <span class="text-[10px] font-bold text-slate-500 ml-2">({{ $sRow['material_code'] }})</span>
                                         </div>
-                                        <span class="text-xs font-extrabold bg-amber-500/10 text-amber-900 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
-                                            BOM Rate: {{ number_format($sRow['bom_per_unit'], 2) }} {{ $sRow['unit'] }} / unit
-                                        </span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-extrabold bg-amber-500/10 text-amber-900 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                                                BOM Rate: {{ number_format($sRow['bom_per_unit'], 2) }} {{ $sRow['unit'] }} / unit
+                                            </span>
+                                            <button type="button" wire:click="removeSubsidiaryRow({{ $sIdx }})" class="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Remove material row">
+                                                <span class="material-symbols-outlined text-[16px]">delete</span>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center text-xs">
@@ -1089,8 +1111,12 @@
                                     </div>
                                 </div>
                             @empty
-                                <div class="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-xs text-slate-500 font-medium">
-                                    No subsidiary materials configured for this product or pattern BOM.
+                                <div class="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-xs text-slate-500 font-medium space-y-2">
+                                    <p>No subsidiary materials automatically configured for this product BOM.</p>
+                                    <button type="button" wire:click="addSubsidiaryRow" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl inline-flex items-center gap-1.5 shadow-xs">
+                                        <span class="material-symbols-outlined text-[16px]">add</span>
+                                        <span>+ Add Subsidiary Material Manually</span>
+                                    </button>
                                 </div>
                             @endforelse
                         </div>
@@ -1132,7 +1158,7 @@
                 @endif
 
                 <!-- STEP 4/5 (FINAL TASK ONLY): FINAL BATCH RECONCILIATION - ALTERATION, SCRAP & DAMAGE -->
-                @if($isFinalTask && (($this->hasSubsidiaryMaterials && (($isCutting && $activeStep === 5) || (!$isCutting && $activeStep === 4))) || (!$this->hasSubsidiaryMaterials && (($isCutting && $activeStep === 4) || (!$isCutting && $activeStep === 3)))))
+                @if($isFinalTask && (($isCutting && $activeStep === 5) || (!$isCutting && $activeStep === 4)))
                     <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-sm space-y-6">
                         <div>
                             <div class="flex items-center justify-between">
@@ -1270,10 +1296,10 @@
 
                         <!-- Navigation Buttons -->
                         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
-                            <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 3 : 2 }})" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
-                                ← Back to Output Items
+                            <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 4 : 3 }})" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
+                                ← Back to Subsidiary Materials
                             </button>
-                            <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 5 : 4 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                            <button type="button" wire:click="$set('activeStep', {{ $isCutting ? 6 : 5 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
                                 <span>Next Step: Review &amp; Confirm</span>
                                 <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                             </button>
@@ -1282,7 +1308,7 @@
                 @endif
 
                 <!-- STEP REVIEW & CONFIRM -->
-                @if(($isFinalTask && (($isCutting && $activeStep === 5) || (!$isCutting && $activeStep === 4))) || (!$isFinalTask && (($isCutting && $activeStep === 4) || (!$isCutting && $activeStep === 3))))
+                @if(($isFinalTask && (($isCutting && $activeStep === 6) || (!$isCutting && $activeStep === 5))) || (!$isFinalTask && (($isCutting && $activeStep === 4) || (!$isCutting && $activeStep === 3))))
                     <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-sm space-y-6">
                         <div class="flex items-center justify-between">
                             <div>
@@ -1455,7 +1481,7 @@
                         <!-- Action Bar -->
                         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
                             @php
-                                $prevStepNum = $isFinalTask ? ($this->hasSubsidiaryMaterials ? ($isCutting ? 5 : 4) : ($isCutting ? 4 : 3)) : ($isCutting ? 3 : 2);
+                                $prevStepNum = $isFinalTask ? ($isCutting ? 5 : 4) : ($isCutting ? 3 : 2);
                             @endphp
                             <button type="button" wire:click="$set('activeStep', {{ $prevStepNum }})" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
                                 ← Back

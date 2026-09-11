@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductMediaService
 {
+    protected ImageThumbnailService $thumbnailService;
+
+    public function __construct(?ImageThumbnailService $thumbnailService = null)
+    {
+        $this->thumbnailService = $thumbnailService ?? app(ImageThumbnailService::class);
+    }
+
     /**
      * Store uploaded file(s) for a product.
      */
@@ -22,11 +29,18 @@ class ProductMediaService
             foreach ($uploadedFiles as $index => $file) {
                 // If it is a TemporaryUploadedFile or normal UploadedFile
                 $path = $file->store('products', 'public');
+                $fileType = $this->getFileType($file->getClientMimeType());
+
+                $thumbnailPath = null;
+                if ($fileType === 'image') {
+                    $thumbnailPath = $this->thumbnailService->generateThumbnail($path);
+                }
 
                 ProductMedia::create([
                     'product_id' => $product->id,
                     'file_path' => $path,
-                    'file_type' => $this->getFileType($file->getClientMimeType()),
+                    'thumbnail_path' => $thumbnailPath,
+                    'file_type' => $fileType,
                     'mime_type' => $file->getClientMimeType(),
                     'size' => $file->getSize(),
                     'sort_order' => $existingCount + $index,
@@ -70,6 +84,10 @@ class ProductMediaService
         DB::transaction(function () use ($media) {
             if (Storage::disk('public')->exists($media->file_path)) {
                 Storage::disk('public')->delete($media->file_path);
+            }
+
+            if (!empty($media->thumbnail_path) && Storage::disk('public')->exists($media->thumbnail_path)) {
+                Storage::disk('public')->delete($media->thumbnail_path);
             }
             
             $product = $media->product;
