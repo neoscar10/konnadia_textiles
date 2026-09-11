@@ -260,32 +260,32 @@
                                     <tbody class="divide-y divide-slate-200 text-slate-700 font-medium">
                                         <tr>
                                             <td class="py-2.5 px-4 font-bold text-slate-900">Raw Fabric Cost</td>
-                                            <td class="py-2.5 px-4 text-slate-500">Raw fabric consumed for production</td>
+                                            <td class="py-2.5 px-4 text-slate-500 font-semibold">{{ $cSummary['fabric_details']['summary_text'] ?? 'Raw fabric consumed for production' }}</td>
                                             <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['fabric_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
                                             <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['fabric_cost'] ?? 0, 2) }}</td>
                                         </tr>
                                         <tr>
                                             <td class="py-2.5 px-4 font-bold text-slate-900">Shared Cutting Wastage</td>
-                                            <td class="py-2.5 px-4 text-slate-500">Area-weighted waste allocation</td>
+                                            <td class="py-2.5 px-4 text-slate-500 font-semibold">{{ $cSummary['wastage_details']['summary_text'] ?? 'Area-weighted waste allocation' }}</td>
                                             <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['total_wastage_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
                                             <td class="py-2.5 px-4 text-right font-bold text-amber-700 font-mono">₹{{ number_format($cSummary['total_wastage_cost'] ?? 0, 2) }}</td>
                                         </tr>
                                         <tr>
                                             <td class="py-2.5 px-4 font-bold text-slate-900">Subsidiary Material Cost</td>
-                                            <td class="py-2.5 px-4 text-slate-500">Trims, elastic, threads, labels, tags</td>
+                                            <td class="py-2.5 px-4 text-slate-500 font-semibold">{{ $cSummary['subsidiary_details']['summary_text'] ?? 'Trims, elastic, threads, labels, tags' }}</td>
                                             <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['subsidiary_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
                                             <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['subsidiary_cost'] ?? 0, 2) }}</td>
                                         </tr>
                                         <tr>
                                             <td class="py-2.5 px-4 font-bold text-slate-900">Labor Wages &amp; Stitching</td>
-                                            <td class="py-2.5 px-4 text-slate-500">Direct labor wages (₹{{ number_format($cSummary['total_labor_cost'] ?? 0, 2) }}) &amp; Stitching pool (₹{{ number_format($cSummary['stitching_cost'] ?? 0, 2) }})</td>
+                                            <td class="py-2.5 px-4 text-slate-500 font-semibold">{{ $cSummary['labor_details']['summary_text'] ?? ("Direct labor wages (₹" . number_format($cSummary['total_labor_cost'] ?? 0, 2) . ") & Stitching pool (₹" . number_format($cSummary['stitching_cost'] ?? 0, 2) . ")") }}</td>
                                             <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? (($cSummary['total_labor_cost'] ?? 0) + ($cSummary['stitching_cost'] ?? 0)) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
                                             <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format(($cSummary['total_labor_cost'] ?? 0) + ($cSummary['stitching_cost'] ?? 0), 2) }}</td>
                                         </tr>
                                         @if(($cSummary['packaging_cost'] ?? 0) > 0)
                                         <tr>
                                             <td class="py-2.5 px-4 font-bold text-slate-900">Packaging Materials</td>
-                                            <td class="py-2.5 px-4 text-slate-500">Packing bags, boxes, labels</td>
+                                            <td class="py-2.5 px-4 text-slate-500 font-semibold">{{ $cSummary['packaging_details']['summary_text'] ?? 'Packing bags, boxes, labels' }}</td>
                                             <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['packaging_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
                                             <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['packaging_cost'] ?? 0, 2) }}</td>
                                         </tr>
@@ -293,7 +293,7 @@
                                         @if(($cSummary['overhead_cost'] ?? 0) > 0)
                                         <tr>
                                             <td class="py-2.5 px-4 font-bold text-slate-900">Allocated Overheads</td>
-                                            <td class="py-2.5 px-4 text-slate-500">General consumables &amp; factory overheads</td>
+                                            <td class="py-2.5 px-4 text-slate-500 font-semibold">{{ $cSummary['overhead_details']['summary_text'] ?? 'General consumables & factory overheads' }}</td>
                                             <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['overhead_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
                                             <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['overhead_cost'] ?? 0, 2) }}</td>
                                         </tr>
@@ -1262,41 +1262,41 @@
                                 <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-800">
                                     2. Non-Good Output Categorization: Scrap vs. Damage
                                 </h4>
-                                <p class="text-[11px] text-slate-500 mt-0.5">Distinguish between partially damaged items that can still be sold as scrap (or converted into smaller items) versus completely unsalvageable damaged loss.</p>
+                                <p class="text-[11px] text-slate-500 mt-0.5">Distinguish between completely unsalvageable scrap loss versus partially damaged items that can still be sold or reused.</p>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <!-- Scrap Section Card -->
-                                <div class="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-3">
+                                <!-- Scrap Section Card (Completely Unusable Loss) -->
+                                <div class="p-4 bg-rose-50/60 border border-rose-200 rounded-xl space-y-3">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-xs font-extrabold uppercase text-amber-900 flex items-center gap-1">
-                                            <span>♻️</span> Scrap Output (Partially Damaged / Resold)
+                                        <span class="text-xs font-extrabold uppercase text-rose-900 flex items-center gap-1">
+                                            <span>♻️</span> Scrap Output (Completely Unusable Loss)
                                         </span>
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">SCRAP QUANTITY (PCS)</label>
-                                        <input type="number" step="0.5" wire:model="scrapQty" placeholder="e.g. 2.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <input type="number" step="0.5" wire:model="scrapQty" placeholder="e.g. 1.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">SCRAP ACTION / REASON NOTE</label>
-                                        <input type="text" wire:model="scrapNotes" placeholder="e.g. Minor flaw, convert bedsheet to pillowcases or sell as scrap" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <input type="text" wire:model="scrapNotes" placeholder="e.g. Severe fabric tear, unsalvageable loss" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                                     </div>
                                 </div>
 
-                                <!-- Damage Section Card -->
-                                <div class="p-4 bg-rose-50/60 border border-rose-200 rounded-xl space-y-3">
+                                <!-- Damage Section Card (Partially Damaged / Resold) -->
+                                <div class="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-3">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-xs font-extrabold uppercase text-rose-900 flex items-center gap-1">
-                                            <span>⚠️</span> Damaged Output (Completely Unusable Loss)
+                                        <span class="text-xs font-extrabold uppercase text-amber-900 flex items-center gap-1">
+                                            <span>⚠️</span> Damaged Output (Partially Damaged / Resold)
                                         </span>
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">DAMAGED QUANTITY (PCS)</label>
-                                        <input type="number" step="0.5" wire:model="damageQty" placeholder="e.g. 1.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <input type="number" step="0.5" wire:model="damageQty" placeholder="e.g. 2.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">DAMAGE REASON / REJECT NOTE</label>
-                                        <input type="text" wire:model="damageNotes" placeholder="e.g. Severe fabric tear during stitching" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <input type="text" wire:model="damageNotes" placeholder="e.g. Minor flaw, convert bedsheet to pillowcases or sell as second-quality" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                                     </div>
                                 </div>
                             </div>

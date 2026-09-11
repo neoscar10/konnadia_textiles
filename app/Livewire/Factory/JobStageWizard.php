@@ -978,7 +978,7 @@ class JobStageWizard extends Component
             // 4. Final Step Reconciliation: Record Wastage (Scrap & Damage) and Alteration Jobs
             $isFinalStep = $this->isFinalStage($this->activeStage);
             if ($isFinalStep) {
-                // Record Scrap Wastage
+                // Record Scrap Wastage (Completely Unusable Loss)
                 if ($this->scrapQty > 0) {
                     JobWastage::create([
                         'job_code'                 => $this->job->job_code,
@@ -988,11 +988,11 @@ class JobStageWizard extends Component
                         'task_id'                  => $taskId,
                         'wastage_type'             => 'scrap',
                         'quantity_wasted'          => $this->scrapQty,
-                        'reason'                   => $this->scrapNotes ?: "Scrap / Partially damaged items",
+                        'reason'                   => $this->scrapNotes ?: "Completely damaged / unsalvageable scrap loss",
                     ]);
                 }
 
-                // Record Damage Wastage
+                // Record Damage Wastage (Partially Damaged / Resold)
                 if ($this->damageQty > 0) {
                     JobWastage::create([
                         'job_code'                 => $this->job->job_code,
@@ -1002,7 +1002,7 @@ class JobStageWizard extends Component
                         'task_id'                  => $taskId,
                         'wastage_type'             => 'damage',
                         'quantity_wasted'          => $this->damageQty,
-                        'reason'                   => $this->damageNotes ?: "Completely damaged / unsalvageable loss",
+                        'reason'                   => $this->damageNotes ?: "Partially damaged / resold items",
                     ]);
                 }
 

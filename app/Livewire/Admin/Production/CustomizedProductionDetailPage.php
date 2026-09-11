@@ -970,7 +970,7 @@ class CustomizedProductionDetailPage extends Component
                         'task_id'           => $taskId,
                         'wastage_type'      => 'scrap',
                         'quantity_wasted'   => $this->scrapQty,
-                        'reason'            => $this->scrapNotes ?: "Scrap / Partially damaged items",
+                        'reason'            => $this->scrapNotes ?: "Completely damaged / unsalvageable scrap loss",
                     ]);
                 }
 
@@ -981,7 +981,7 @@ class CustomizedProductionDetailPage extends Component
                         'task_id'           => $taskId,
                         'wastage_type'      => 'damage',
                         'quantity_wasted'   => $this->damageQty,
-                        'reason'            => $this->damageNotes ?: "Completely damaged / unsalvageable loss",
+                        'reason'            => $this->damageNotes ?: "Partially damaged / resold items",
                     ]);
                 }
             }

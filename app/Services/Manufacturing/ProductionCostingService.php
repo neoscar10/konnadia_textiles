@@ -553,6 +553,190 @@ class ProductionCostingService
 
         $laborAllocations = $job->allocations()->with(['labor', 'task'])->get();
 
+        // --- ITEMIZED MATERIAL DETAILS COMPUTATION FOR ALLOCATION BASIS COLUMN ---
+        // 1. Fabric Details Summary
+        $fabricConsumptions = $job->materialConsumptions()
+            ->where(function ($q) {
+                $q->whereHas('inventoryBatch.rawMaterial.category', function ($cq) {
+                    $cq->where('code', 'CAT-FAB')
+                       ->orWhere('code', 'like', '%FAB%')
+                       ->orWhere('name', 'like', '%Fabric%')
+                       ->orWhere('unit_type', 'length_based');
+                })
+                ->orWhereNotNull('inventory_bale_roll_id')
+                ->orWhere('consumed_length', '>', 0)
+                ->orWhere('total_fabric_cost', '>', 0);
+            })
+            ->with(['inventoryBatch.rawMaterial', 'inventoryBaleRoll.bale.rawMaterial'])
+            ->get();
+
+        $fabricDetailParts = [];
+        foreach ($fabricConsumptions as $fc) {
+            $rawMat = $fc->inventoryBatch?->rawMaterial ?? $fc->inventoryBaleRoll?->bale?->rawMaterial;
+            if ($rawMat) {
+                $name = $rawMat->name;
+                $widthStr = $rawMat->standard_width ? " ({$rawMat->standard_width} " . ($rawMat->width_unit ?? 'Inch') . ")" : '';
+                $qty = (float) ($fc->consumed_length ?: $fc->quantity_consumed);
+                $unit = $rawMat->unit ?? 'M';
+                if (in_array(strtolower($unit), ['meters', 'meter', 'm'])) {
+                    $unit = 'M';
+                }
+                $qtyFormatted = (floor($qty) == $qty) ? number_format($qty, 0) : number_format($qty, 2);
+                $fabricDetailParts[] = "{$name}{$widthStr} {$qtyFormatted} {$unit}";
+            }
+        }
+
+        if (empty($fabricDetailParts) && $fabricCost > 0) {
+            $batchJobIds = $batchJobs->pluck('id');
+            $batchFabrics = JobMaterialConsumption::whereIn('production_job_id', $batchJobIds)
+                ->where(function ($q) {
+                    $q->whereHas('inventoryBatch.rawMaterial.category', fn($cq) => $cq->where('code', 'CAT-FAB')->orWhere('code', 'like', '%FAB%')->orWhere('name', 'like', '%Fabric%'))
+                      ->orWhereNotNull('inventory_bale_roll_id')
+                      ->orWhere('consumed_length', '>', 0);
+                })
+                ->with(['inventoryBatch.rawMaterial', 'inventoryBaleRoll.bale.rawMaterial'])
+                ->get();
+
+            foreach ($batchFabrics as $bfc) {
+                $rawMat = $bfc->inventoryBatch?->rawMaterial ?? $bfc->inventoryBaleRoll?->bale?->rawMaterial;
+                if ($rawMat) {
+                    $name = $rawMat->name;
+                    $widthStr = $rawMat->standard_width ? " ({$rawMat->standard_width} " . ($rawMat->width_unit ?? 'Inch') . ")" : '';
+                    $totQty = (float) ($bfc->consumed_length ?: $bfc->quantity_consumed);
+                    $appQty = round($totQty * $apportionRatio, 2);
+                    $unit = in_array(strtolower($rawMat->unit ?? 'M'), ['meters', 'meter', 'm']) ? 'M' : ($rawMat->unit ?? 'M');
+                    $qtyFormatted = (floor($appQty) == $appQty) ? number_format($appQty, 0) : number_format($appQty, 2);
+                    $fabricDetailParts[] = "{$name}{$widthStr} {$qtyFormatted} {$unit}";
+                }
+            }
+        }
+
+        $fabricDetailsText = !empty($fabricDetailParts)
+            ? implode(', ', array_unique($fabricDetailParts))
+            : ($fabricCost > 0 ? "Raw fabric consumed for production" : "No raw fabric consumed");
+
+        // 2. Shared Cutting Wastage Details Summary
+        if ($totalWastageCost > 0) {
+            $avgFabricRate = (float) $job->materialConsumptions()
+                ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
+                ->avg('unit_cost') ?: ($defaultJobFabricRate ?: 150.00);
+
+            $wastageQty = round($totalWastageCost / max(1, $avgFabricRate), 2);
+            $qtyFormatted = (floor($wastageQty) == $wastageQty) ? number_format($wastageQty, 0) : number_format($wastageQty, 2);
+            $wastageDetailText = $wastageQty > 0 ? "{$qtyFormatted} M (Area-weighted waste allocation)" : "Area-weighted waste allocation";
+        } else {
+            $wastageDetailText = "0.00 M (No cutting wastage)";
+        }
+
+        // 3. Subsidiary Material Details Summary
+        $subConsumptions = $job->materialConsumptions()
+            ->where(function ($q) {
+                $q->whereHas('inventoryBatch.rawMaterial.category', function ($cq) {
+                    $cq->where('code', 'CAT-SUB')
+                       ->orWhere('code', 'like', '%SUB%')
+                       ->orWhere('name', 'like', '%Subsidiary%')
+                       ->orWhere('name', 'like', '%Trim%');
+                })
+                ->orWhereHas('inventoryBatch.rawMaterial', function ($rmq) {
+                    $rmq->where('name', 'like', '%button%')
+                        ->orWhere('name', 'like', '%zipper%')
+                        ->orWhere('name', 'like', '%thread%')
+                        ->orWhere('name', 'like', '%elastic%')
+                        ->orWhere('name', 'like', '%label%')
+                        ->orWhere('name', 'like', '%sub%');
+                })
+                ->orWhere(function ($subQ) {
+                    $subQ->whereNull('inventory_bale_roll_id')
+                         ->where(function($lq) { $lq->whereNull('consumed_length')->orWhere('consumed_length', 0); })
+                         ->where(function($fq) { $fq->whereNull('total_fabric_cost')->orWhere('total_fabric_cost', 0); })
+                         ->whereDoesntHave('inventoryBatch.rawMaterial.category', function ($cq) {
+                             $cq->where('code', 'CAT-FAB')
+                                ->orWhere('code', 'like', '%FAB%')
+                                ->orWhere('name', 'like', '%Fabric%')
+                                ->orWhere('unit_type', 'length_based');
+                         });
+                });
+            })
+            ->with('inventoryBatch.rawMaterial')
+            ->get();
+
+        $subDetailParts = [];
+        foreach ($subConsumptions as $sc) {
+            $rawMat = $sc->inventoryBatch?->rawMaterial;
+            if ($rawMat) {
+                $qty = (float) $sc->quantity_consumed;
+                $unit = $rawMat->unit ?? 'Pcs';
+                $qtyFormatted = (floor($qty) == $qty) ? number_format($qty, 0) : number_format($qty, 2);
+                $subDetailParts[] = "{$rawMat->name} {$qtyFormatted} {$unit}";
+            }
+        }
+
+        if (empty($subDetailParts) && $subsidiaryCost > 0) {
+            $batchSubConsumptions = JobMaterialConsumption::whereIn('production_job_id', $batchJobs->pluck('id'))
+                ->whereHas('inventoryBatch.rawMaterial.category', fn($cq) => $cq->where('code', 'CAT-SUB')->orWhere('code', 'like', '%SUB%')->orWhere('name', 'like', '%Subsidiary%'))
+                ->with('inventoryBatch.rawMaterial')
+                ->get();
+            foreach ($batchSubConsumptions as $bsc) {
+                $rawMat = $bsc->inventoryBatch?->rawMaterial;
+                if ($rawMat) {
+                    $appQty = round((float) $bsc->quantity_consumed * $apportionRatio, 2);
+                    $unit = $rawMat->unit ?? 'Pcs';
+                    $qtyFormatted = (floor($appQty) == $appQty) ? number_format($appQty, 0) : number_format($appQty, 2);
+                    $subDetailParts[] = "{$rawMat->name} {$qtyFormatted} {$unit}";
+                }
+            }
+        }
+
+        $subsidiaryDetailsText = !empty($subDetailParts)
+            ? implode(', ', array_unique($subDetailParts))
+            : ($subsidiaryCost > 0 ? "Trims, elastic, threads, labels" : "No subsidiary materials used");
+
+        // 4. Labor & Stitching Details Summary
+        $laborWorkers = $laborAllocations->map(function($alloc) {
+            $name = $alloc->labor?->name ?? 'Worker';
+            $wage = number_format($alloc->calculated_wage, 2);
+            return "{$name} (₹{$wage})";
+        })->filter()->unique()->values()->all();
+
+        $laborSummaryText = !empty($laborWorkers)
+            ? implode(', ', $laborWorkers)
+            : "Direct labor wages (₹" . number_format($totalLaborCost, 2) . ")";
+        $laborDetailsText = "{$laborSummaryText} & Stitching pool (₹" . number_format($stitchingCost, 2) . ")";
+
+        // 5. Packaging Details Summary
+        $pkgConsumptions = $job->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-PKG')->orWhere('code', 'like', '%PKG%'))
+            ->with('inventoryBatch.rawMaterial')
+            ->get();
+        $pkgDetailParts = [];
+        foreach ($pkgConsumptions as $pkc) {
+            $rawMat = $pkc->inventoryBatch?->rawMaterial;
+            if ($rawMat) {
+                $qty = (float) $pkc->quantity_consumed;
+                $unit = $rawMat->unit ?? 'Pcs';
+                $qtyFormatted = (floor($qty) == $qty) ? number_format($qty, 0) : number_format($qty, 2);
+                $pkgDetailParts[] = "{$rawMat->name} {$qtyFormatted} {$unit}";
+            }
+        }
+        $packagingDetailsText = !empty($pkgDetailParts) ? implode(', ', array_unique($pkgDetailParts)) : ($packagingCost > 0 ? "Packing bags, boxes, labels" : "No packaging materials used");
+
+        // 6. Overhead Details Summary
+        $ohdConsumptions = $job->materialConsumptions()
+            ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-OHD')->orWhere('code', 'like', '%OHD%'))
+            ->with('inventoryBatch.rawMaterial')
+            ->get();
+        $ohdDetailParts = [];
+        foreach ($ohdConsumptions as $ohc) {
+            $rawMat = $ohc->inventoryBatch?->rawMaterial;
+            if ($rawMat) {
+                $qty = (float) $ohc->quantity_consumed;
+                $unit = $rawMat->unit ?? 'Units';
+                $qtyFormatted = (floor($qty) == $qty) ? number_format($qty, 0) : number_format($qty, 2);
+                $ohdDetailParts[] = "{$rawMat->name} {$qtyFormatted} {$unit}";
+            }
+        }
+        $overheadDetailsText = !empty($ohdDetailParts) ? implode(', ', array_unique($ohdDetailParts)) : ($overheadCost > 0 ? "General consumables & factory overheads" : "No overheads allocated");
+
         return [
             'total_material_cost' => $totalMaterialCost,
             'fabric_cost' => $fabricCost,
@@ -565,11 +749,25 @@ class ProductionCostingService
             'total_manufacturing_cost' => $totalManufacturingCost,
             'average_cost_per_unit' => $averageCostPerUnit,
             'finished_units' => $finishedUnits,
-            'labor_details' => [
-                'allocations' => $laborAllocations,
+            'fabric_details' => [
+                'summary_text' => $fabricDetailsText,
             ],
             'wastage_details' => [
-                'wastage_log' => $wastageLog,
+                'summary_text' => $wastageDetailText,
+                'wastage_log'  => $wastageLog,
+            ],
+            'subsidiary_details' => [
+                'summary_text' => $subsidiaryDetailsText,
+            ],
+            'labor_details' => [
+                'summary_text' => $laborDetailsText,
+                'allocations'  => $laborAllocations,
+            ],
+            'packaging_details' => [
+                'summary_text' => $packagingDetailsText,
+            ],
+            'overhead_details' => [
+                'summary_text' => $overheadDetailsText,
             ],
         ];
     }

@@ -133,14 +133,14 @@
                             </td>
                             <td class="px-5 py-4 text-center">
                                 @if($isDamage)
-                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full font-mono font-bold font-label-sm text-label-sm bg-rose-500/10 text-rose-800 border border-rose-500/30">
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full font-mono font-bold font-label-sm text-label-sm bg-amber-500/10 text-amber-900 border border-amber-500/30">
                                         <span class="material-symbols-outlined text-[14px]">warning</span>
-                                        Damaged
+                                        Damaged (Resold)
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full font-mono font-bold font-label-sm text-label-sm bg-amber-500/10 text-amber-900 border border-amber-500/30">
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full font-mono font-bold font-label-sm text-label-sm bg-rose-500/10 text-rose-800 border border-rose-500/30">
                                         <span class="material-symbols-outlined text-[14px]">delete_sweep</span>
-                                        Scrap
+                                        Scrap (Unusable)
                                     </span>
                                 @endif
                             </td>

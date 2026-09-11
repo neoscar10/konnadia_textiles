@@ -663,15 +663,15 @@
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-3">
-                                    <label class="block text-xs font-black uppercase text-amber-800 dark:text-amber-300">SCRAP QUANTITY (PCS)</label>
-                                    <input type="number" min="0" wire:model.live.debounce.500ms="scrapQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
-                                    <input type="text" wire:model.live.debounce.500ms="scrapNotes" placeholder="Reason for scrap..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
-                                </div>
                                 <div class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl space-y-3">
-                                    <label class="block text-xs font-black uppercase text-rose-800 dark:text-rose-300">DAMAGE QUANTITY (PCS)</label>
+                                    <label class="block text-xs font-black uppercase text-rose-800 dark:text-rose-300">SCRAP QUANTITY (UNUSABLE LOSS) (PCS)</label>
+                                    <input type="number" min="0" wire:model.live.debounce.500ms="scrapQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                    <input type="text" wire:model.live.debounce.500ms="scrapNotes" placeholder="Reason for scrap (e.g. severe fabric tear, unsalvageable loss)..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
+                                </div>
+                                <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-3">
+                                    <label class="block text-xs font-black uppercase text-amber-800 dark:text-amber-300">DAMAGE QUANTITY (RESOLD / REUSED) (PCS)</label>
                                     <input type="number" min="0" wire:model.live.debounce.500ms="damageQty" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
-                                    <input type="text" wire:model.live.debounce.500ms="damageNotes" placeholder="Reason for damage..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
+                                    <input type="text" wire:model.live.debounce.500ms="damageNotes" placeholder="Reason for damage (e.g. minor flaw, convert or sell as second-quality)..." class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 text-on-surface" />
                                 </div>
                             </div>
 
