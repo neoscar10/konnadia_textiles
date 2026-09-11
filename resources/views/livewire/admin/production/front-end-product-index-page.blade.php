@@ -2,7 +2,7 @@
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-black tracking-tight text-on-surface">Front-End Products Configuration</h1>
+            <h1 class="text-2xl font-black tracking-tight text-on-surface">Leaf Category Config</h1>
             <p class="text-xs text-on-surface-variant font-medium mt-0.5">
                 Configure constituent manufacturing products and packaging materials required per sellable shop leaf category.
             </p>

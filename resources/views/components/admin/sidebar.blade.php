@@ -187,6 +187,12 @@
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Finished Goods</span>
                 </a>
 
+                <!-- Leaf Category Config (Standalone) -->
+                <a href="{{ route('admin.production.front-end-products') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.front-end-products') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="category">category</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Leaf Category Config</span>
+                </a>
+
 
                 <!-- Wastage Log (Standalone) -->
                 <a href="{{ route('factory.wastage-log.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.wastage-log.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
@@ -207,7 +213,7 @@
                 </a>
 
                 <!-- Manufacturing Prod Group -->
-                <div x-data="{ open: {{ request()->routeIs('factory.products.*') || request()->routeIs('admin.production.product-categories.*') || request()->routeIs('admin.production.front-end-products') ? 'true' : 'false' }} }" class="flex flex-col">
+                <div x-data="{ open: {{ request()->routeIs('factory.products.*') || request()->routeIs('admin.production.product-categories.*') ? 'true' : 'false' }} }" class="flex flex-col">
                     <button @click="open = !open; if(!sidebarOpen && open) sidebarOpen = true;" type="button" class="flex items-center justify-between rounded-lg transition-all duration-200 text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30 w-full" :class="sidebarOpen ? 'px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <div class="flex items-center gap-md">
                             <span class="material-symbols-outlined shrink-0" data-icon="inventory_2">inventory_2</span>
@@ -222,9 +228,6 @@
                             </a>
                             <a href="{{ route('admin.production.product-categories.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.production.product-categories.*') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Categories
-                            </a>
-                            <a href="{{ route('admin.production.front-end-products') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.production.front-end-products') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
-                                Front-End Products
                             </a>
                         </div>
                     </div>

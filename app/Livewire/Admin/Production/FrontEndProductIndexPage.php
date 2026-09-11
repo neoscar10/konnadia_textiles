@@ -240,7 +240,7 @@ class FrontEndProductIndexPage extends Component
             'categories' => $paginatedCategories,
             'mfgProducts' => $mfgProducts,
             'packagingMaterials' => $packagingMaterials,
-        ])->title('Front-End Products Configuration');
+        ])->title('Leaf Category Config');
 
     }
 }
