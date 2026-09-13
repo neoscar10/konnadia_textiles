@@ -172,7 +172,8 @@ class RawMaterial extends Model
      */
     public function isFabric(): bool
     {
-        if ($this->unit && in_array($this->unit, ['Meters', 'Yards', 'Feet', 'Inches'])) {
+        $uCode = strtoupper($this->unitModel ? $this->unitModel->short_code : ($this->unit ?: ''));
+        if (in_array($uCode, ['M', 'METER', 'METERS', 'YD', 'YARD', 'YARDS', 'FT', 'FIT', 'FEET', 'FOOT', 'IN', 'INCH', 'INCHES', 'CM', 'CENTIMETERS'])) {
             return true;
         }
 
@@ -180,7 +181,14 @@ class RawMaterial extends Model
             return true;
         }
 
+        if ($this->unitGroup && $this->unitGroup->code === 'LENGTH') {
+            return true;
+        }
+
         if ($this->category) {
+            if ($this->category->unitGroup && $this->category->unitGroup->code === 'LENGTH') {
+                return true;
+            }
             $unitTypeVal = is_object($this->category->unit_type) ? $this->category->unit_type->value : (string) $this->category->unit_type;
             if ($unitTypeVal === 'length_based') {
                 return true;
@@ -199,14 +207,18 @@ class RawMaterial extends Model
     public function scopeFabricsOnly($query)
     {
         return $query->where(function ($q) {
-            $q->whereHas('category', function ($cq) {
+            $q->whereHas('unitGroup', function ($ugq) {
+                $ugq->where('code', 'LENGTH');
+            })
+            ->orWhereHas('category', function ($cq) {
                 $cq->where('unit_type', 'length_based')
                    ->orWhere('unit_type', RawMaterialUnitType::LENGTH_BASED)
                    ->orWhere('code', 'CAT-FAB')
                    ->orWhere('code', 'like', '%FAB%')
-                   ->orWhere('name', 'like', '%Fabric%');
+                   ->orWhere('name', 'like', '%Fabric%')
+                   ->orWhereHas('unitGroup', fn($ug) => $ug->where('code', 'LENGTH'));
             })
-            ->orWhereIn('unit', ['Meters', 'Yards', 'Feet', 'Inches']);
+            ->orWhereIn('unit', ['Meters', 'Yards', 'Feet', 'Inches', 'CM', 'M', 'FT', 'IN', 'YD', 'm', 'yd', 'ft', 'in', 'cm']);
         });
     }
 

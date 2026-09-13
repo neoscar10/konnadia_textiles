@@ -14,6 +14,7 @@ class FabricWidth extends Model
     protected $fillable = [
         'name',
         'value',
+        'unit_id',
         'unit',
         'status',
     ];
@@ -22,6 +23,14 @@ class FabricWidth extends Model
         'value' => 'decimal:2',
         'status' => 'boolean',
     ];
+
+    /**
+     * The unit model from the central Units management table.
+     */
+    public function unitModel()
+    {
+        return $this->belongsTo(Unit::class, 'unit_id');
+    }
 
     /**
      * Raw materials using this fabric width.

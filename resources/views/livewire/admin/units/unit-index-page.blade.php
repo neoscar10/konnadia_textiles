@@ -25,16 +25,26 @@
             <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-xs border border-outline-variant/60 hover:border-primary/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between relative group">
                 <div>
                     <div class="flex items-center justify-between mb-3">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                            {{ $group->code }}
-                        </span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                                {{ $group->code }}
+                            </span>
+                            @if($group->is_system)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-500/10 text-amber-700 border border-amber-500/30 gap-1" title="System Protected Group">
+                                    <span class="material-symbols-outlined text-[12px]">lock</span>
+                                    Protected
+                                </span>
+                            @endif
+                        </div>
                         <div class="flex items-center space-x-1">
                             <button wire:click="editGroup({{ $group->id }})" class="p-1.5 text-on-surface-variant hover:text-primary rounded-lg hover:bg-surface transition-colors" title="Edit Group">
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
                             </button>
-                            <button onclick="confirm('Delete this unit group?') || event.stopImmediatePropagation()" wire:click="deleteGroup({{ $group->id }})" class="p-1.5 text-on-surface-variant hover:text-error rounded-lg hover:bg-error-container/30 transition-colors" title="Delete Group">
-                                <span class="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
+                            @if(!$group->is_system)
+                                <button onclick="confirm('Delete this unit group?') || event.stopImmediatePropagation()" wire:click="deleteGroup({{ $group->id }})" class="p-1.5 text-on-surface-variant hover:text-error rounded-lg hover:bg-error-container/30 transition-colors" title="Delete Group">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            @endif
                         </div>
                     </div>
                     <h3 class="text-lg font-bold text-on-surface">{{ $group->name }}</h3>
@@ -133,6 +143,12 @@
                                     @if($unit->is_base)
                                         <span class="text-[10px] px-2.5 py-0.5 bg-secondary-container/40 text-secondary border border-secondary/30 font-extrabold rounded-full uppercase">Base Unit (1.0)</span>
                                     @endif
+                                    @if($unit->is_system)
+                                        <span class="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-700 border border-amber-500/30 font-extrabold rounded-full uppercase flex items-center gap-0.5" title="System Protected Unit">
+                                            <span class="material-symbols-outlined text-[10px]">lock</span>
+                                            Protected
+                                        </span>
+                                    @endif
                                 </div>
                                 <p class="text-xs text-outline mt-0.5">
                                     1 {{ $unit->name }} = <strong>{{ (float)$unit->ratio_to_base }}</strong> {{ $selectedGroup->baseUnit ? $selectedGroup->baseUnit->name : 'Base Unit' }}
@@ -140,11 +156,11 @@
                             </div>
 
                             <div class="flex items-center space-x-2">
-                                @if(!$unit->is_base)
+                                @if(!$unit->is_base && !$unit->is_system)
                                     <button wire:click="setBaseUnit({{ $unit->id }})" class="text-xs text-primary font-bold hover:underline">Set as Base</button>
                                 @endif
                                 <button wire:click="editUnit({{ $unit->id }})" class="p-1.5 text-on-surface-variant hover:text-primary rounded-lg hover:bg-surface"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                                @if(!$unit->is_base)
+                                @if(!$unit->is_base && !$unit->is_system)
                                     <button wire:click="deleteUnit({{ $unit->id }})" class="p-1.5 text-on-surface-variant hover:text-error rounded-lg hover:bg-error-container/30"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                                 @endif
                             </div>

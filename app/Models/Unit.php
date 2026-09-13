@@ -16,11 +16,13 @@ class Unit extends Model
         'is_base',
         'ratio_to_base',
         'is_active',
+        'is_system',
     ];
 
     protected $casts = [
         'is_base' => 'boolean',
         'is_active' => 'boolean',
+        'is_system' => 'boolean',
         'ratio_to_base' => 'float',
     ];
 

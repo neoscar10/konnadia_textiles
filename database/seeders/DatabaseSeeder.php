@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,
             FactoryRolesSeeder::class,
             TaskSeeder::class,
+            UnitManagementSeeder::class,
+            SystemLengthUnitsSeeder::class,
             ManufacturingProductSeeder::class,
             RawMaterialInventorySeeder::class,
         ]);

@@ -14,10 +14,12 @@ class UnitGroup extends Model
         'code',
         'description',
         'is_active',
+        'is_system',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_system' => 'boolean',
     ];
 
     /**

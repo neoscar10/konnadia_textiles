@@ -84,7 +84,11 @@ class UnitIndexPage extends Component
         ];
 
         if ($this->editingGroupId) {
-            UnitGroup::findOrFail($this->editingGroupId)->update($data);
+            $existingGroup = UnitGroup::findOrFail($this->editingGroupId);
+            if ($existingGroup->is_system) {
+                $data['code'] = $existingGroup->code; // Code is protected for system groups
+            }
+            $existingGroup->update($data);
             $msg = "Unit Group [{$this->groupName}] updated successfully.";
         } else {
             UnitGroup::create($data);
@@ -99,6 +103,10 @@ class UnitIndexPage extends Component
     public function deleteGroup(int $groupId)
     {
         $group = UnitGroup::withCount('units')->findOrFail($groupId);
+        if ($group->is_system) {
+            $this->dispatch('toast', message: "System unit groups are protected and cannot be deleted.", type: 'error');
+            return;
+        }
         $group->delete();
 
         $this->dispatch('toast', message: "Unit Group deleted successfully.", type: 'success');
@@ -162,7 +170,15 @@ class UnitIndexPage extends Component
         }
 
         if ($this->editingUnitId) {
-            Unit::findOrFail($this->editingUnitId)->update($data);
+            $existingUnit = Unit::findOrFail($this->editingUnitId);
+            if ($existingUnit->is_system) {
+                $data['short_code'] = $existingUnit->short_code; // Code is protected for system units
+                $data['ratio_to_base'] = $existingUnit->ratio_to_base; // Ratio is protected for system units
+                if ($existingUnit->is_base) {
+                    $data['is_base'] = true; // Base status is protected
+                }
+            }
+            $existingUnit->update($data);
             $msg = "Unit [{$this->unitName}] updated successfully.";
         } else {
             Unit::create($data);
@@ -177,6 +193,10 @@ class UnitIndexPage extends Component
     public function deleteUnit(int $unitId)
     {
         $unit = Unit::findOrFail($unitId);
+        if ($unit->is_system) {
+            $this->dispatch('toast', message: "System protected units cannot be deleted.", type: 'error');
+            return;
+        }
         if ($unit->is_base) {
             $this->dispatch('toast', message: "Cannot delete the Base Unit of a group. Set another unit as base first.", type: 'error');
             return;

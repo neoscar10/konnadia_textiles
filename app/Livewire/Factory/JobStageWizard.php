@@ -142,7 +142,7 @@ class JobStageWizard extends Component
                 'raw_material_id'     => $mat->id,
                 'material_name'       => $mat->name,
                 'material_code'       => $mat->code,
-                'unit'                => $mat->unit ?? 'Pieces',
+                'unit'                => $mat->unitModel ? $mat->unitModel->short_code : ($mat->unit ?? 'Pieces'),
                 'bom_per_unit'        => $bomPerUnit,
                 'output_qty'          => $outputQty,
                 'std_req_qty'         => $stdReqQty,

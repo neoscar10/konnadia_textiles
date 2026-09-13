@@ -166,26 +166,15 @@ class FabricCuttingAreaService
     /**
      * Helper to convert length/width value to meters.
      */
+    /**
+     * Helper to convert length/width value to meters using database-driven unit conversion engine.
+     */
     public static function convertToMeters(float $val, ?string $unitStr): float
     {
         if ($val <= 0) return 0.0;
-        $unitLower = strtolower(trim($unitStr ?: ''));
-        if (str_contains($unitLower, 'yard') || $unitLower === 'yd') {
-            return $val * 0.9144;
-        }
-        if (str_contains($unitLower, 'foot') || str_contains($unitLower, 'feet') || $unitLower === 'ft') {
-            return $val * 0.3048;
-        }
-        if (str_contains($unitLower, 'inch') || $unitLower === 'in' || $unitLower === '"') {
-            return $val * 0.0254;
-        }
-        if (str_contains($unitLower, 'cm') || str_contains($unitLower, 'centimeter')) {
-            return $val * 0.01;
-        }
-        if (str_contains($unitLower, 'mm') || str_contains($unitLower, 'millimeter')) {
-            return $val * 0.001;
-        }
-        return $val * 1.0;
+        if (empty(trim($unitStr ?? ''))) return $val;
+
+        return UnitConversionService::convert($val, $unitStr, 'M');
     }
 
     /**
@@ -368,60 +357,37 @@ class FabricCuttingAreaService
 
         // 3. Resolve Roll Width & Units
         $widthVal = 0.0;
-        $widthUnitStr = 'Inches';
+        $widthUnitStr = 'IN';
 
         if ($roll) {
             if (isset($roll->fabricWidth) && $roll->fabricWidth) {
                 $fw = $roll->fabricWidth;
-                $widthVal = (float) ($fw->width_inches ?: $fw->value ?: $fw->width ?: 0);
-                $widthUnitStr = $fw->unit ?: 'Inches';
+                $widthVal = (float) ($fw->value ?: $fw->width_inches ?: $fw->width ?: 0);
+                $widthUnitStr = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'IN');
             } elseif (isset($roll->rawMaterial) && $roll->rawMaterial && $roll->rawMaterial->standard_width) {
                 $widthVal = (float) $roll->rawMaterial->standard_width;
-                $widthUnitStr = $roll->rawMaterial->width_unit ?: 'Inches';
+                $widthUnitStr = $roll->rawMaterial->width_unit ?: 'IN';
             }
         }
 
         if ($widthVal <= 0 && $rawMaterial && $rawMaterial->standard_width) {
             $widthVal = (float) $rawMaterial->standard_width;
-            $widthUnitStr = $rawMaterial->width_unit ?: 'Inches';
+            $widthUnitStr = $rawMaterial->width_unit ?: 'IN';
         }
 
         if ($widthVal <= 0) {
             $widthVal = 60.0;
-            $widthUnitStr = 'Inches';
+            $widthUnitStr = 'IN';
         }
 
-        // Convert width to Inches, CM, and Meters
-        $unitLower = strtolower(trim($widthUnitStr));
-        if (str_contains($unitLower, 'cm') || str_contains($unitLower, 'centimeter')) {
-            $widthCm = $widthVal;
-            $widthInches = $widthVal / 2.54;
-            $widthMeters = $widthVal / 100.0;
-        } elseif (str_contains($unitLower, 'meter') || $unitLower === 'm') {
-            $widthMeters = $widthVal;
-            $widthCm = $widthVal * 100.0;
-            $widthInches = $widthVal / 0.0254;
-        } else {
-            // Inches
-            $widthInches = $widthVal;
-            $widthCm = $widthVal * 2.54;
-            $widthMeters = $widthVal * 0.0254;
-        }
+        // Convert width to Inches, CM, and Meters using single-source UnitConversionService
+        $widthMeters = UnitConversionService::convert($widthVal, $widthUnitStr, 'M');
+        $widthInches = UnitConversionService::convert($widthVal, $widthUnitStr, 'IN');
+        $widthCm = UnitConversionService::convert($widthVal, $widthUnitStr, 'CM');
 
-        // 4. Convert Cut Length to Meters
-        $cutLengthUnitStr = $rawMaterial?->unit ?: 'Meters';
-        $cutLenLower = strtolower(trim($cutLengthUnitStr));
-
-        if (str_contains($cutLenLower, 'yard') || $cutLenLower === 'yd') {
-            $cutLengthMeters = $cutLength * 0.9144;
-        } elseif (str_contains($cutLenLower, 'foot') || str_contains($cutLenLower, 'feet') || $cutLenLower === 'ft') {
-            $cutLengthMeters = $cutLength * 0.3048;
-        } elseif (str_contains($cutLenLower, 'inch') || $cutLenLower === 'in') {
-            $cutLengthMeters = $cutLength * 0.0254;
-        } else {
-            // Meters
-            $cutLengthMeters = $cutLength * 1.0;
-        }
+        // 4. Convert Cut Length to Meters using single-source UnitConversionService
+        $cutLengthUnitStr = $rawMaterial?->unitModel?->short_code ?? ($rawMaterial?->unit ?: 'M');
+        $cutLengthMeters = UnitConversionService::convert($cutLength, $cutLengthUnitStr, 'M');
 
         // 5. Compute Cut Area (m^2)
         $cutAreaM2 = $cutLengthMeters * $widthMeters;

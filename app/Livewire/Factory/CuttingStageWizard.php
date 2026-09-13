@@ -420,8 +420,8 @@ class CuttingStageWizard extends Component
             return [];
         }
 
-        $roll = InventoryBaleRoll::with(['fabricWidth', 'rawMaterial', 'bale.batch.rawMaterial'])->find($rollId);
-        $rawMaterial = $rawMaterialId ? RawMaterial::find($rawMaterialId) : ($roll?->rawMaterial ?? $roll?->bale?->batch?->rawMaterial);
+        $roll = InventoryBaleRoll::with(['fabricWidth.unitModel', 'rawMaterial.unitModel', 'bale.batch.rawMaterial.unitModel'])->find($rollId);
+        $rawMaterial = $rawMaterialId ? RawMaterial::with(['unitModel', 'fabricWidths.unitModel'])->find($rawMaterialId) : ($roll?->rawMaterial ?? $roll?->bale?->batch?->rawMaterial);
 
         if (!$rawMaterial) {
             return [];
@@ -429,8 +429,29 @@ class CuttingStageWizard extends Component
 
         $purchaseRate = (float) ($roll?->bale?->batch?->unit_cost ?: ($roll?->bale?->batch?->purchase_rate ?: 0));
 
-        $widthVal = (float) ($rawMaterial->standard_width ?: 60);
-        $widthUnitStr = $rawMaterial->width_unit ?: 'Inches';
+        $widthVal = 0.0;
+        $widthUnitStr = 'IN';
+
+        if ($roll && $roll->fabricWidth) {
+            $fw = $roll->fabricWidth;
+            $widthVal = (float) ($fw->value ?: $fw->width_inches ?: 0);
+            $widthUnitStr = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'IN');
+        } elseif ($rawMaterial) {
+            if ($rawMaterial->fabricWidths && $rawMaterial->fabricWidths->isNotEmpty()) {
+                $fw = $rawMaterial->fabricWidths->first();
+                $widthVal = (float) $fw->value;
+                $widthUnitStr = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'IN');
+            } else {
+                $widthVal = (float) ($rawMaterial->standard_width ?: 60);
+                $widthUnitStr = $rawMaterial->width_unit ?: 'IN';
+            }
+        }
+
+        if ($widthVal <= 0) {
+            $widthVal = 60.0;
+            $widthUnitStr = 'IN';
+        }
+
         $widthMeters = FabricCuttingAreaService::convertToMeters($widthVal, $widthUnitStr);
 
         $unitGroupId = $rawMaterial->unit_group_id;
