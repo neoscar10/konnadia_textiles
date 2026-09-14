@@ -101,7 +101,7 @@ class SystemLengthUnitsSeeder extends Seeder
         $meterUnit = $lengthUnits->first(fn($u) => in_array(strtoupper($u->short_code), ['M', 'METER', 'METERS']));
         $feetUnit = $lengthUnits->first(fn($u) => in_array(strtoupper($u->short_code), ['FT', 'FIT', 'FEET', 'FOOT']));
 
-        FabricWidth::all()->each(function (FabricWidth $fw) use ($inchUnit, $cmUnit, $meterUnit, $feetUnit) {
+        FabricWidth::with('unitModel')->get()->each(function (FabricWidth $fw) use ($inchUnit, $cmUnit, $meterUnit, $feetUnit) {
             if (!$fw->unit_id && $fw->unit) {
                 $uStr = strtolower(trim($fw->unit));
                 $targetUnit = null;
@@ -119,8 +119,13 @@ class SystemLengthUnitsSeeder extends Seeder
                 if ($targetUnit) {
                     $fw->unit_id = $targetUnit->id;
                     $fw->unit = $targetUnit->short_code;
+                    $fw->name = trim($fw->value) . ' ' . $targetUnit->short_code;
                     $fw->save();
                 }
+            } elseif ($fw->unit_id && $fw->unitModel) {
+                $fw->unit = $fw->unitModel->short_code;
+                $fw->name = trim($fw->value) . ' ' . $fw->unitModel->short_code;
+                $fw->save();
             }
         });
     }

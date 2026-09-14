@@ -44,6 +44,16 @@ class FabricWidthMasterPage extends Component
         $this->resetPage();
     }
 
+    public function updatedUnitId($value): void
+    {
+        if ($value) {
+            $unitModel = Unit::find($value);
+            if ($unitModel) {
+                $this->unit = $unitModel->short_code;
+            }
+        }
+    }
+
     public function openCreateModal(): void
     {
         $this->resetValidation();
@@ -88,6 +98,13 @@ class FabricWidthMasterPage extends Component
             }
         }
 
+        if ($this->unit_id && empty($this->unit)) {
+            $uModel = Unit::find($this->unit_id);
+            if ($uModel) {
+                $this->unit = $uModel->short_code;
+            }
+        }
+
         $this->status = (bool) $width->status;
         $this->dispatch('open-modal', 'width-modal');
     }
@@ -121,7 +138,12 @@ class FabricWidthMasterPage extends Component
         ]);
 
         $unitModel = Unit::find($this->unit_id);
-        $unitStr = !empty(trim($this->unit)) ? trim($this->unit) : ($unitModel ? $unitModel->short_code : 'IN');
+        if ($unitModel) {
+            $unitStr = !empty(trim($this->unit)) ? trim($this->unit) : $unitModel->short_code;
+        } else {
+            $unitStr = !empty(trim($this->unit)) ? trim($this->unit) : 'IN';
+        }
+
         $name = trim($this->value) . ' ' . $unitStr;
 
         if ($this->widthId) {

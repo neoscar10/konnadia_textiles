@@ -104,7 +104,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-extrabold uppercase text-slate-700 mb-1">Measurement Unit *</label>
-                    <select wire:model="unit_id" class="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-amber-500">
+                    <select wire:model.live="unit_id" class="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-amber-500">
                         <option value="">-- Select Length Unit --</option>
                         @foreach($lengthUnits as $lUnit)
                             <option value="{{ $lUnit->id }}">{{ $lUnit->name }} ({{ $lUnit->short_code }}) {{ $lUnit->is_base ? ' — Base Unit' : '' }}</option>
