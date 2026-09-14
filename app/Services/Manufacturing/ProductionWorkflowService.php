@@ -30,11 +30,13 @@ class ProductionWorkflowService
         try {
             $batch = DB::transaction(function () use ($supervisorId, $priority, $remarks, $batchDate) {
                 $factorySupervisor = $supervisorId ? \App\Models\FactorySupervisor::find($supervisorId) : null;
+                $factorySupervisorId = $factorySupervisor?->id ?: \App\Models\FactorySupervisor::active()->first()?->id;
+                $userId = auth()->id() ?: \App\Models\User::first()?->id;
 
                 return ProductionBatch::create([
                     'batch_date'            => $batchDate ?? now()->format('Y-m-d'),
-                    'supervisor_id'         => auth()->id() ?: 1,
-                    'factory_supervisor_id' => $factorySupervisor?->id,
+                    'supervisor_id'         => $userId,
+                    'factory_supervisor_id' => $factorySupervisorId,
                     'planned_quantity'      => 0,
                     'priority'              => $priority,
                     'status'                => 'In Cutting',
@@ -89,12 +91,13 @@ class ProductionWorkflowService
                 $firstPattern = !empty($firstItem['pattern_id']) ? \App\Models\ManufacturingProductPattern::with('tasks')->find($firstItem['pattern_id']) : null;
 
                 $factorySupervisor = $supervisorId ? \App\Models\FactorySupervisor::find($supervisorId) : null;
-                $factorySupervisorId = $factorySupervisor?->id;
+                $factorySupervisorId = $factorySupervisor?->id ?: \App\Models\FactorySupervisor::active()->first()?->id;
+                $userId = auth()->id() ?: \App\Models\User::first()?->id;
 
                 // Create the Production Batch record
                 $batch = ProductionBatch::create([
                     'batch_date'               => $batchDate ?? now()->format('Y-m-d'),
-                    'supervisor_id'            => auth()->id() ?: 1,
+                    'supervisor_id'            => $userId,
                     'factory_supervisor_id'    => $factorySupervisorId,
                     'manufacturing_product_id' => $firstProduct?->id,
                     'pattern_id'               => $firstPattern?->id,
