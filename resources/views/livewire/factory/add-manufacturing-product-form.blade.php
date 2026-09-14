@@ -235,10 +235,9 @@
                                                 <!-- Length Unit Dropdown -->
                                                 <div class="w-28 shrink-0">
                                                     <select wire:model="patternsList.{{ $pIdx }}.widths.{{ $wIdx }}.fabric_length_unit" class="w-full px-2 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500">
-                                                        <option value="m">Meter (m)</option>
-                                                        <option value="in">Inch (in)</option>
-                                                        <option value="cm">cm</option>
-                                                        <option value="yd">Yard (yd)</option>
+                                                        @foreach($lengthUnits as $lUnit)
+                                                            <option value="{{ strtolower($lUnit->short_code) }}">{{ $lUnit->name }} ({{ strtolower($lUnit->short_code) }})</option>
+                                                        @endforeach
                                                     </select>
                                                 </div>
 

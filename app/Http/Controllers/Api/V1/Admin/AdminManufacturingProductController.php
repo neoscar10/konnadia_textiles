@@ -116,6 +116,13 @@ class AdminManufacturingProductController extends Controller
             ->orderBy('name')
             ->get();
 
+        $lengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first();
+        if (!$lengthGroup) {
+            app(\Database\Seeders\SystemLengthUnitsSeeder::class)->run();
+            $lengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first();
+        }
+        $lengthUnits = $lengthGroup ? $lengthGroup->activeUnits()->select('id', 'name', 'short_code', 'is_base', 'ratio_to_base')->get() : \App\Models\Unit::all();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -126,6 +133,7 @@ class AdminManufacturingProductController extends Controller
                 'subsidiary_raw_materials' => $subsidiaryMaterials,
                 'stitching_raw_materials' => $stitchingMaterials,
                 'packaging_raw_materials' => $packagingMaterials,
+                'length_units' => $lengthUnits,
                 'storefront_products' => $storefrontProducts,
                 'storefront_combinations' => $storefrontCombinations,
             ],

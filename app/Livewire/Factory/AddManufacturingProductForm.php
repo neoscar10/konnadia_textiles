@@ -808,6 +808,13 @@ class AddManufacturingProductForm extends Component
         $availableTasks = Task::where('status', true)->orderBy('id')->get();
         $fabricWidths = FabricWidth::active()->orderBy('value', 'asc')->get();
 
+        $lengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first();
+        if (!$lengthGroup) {
+            app(\Database\Seeders\SystemLengthUnitsSeeder::class)->run();
+            $lengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first();
+        }
+        $lengthUnits = $lengthGroup ? $lengthGroup->activeUnits()->orderBy('id')->get() : \App\Models\Unit::all();
+
         // CAT-SUB materials for subsidiary picker
         $subsidiaryRawMaterials = RawMaterial::whereHas('category', fn($q) => $q->where('code', 'CAT-SUB'))
             ->orderBy('name')
@@ -817,6 +824,7 @@ class AddManufacturingProductForm extends Component
             'categories'             => $activeCategories,
             'availableTasks'         => $availableTasks,
             'fabricWidths'           => $fabricWidths,
+            'lengthUnits'            => $lengthUnits,
             'subsidiaryRawMaterials' => $subsidiaryRawMaterials,
         ])->title($this->productId ? 'Edit Manufacturing Product' : 'Add Manufacturing Product');
     }
