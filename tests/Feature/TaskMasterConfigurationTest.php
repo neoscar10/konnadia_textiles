@@ -9,6 +9,7 @@ use App\Models\RawMaterial;
 use App\Models\InventoryBatch;
 use App\Models\ProductionJob;
 use App\Models\ManufacturingProduct;
+use App\Models\Labor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -483,5 +484,50 @@ class TaskMasterConfigurationTest extends TestCase
 
         $task->refresh();
         $this->assertEquals('Modal Updated Task', $task->name);
+    }
+
+    /** @test */
+    public function task_authorized_labor_task_configuration_and_eligible_labor_filtering()
+    {
+        $this->actingAs($this->admin);
+
+        $cutterAuthTask = Task::create(['name' => 'Cutter Role', 'code' => 'AUTH-CUT', 'status' => true]);
+        $packagerAuthTask = Task::create(['name' => 'Packager Role', 'code' => 'AUTH-PKG', 'status' => true]);
+
+        $worker1 = Labor::create([
+            'name' => 'John Cutter',
+            'code' => 'W-001',
+            'status' => true,
+            'payment_method' => 'job_work',
+        ]);
+        $worker1->tasks()->attach([$cutterAuthTask->id]);
+
+        $worker2 = Labor::create([
+            'name' => 'Mary Packager',
+            'code' => 'W-002',
+            'status' => true,
+            'payment_method' => 'job_work',
+        ]);
+        $worker2->tasks()->attach([$packagerAuthTask->id]);
+
+        // Save task with Cutter authorized role selected
+        Livewire::test(\App\Livewire\Factory\TaskList::class)
+            ->call('openCreateModal')
+            ->set('name', 'Main Cutting Task')
+            ->set('status', true)
+            ->set('is_labor_required', true)
+            ->set('selected_authorized_task_ids', [(string) $cutterAuthTask->id])
+            ->call('saveTask')
+            ->assertHasNoErrors();
+
+        $mainCuttingTask = Task::where('name', 'Main Cutting Task')->first();
+        $this->assertNotNull($mainCuttingTask);
+        $this->assertCount(1, $mainCuttingTask->authorizedLaborTasks);
+        $this->assertEquals($cutterAuthTask->id, $mainCuttingTask->authorizedLaborTasks->first()->id);
+
+        // Verify getEligibleLabors returns only workers qualified as Cutter
+        $eligibleLabors = $mainCuttingTask->getEligibleLabors();
+        $this->assertCount(1, $eligibleLabors);
+        $this->assertEquals($worker1->id, $eligibleLabors->first()->id);
     }
 }

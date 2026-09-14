@@ -326,6 +326,43 @@
                                 Bypasses operator assignment and labor costing during job execution.
                             @endif
                         </p>
+
+                        @if($is_labor_required)
+                            <div class="pt-3 border-t border-outline-variant/40 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider">Required Worker Category / Authorized Tasks</p>
+                                        <p class="text-xs text-on-surface-variant/80">Select which worker authorized tasks (e.g. Cutting, Stitching, Packing) are qualified to execute this task.</p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    @foreach($allLaborTasks as $lTask)
+                                        @php $checked = in_array((string)$lTask->id, $selected_authorized_task_ids); @endphp
+                                        <label
+                                            class="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all {{ $checked ? 'border-tertiary bg-tertiary-container/20' : 'border-outline-variant/40 bg-surface/60 hover:border-tertiary/50' }}"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                wire:model.live="selected_authorized_task_ids"
+                                                value="{{ $lTask->id }}"
+                                                class="w-4 h-4 rounded border-outline-variant text-tertiary focus:ring-tertiary"
+                                            />
+                                            <div class="flex-1 min-w-0">
+                                                <p class="font-bold text-xs text-on-surface truncate">{{ $lTask->name }}</p>
+                                                <p class="text-[10px] text-on-surface-variant font-mono font-bold">{{ $lTask->code }}</p>
+                                            </div>
+                                            @if($checked)
+                                                <span class="material-symbols-outlined text-tertiary text-[18px] flex-shrink-0">check_circle</span>
+                                            @endif
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @error('selected_authorized_task_ids')
+                                    <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Status Selection Card -->

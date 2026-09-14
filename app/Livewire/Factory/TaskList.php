@@ -24,6 +24,7 @@ class TaskList extends Component
     public bool $consumes_raw_material = false;
     public array $selected_category_ids = [];
     public bool $is_labor_required = true;
+    public array $selected_authorized_task_ids = [];
     public ?int $sequence_number = null;
 
     // Delete Modal State
@@ -47,6 +48,8 @@ class TaskList extends Component
             'is_labor_required' => 'required|boolean',
             'selected_category_ids' => 'required_if:consumes_raw_material,true|array',
             'selected_category_ids.*' => 'exists:raw_material_categories,id',
+            'selected_authorized_task_ids' => 'nullable|array',
+            'selected_authorized_task_ids.*' => 'exists:tasks,id',
             'sequence_number' => 'nullable|integer|min:1',
         ];
     }
@@ -82,7 +85,7 @@ class TaskList extends Component
     public function openEditModal($id)
     {
         $this->resetModal();
-        $task = Task::with('rawMaterialCategories')->findOrFail($id);
+        $task = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->findOrFail($id);
         $this->taskId = $task->id;
         $this->name = $task->name;
         $this->code = $task->code;
@@ -91,6 +94,7 @@ class TaskList extends Component
         $this->is_labor_required = (bool) $task->is_labor_required;
         $this->sequence_number = $task->sequence_number;
         $this->selected_category_ids = $task->rawMaterialCategories->pluck('id')->map(fn($catId) => (string)$catId)->toArray();
+        $this->selected_authorized_task_ids = $task->authorizedLaborTasks->pluck('id')->map(fn($tId) => (string)$tId)->toArray();
         $this->showModal = true;
     }
 
@@ -110,6 +114,7 @@ class TaskList extends Component
             'consumes_raw_material',
             'selected_category_ids',
             'is_labor_required',
+            'selected_authorized_task_ids',
             'sequence_number',
         ]);
         $this->status = true;
@@ -159,6 +164,12 @@ class TaskList extends Component
             $task->rawMaterialCategories()->sync($this->selected_category_ids);
         } else {
             $task->rawMaterialCategories()->detach();
+        }
+
+        if ($this->is_labor_required) {
+            $task->authorizedLaborTasks()->sync($this->selected_authorized_task_ids);
+        } else {
+            $task->authorizedLaborTasks()->detach();
         }
 
         $this->dispatch('toast', message: $message, type: 'success');
@@ -220,7 +231,7 @@ class TaskList extends Component
 
     public function render()
     {
-        $tasks = Task::with('rawMaterialCategories')
+        $tasks = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])
             ->where(function($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
                   ->orWhere('code', 'like', '%' . $this->search . '%');
@@ -229,10 +240,12 @@ class TaskList extends Component
             ->paginate(10);
 
         $categories = RawMaterialCategory::all();
+        $allLaborTasks = Task::where('status', true)->ordered()->get();
 
         return view('livewire.factory.task-list', [
             'tasks' => $tasks,
             'categories' => $categories,
+            'allLaborTasks' => $allLaborTasks,
         ])->title('Task Master Manager');
     }
 }

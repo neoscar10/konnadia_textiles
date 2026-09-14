@@ -62,4 +62,31 @@ class Task extends Model
     {
         return $this->belongsToMany(RawMaterialCategory::class, 'task_raw_material_category');
     }
+
+    public function authorizedLaborTasks()
+    {
+        return $this->belongsToMany(Task::class, 'task_authorized_labor_task', 'task_id', 'authorized_task_id');
+    }
+
+    public function getEligibleLabors(): \Illuminate\Support\Collection
+    {
+        $authTaskIds = $this->authorizedLaborTasks()->pluck('tasks.id')->toArray();
+
+        if (empty($authTaskIds)) {
+            $authTaskIds = [$this->id];
+        }
+
+        $labors = Labor::active()
+            ->whereHas('tasks', function ($q) use ($authTaskIds) {
+                $q->whereIn('tasks.id', $authTaskIds);
+            })
+            ->orderBy('name')
+            ->get();
+
+        if ($labors->isEmpty()) {
+            return Labor::active()->orderBy('name')->get();
+        }
+
+        return $labors;
+    }
 }

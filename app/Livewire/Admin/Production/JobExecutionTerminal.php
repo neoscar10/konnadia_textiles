@@ -94,14 +94,11 @@ class JobExecutionTerminal extends Component
     public function getAuthorizedLaborsProperty()
     {
         if (!$this->task_id) {
-            return Labor::where('status', true)->get();
+            return Labor::where('status', true)->orderBy('name')->get();
         }
 
-        return Labor::where('status', true)
-            ->whereHas('tasks', function ($q) {
-                $q->where('tasks.id', $this->task_id);
-            })
-            ->get();
+        $task = Task::find($this->task_id);
+        return $task ? $task->getEligibleLabors() : Labor::where('status', true)->orderBy('name')->get();
     }
 
     public function submit(LaborWageService $wageService)

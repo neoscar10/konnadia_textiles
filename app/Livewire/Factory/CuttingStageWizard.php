@@ -1083,7 +1083,8 @@ class CuttingStageWizard extends Component
 
         $manufacturingProducts = ManufacturingProduct::active()->orderBy('name')->get();
         $supervisors = FactorySupervisor::active()->orderBy('name')->get();
-        $labors = Labor::active()->orderBy('name')->get();
+        $cuttingTask = $this->cutting_task_id ? Task::find($this->cutting_task_id) : null;
+        $labors = $cuttingTask ? $cuttingTask->getEligibleLabors() : Labor::active()->orderBy('name')->get();
         $tasks = Task::where('status', true)->orderBy('name')->get();
 
         return view('livewire.factory.cutting-stage-wizard', [

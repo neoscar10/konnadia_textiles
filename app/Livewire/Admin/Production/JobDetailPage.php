@@ -1443,24 +1443,7 @@ class JobDetailPage extends Component
             return Labor::where('status', true)->orderBy('name')->get();
         }
 
-        $labors = Labor::where('status', true)
-            ->whereHas('tasks', function ($q) use ($task) {
-                $q->where('tasks.id', $task->id);
-                if (!empty($task->code)) {
-                    $q->orWhere('tasks.code', $task->code);
-                }
-                if (!empty($task->name)) {
-                    $q->orWhere('tasks.name', $task->name);
-                }
-            })
-            ->orderBy('name')
-            ->get();
-
-        if ($labors->isEmpty()) {
-            return Labor::where('status', true)->orderBy('name')->get();
-        }
-
-        return $labors;
+        return $task->getEligibleLabors();
     }
 
     public function getAvailableInventoryBatchesProperty()

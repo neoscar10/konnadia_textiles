@@ -1066,7 +1066,7 @@ class JobStageWizard extends Component
 
     public function render()
     {
-        $labors          = Labor::active()->orderBy('name')->get();
+        $labors          = $this->activeStage?->task ? $this->activeStage->task->getEligibleLabors() : Labor::active()->orderBy('name')->get();
         $allProducts     = ManufacturingProduct::with('patterns')->orderBy('name')->get();
         $stageExecutions = $this->job->stageExecutions()->with('task')->orderBy('sequence_number')->get();
         $fabricMaterials = RawMaterial::active()->fabricsOnly()->orderBy('name')->get();
