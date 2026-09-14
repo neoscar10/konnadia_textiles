@@ -394,7 +394,7 @@
                                                                             <span class="material-symbols-outlined text-primary text-lg">aspect_ratio</span>
                                                                             <span class="text-sm font-black text-on-surface">{{ $rLive['cut_area_m2'] }} m²</span>
                                                                         </div>
-                                                                        <p class="text-[11px] text-on-surface-variant font-bold">Width: <span class="text-primary">{{ $rLive['roll_width_display'] }}</span></p>
+                                                                        <p class="text-[11px] text-on-surface-variant font-bold"><span class="text-primary">{{ $rLive['dimensions_display'] ?? ('Width: ' . $rLive['roll_width_display']) }}</span></p>
                                                                     </div>
 
                                                                     <div class="space-y-1">

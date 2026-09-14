@@ -412,13 +412,34 @@ class FabricCuttingAreaService
         $surplusPieces = max(0, $estYieldPieces - (int)$targetQty);
         $shortfallPieces = ($targetQty > 0 && $estYieldPieces < (int)$targetQty) ? ((int)$targetQty - $estYieldPieces) : 0;
 
+        $normalizedUnit = UnitConversionService::normalizeAlias($widthUnitStr);
+        if ($normalizedUnit === 'IN') {
+            $widthDisplay = round($widthInches, 2) . '" (' . round($widthCm, 1) . ' cm / ' . round($widthMeters, 2) . ' m)';
+        } elseif ($normalizedUnit === 'YD') {
+            $widthDisplay = round($widthVal, 2) . ' YD (' . round($widthMeters, 2) . ' m)';
+        } elseif ($normalizedUnit === 'CM') {
+            $widthDisplay = round($widthCm, 1) . ' cm (' . round($widthMeters, 2) . ' m)';
+        } elseif ($normalizedUnit === 'M') {
+            $widthDisplay = round($widthMeters, 2) . ' m (' . round($widthCm, 1) . ' cm)';
+        } elseif ($normalizedUnit === 'FT') {
+            $widthDisplay = round($widthVal, 2) . ' FT (' . round($widthMeters, 2) . ' m / ' . round($widthCm, 1) . ' cm)';
+        } else {
+            $widthDisplay = round($widthVal, 2) . ' ' . $widthUnitStr . ' (' . round($widthCm, 1) . ' cm)';
+        }
+
+        $cutLengthUnitDisplay = (strtolower($cutLengthUnitStr) === 'm' || strtolower($cutLengthUnitStr) === 'meters') ? 'm' : $cutLengthUnitStr;
+        $cutLengthDisplay = round($cutLength, 2) . ' ' . $cutLengthUnitDisplay;
+        $dimensionsDisplay = "Width: {$widthDisplay} · Length: {$cutLengthDisplay}";
+
         return [
             'cut_length' => round($cutLength, 2),
             'cut_length_unit' => $cutLengthUnitStr,
+            'cut_length_display' => $cutLengthDisplay,
             'roll_width_inches' => round($widthInches, 1),
             'roll_width_cm' => round($widthCm, 1),
             'roll_width_meters' => round($widthMeters, 4),
-            'roll_width_display' => round($widthInches, 1) . '" (' . round($widthCm, 1) . ' cm)',
+            'roll_width_display' => $widthDisplay,
+            'dimensions_display' => $dimensionsDisplay,
             'cut_area_m2' => round($cutAreaM2, 2),
             'piece_req_length' => round($pieceReqLength, 2),
             'est_yield_pieces' => $estYieldPieces,

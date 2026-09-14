@@ -507,9 +507,32 @@ class CuttingStageWizard extends Component
         $usagePercentage = $cutAreaBase > 0 ? round(($totalUsedAreaBase / $cutAreaBase) * 100, 1) : 0;
         $wastagePercentage = $cutAreaBase > 0 ? round(($remainingAreaBase / $cutAreaBase) * 100, 1) : 0;
 
+        $widthInches = \App\Services\UnitConversionService::convert($widthVal, $widthUnitStr, 'IN');
+        $widthCm = \App\Services\UnitConversionService::convert($widthVal, $widthUnitStr, 'CM');
+
+        $normalizedUnit = \App\Services\UnitConversionService::normalizeAlias($widthUnitStr);
+        if ($normalizedUnit === 'IN') {
+            $widthDisplay = round($widthInches, 2) . '" (' . round($widthCm, 1) . ' cm / ' . round($widthMeters, 2) . ' m)';
+        } elseif ($normalizedUnit === 'YD') {
+            $widthDisplay = round($widthVal, 2) . ' YD (' . round($widthMeters, 2) . ' m)';
+        } elseif ($normalizedUnit === 'CM') {
+            $widthDisplay = round($widthCm, 1) . ' cm (' . round($widthMeters, 2) . ' m)';
+        } elseif ($normalizedUnit === 'M') {
+            $widthDisplay = round($widthMeters, 2) . ' m (' . round($widthCm, 1) . ' cm)';
+        } elseif ($normalizedUnit === 'FT') {
+            $widthDisplay = round($widthVal, 2) . ' FT (' . round($widthMeters, 2) . ' m / ' . round($widthCm, 1) . ' cm)';
+        } else {
+            $widthDisplay = round($widthVal, 2) . ' ' . $widthUnitStr . ' (' . round($widthCm, 1) . ' cm)';
+        }
+
+        $cutLengthDisplay = round($cutLength, 2) . ' m';
+        $dimensionsDisplay = "Width: {$widthDisplay} · Length: {$cutLengthDisplay}";
+
         return [
             'cut_length' => round($cutLength, 2),
-            'roll_width_display' => round($widthVal, 1) . '" (' . round($widthMeters * 100, 1) . ' cm)',
+            'cut_length_display' => $cutLengthDisplay,
+            'roll_width_display' => $widthDisplay,
+            'dimensions_display' => $dimensionsDisplay,
             'cut_area_m2' => round($cutAreaBase, 4),
             'used_area_m2' => round($totalUsedAreaBase, 4),
             'remaining_area_m2' => round($remainingAreaBase, 4),
