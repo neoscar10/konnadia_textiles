@@ -20,6 +20,7 @@ class RawMaterial extends Model
         'standard_width',
         'width_unit',
         'is_active',
+        'status',
     ];
 
     protected $casts = [
@@ -36,6 +37,14 @@ class RawMaterial extends Model
             if (empty($material->code)) {
                 $latestId = static::max('id') ?? 0;
                 $material->code = 'RM-' . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
+            }
+        });
+
+        static::saving(function ($material) {
+            if (isset($material->is_active)) {
+                $material->status = $material->is_active ? 'active' : 'inactive';
+            } elseif (isset($material->status)) {
+                $material->is_active = in_array($material->status, ['active', '1', 1, true], true);
             }
         });
     }

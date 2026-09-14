@@ -99,7 +99,18 @@ class AdminLaborController extends Controller
         $allTasks = Task::where('status', true)
             ->orderBy('sequence_number')
             ->orderBy('name')
-            ->get(['id', 'name', 'code', 'is_labor_required', 'cost_type', 'default_piece_rate']);
+            ->get();
+
+        $tasksData = $allTasks->map(function ($task) {
+            return [
+                'id' => $task->id,
+                'name' => $task->name,
+                'code' => $task->code,
+                'is_labor_required' => (bool) $task->is_labor_required,
+                'cost_type' => $task->cost_type ?? 'piece_rate',
+                'default_piece_rate' => (float) ($task->default_piece_rate ?? 0.00),
+            ];
+        });
 
         $paymentMethods = [
             ['value' => 'monthly_salary', 'label' => 'Monthly Salary'],
@@ -117,7 +128,7 @@ class AdminLaborController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'tasks' => $allTasks,
+                'tasks' => $tasksData,
                 'payment_methods' => $paymentMethods,
                 'stats' => $summaryStats,
             ],

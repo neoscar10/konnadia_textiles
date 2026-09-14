@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Task extends Model
 {
-    protected $fillable = ['name', 'code', 'status', 'consumes_raw_material', 'is_labor_required', 'sequence_number'];
+    protected $fillable = ['name', 'code', 'status', 'consumes_raw_material', 'is_labor_required', 'sequence_number', 'cost_type', 'default_piece_rate'];
 
     protected $casts = [
         'status' => 'boolean',
         'consumes_raw_material' => 'boolean',
         'is_labor_required' => 'boolean',
+        'default_piece_rate' => 'decimal:2',
     ];
 
     protected static function boot()
