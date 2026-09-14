@@ -14,7 +14,8 @@ class StoreRawMaterialPurchaseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'supplier_name' => 'required|string|max:255',
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'supplier_name' => 'required_without:supplier_id|nullable|string|max:255',
             'purchase_date' => 'required|date|before_or_equal:today',
             'invoice_number' => 'required|string|max:100',
             'raw_material_id' => 'required|exists:raw_materials,id',

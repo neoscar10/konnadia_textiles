@@ -74,6 +74,8 @@ class AdminRawMaterialController extends Controller
         $categories = RawMaterialCategory::active()->orderBy('name')->get(['id', 'name', 'code', 'unit_type']);
         $unitGroups = UnitGroup::with('units')->where('is_active', true)->orderBy('name')->get();
         $units = Unit::with('unitGroup')->where('is_active', true)->orderBy('name')->get();
+        $fabricWidths = \App\Models\FabricWidth::active()->with('unitModel')->orderBy('value', 'asc')->get();
+        $suppliers = \App\Models\Supplier::orderBy('name')->get(['id', 'name', 'contact_person']);
 
         // Auto-generated code preview
         $latestId = RawMaterial::max('id') ?? 0;
@@ -86,6 +88,8 @@ class AdminRawMaterialController extends Controller
                 'categories' => $categories,
                 'unit_groups' => $unitGroups,
                 'units' => $units,
+                'fabric_widths' => \App\Http\Resources\Api\V1\AdminFabricWidthResource::collection($fabricWidths),
+                'suppliers' => $suppliers,
             ],
         ]);
     }

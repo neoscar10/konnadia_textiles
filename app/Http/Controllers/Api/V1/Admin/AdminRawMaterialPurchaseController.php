@@ -39,11 +39,18 @@ class AdminRawMaterialPurchaseController extends Controller
             ->pluck('supplier_name')
             ->take(20);
 
+        $suppliers = \App\Models\Supplier::orderBy('name')->get(['id', 'name', 'contact_person', 'gstin']);
+        $fabricWidths = \App\Models\FabricWidth::active()->with('unitModel')->orderBy('value', 'asc')->get();
+        $units = \App\Models\Unit::where('is_active', true)->orderBy('name')->get(['id', 'name', 'short_code']);
+
         return response()->json([
             'success' => true,
             'data' => [
                 'raw_materials' => $materials,
                 'recent_suppliers' => $recentSuppliers,
+                'suppliers' => $suppliers,
+                'fabric_widths' => \App\Http\Resources\Api\V1\AdminFabricWidthResource::collection($fabricWidths),
+                'units' => $units,
             ],
         ]);
     }
@@ -105,11 +112,17 @@ class AdminRawMaterialPurchaseController extends Controller
                 $gstAmount = $gstIncluded ? 0.00 : round($totalBaseAmount * ($gstPercent / 100), 2);
                 $grandTotal = round($totalBaseAmount + $gstAmount, 2);
 
-                $effectiveRate = $qtyReceived > 0 ? round($grandTotal / $qtyReceived, 4) : $purchaseRate;
+                $supplierId = $validated['supplier_id'] ?? null;
+                $supplierName = $validated['supplier_name'] ?? null;
+                if ($supplierId && !$supplierName) {
+                    $sup = \App\Models\Supplier::find($supplierId);
+                    $supplierName = $sup?->name ?? "Supplier #{$supplierId}";
+                }
 
                 $batch = InventoryBatch::create([
                     'raw_material_id' => $material->id,
-                    'supplier_name' => $validated['supplier_name'],
+                    'supplier_id' => $supplierId,
+                    'supplier_name' => $supplierName,
                     'purchase_date' => $validated['purchase_date'],
                     'invoice_number' => $validated['invoice_number'],
                     'quantity_received' => $qtyReceived,
@@ -117,7 +130,7 @@ class AdminRawMaterialPurchaseController extends Controller
                     'base_quantity' => $baseQty,
                     'base_current_balance' => $baseQty,
                     'quantity_consumed' => 0.0000,
-                    'purchase_rate' => $effectiveRate,
+                    'purchase_rate' => $purchaseRate,
                     'total_amount' => $grandTotal,
                     'unit' => $material->unit,
                     'purchase_unit_id' => $material->unit_id,

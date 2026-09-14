@@ -16,7 +16,7 @@ class OpenInventoryBaleRequest extends FormRequest
         return [
             'bale_roll_count' => 'required|integer|min:1|max:50',
             'bale_roll_lengths' => 'required|array|min:1',
-            'bale_roll_lengths.*' => 'required|numeric|gt:0',
+            'bale_roll_lengths.*' => 'required',
         ];
     }
 

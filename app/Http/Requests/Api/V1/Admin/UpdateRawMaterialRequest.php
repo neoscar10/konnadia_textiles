@@ -17,14 +17,14 @@ class UpdateRawMaterialRequest extends FormRequest
         $id = $this->route('id') ?? $this->route('raw_material');
 
         return [
-            'raw_material_category_id' => 'required|exists:raw_material_categories,id',
-            'name' => 'required|string|max:255',
+            'raw_material_category_id' => 'sometimes|required|exists:raw_material_categories,id',
+            'name' => 'sometimes|required|string|max:255',
             'code' => ['nullable', 'string', 'max:50', Rule::unique('raw_materials', 'code')->ignore($id)],
             'unit_group_id' => 'nullable|exists:unit_groups,id',
             'unit_id' => 'nullable|exists:units,id',
-            'unit' => 'required|string|max:50',
+            'unit' => 'sometimes|required|string|max:50',
             'standard_width' => 'nullable|numeric|min:0',
-            'width_unit' => 'nullable|in:inch,cm',
+            'width_unit' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
         ];
     }

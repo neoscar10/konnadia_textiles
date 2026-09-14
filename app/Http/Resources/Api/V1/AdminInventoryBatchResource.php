@@ -16,6 +16,7 @@ class AdminInventoryBatchResource extends JsonResource
             'id' => $this->id,
             'batch_number' => $this->batch_number,
             'raw_material_id' => $this->raw_material_id,
+            'raw_material_name' => $material ? $material->name : null,
             'raw_material' => $material ? [
                 'id' => $material->id,
                 'name' => $material->name,

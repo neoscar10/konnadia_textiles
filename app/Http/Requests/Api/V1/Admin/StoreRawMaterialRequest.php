@@ -21,7 +21,7 @@ class StoreRawMaterialRequest extends FormRequest
             'unit_id' => 'nullable|exists:units,id',
             'unit' => 'required|string|max:50',
             'standard_width' => 'nullable|numeric|min:0',
-            'width_unit' => 'nullable|in:inch,cm',
+            'width_unit' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
         ];
     }
