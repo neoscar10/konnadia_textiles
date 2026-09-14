@@ -93,7 +93,7 @@
                             </td>
                             <td class="px-lg py-md text-on-surface-variant font-mono text-sm whitespace-nowrap">{{ $prod->sku }}</td>
                             <td class="px-lg py-md text-center">
-                                @if(($prod->product_type ?? '') === 'retail')
+                                @if(($prod->product_type ?? '') === 'manufactured')
                                     <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold shadow-sm select-none" title="Manufactured">Manufactured</span>
                                 @else
                                     <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 text-[11px] font-bold shadow-sm select-none" title="Retail">Retail</span>
@@ -282,8 +282,8 @@
                 <div class="space-y-xs">
                     <label class="font-label-md text-on-surface-variant">Default Product Type *</label>
                     <select wire:model="categoryDefaults.product_type" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
-                        <option value="retail">Manufactured </option>
-                        <option value="manufactured">Retail / Bought</option>
+                        <option value="manufactured">Manufactured</option>
+                        <option value="retail">Retail / Bought</option>
                     </select>
                     @error('categoryDefaults.product_type') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>

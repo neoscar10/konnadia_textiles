@@ -91,8 +91,8 @@
                     <div class="space-y-xs">
                         <label class="font-label-md text-on-surface-variant">Product Type *</label>
                         <select wire:model.live="basicInfo.product_type" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
-                            <option value="retail">Manufactured </option>
-                            <option value="manufactured">Retail / Bought</option>
+                            <option value="manufactured">Manufactured</option>
+                            <option value="retail">Retail / Bought</option>
                         </select>
                         @error('basicInfo.product_type') <span class="text-error text-xs">{{ $message }}</span> @enderror
                     </div>
@@ -380,7 +380,7 @@
                 <!-- Stock Quantity -->
                 <div class="space-y-md border-b border-outline-variant/20 pb-xl">
                     <h4 class="font-title-md text-primary">Stock Quantity</h4>
-                    @if($basicInfo['product_type'] === 'retail')
+                    @if($basicInfo['product_type'] === 'manufactured')
                         <div class="flex items-start gap-sm p-sm rounded-lg bg-primary/5 border border-primary/20 select-none">
                             <span class="material-symbols-outlined text-primary text-[20px] mt-0.5">inventory_2</span>
                             <div>

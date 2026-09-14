@@ -187,7 +187,7 @@ class FrontEndProductIndexPage extends Component
 
     public function render(CategoryService $categoryService)
     {
-        $allLeafCategories = $categoryService->getLeafCategories();
+        $allLeafCategories = $categoryService->getLeafCategories(manufacturedOnly: true);
 
         if (!empty($this->search)) {
             $term = strtolower(trim($this->search));

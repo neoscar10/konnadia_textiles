@@ -85,7 +85,7 @@ class CategoryService
     /**
      * Get all leaf categories with their full path for pickers / product wizard.
      */
-    public function getLeafCategories(): Collection
+    public function getLeafCategories(bool $manufacturedOnly = false): Collection
     {
         $categories = Category::leaf()
             ->active()
@@ -93,11 +93,18 @@ class CategoryService
             ->ordered()
             ->get();
 
+        if ($manufacturedOnly) {
+            $categories = $categories->filter(function ($cat) {
+                $type = $cat->default_product_config['product_type'] ?? 'manufactured';
+                return $type === 'manufactured';
+            });
+        }
+
         foreach ($categories as $cat) {
             $cat->full_path = $this->buildPath($cat);
         }
 
-        return $categories;
+        return $categories->values();
     }
 
     /**

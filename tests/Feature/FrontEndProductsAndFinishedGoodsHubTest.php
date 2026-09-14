@@ -199,4 +199,45 @@ class FrontEndProductsAndFinishedGoodsHubTest extends TestCase
             ->assertStatus(200)
             ->assertSee('Finished Goods Conversion');
     }
+
+    public function test_finished_goods_hub_filters_only_manufactured_leaf_categories()
+    {
+        $this->actingAs($this->admin);
+
+        // Manufactured category
+        $mfgCat = Category::create([
+            'name' => 'Manufactured Category',
+            'slug' => 'manufactured-cat',
+            'is_leaf' => true,
+            'is_active' => true,
+            'default_product_config' => ['product_type' => 'manufactured'],
+        ]);
+
+        // Retail category
+        $retailCat = Category::create([
+            'name' => 'Retail Category',
+            'slug' => 'retail-cat',
+            'is_leaf' => true,
+            'is_active' => true,
+            'default_product_config' => ['product_type' => 'retail'],
+        ]);
+
+        // Test CategoryService
+        $service = resolve(\App\Services\Catalog\CategoryService::class);
+        $allLeafs = $service->getLeafCategories(manufacturedOnly: false);
+        $mfgLeafs = $service->getLeafCategories(manufacturedOnly: true);
+
+        $this->assertTrue($allLeafs->pluck('id')->contains($mfgCat->id));
+        $this->assertTrue($allLeafs->pluck('id')->contains($retailCat->id));
+
+        $this->assertTrue($mfgLeafs->pluck('id')->contains($mfgCat->id));
+        $this->assertFalse($mfgLeafs->pluck('id')->contains($retailCat->id));
+
+        // Test Livewire component only displays manufactured categories in dropdown when modal opened
+        Livewire::test(\App\Livewire\Admin\Production\FinishedGoodsConversionHub::class)
+            ->call('openWizardModal')
+            ->assertStatus(200)
+            ->assertSee('Manufactured Category')
+            ->assertDontSee('Retail Category');
+    }
 }

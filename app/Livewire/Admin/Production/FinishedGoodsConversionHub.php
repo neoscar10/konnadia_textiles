@@ -55,10 +55,15 @@ class FinishedGoodsConversionHub extends Component
 
     public function mount(CategoryService $categoryService)
     {
-        $leafCategories = $categoryService->getLeafCategories();
+        $leafCategories = $categoryService->getLeafCategories(manufacturedOnly: true);
 
-        // Auto-select first configured leaf category if available
-        $configuredFeProduct = FrontEndProduct::whereNotNull('category_id')->where('is_active', true)->first();
+        // Auto-select first configured manufactured leaf category if available
+        $manufacturedCatIds = $leafCategories->pluck('id')->toArray();
+        $configuredFeProduct = FrontEndProduct::whereNotNull('category_id')
+            ->whereIn('category_id', $manufacturedCatIds)
+            ->where('is_active', true)
+            ->first();
+
         if ($configuredFeProduct) {
             $this->selectedCategoryId = $configuredFeProduct->category_id;
         } else if ($leafCategories->isNotEmpty()) {
@@ -354,10 +359,20 @@ class FinishedGoodsConversionHub extends Component
         $this->productImage = null;
         $this->notes = '';
 
-        if (!$this->selectedCategoryId) {
-            $firstFe = FrontEndProduct::whereNotNull('category_id')->where('is_active', true)->first();
+        $leafCategories = resolve(CategoryService::class)->getLeafCategories(manufacturedOnly: true);
+        $manufacturedCatIds = $leafCategories->pluck('id')->toArray();
+
+        if (!$this->selectedCategoryId || !in_array($this->selectedCategoryId, $manufacturedCatIds)) {
+            $firstFe = FrontEndProduct::whereNotNull('category_id')
+                ->whereIn('category_id', $manufacturedCatIds)
+                ->where('is_active', true)
+                ->first();
             if ($firstFe) {
                 $this->selectedCategoryId = $firstFe->category_id;
+            } else if ($leafCategories->isNotEmpty()) {
+                $this->selectedCategoryId = $leafCategories->first()->id;
+            } else {
+                $this->selectedCategoryId = null;
             }
         }
 
@@ -473,7 +488,7 @@ class FinishedGoodsConversionHub extends Component
             ->latest()
             ->paginate(10);
 
-        $leafCategories = $categoryService->getLeafCategories();
+        $leafCategories = $categoryService->getLeafCategories(manufacturedOnly: true);
         $configuredCategoryIds = FrontEndProduct::whereNotNull('category_id')->pluck('category_id')->toArray();
 
         $activePrintBatch = $this->activePrintBatchId ? FinishedGoodsBatch::with('frontEndProduct')->find($this->activePrintBatchId) : null;

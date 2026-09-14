@@ -189,7 +189,7 @@
                                             @endif
                                             <div class="flex flex-col">
                                                 <span class="font-bold text-primary text-sm">{{ $prod->title }}</span>
-                                                <span class="text-[10px] text-on-surface-variant uppercase tracking-wide">{{ $prod->product_type === 'manufactured' ? 'Retail' : 'Manufactured' }}</span>
+                                                <span class="text-[10px] text-on-surface-variant uppercase tracking-wide">{{ $prod->product_type === 'manufactured' ? 'Manufactured' : 'Retail' }}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -593,8 +593,8 @@
                 <div class="space-y-xs">
                     <label class="font-label-md text-on-surface-variant">Default Product Type *</label>
                     <select wire:model="categoryDefaults.product_type" class="w-full px-md py-sm bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-secondary outline-none transition-all font-body-md text-on-surface">
-                        <option value="retail">Manufactured </option>
-                        <option value="manufactured">Retail / Bought</option>
+                        <option value="manufactured">Manufactured</option>
+                        <option value="retail">Retail / Bought</option>
                     </select>
                     @error('categoryDefaults.product_type') <span class="text-error text-xs">{{ $message }}</span> @enderror
                 </div>
