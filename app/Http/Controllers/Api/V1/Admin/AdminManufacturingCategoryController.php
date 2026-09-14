@@ -17,7 +17,7 @@ class AdminManufacturingCategoryController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = ManufacturingProductCategory::withCount('manufacturingProducts');
+        $query = ManufacturingProductCategory::with(['defaultTasks'])->withCount('manufacturingProducts');
 
         if ($request->filled('search')) {
             $search = trim($request->query('search'));
@@ -63,12 +63,13 @@ class AdminManufacturingCategoryController extends Controller
     public function options(): JsonResponse
     {
         $categories = ManufacturingProductCategory::active()
+            ->with(['defaultTasks'])
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get();
 
         return response()->json([
             'success' => true,
-            'data' => $categories,
+            'data' => AdminManufacturingCategoryResource::collection($categories),
         ]);
     }
 
@@ -77,7 +78,7 @@ class AdminManufacturingCategoryController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $category = ManufacturingProductCategory::withCount('manufacturingProducts')->findOrFail($id);
+        $category = ManufacturingProductCategory::with(['defaultTasks'])->withCount('manufacturingProducts')->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -93,8 +94,13 @@ class AdminManufacturingCategoryController extends Controller
         $validated = $request->validated();
         $validated['status'] = $validated['status'] ?? true;
 
-        $category = ManufacturingProductCategory::create($validated);
-        $category->loadCount('manufacturingProducts');
+        $category = ManufacturingProductCategory::create([
+            'name' => $validated['name'],
+            'status' => $validated['status'],
+        ]);
+
+        $this->syncDefaultTasks($category, $validated['default_tasks'] ?? null);
+        $category->load(['defaultTasks'])->loadCount('manufacturingProducts');
 
         return response()->json([
             'success' => true,
@@ -111,7 +117,19 @@ class AdminManufacturingCategoryController extends Controller
         $category = ManufacturingProductCategory::withCount('manufacturingProducts')->findOrFail($id);
         $validated = $request->validated();
 
-        $category->update($validated);
+        if (array_key_exists('name', $validated)) {
+            $category->name = $validated['name'];
+        }
+        if (array_key_exists('status', $validated)) {
+            $category->status = $validated['status'];
+        }
+        $category->save();
+
+        if (array_key_exists('default_tasks', $validated)) {
+            $this->syncDefaultTasks($category, $validated['default_tasks']);
+        }
+
+        $category->load(['defaultTasks'])->loadCount('manufacturingProducts');
 
         return response()->json([
             'success' => true,
@@ -121,11 +139,40 @@ class AdminManufacturingCategoryController extends Controller
     }
 
     /**
+     * Helper to sync default task routing sequence for category.
+     */
+    protected function syncDefaultTasks(ManufacturingProductCategory $category, ?array $defaultTasks): void
+    {
+        if (is_array($defaultTasks)) {
+            $syncData = [];
+            $validTasks = array_filter($defaultTasks, fn($row) => !empty($row['task_id']));
+            
+            $hasFinal = false;
+            foreach ($validTasks as $r) {
+                if (!empty($r['is_final_step'])) $hasFinal = true;
+            }
+            $lastIndex = count($validTasks) - 1;
+
+            $seq = 1;
+            foreach (array_values($validTasks) as $idx => $r) {
+                $isFinal = $hasFinal ? !empty($r['is_final_step']) : ($idx === $lastIndex);
+                $taskSeq = !empty($r['sequence_number']) ? (int) $r['sequence_number'] : $seq++;
+                $syncData[$r['task_id']] = [
+                    'sequence_number' => $taskSeq,
+                    'standard_labor_rate' => array_key_exists('standard_labor_rate', $r) && $r['standard_labor_rate'] !== null && $r['standard_labor_rate'] !== '' ? $r['standard_labor_rate'] : null,
+                    'is_final_step' => $isFinal,
+                ];
+            }
+            $category->defaultTasks()->sync($syncData);
+        }
+    }
+
+    /**
      * Toggle active/inactive status of a category.
      */
     public function toggleStatus(int $id): JsonResponse
     {
-        $category = ManufacturingProductCategory::withCount('manufacturingProducts')->findOrFail($id);
+        $category = ManufacturingProductCategory::with(['defaultTasks'])->withCount('manufacturingProducts')->findOrFail($id);
         $category->update(['status' => !$category->status]);
 
         $label = $category->status ? 'activated' : 'deactivated';

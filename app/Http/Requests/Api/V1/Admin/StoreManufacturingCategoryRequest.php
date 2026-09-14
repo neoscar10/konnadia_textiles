@@ -16,6 +16,11 @@ class StoreManufacturingCategoryRequest extends FormRequest
         return [
             'name' => 'required|string|max:255|unique:manufacturing_product_categories,name',
             'status' => 'nullable|boolean',
+            'default_tasks' => 'nullable|array',
+            'default_tasks.*.task_id' => 'required_with:default_tasks|exists:tasks,id',
+            'default_tasks.*.standard_labor_rate' => 'nullable|numeric|min:0',
+            'default_tasks.*.is_final_step' => 'nullable|boolean',
+            'default_tasks.*.sequence_number' => 'nullable|integer|min:1',
         ];
     }
 
