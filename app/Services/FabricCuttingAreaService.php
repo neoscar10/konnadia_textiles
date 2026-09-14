@@ -164,6 +164,133 @@ class FabricCuttingAreaService
     }
 
     /**
+     * Format dimensions (Length and Width) of a Product/Pattern into clean multi-unit conversion strings.
+     */
+    public static function formatProductPatternDimensions(?ManufacturingProduct $product, ?ManufacturingProductPattern $pattern = null): array
+    {
+        if (!$product && !$pattern) {
+            return [
+                'length_val' => 0.0,
+                'length_unit' => 'M',
+                'length_display' => '—',
+                'width_val' => 0.0,
+                'width_unit' => 'IN',
+                'width_display' => '—',
+                'dimensions_display' => 'Length: — · Width: —',
+                'piece_area_m2' => 0.0,
+                'area_display' => '0 m²',
+            ];
+        }
+
+        if ($pattern && !$product) {
+            $product = $pattern->manufacturingProduct;
+        }
+
+        if (!$pattern && $product) {
+            $pattern = $product->defaultPattern ?? $product->patterns()->first();
+        }
+
+        $length = 0.0;
+        $lengthUnit = 'Meters';
+
+        $width = 0.0;
+        $widthUnit = 'Inches';
+
+        if ($pattern) {
+            if ($pattern->relationLoaded('patternFabricWidths') ? $pattern->patternFabricWidths->isNotEmpty() : $pattern->patternFabricWidths()->exists()) {
+                $pfw = $pattern->patternFabricWidths->first() ?? $pattern->patternFabricWidths()->first();
+                if ($pfw) {
+                    $length = (float) ($pfw->fabric_length ?: $pattern->fabric_length ?: 0);
+                    $lengthUnit = $pfw->fabric_length_unit ?: ($pattern->fabric_length_unit ?: ($product?->fabric_length_unit ?: 'Meters'));
+
+                    $fw = $pfw->fabricWidth;
+                    if ($fw) {
+                        $width = (float) ($fw->value ?: $fw->width_inches ?: $fw->width ?: 0);
+                        $widthUnit = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'Inches');
+                    }
+                }
+            }
+
+            if ($length <= 0) {
+                $length = (float) ($pattern->fabric_length ?: 0);
+                $lengthUnit = $pattern->fabric_length_unit ?: ($product?->fabric_length_unit ?: 'Meters');
+            }
+
+            if ($width <= 0 && $pattern->fabricWidth) {
+                $fw = $pattern->fabricWidth;
+                $width = (float) ($fw->value ?: $fw->width_inches ?: $fw->width ?: 0);
+                $widthUnit = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'Inches');
+            }
+        }
+
+        if ($length <= 0 && $product) {
+            $length = (float) ($product->standard_fabric_length ?: 0);
+            $lengthUnit = $product->fabric_length_unit ?: 'Meters';
+        }
+
+        if ($width <= 0 && $product) {
+            $width = (float) ($product->standard_fabric_width ?: 0);
+            $widthUnit = $product->fabric_width_unit ?: 'Inches';
+        }
+
+        // Convert Length
+        $lengthMeters = self::convertToMeters($length, $lengthUnit);
+        $lengthCm = UnitConversionService::convert($length, $lengthUnit, 'CM');
+        $lengthInches = UnitConversionService::convert($length, $lengthUnit, 'IN');
+        $lengthYards = UnitConversionService::convert($length, $lengthUnit, 'YD');
+
+        $normLenUnit = UnitConversionService::normalizeAlias($lengthUnit);
+        if ($normLenUnit === 'M') {
+            $lengthDisplay = round($length, 2) . ' m (' . round($lengthCm, 1) . ' cm / ' . round($lengthInches, 2) . '" / ' . round($lengthYards, 2) . ' yd)';
+        } elseif ($normLenUnit === 'IN') {
+            $lengthDisplay = round($length, 2) . '" (' . round($lengthCm, 1) . ' cm / ' . round($lengthMeters, 2) . ' m / ' . round($lengthYards, 2) . ' yd)';
+        } elseif ($normLenUnit === 'CM') {
+            $lengthDisplay = round($length, 1) . ' cm (' . round($lengthMeters, 2) . ' m / ' . round($lengthInches, 2) . '" / ' . round($lengthYards, 2) . ' yd)';
+        } elseif ($normLenUnit === 'YD') {
+            $lengthDisplay = round($length, 2) . ' YD (' . round($lengthMeters, 2) . ' m / ' . round($lengthCm, 1) . ' cm / ' . round($lengthInches, 2) . '")';
+        } elseif ($normLenUnit === 'FT') {
+            $lengthDisplay = round($length, 2) . ' FT (' . round($lengthMeters, 2) . ' m / ' . round($lengthCm, 1) . ' cm)';
+        } else {
+            $lengthDisplay = round($length, 2) . ' ' . $lengthUnit . ' (' . round($lengthCm, 1) . ' cm)';
+        }
+
+        // Convert Width
+        $widthMeters = self::convertToMeters($width, $widthUnit);
+        $widthCm = UnitConversionService::convert($width, $widthUnit, 'CM');
+        $widthInches = UnitConversionService::convert($width, $widthUnit, 'IN');
+
+        $normWidthUnit = UnitConversionService::normalizeAlias($widthUnit);
+        if ($normWidthUnit === 'IN') {
+            $widthDisplay = round($widthInches, 2) . '" (' . round($widthCm, 1) . ' cm / ' . round($widthMeters, 2) . ' m)';
+        } elseif ($normWidthUnit === 'CM') {
+            $widthDisplay = round($widthCm, 1) . ' cm (' . round($widthInches, 2) . '" / ' . round($widthMeters, 2) . ' m)';
+        } elseif ($normWidthUnit === 'M') {
+            $widthDisplay = round($widthMeters, 2) . ' m (' . round($widthCm, 1) . ' cm / ' . round($widthInches, 2) . '")';
+        } elseif ($normWidthUnit === 'YD') {
+            $widthDisplay = round($width, 2) . ' YD (' . round($widthMeters, 2) . ' m / ' . round($widthCm, 1) . ' cm)';
+        } elseif ($normWidthUnit === 'FT') {
+            $widthDisplay = round($width, 2) . ' FT (' . round($widthMeters, 2) . ' m / ' . round($widthCm, 1) . ' cm)';
+        } else {
+            $widthDisplay = round($width, 2) . ' ' . $widthUnit . ' (' . round($widthCm, 1) . ' cm)';
+        }
+
+        $pieceAreaM2 = round($lengthMeters * $widthMeters, 4);
+        $dimensionsDisplay = "Length: {$lengthDisplay} · Width: {$widthDisplay}";
+
+        return [
+            'length_val' => (float) $length,
+            'length_unit' => $lengthUnit,
+            'length_display' => $lengthDisplay,
+            'width_val' => (float) $width,
+            'width_unit' => $widthUnit,
+            'width_display' => $widthDisplay,
+            'dimensions_display' => $dimensionsDisplay,
+            'piece_area_m2' => $pieceAreaM2,
+            'area_display' => "{$pieceAreaM2} m²",
+        ];
+    }
+
+    /**
      * Helper to convert length/width value to meters.
      */
     /**

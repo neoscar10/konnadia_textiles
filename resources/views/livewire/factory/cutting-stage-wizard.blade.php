@@ -340,6 +340,9 @@
                                                                     @php
                                                                         $rProdId = $pRow['manufacturing_product_id'] ?? null;
                                                                         $rPatterns = $rProdId ? \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $rProdId)->get() : collect();
+                                                                        $selProduct = $rProdId ? $manufacturingProducts->firstWhere('id', $rProdId) : null;
+                                                                        $selPattern = $pRow['pattern_id'] ? \App\Models\ManufacturingProductPattern::with('patternFabricWidths.fabricWidth', 'fabricWidth')->find($pRow['pattern_id']) : null;
+                                                                        $pDims = $selProduct ? \App\Services\FabricCuttingAreaService::formatProductPatternDimensions($selProduct, $selPattern) : null;
                                                                     @endphp
                                                                     <div wire:key="roll-prod-{{ $roll->id }}-{{ $pIdx }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
                                                                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
@@ -375,6 +378,19 @@
                                                                                 </div>
                                                                             </div>
                                                                         </div>
+
+                                                                        @if($pDims)
+                                                                            <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-surface-container-low/80 border border-outline-variant/50 rounded-xl text-xs">
+                                                                                <div class="flex flex-wrap items-center gap-2 text-on-surface-variant font-bold">
+                                                                                    <span class="material-symbols-outlined text-[16px] text-primary">square_foot</span>
+                                                                                    <span class="text-primary font-black uppercase text-[10px] tracking-wider">Pattern Dimensions:</span>
+                                                                                    <span class="text-on-surface font-extrabold">{{ $pDims['dimensions_display'] }}</span>
+                                                                                </div>
+                                                                                <span class="px-2.5 py-1 bg-primary/10 text-primary font-black rounded-lg text-[11px] border border-primary/20">
+                                                                                    Piece Area: {{ $pDims['area_display'] }}
+                                                                                </span>
+                                                                            </div>
+                                                                        @endif
                                                                     </div>
                                                                 @endforeach
                                                             </div>
@@ -481,11 +497,17 @@
                             <!-- Product Header Bar -->
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-outline-variant/40">
                                 <div>
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         <h4 class="font-extrabold text-sm text-primary">{{ $lGroup['product_name'] }}</h4>
                                         <span class="px-2 py-0.5 bg-primary/10 text-primary text-[11px] font-bold rounded-lg border border-primary/20">
                                             Pattern: {{ $lGroup['pattern_name'] }}
                                         </span>
+                                        @if(!empty($lGroup['dimensions_display']))
+                                            <span class="px-2 py-0.5 bg-surface-container text-on-surface-variant text-[11px] font-bold rounded-lg border border-outline-variant/60 flex items-center gap-1">
+                                                <span class="material-symbols-outlined text-[14px] text-primary">square_foot</span>
+                                                {{ $lGroup['dimensions_display'] }}
+                                            </span>
+                                        @endif
                                     </div>
                                     <p class="text-xs text-on-surface-variant font-semibold mt-0.5">
                                         Total Cut Quantity across Rolls: <strong class="text-on-surface font-mono">{{ $totalCutQty }} Pcs</strong>
@@ -553,55 +575,54 @@
                                                     type="button"
                                                     wire:click="assignAllToWorker('{{ $pKey }}', {{ $wIdx }})"
                                                     class="text-[9px] font-extrabold text-primary hover:underline cursor-pointer"
-                                                    title="Assign all {{ $totalCutQty }} Pcs to this worker"
                                                 >
-                                                    Assign All ({{ $totalCutQty }})
+                                                    Assign All Qty ({{ $totalCutQty }})
                                                 </button>
                                             </div>
                                             <input
                                                 type="number"
-                                                min="1"
-                                                max="{{ $totalCutQty }}"
+                                                min="0"
                                                 wire:model.live.debounce.300ms="laborAllocations.{{ $pKey }}.workers.{{ $wIdx }}.quantity"
-                                                class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-extrabold text-on-surface"
+                                                class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface font-mono"
                                             />
-                                            @error("laborAllocations.{$pKey}.workers.{{ $wIdx }}.quantity")
+                                            @error("laborAllocations.{$pKey}.workers.{$wIdx}.quantity")
                                                 <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span>
                                             @enderror
                                         </div>
 
-                                        <!-- Base Rate -->
-                                        <div class="sm:col-span-2">
-                                            <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">BASE RATE (₹/PC)</label>
-                                            <input
-                                                type="number"
-                                                step="0.5"
-                                                wire:model.live.debounce.300ms="laborAllocations.{{ $pKey }}.workers.{{ $wIdx }}.base_rate"
-                                                class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-right text-on-surface"
-                                            />
+                                        <!-- Piece Rates (Base & Bonus) -->
+                                        <div class="sm:col-span-4 grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">BASE RATE (₹) *</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    wire:model.live.debounce.300ms="laborAllocations.{{ $pKey }}.workers.{{ $wIdx }}.base_rate"
+                                                    class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface font-mono"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">BONUS RATE (₹)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    wire:model.live.debounce.300ms="laborAllocations.{{ $pKey }}.workers.{{ $wIdx }}.bonus_rate"
+                                                    class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface font-mono"
+                                                />
+                                            </div>
                                         </div>
 
-                                        <!-- Bonus Rate -->
-                                        <div class="sm:col-span-2">
-                                            <label class="block text-[10px] font-black text-amber-800 uppercase tracking-wider mb-1">BONUS RATE (₹/PC)</label>
-                                            <input
-                                                type="number"
-                                                step="0.5"
-                                                wire:model.live.debounce.300ms="laborAllocations.{{ $pKey }}.workers.{{ $wIdx }}.bonus_rate"
-                                                class="w-full bg-amber-50/50 border border-amber-300 rounded-xl px-3 py-2 text-xs font-bold text-right text-amber-900 focus:border-amber-500"
-                                            />
-                                        </div>
-
-                                        <!-- Subtotal & Delete -->
-                                        <div class="sm:col-span-1 flex flex-col items-end justify-center">
-                                            <span class="text-[9px] text-outline font-extrabold uppercase">Subtotal</span>
-                                            <span class="text-xs font-extrabold text-primary">₹{{ number_format($subtotal, 2) }}</span>
+                                        <!-- Subtotal & Actions -->
+                                        <div class="sm:col-span-1 flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0">
+                                            <div class="text-right shrink-0">
+                                                <span class="text-[10px] text-on-surface-variant block font-semibold">Subtotal</span>
+                                                <strong class="text-xs text-primary font-mono block">₹{{ number_format($subtotal, 2) }}</strong>
+                                            </div>
                                             @if(count($workers) > 1)
                                                 <button
                                                     type="button"
                                                     wire:click="removeWorkerFromProduct('{{ $pKey }}', {{ $wIdx }})"
-                                                    class="text-error hover:bg-error-container/20 p-1 rounded-lg transition-colors cursor-pointer mt-1"
-                                                    title="Remove worker"
+                                                    class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
                                                 >
                                                     <span class="material-symbols-outlined text-base">delete</span>
                                                 </button>
@@ -615,11 +636,20 @@
                 </div>
             </div>
 
+            <!-- Navigation Buttons -->
             <div class="flex justify-between pt-4">
-                <button type="button" wire:click="goToStep(1)" class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer">
+                <button
+                    type="button"
+                    wire:click="goToStep(1)"
+                    class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer"
+                >
                     Back to Step 1
                 </button>
-                <button type="button" wire:click="goToStep(3)" class="px-8 py-3.5 bg-primary text-on-primary font-extrabold text-xs rounded-xl shadow-md hover:bg-primary-container transition-all cursor-pointer flex items-center gap-2">
+                <button
+                    type="button"
+                    wire:click="goToStep(3)"
+                    class="px-8 py-3.5 bg-primary text-on-primary font-extrabold text-xs rounded-xl shadow-md hover:bg-primary-container transition-all cursor-pointer flex items-center gap-2"
+                >
                     Proceed to Step 3 (Output Items)
                     <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </button>
@@ -644,7 +674,14 @@
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-bold text-on-surface text-sm">{{ $out['product_name'] }}</h4>
-                                    <span class="text-xs text-outline font-semibold">Pattern: {{ $out['pattern_name'] }}</span>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="text-xs text-outline font-semibold">Pattern: {{ $out['pattern_name'] }}</span>
+                                        @if(!empty($out['dimensions_display']))
+                                            <span class="px-2 py-0.5 bg-primary/10 text-primary text-[11px] font-bold rounded-lg border border-primary/20">
+                                                {{ $out['dimensions_display'] }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
                                 <span class="px-3 py-1 bg-primary/10 text-primary font-mono font-black rounded-lg text-xs">
                                     {{ $out['expected_quantity'] }} Pcs Expected
@@ -752,7 +789,7 @@
                             <thead>
                                 <tr class="bg-surface-container-high border-b border-outline-variant/60 text-on-surface-variant uppercase font-bold text-[10px] tracking-wider">
                                     <th class="px-4 py-3">Product Name</th>
-                                    <th class="px-4 py-3">Pattern</th>
+                                    <th class="px-4 py-3">Pattern &amp; Dimensions</th>
                                     <th class="px-4 py-3 text-center">Target Qty</th>
                                     <th class="px-4 py-3 text-center">Stage 1 (Cutting)</th>
                                     <th class="px-4 py-3 text-center">Stage 2 (Next Step)</th>
@@ -766,7 +803,10 @@
                                             <span class="text-[10px] text-outline font-mono">{{ $item['product_code'] }}</span>
                                         </td>
                                         <td class="px-4 py-3 text-on-surface-variant font-bold">
-                                            {{ $item['pattern_name'] }}
+                                            <span class="block">{{ $item['pattern_name'] }}</span>
+                                            @if(!empty($item['dimensions_display']))
+                                                <span class="text-[11px] text-primary font-extrabold block mt-0.5">{{ $item['dimensions_display'] }}</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3 text-center font-black text-sm">
                                             {{ number_format($item['total_quantity']) }} Pcs

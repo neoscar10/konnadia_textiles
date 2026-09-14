@@ -485,6 +485,8 @@ class CuttingStageWizard extends Component
             $itemReqLen = $pieceReqLen * $qty;
             $totalStandardReqLength += $itemReqLen;
 
+            $dimDetails = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern);
+
             $key = "{$pId}_{$patId}";
             $productDetails[$key] = [
                 'product_id' => $product->id,
@@ -496,6 +498,9 @@ class CuttingStageWizard extends Component
                 'piece_req_length' => round($pieceReqLen, 2),
                 'total_req_length' => round($itemReqLen, 2),
                 'total_used_area_m2' => round($itemUsedAreaBase, 4),
+                'dimensions_display' => $dimDetails['dimensions_display'],
+                'length_display' => $dimDetails['length_display'],
+                'width_display' => $dimDetails['width_display'],
             ];
         }
 
@@ -568,6 +573,7 @@ class CuttingStageWizard extends Component
                     if (!isset($allocated[$key])) {
                         $product = ManufacturingProduct::find($pId);
                         $pattern = $patId ? ManufacturingProductPattern::find($patId) : null;
+                        $dimDetails = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern);
 
                         $allocated[$key] = [
                             'key' => $key,
@@ -576,6 +582,10 @@ class CuttingStageWizard extends Component
                             'product_name' => $product?->name ?? "Product #{$pId}",
                             'product_code' => $product?->code ?? '',
                             'pattern_name' => $pattern?->name ?? 'Default',
+                            'dimensions_display' => $dimDetails['dimensions_display'],
+                            'length_display' => $dimDetails['length_display'],
+                            'width_display' => $dimDetails['width_display'],
+                            'piece_area_m2' => $dimDetails['piece_area_m2'],
                             'total_quantity' => 0,
                         ];
                     }
@@ -660,6 +670,7 @@ class CuttingStageWizard extends Component
             if ($existingGroup && !empty($existingGroup['workers'])) {
                 $workers = $existingGroup['workers'];
                 $existingGroup['total_cut_quantity'] = $qty;
+                $existingGroup['dimensions_display'] = $item['dimensions_display'] ?? '';
 
                 if (count($workers) === 1 && intval($workers[0]['quantity']) != $qty) {
                     $workers[0]['quantity'] = $qty;
@@ -673,6 +684,7 @@ class CuttingStageWizard extends Component
                     'pattern_id' => $item['pattern_id'],
                     'product_name' => $item['product_name'],
                     'pattern_name' => $item['pattern_name'],
+                    'dimensions_display' => $item['dimensions_display'] ?? '',
                     'total_cut_quantity' => $qty,
                     'workers' => [
                         [
@@ -692,6 +704,7 @@ class CuttingStageWizard extends Component
                 'pattern_id' => $item['pattern_id'],
                 'product_name' => $item['product_name'],
                 'pattern_name' => $item['pattern_name'],
+                'dimensions_display' => $item['dimensions_display'] ?? '',
                 'expected_quantity' => $qty,
                 'remarks' => $existingOutput['remarks'] ?? "Cutting output for {$item['product_name']} ({$item['pattern_name']})",
             ];
