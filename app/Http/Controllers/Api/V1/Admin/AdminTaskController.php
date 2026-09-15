@@ -20,7 +20,7 @@ class AdminTaskController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Task::with('rawMaterialCategories')->withCount('manufacturingProducts');
+        $query = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts');
 
         if ($request->filled('search')) {
             $search = trim($request->query('search'));
@@ -70,12 +70,14 @@ class AdminTaskController extends Controller
     {
         $tasks = Task::where('status', true)->ordered()->get(['id', 'name', 'code', 'consumes_raw_material', 'is_labor_required', 'sequence_number']);
         $categories = RawMaterialCategory::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code', 'unit_type']);
+        $allLaborTasks = Task::where('status', true)->ordered()->get(['id', 'name', 'code', 'status', 'sequence_number']);
 
         return response()->json([
             'success' => true,
             'data' => [
                 'tasks' => $tasks,
                 'raw_material_categories' => $categories,
+                'all_labor_tasks' => $allLaborTasks,
             ],
         ]);
     }
@@ -85,7 +87,7 @@ class AdminTaskController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $task = Task::with('rawMaterialCategories')->withCount('manufacturingProducts')->findOrFail($id);
+        $task = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts')->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -118,12 +120,20 @@ class AdminTaskController extends Controller
 
             if ($task->consumes_raw_material && !empty($validated['selected_category_ids'])) {
                 $task->rawMaterialCategories()->sync($validated['selected_category_ids']);
+            } else {
+                $task->rawMaterialCategories()->detach();
+            }
+
+            if ($task->is_labor_required && !empty($validated['selected_authorized_task_ids'])) {
+                $task->authorizedLaborTasks()->sync($validated['selected_authorized_task_ids']);
+            } else {
+                $task->authorizedLaborTasks()->detach();
             }
 
             return $task;
         });
 
-        $task->load('rawMaterialCategories')->loadCount('manufacturingProducts');
+        $task->load(['rawMaterialCategories', 'authorizedLaborTasks'])->loadCount('manufacturingProducts');
 
         return response()->json([
             'success' => true,
@@ -137,7 +147,7 @@ class AdminTaskController extends Controller
      */
     public function update(UpdateTaskRequest $request, int $id): JsonResponse
     {
-        $task = Task::with('rawMaterialCategories')->withCount('manufacturingProducts')->findOrFail($id);
+        $task = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts')->findOrFail($id);
         $validated = $request->validated();
 
         DB::transaction(function () use ($task, $validated) {
@@ -155,9 +165,15 @@ class AdminTaskController extends Controller
             } else {
                 $task->rawMaterialCategories()->detach();
             }
+
+            if ($task->is_labor_required && !empty($validated['selected_authorized_task_ids'])) {
+                $task->authorizedLaborTasks()->sync($validated['selected_authorized_task_ids']);
+            } else {
+                $task->authorizedLaborTasks()->detach();
+            }
         });
 
-        $task->refresh()->load('rawMaterialCategories')->loadCount('manufacturingProducts');
+        $task->refresh()->load(['rawMaterialCategories', 'authorizedLaborTasks'])->loadCount('manufacturingProducts');
 
         return response()->json([
             'success' => true,
@@ -171,7 +187,7 @@ class AdminTaskController extends Controller
      */
     public function toggleStatus(int $id): JsonResponse
     {
-        $task = Task::with('rawMaterialCategories')->withCount('manufacturingProducts')->findOrFail($id);
+        $task = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts')->findOrFail($id);
         $task->update(['status' => !$task->status]);
 
         $label = $task->status ? 'activated' : 'deactivated';

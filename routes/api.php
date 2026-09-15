@@ -203,6 +203,63 @@ Route::prefix('v1')->group(function () {
                 Route::post('/convert', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'convert']);
                 Route::post('/preview-relationship', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'previewRelationship']);
             });
+
+            // Factory Supervisors Alias (/factory/supervisors)
+            Route::prefix('supervisors')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Wastage & Scrap Log Alias (/factory/wastage-log)
+            Route::prefix('wastage-log')->group(function () {
+                Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'stats']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'options']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'update'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Front-End Products / Leaf Category Assembly Config (/factory/front-end-products)
+            Route::prefix('front-end-products')->group(function () {
+                Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'stats']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'options']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'index']);
+                Route::get('/{categoryId}', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'show'])->where('categoryId', '[0-9]+');
+                Route::post('/{categoryId}/configure', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'configure'])->where('categoryId', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Finished Goods Conversion & Barcode Hub (/factory/finished-goods)
+            Route::prefix('finished-goods')->group(function () {
+                Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'stats']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'options']);
+                Route::get('/stock-check', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'stockCheck']);
+                Route::post('/stock-check', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'stockCheck']);
+                Route::get('/barcode-search', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'barcodeSearch']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/convert', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'convert']);
+                Route::patch('/{id}/toggle-publish', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'togglePublish'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Overhead Allocation Module (/factory/overhead-allocation)
+            Route::prefix('overhead-allocation')->group(function () {
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'options']);
+                Route::get('/history', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'history']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'store']);
+            });
         });
     });
 
@@ -546,6 +603,55 @@ Route::prefix('v1')->group(function () {
                     Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'show'])->where('id', '[0-9]+');
                     Route::post('/{id}/bales/{baleId}/open', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'openBale'])->where(['id' => '[0-9]+', 'baleId' => '[0-9]+']);
                     Route::post('/{id}/adjust-quantity', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'adjustQuantity'])->where('id', '[0-9]+');
+                });
+
+                // Supervisors Management (/admin/production/supervisors)
+                Route::prefix('supervisors')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'index']);
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'options']);
+                    Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'show'])->where('id', '[0-9]+');
+                    Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'store']);
+                    Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                    Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'destroy'])->where('id', '[0-9]+');
+                });
+
+                // Wastage & Scrap Log (/admin/production/wastage-log)
+                Route::prefix('wastage-log')->group(function () {
+                    Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'stats']);
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'options']);
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'index']);
+                    Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'show'])->where('id', '[0-9]+');
+                    Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'store']);
+                    Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'update'])->where('id', '[0-9]+');
+                    Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWastageLogController::class, 'destroy'])->where('id', '[0-9]+');
+                });
+
+                // Front-End Products / Leaf Category Assembly Config (/admin/production/front-end-products)
+                Route::prefix('front-end-products')->group(function () {
+                    Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'stats']);
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'options']);
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'index']);
+                    Route::get('/{categoryId}', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'show'])->where('categoryId', '[0-9]+');
+                    Route::post('/{categoryId}/configure', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'configure'])->where('categoryId', '[0-9]+');
+                    Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                    Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFrontEndProductController::class, 'destroy'])->where('id', '[0-9]+');
+                });
+
+                // Finished Goods Conversion & Barcode Hub (/admin/production/finished-goods)
+                Route::prefix('finished-goods')->group(function () {
+                    Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'stats']);
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'options']);
+                    Route::get('/stock-check', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'stockCheck']);
+                    Route::post('/stock-check', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'stockCheck']);
+                    Route::get('/barcode-search', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'barcodeSearch']);
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'index']);
+                    Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'show'])->where('id', '[0-9]+');
+                    Route::post('/convert', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'convert']);
+                    Route::patch('/{id}/toggle-publish', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'togglePublish'])->where('id', '[0-9]+');
+                    Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'destroy'])->where('id', '[0-9]+');
                 });
 
                 // Workbench & Audit History

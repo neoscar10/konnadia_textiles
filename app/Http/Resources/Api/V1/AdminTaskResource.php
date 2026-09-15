@@ -32,6 +32,17 @@ class AdminTaskResource extends JsonResource
             'raw_material_category_ids' => $this->whenLoaded('rawMaterialCategories', function () {
                 return $this->rawMaterialCategories->pluck('id')->toArray();
             }),
+            'authorized_labor_tasks' => $this->whenLoaded('authorizedLaborTasks', function () {
+                return $this->authorizedLaborTasks->map(fn($t) => [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'code' => $t->code,
+                    'status' => (bool) $t->status,
+                ]);
+            }),
+            'selected_authorized_task_ids' => $this->whenLoaded('authorizedLaborTasks', function () {
+                return $this->authorizedLaborTasks->pluck('id')->toArray();
+            }),
             'manufacturing_products_count' => $this->when(
                 isset($this->manufacturing_products_count),
                 $this->manufacturing_products_count,

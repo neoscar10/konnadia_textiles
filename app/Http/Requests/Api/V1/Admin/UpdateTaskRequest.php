@@ -23,6 +23,8 @@ class UpdateTaskRequest extends FormRequest
             'is_labor_required' => 'required|boolean',
             'selected_category_ids' => 'required_if:consumes_raw_material,true|array',
             'selected_category_ids.*' => 'exists:raw_material_categories,id',
+            'selected_authorized_task_ids' => 'nullable|array',
+            'selected_authorized_task_ids.*' => 'exists:tasks,id',
             'sequence_number' => 'nullable|integer|min:1',
         ];
     }

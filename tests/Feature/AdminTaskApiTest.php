@@ -96,6 +96,35 @@ class AdminTaskApiTest extends TestCase
         $this->assertCount(1, $task->rawMaterialCategories);
     }
 
+    public function test_can_create_and_update_task_with_authorized_labor_tasks()
+    {
+        $lTask1 = Task::create(['name' => 'Labor Step A', 'code' => 'LTSK-01', 'status' => true, 'consumes_raw_material' => false, 'is_labor_required' => true]);
+
+        $payload = [
+            'name' => 'Assembly Task',
+            'code' => 'TSK-ASSM-01',
+            'status' => true,
+            'consumes_raw_material' => false,
+            'is_labor_required' => true,
+            'selected_authorized_task_ids' => [$lTask1->id],
+            'sequence_number' => 10,
+        ];
+
+        $response = $this->actingAs($this->admin, 'api')
+            ->postJson('/api/v1/admin/tasks', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.selected_authorized_task_ids.0', $lTask1->id);
+
+        $optionsResp = $this->actingAs($this->admin, 'api')
+            ->getJson('/api/v1/admin/tasks/options');
+
+        $optionsResp->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(2, 'data.all_labor_tasks');
+    }
+
     public function test_can_update_task()
     {
         $task = Task::create(['name' => 'Old Name', 'code' => 'TSK-0005', 'sequence_number' => 5, 'status' => true, 'consumes_raw_material' => false, 'is_labor_required' => true]);
