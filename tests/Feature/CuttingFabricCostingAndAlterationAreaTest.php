@@ -330,6 +330,16 @@ class CuttingFabricCostingAndAlterationAreaTest extends TestCase
 
         // Formatting dimensions with 44-inch context
         $dims = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $fw44);
+        $this->assertTrue($dims['is_configured']);
         $this->assertEquals('Length: 2.1 Inches (0.05 m) · Width: 44 Inches (1.12 m)', $dims['dimensions_display']);
+
+        // 3. Unconfigured fabric width test (e.g. 66 Inch width)
+        $fw66 = \App\Models\FabricWidth::create(['name' => '66 Inch', 'value' => 66, 'unit' => 'Inches']);
+        $unconfigLen = FabricCuttingAreaService::resolvePatternFabricLength($product, $fw66);
+        $this->assertEquals(0.0, $unconfigLen);
+
+        $unconfigDims = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $fw66);
+        $this->assertFalse($unconfigDims['is_configured']);
+        $this->assertStringContainsString("No fabric length defined for 66 Inches", $unconfigDims['error_message']);
     }
 }

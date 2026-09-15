@@ -380,16 +380,31 @@
                                                                         </div>
 
                                                                         @if($pDims)
-                                                                            <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-surface-container-low/80 border border-outline-variant/50 rounded-xl text-xs">
-                                                                                <div class="flex flex-wrap items-center gap-2 text-on-surface-variant font-bold">
-                                                                                    <span class="material-symbols-outlined text-[16px] text-primary">square_foot</span>
-                                                                                    <span class="text-primary font-black uppercase text-[10px] tracking-wider">Pattern Dimensions:</span>
-                                                                                    <span class="text-on-surface font-extrabold">{{ $pDims['dimensions_display'] }}</span>
+                                                                            @if(!empty($pDims['is_configured']))
+                                                                                <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-surface-container-low/80 border border-outline-variant/50 rounded-xl text-xs">
+                                                                                    <div class="flex flex-wrap items-center gap-2 text-on-surface-variant font-bold">
+                                                                                        <span class="material-symbols-outlined text-[16px] text-primary">square_foot</span>
+                                                                                        <span class="text-primary font-black uppercase text-[10px] tracking-wider">Pattern Dimensions:</span>
+                                                                                        <span class="text-on-surface font-extrabold">{{ $pDims['dimensions_display'] }}</span>
+                                                                                    </div>
+                                                                                    <span class="px-2.5 py-1 bg-primary/10 text-primary font-black rounded-lg text-[11px] border border-primary/20">
+                                                                                        Piece Area: {{ $pDims['area_display'] }}
+                                                                                    </span>
                                                                                 </div>
-                                                                                <span class="px-2.5 py-1 bg-primary/10 text-primary font-black rounded-lg text-[11px] border border-primary/20">
-                                                                                    Piece Area: {{ $pDims['area_display'] }}
-                                                                                </span>
-                                                                            </div>
+                                                                            @else
+                                                                                <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-900 dark:text-amber-200 font-bold">
+                                                                                    <div class="flex items-center gap-2">
+                                                                                        <span class="material-symbols-outlined text-[18px] text-amber-600 shrink-0">warning</span>
+                                                                                        <span>{{ $pDims['error_message'] ?? "No fabric length defined for selected width on pattern." }}</span>
+                                                                                    </div>
+                                                                                    @if($selProduct)
+                                                                                        <a href="/factory/products/{{ $selProduct->id }}/edit" target="_blank" class="px-2.5 py-1 bg-amber-600 text-white font-black rounded-lg text-[10px] uppercase tracking-wider hover:bg-amber-700 transition-colors shrink-0 flex items-center gap-1 shadow-xs">
+                                                                                            <span>Configure Pattern</span>
+                                                                                            <span class="material-symbols-outlined text-xs">open_in_new</span>
+                                                                                        </a>
+                                                                                    @endif
+                                                                                </div>
+                                                                            @endif
                                                                         @endif
                                                                     </div>
                                                                 @endforeach

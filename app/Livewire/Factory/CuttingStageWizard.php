@@ -592,10 +592,14 @@ class CuttingStageWizard extends Component
             if (!$product) continue;
 
             $pattern = $patId ? ManufacturingProductPattern::find($patId) : null;
-            $rollContext = $roll?->fabricWidth ?? $rawMaterial;
+            $rollContext = $roll ?? $rawMaterial;
             $pieceAreaM2 = FabricCuttingAreaService::calculateProductPatternAreaM2($product, $pattern, $rollContext);
-            if ($pieceAreaM2 <= 0) {
-                $pieceAreaM2 = FabricCuttingAreaService::calculateProductPieceArea($product, $unitGroupId);
+            if ($pieceAreaM2 <= 0 && $pattern) {
+                // If pattern is configured, don't fall back to standard product piece area if length was not defined for that width
+                $res = FabricCuttingAreaService::resolvePatternFabricWidth($pattern, $rollContext);
+                if ($res['is_configured']) {
+                    $pieceAreaM2 = FabricCuttingAreaService::calculateProductPieceArea($product, $unitGroupId);
+                }
             }
 
             $itemUsedAreaBase = $pieceAreaM2 * $qty;
@@ -621,6 +625,8 @@ class CuttingStageWizard extends Component
                 'dimensions_display' => $dimDetails['dimensions_display'],
                 'length_display' => $dimDetails['length_display'],
                 'width_display' => $dimDetails['width_display'],
+                'is_configured' => $dimDetails['is_configured'] ?? true,
+                'error_message' => $dimDetails['error_message'] ?? null,
             ];
         }
 
@@ -668,8 +674,8 @@ class CuttingStageWizard extends Component
                 $cutLen = floatval($rData['cut_length'] ?? 0);
                 if ($cutLen <= 0) continue;
 
-                $roll = InventoryBaleRoll::with('fabricWidth')->find($rollId);
-                $rollContext = $roll?->fabricWidth ?? $rawMaterial;
+                $roll = InventoryBaleRoll::with(['fabricWidth.unitModel', 'rawMaterial.fabricWidths.unitModel', 'bale.batch.rawMaterial.fabricWidths.unitModel'])->find($rollId);
+                $rollContext = $roll ?? $rawMaterial;
 
                 foreach ($rData['products'] ?? [] as $pItem) {
                     $pId = intval($pItem['manufacturing_product_id'] ?? 0);
