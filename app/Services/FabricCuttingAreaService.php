@@ -292,7 +292,7 @@ class FabricCuttingAreaService
             }
         }
 
-        return (float) ($product->standard_fabric_length ?: 2.5);
+        return (float) ($product->standard_fabric_length ?: 0.0);
     }
 
     /**
@@ -678,7 +678,7 @@ class FabricCuttingAreaService
         $cutAreaM2 = $cutLengthMeters * $widthMeters;
 
         // 6. Resolve Product Piece Requirement Length (in Meters)
-        $pieceReqLength = 2.5; // Default fallback
+        $pieceReqLength = 0.0;
         if ($product && $roll) {
             $pieceReqLength = self::resolvePatternFabricLength($product, $roll);
         } elseif ($product && $rawMaterial) {
