@@ -186,6 +186,8 @@ class FabricCuttingAreaService
 
         if ($pattern->patternFabricWidths->isNotEmpty()) {
             if ($fabricWidthId || $widthVal > 0) {
+                $widthMeters = self::convertToMeters($widthVal, $widthCtx['unit']);
+
                 foreach ($pattern->patternFabricWidths as $pfw) {
                     $fwModel = $pfw->fabricWidth;
                     if (!$fwModel && $pfw->fabric_width_id) {
@@ -193,11 +195,13 @@ class FabricCuttingAreaService
                     }
 
                     $pfwWidthVal = (float) ($fwModel?->value ?: ($fwModel?->width_inches ?: ($fwModel?->width ?? 0)));
+                    $pfwWidthUnit = $fwModel ? ($fwModel->unitModel ? $fwModel->unitModel->short_code : ($fwModel->unit ?: 'Inches')) : 'Inches';
+                    $pfwWidthMeters = self::convertToMeters($pfwWidthVal, $pfwWidthUnit);
                     $pfwWidthId = $pfw->fabric_width_id;
 
                     if (
                         ($fabricWidthId && $pfwWidthId && (int)$pfwWidthId === (int)$fabricWidthId) ||
-                        ($widthVal > 0 && $pfwWidthVal > 0 && abs($pfwWidthVal - $widthVal) < 0.5)
+                        ($widthMeters > 0 && $pfwWidthMeters > 0 && abs($pfwWidthMeters - $widthMeters) < 0.02)
                     ) {
                         $matchedPfw = $pfw;
                         if ($fwModel && !$matchedPfw->relationLoaded('fabricWidth')) {
