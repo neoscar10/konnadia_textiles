@@ -584,6 +584,13 @@ Route::prefix('v1')->group(function () {
                     Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'destroy'])->where('id', '[0-9]+');
                 });
 
+                // Wages Management Alias (/factory/wages)
+                Route::prefix('wages')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminWageController::class, 'index']);
+                    Route::get('/summary', [\App\Http\Controllers\Api\V1\Admin\AdminWageController::class, 'summary']);
+                    Route::get('/worker/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWageController::class, 'workerWages'])->where('id', '[0-9]+');
+                });
+
                 // Tracking History Alias (/factory/tracking-history)
                 Route::get('/tracking-history/options', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'trackingHistoryOptions']);
                 Route::get('/tracking-history', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'trackingHistory']);
@@ -728,6 +735,13 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'toggleStatus'])->where('id', '[0-9]+');
                 Route::post('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'toggleStatus'])->where('id', '[0-9]+');
                 Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Wages & Payroll APIs (/admin/wages)
+            Route::prefix('wages')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminWageController::class, 'index']);
+                Route::get('/summary', [\App\Http\Controllers\Api\V1\Admin\AdminWageController::class, 'summary']);
+                Route::get('/worker/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminWageController::class, 'workerWages'])->where('id', '[0-9]+');
             });
 
             // Credit Management (Requires 'access customers' or 'access orders' permission)
