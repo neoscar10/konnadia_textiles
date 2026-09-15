@@ -18,6 +18,10 @@ use App\Services\Manufacturing\ProductionWorkflowService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use App\Models\InventoryBale;
+use App\Models\RawMaterial;
+use App\Models\Unit;
+use App\Models\UnitGroup;
 use App\Services\InventoryBatchLogger;
 
 #[Layout('components.admin.layout')]
@@ -645,40 +649,182 @@ class JobDetailPage extends Component
     public ?int $activeBaleIdToOpen = null;
     public $baleRollCount = '';
     public array $baleRollLengths = [];
+    public array $baleRollUnits = [];
+    public array $baleRollWidths = [];
+    public array $baleRollMaterials = [];
+    public array $baleRollDesignNumbers = [];
+    public array $baleRollStockIds = [];
+    public array $baleAllowedMaterials = [];
     public ?string $baleMismatchWarning = null;
+
+    public function getAvailableWidthsForMaterial($rawMaterialId)
+    {
+        if (!$rawMaterialId) return collect();
+        $mat = RawMaterial::with('fabricWidths.unitModel')->find($rawMaterialId);
+        return $mat ? $mat->available_widths : collect();
+    }
+
+    public function getAvailableUnitsForMaterial($rawMaterialId)
+    {
+        if (!$rawMaterialId) {
+            $lengthGroup = UnitGroup::where('code', 'LENGTH')->first();
+            return $lengthGroup ? $lengthGroup->activeUnits : Unit::where('is_active', true)->get();
+        }
+        $mat = RawMaterial::with('unitGroup.activeUnits', 'unitModel')->find($rawMaterialId);
+        if ($mat && $mat->unitGroup && $mat->unitGroup->activeUnits->isNotEmpty()) {
+            return $mat->unitGroup->activeUnits;
+        }
+        $lengthGroup = UnitGroup::where('code', 'LENGTH')->first();
+        return $lengthGroup ? $lengthGroup->activeUnits : Unit::where('is_active', true)->get();
+    }
+
+    public function getRollConvertedLengthInMeters(int $index): float
+    {
+        $lenVal = (float) ($this->baleRollLengths[$index] ?? 0);
+        if ($lenVal <= 0) return 0.0;
+
+        $unitId = $this->baleRollUnits[$index] ?? null;
+        if ($unitId) {
+            $unitModel = Unit::find($unitId);
+            if ($unitModel) {
+                return (float) $unitModel->toBaseQuantity($lenVal);
+            }
+        }
+
+        return $lenVal;
+    }
 
     public function triggerOpenBaleModal(int $baleId)
     {
-        $bale = \App\Models\InventoryBale::with('batch')->findOrFail($baleId);
+        $bale = InventoryBale::with('batch.rawMaterial')->findOrFail($baleId);
         $this->activeBaleIdToOpen = $bale->id;
         $this->baleRollCount = '';
         $this->baleRollLengths = [];
+        $this->baleRollMaterials = [];
+        $this->baleRollWidths = [];
+        $this->baleRollUnits = [];
+        $this->baleRollDesignNumbers = [];
+        $this->baleRollStockIds = [];
         $this->baleMismatchWarning = null;
         $this->showMismatchConfirmationModal = false;
 
+        $balesInPhysicalBale = InventoryBale::where('bale_number', $bale->bale_number)
+            ->with('batch.rawMaterial')
+            ->get();
+
+        $allowedMap = [];
+        foreach ($balesInPhysicalBale as $b) {
+            if ($b->batch && $b->batch->rawMaterial) {
+                $m = $b->batch->rawMaterial;
+                $allowedMap[$m->id] = [
+                    'id'            => $m->id,
+                    'name'          => $m->name,
+                    'code'          => $m->code,
+                    'design_number' => $b->design_number ?? '',
+                    'stock_id'      => $b->stock_id ?? '',
+                ];
+            }
+        }
+
+        if (empty($allowedMap) && $bale->batch && $bale->batch->rawMaterial) {
+            $m = $bale->batch->rawMaterial;
+            $allowedMap[$m->id] = [
+                'id'            => $m->id,
+                'name'          => $m->name,
+                'code'          => $m->code,
+                'design_number' => $bale->design_number ?? '',
+                'stock_id'      => $bale->stock_id ?? '',
+            ];
+        }
+
+        $this->baleAllowedMaterials = array_values($allowedMap);
         $this->showOpenBaleModal = true;
     }
 
     public function updatedBaleRollCount($count)
     {
         if ($count === '' || $count === null || intval($count) <= 0) {
-            $this->baleRollLengths = [];
-            $this->baleMismatchWarning = null;
+            $this->baleRollLengths       = [];
+            $this->baleRollMaterials     = [];
+            $this->baleRollWidths        = [];
+            $this->baleRollUnits         = [];
+            $this->baleRollDesignNumbers = [];
+            $this->baleRollStockIds       = [];
+            $this->baleMismatchWarning   = null;
             return;
         }
 
         $count = max(1, min(50, intval($count)));
         $this->baleRollCount = $count;
 
+        $bale = $this->activeBaleIdToOpen ? InventoryBale::with('batch.rawMaterial')->find($this->activeBaleIdToOpen) : null;
+        $defaultMat = !empty($this->baleAllowedMaterials[0]) ? $this->baleAllowedMaterials[0] : null;
+        $defaultMatId = $defaultMat['id'] ?? ($bale?->batch?->raw_material_id ?? '');
+        $defaultDesign = $defaultMat['design_number'] ?? ($bale?->design_number ?? '');
+        $defaultStock = $defaultMat['stock_id'] ?? ($bale?->stock_id ?? '');
+
         $currentCount = count($this->baleRollLengths);
         if ($currentCount < $count) {
             for ($i = $currentCount; $i < $count; $i++) {
-                $this->baleRollLengths[$i] = '';
+                $matId = (string) $defaultMatId;
+                $this->baleRollLengths[$i]       = '';
+                $this->baleRollMaterials[$i]     = $matId;
+
+                $widths = $this->getAvailableWidthsForMaterial($matId);
+                $firstWidth = $widths->first();
+                $this->baleRollWidths[$i]        = $firstWidth ? (string) ($firstWidth->id ?? '') : '';
+
+                $units = $this->getAvailableUnitsForMaterial($matId);
+                $matObj = $matId ? RawMaterial::find($matId) : null;
+                $defaultUnitId = $matObj?->unit_id ?? $units->firstWhere('short_code', 'M')?->id ?? $units->first()?->id ?? '';
+                $this->baleRollUnits[$i]         = (string) $defaultUnitId;
+
+                $this->baleRollDesignNumbers[$i] = $defaultDesign;
+                $this->baleRollStockIds[$i]       = $defaultStock;
             }
         } else if ($currentCount > $count) {
-            $this->baleRollLengths = array_slice($this->baleRollLengths, 0, $count);
+            $this->baleRollLengths       = array_slice($this->baleRollLengths, 0, $count);
+            $this->baleRollMaterials     = array_slice($this->baleRollMaterials, 0, $count);
+            $this->baleRollWidths        = array_slice($this->baleRollWidths, 0, $count);
+            $this->baleRollUnits         = array_slice($this->baleRollUnits, 0, $count);
+            $this->baleRollDesignNumbers = array_slice($this->baleRollDesignNumbers, 0, $count);
+            $this->baleRollStockIds       = array_slice($this->baleRollStockIds, 0, $count);
         }
 
+        $this->checkBaleMismatchWarning();
+    }
+
+    public function updatedBaleRollMaterials($value, $key)
+    {
+        $index = (int) $key;
+        $matId = (int) $value;
+
+        if ($matId) {
+            $widths = $this->getAvailableWidthsForMaterial($matId);
+            $firstWidth = $widths->first();
+            $this->baleRollWidths[$index] = $firstWidth ? (string) ($firstWidth->id ?? '') : '';
+
+            $units = $this->getAvailableUnitsForMaterial($matId);
+            $matObj = RawMaterial::find($matId);
+            $defaultUnitId = $matObj?->unit_id ?? $units->firstWhere('short_code', 'M')?->id ?? $units->first()?->id ?? '';
+            $this->baleRollUnits[$index] = (string) $defaultUnitId;
+
+            if (!empty($this->baleAllowedMaterials)) {
+                foreach ($this->baleAllowedMaterials as $item) {
+                    if ($item['id'] == $matId) {
+                        $this->baleRollDesignNumbers[$index] = $item['design_number'] ?? '';
+                        $this->baleRollStockIds[$index]       = $item['stock_id'] ?? '';
+                        break;
+                    }
+                }
+            }
+        }
+
+        $this->checkBaleMismatchWarning();
+    }
+
+    public function updatedBaleRollUnits()
+    {
         $this->checkBaleMismatchWarning();
     }
 
@@ -690,22 +836,27 @@ class JobDetailPage extends Component
     protected function checkBaleMismatchWarning()
     {
         if (!$this->activeBaleIdToOpen) return;
-        $bale = \App\Models\InventoryBale::find($this->activeBaleIdToOpen);
+        $bale = InventoryBale::find($this->activeBaleIdToOpen);
         if (!$bale) return;
 
-        $filledLengths = array_filter($this->baleRollLengths, fn($val) => $val !== '' && $val !== null);
-        if (empty($filledLengths)) {
+        $filledIndices = array_filter(array_keys($this->baleRollLengths), fn($i) => isset($this->baleRollLengths[$i]) && $this->baleRollLengths[$i] !== '' && $this->baleRollLengths[$i] !== null);
+        if (empty($filledIndices)) {
             $this->baleMismatchWarning = null;
             return;
         }
 
-        $sum = array_sum(array_map('floatval', $filledLengths));
+        $sumBaseMeters = 0.0;
+        foreach ($filledIndices as $i) {
+            $sumBaseMeters += $this->getRollConvertedLengthInMeters($i);
+        }
+
+        $sumBaseMeters = round($sumBaseMeters, 2);
         $declared = (float) $bale->declared_length;
 
-        if (abs($sum - $declared) > 0.001) {
-            $diff = round($sum - $declared, 2);
+        if (abs($sumBaseMeters - $declared) > 0.001) {
+            $diff = round($sumBaseMeters - $declared, 2);
             $sign = $diff > 0 ? "+{$diff}" : "{$diff}";
-            $this->baleMismatchWarning = "Warning: Total measured roll length ({$sum}m) differs from declared purchase bale length ({$declared}m) by {$sign}m. This measured length ({$sum}m) will override the declared length for material calculations.";
+            $this->baleMismatchWarning = "Warning: Total measured roll length ({$sumBaseMeters}m) differs from declared purchase bale length ({$declared}m) by {$sign}m. This measured length ({$sumBaseMeters}m) will override the declared length for material calculations.";
         } else {
             $this->baleMismatchWarning = null;
         }
@@ -727,11 +878,15 @@ class JobDetailPage extends Component
             }
         }
 
-        $bale = \App\Models\InventoryBale::findOrFail($this->activeBaleIdToOpen);
-        $sum = array_sum(array_map('floatval', $this->baleRollLengths));
+        $bale = InventoryBale::findOrFail($this->activeBaleIdToOpen);
+        $sumBaseMeters = 0.0;
+        foreach (array_keys($this->baleRollLengths) as $i) {
+            $sumBaseMeters += $this->getRollConvertedLengthInMeters($i);
+        }
+        $sumBaseMeters = round($sumBaseMeters, 2);
         $declared = (float) $bale->declared_length;
 
-        if (abs($sum - $declared) > 0.001 && !$this->showMismatchConfirmationModal) {
+        if (abs($sumBaseMeters - $declared) > 0.001 && !$this->showMismatchConfirmationModal) {
             $this->showMismatchConfirmationModal = true;
             return;
         }
@@ -742,9 +897,21 @@ class JobDetailPage extends Component
     public function saveOpenedBale()
     {
         if (!$this->activeBaleIdToOpen) return;
-        $bale = \App\Models\InventoryBale::findOrFail($this->activeBaleIdToOpen);
+        $bale = InventoryBale::findOrFail($this->activeBaleIdToOpen);
 
-        $result = $bale->openBale($this->baleRollLengths);
+        $rollData = [];
+        foreach ($this->baleRollLengths as $i => $len) {
+            $lengthInBaseMeters = $this->getRollConvertedLengthInMeters($i);
+            $rollData[] = [
+                'length'          => (float) $lengthInBaseMeters,
+                'raw_material_id' => !empty($this->baleRollMaterials[$i]) ? (int) $this->baleRollMaterials[$i] : null,
+                'fabric_width_id' => !empty($this->baleRollWidths[$i]) ? (int) $this->baleRollWidths[$i] : null,
+                'design_number'   => $this->baleRollDesignNumbers[$i] ?? null,
+                'stock_id'        => $this->baleRollStockIds[$i] ?? null,
+            ];
+        }
+
+        $result = $bale->openBale($rollData);
         $bale->refresh();
         $bale->load('activeRolls');
 

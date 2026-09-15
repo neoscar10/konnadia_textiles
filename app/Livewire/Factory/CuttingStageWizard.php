@@ -63,6 +63,7 @@ class CuttingStageWizard extends Component
     public array $baleRollLengths = [];
     public array $baleRollMaterials = [];
     public array $baleRollWidths = [];
+    public array $baleRollUnits = [];
     public array $baleRollDesignNumbers = [];
     public array $baleRollStockIds = [];
     public array $baleAllowedMaterials = [];
@@ -246,6 +247,43 @@ class CuttingStageWizard extends Component
         }
     }
 
+    public function getAvailableWidthsForMaterial($rawMaterialId)
+    {
+        if (!$rawMaterialId) return collect();
+        $mat = RawMaterial::with('fabricWidths.unitModel')->find($rawMaterialId);
+        return $mat ? $mat->available_widths : collect();
+    }
+
+    public function getAvailableUnitsForMaterial($rawMaterialId)
+    {
+        if (!$rawMaterialId) {
+            $lengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first();
+            return $lengthGroup ? $lengthGroup->activeUnits : \App\Models\Unit::where('is_active', true)->get();
+        }
+        $mat = RawMaterial::with('unitGroup.activeUnits', 'unitModel')->find($rawMaterialId);
+        if ($mat && $mat->unitGroup && $mat->unitGroup->activeUnits->isNotEmpty()) {
+            return $mat->unitGroup->activeUnits;
+        }
+        $lengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first();
+        return $lengthGroup ? $lengthGroup->activeUnits : \App\Models\Unit::where('is_active', true)->get();
+    }
+
+    public function getRollConvertedLengthInMeters(int $index): float
+    {
+        $lenVal = (float) ($this->baleRollLengths[$index] ?? 0);
+        if ($lenVal <= 0) return 0.0;
+
+        $unitId = $this->baleRollUnits[$index] ?? null;
+        if ($unitId) {
+            $unitModel = \App\Models\Unit::find($unitId);
+            if ($unitModel) {
+                return (float) $unitModel->toBaseQuantity($lenVal);
+            }
+        }
+
+        return $lenVal;
+    }
+
     // Modal Trigger: Open Unopened Bale
     public function triggerOpenBaleModal(int $baleId)
     {
@@ -255,6 +293,7 @@ class CuttingStageWizard extends Component
         $this->baleRollLengths = [];
         $this->baleRollMaterials = [];
         $this->baleRollWidths = [];
+        $this->baleRollUnits = [];
         $this->baleRollDesignNumbers = [];
         $this->baleRollStockIds = [];
         $this->baleMismatchWarning = null;
@@ -299,6 +338,7 @@ class CuttingStageWizard extends Component
             $this->baleRollLengths       = [];
             $this->baleRollMaterials     = [];
             $this->baleRollWidths        = [];
+            $this->baleRollUnits         = [];
             $this->baleRollDesignNumbers = [];
             $this->baleRollStockIds       = [];
             $this->baleMismatchWarning   = null;
@@ -317,9 +357,19 @@ class CuttingStageWizard extends Component
         $currentCount = count($this->baleRollLengths);
         if ($currentCount < $count) {
             for ($i = $currentCount; $i < $count; $i++) {
+                $matId = (string) $defaultMatId;
                 $this->baleRollLengths[$i]       = '';
-                $this->baleRollMaterials[$i]     = (string) $defaultMatId;
-                $this->baleRollWidths[$i]        = '';
+                $this->baleRollMaterials[$i]     = $matId;
+
+                $widths = $this->getAvailableWidthsForMaterial($matId);
+                $firstWidth = $widths->first();
+                $this->baleRollWidths[$i]        = $firstWidth ? (string) ($firstWidth->id ?? '') : '';
+
+                $units = $this->getAvailableUnitsForMaterial($matId);
+                $matObj = $matId ? RawMaterial::find($matId) : null;
+                $defaultUnitId = $matObj?->unit_id ?? $units->firstWhere('short_code', 'M')?->id ?? $units->first()?->id ?? '';
+                $this->baleRollUnits[$i]         = (string) $defaultUnitId;
+
                 $this->baleRollDesignNumbers[$i] = $defaultDesign;
                 $this->baleRollStockIds[$i]       = $defaultStock;
             }
@@ -327,10 +377,45 @@ class CuttingStageWizard extends Component
             $this->baleRollLengths       = array_slice($this->baleRollLengths, 0, $count);
             $this->baleRollMaterials     = array_slice($this->baleRollMaterials, 0, $count);
             $this->baleRollWidths        = array_slice($this->baleRollWidths, 0, $count);
+            $this->baleRollUnits         = array_slice($this->baleRollUnits, 0, $count);
             $this->baleRollDesignNumbers = array_slice($this->baleRollDesignNumbers, 0, $count);
             $this->baleRollStockIds       = array_slice($this->baleRollStockIds, 0, $count);
         }
 
+        $this->checkBaleMismatchWarning();
+    }
+
+    public function updatedBaleRollMaterials($value, $key)
+    {
+        $index = (int) $key;
+        $matId = (int) $value;
+
+        if ($matId) {
+            $widths = $this->getAvailableWidthsForMaterial($matId);
+            $firstWidth = $widths->first();
+            $this->baleRollWidths[$index] = $firstWidth ? (string) ($firstWidth->id ?? '') : '';
+
+            $units = $this->getAvailableUnitsForMaterial($matId);
+            $matObj = RawMaterial::find($matId);
+            $defaultUnitId = $matObj?->unit_id ?? $units->firstWhere('short_code', 'M')?->id ?? $units->first()?->id ?? '';
+            $this->baleRollUnits[$index] = (string) $defaultUnitId;
+
+            if (!empty($this->baleAllowedMaterials)) {
+                foreach ($this->baleAllowedMaterials as $item) {
+                    if ($item['id'] == $matId) {
+                        $this->baleRollDesignNumbers[$index] = $item['design_number'] ?? '';
+                        $this->baleRollStockIds[$index]       = $item['stock_id'] ?? '';
+                        break;
+                    }
+                }
+            }
+        }
+
+        $this->checkBaleMismatchWarning();
+    }
+
+    public function updatedBaleRollUnits()
+    {
         $this->checkBaleMismatchWarning();
     }
 
@@ -345,19 +430,24 @@ class CuttingStageWizard extends Component
         $bale = InventoryBale::find($this->activeBaleIdToOpen);
         if (!$bale) return;
 
-        $filledLengths = array_filter($this->baleRollLengths, fn($val) => $val !== '' && $val !== null);
-        if (empty($filledLengths)) {
+        $filledIndices = array_filter(array_keys($this->baleRollLengths), fn($i) => isset($this->baleRollLengths[$i]) && $this->baleRollLengths[$i] !== '' && $this->baleRollLengths[$i] !== null);
+        if (empty($filledIndices)) {
             $this->baleMismatchWarning = null;
             return;
         }
 
-        $sum = array_sum(array_map('floatval', $filledLengths));
+        $sumBaseMeters = 0.0;
+        foreach ($filledIndices as $i) {
+            $sumBaseMeters += $this->getRollConvertedLengthInMeters($i);
+        }
+
+        $sumBaseMeters = round($sumBaseMeters, 2);
         $declared = (float) $bale->declared_length;
 
-        if (abs($sum - $declared) > 0.001) {
-            $diff = round($sum - $declared, 2);
+        if (abs($sumBaseMeters - $declared) > 0.001) {
+            $diff = round($sumBaseMeters - $declared, 2);
             $sign = $diff > 0 ? "+{$diff}" : "{$diff}";
-            $this->baleMismatchWarning = "Warning: Total measured roll length ({$sum}m) differs from declared purchase bale length ({$declared}m) by {$sign}m. This measured length ({$sum}m) will override the declared length for material calculations.";
+            $this->baleMismatchWarning = "Warning: Total measured roll length ({$sumBaseMeters}m) differs from declared purchase bale length ({$declared}m) by {$sign}m. This measured length ({$sumBaseMeters}m) will override the declared length for material calculations.";
         } else {
             $this->baleMismatchWarning = null;
         }
@@ -380,10 +470,14 @@ class CuttingStageWizard extends Component
         }
 
         $bale = InventoryBale::findOrFail($this->activeBaleIdToOpen);
-        $sum = array_sum(array_map('floatval', $this->baleRollLengths));
+        $sumBaseMeters = 0.0;
+        foreach (array_keys($this->baleRollLengths) as $i) {
+            $sumBaseMeters += $this->getRollConvertedLengthInMeters($i);
+        }
+        $sumBaseMeters = round($sumBaseMeters, 2);
         $declared = (float) $bale->declared_length;
 
-        if (abs($sum - $declared) > 0.001 && !$this->showMismatchConfirmationModal) {
+        if (abs($sumBaseMeters - $declared) > 0.001 && !$this->showMismatchConfirmationModal) {
             $this->showMismatchConfirmationModal = true;
             return;
         }
@@ -398,8 +492,9 @@ class CuttingStageWizard extends Component
 
         $rollData = [];
         foreach ($this->baleRollLengths as $i => $len) {
+            $lengthInBaseMeters = $this->getRollConvertedLengthInMeters($i);
             $rollData[] = [
-                'length'          => (float) $len,
+                'length'          => (float) $lengthInBaseMeters,
                 'raw_material_id' => !empty($this->baleRollMaterials[$i]) ? (int) $this->baleRollMaterials[$i] : null,
                 'fabric_width_id' => !empty($this->baleRollWidths[$i]) ? (int) $this->baleRollWidths[$i] : null,
                 'design_number'   => $this->baleRollDesignNumbers[$i] ?? null,
@@ -411,7 +506,7 @@ class CuttingStageWizard extends Component
         $this->showOpenBaleModal = false;
         $this->showMismatchConfirmationModal = false;
         $this->activeBaleIdToOpen = null;
-        $this->dispatch('toast', message: "Bale {$bale->bale_number} opened with {$bale->roll_count} rolls!", type: 'success');
+        $this->dispatch('toast', message: "Bale {$bale->bale_number} opened with {$bale->roll_count} rolls! Measured length ({$result['total_recorded_length']}m) saved for stock calculations.", type: 'success');
     }
 
     public function getRollCutBreakdown(int $rollId, float $cutLength, $rawMaterialId = null, array $products = []): array

@@ -471,36 +471,79 @@
                     </div>
 
                     @if(!empty($baleRollCount) && count($baleRollLengths) > 0)
-                        <div class="space-y-3">
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Measured Length & Fabric Material of Each Roll *</label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">Measured Length &amp; Fabric Specification of Each Roll *</label>
+                            <div class="space-y-3">
                                 @php
                                     $baleMats = $baleToOpen?->availableMaterials ?? collect();
                                 @endphp
                                 @foreach($baleRollLengths as $i => $rollItem)
-                                    <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-2">
+                                    @php
+                                        $selectedRollMatId = is_array($rollItem) ? ($rollItem['raw_material_id'] ?? null) : null;
+                                        $convertedMeters = $this->getRollConvertedLengthInMeters($i);
+                                        $selectedUnitId = is_array($rollItem) ? ($rollItem['unit_id'] ?? null) : null;
+                                        $selectedUnitObj = $selectedUnitId ? \App\Models\Unit::find($selectedUnitId) : null;
+                                        $unitShortCode = $selectedUnitObj ? $selectedUnitObj->short_code : 'M';
+                                        $enteredLen = is_array($rollItem) ? ($rollItem['length'] ?? '') : $rollItem;
+                                    @endphp
+                                    <div class="p-4 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-3">
                                         <div class="flex justify-between items-center">
-                                            <label class="block text-[10px] font-extrabold text-on-surface-variant uppercase">Roll #{{ $i + 1 }}</label>
+                                            <span class="font-mono font-extrabold text-sm text-primary">Roll #{{ $i + 1 }}</span>
+                                            @if(!empty($enteredLen) && (float)$enteredLen > 0 && strtoupper($unitShortCode) !== 'M')
+                                                <span class="px-2.5 py-0.5 bg-primary/10 text-primary font-mono text-[11px] font-extrabold rounded-md border border-primary/20">
+                                                    = {{ number_format($convertedMeters, 2) }}m Base Length
+                                                </span>
+                                            @endif
                                         </div>
 
-                                        @if($baleMats->count() > 1)
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            @if($baleMats->count() > 1)
+                                                <div class="sm:col-span-2">
+                                                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Fabric Material *</label>
+                                                    <select wire:model.live="baleRollLengths.{{ $i }}.raw_material_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary">
+                                                        @foreach($baleMats as $mat)
+                                                            <option value="{{ $mat->id }}">{{ $mat->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            @endif
+
                                             <div>
-                                                <label class="block text-[9px] font-bold text-on-surface-variant/70 uppercase">Fabric Item *</label>
-                                                <select wire:model.live="baleRollLengths.{{ $i }}.raw_material_id" class="w-full bg-surface border border-outline-variant/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-primary">
-                                                    @foreach($baleMats as $mat)
-                                                        <option value="{{ $mat->id }}">{{ $mat->name }}</option>
-                                                    @endforeach
+                                                <label class="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Fabric Standard Width *</label>
+                                                @php
+                                                    $availWidths = $this->getAvailableWidthsForMaterial($selectedRollMatId ?: $batch->raw_material_id);
+                                                @endphp
+                                                <select wire:model.live="baleRollLengths.{{ $i }}.fabric_width_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary">
+                                                    @if($availWidths->isEmpty())
+                                                        <option value="">Default Standard Width</option>
+                                                    @else
+                                                        <option value="">— Select Width —</option>
+                                                        @foreach($availWidths as $fw)
+                                                            @php
+                                                                $fwId = $fw->id ?? null;
+                                                                $fwName = $fw->name ?? (($fw->value ?? $fw->width_inches ?? '') . ' ' . ($fw->unit ?? 'Inch'));
+                                                            @endphp
+                                                            <option value="{{ $fwId }}">{{ $fwName }}</option>
+                                                        @endforeach
+                                                    @endif
                                                 </select>
                                             </div>
-                                        @endif
 
-                                        <div>
-                                            <label class="block text-[9px] font-bold text-on-surface-variant/70 uppercase">Measured Length *</label>
-                                            <div class="relative">
-                                                <input type="number" step="0.01" min="0.01" wire:model.live="baleRollLengths.{{ $i }}.length" placeholder="0.00" class="w-full bg-surface border border-outline-variant/60 rounded-lg pl-3 pr-8 py-2 text-xs font-bold text-primary">
-                                                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-outline font-bold">m</span>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Roll Length &amp; Unit *</label>
+                                                <div class="flex items-center gap-1.5">
+                                                    <input type="number" step="0.01" min="0.01" wire:model.live.debounce.300ms="baleRollLengths.{{ $i }}.length" placeholder="0.00" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary">
+                                                    @php
+                                                        $availUnits = $this->getAvailableUnitsForMaterial($selectedRollMatId ?: $batch->raw_material_id);
+                                                    @endphp
+                                                    <select wire:model.live="baleRollLengths.{{ $i }}.unit_id" class="bg-surface border border-outline-variant/60 rounded-xl px-2 py-2 text-xs font-extrabold text-primary shrink-0 focus:outline-none">
+                                                        @foreach($availUnits as $u)
+                                                            <option value="{{ $u->id }}">{{ $u->short_code }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                @error("baleRollLengths.{$i}.length") <p class="text-[10px] font-bold text-error mt-0.5">{{ $message }}</p> @enderror
                                             </div>
-                                            @error("baleRollLengths.{$i}.length") <p class="text-[10px] font-bold text-error mt-0.5">{{ $message }}</p> @enderror
                                         </div>
                                     </div>
                                 @endforeach
@@ -508,11 +551,14 @@
                         </div>
 
                         @php
-                            $measuredTotal = array_sum(array_map(fn($item) => is_array($item) ? floatval($item['length'] ?? 0) : floatval($item), array_filter($baleRollLengths)));
+                            $sumBaseMeters = 0.0;
+                            foreach(array_keys($baleRollLengths) as $idx) {
+                                $sumBaseMeters += $this->getRollConvertedLengthInMeters($idx);
+                            }
                         @endphp
                         <div class="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex justify-between items-center text-xs">
-                            <span class="font-bold text-on-surface">Total Measured Rolls Length:</span>
-                            <span class="font-black text-secondary text-base font-mono">{{ number_format($measuredTotal, 2) }}m</span>
+                            <span class="font-bold text-on-surface">Total Measured Rolls Length (Converted Base Meters):</span>
+                            <span class="font-black text-secondary text-base font-mono">{{ number_format($sumBaseMeters, 2) }}m</span>
                         </div>
 
                         @if($baleMismatchWarning)
