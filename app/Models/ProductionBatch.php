@@ -52,15 +52,36 @@ class ProductionBatch extends Model
             && !$job->stageExecutions()->where('status', '!=', 'completed')->exists();
     }
 
+    public static function generateNextBatchCode(): string
+    {
+        $year = date('Y');
+        $maxNum = static::where('batch_code', 'like', "PB-{$year}-%")
+            ->get()
+            ->map(function ($b) use ($year) {
+                $raw = str_replace("PB-{$year}-", '', $b->batch_code);
+                $code = explode('-', $raw)[0];
+                return (int) $code;
+            })
+            ->max() ?: 0;
+
+        $nextNum = max($maxNum + 1, (int) (static::max('id') ?? 0) + 1);
+        $candidate = sprintf("PB-%s-%04d", $year, $nextNum);
+
+        while (static::where('batch_code', $candidate)->exists()) {
+            $nextNum++;
+            $candidate = sprintf("PB-%s-%04d", $year, $nextNum);
+        }
+
+        return $candidate;
+    }
+
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($batch) {
             if (empty($batch->batch_code)) {
-                $year = date('Y');
-                $latestId = static::max('id') ?? 0;
-                $batch->batch_code = "PB-{$year}-" . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
+                $batch->batch_code = static::generateNextBatchCode();
             }
 
             if (empty($batch->batch_date)) {

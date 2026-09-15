@@ -117,12 +117,7 @@ class ProductionWorkflowService
                     $product = $pId ? ManufacturingProduct::find($pId) : null;
                     $pattern = $patId ? \App\Models\ManufacturingProductPattern::with('tasks')->find($patId) : null;
 
-                    $year = date('Y');
-                    $maxNum = ProductionJob::where('job_code', 'like', "JOB-{$year}-%")
-                        ->get()
-                        ->map(fn($j) => (int) str_replace("JOB-{$year}-", '', $j->job_code))
-                        ->max() ?: 0;
-                    $newJobCode = sprintf("JOB-%s-%04d", $year, $maxNum + 1);
+                    $newJobCode = ProductionJob::generateNextJobCode();
 
                     $job = ProductionJob::create([
                         'job_code'                 => $newJobCode,
@@ -410,12 +405,7 @@ class ProductionWorkflowService
                     'status' => 'in_progress',
                 ]);
             } else {
-                $year = date('Y');
-                $maxNum = ProductionJob::where('job_code', 'like', "JOB-{$year}-%")
-                    ->get()
-                    ->map(fn($j) => (int) str_replace("JOB-{$year}-", '', $j->job_code))
-                    ->max() ?: 0;
-                $newJobCode = sprintf("JOB-%s-%04d", $year, $maxNum + 1);
+                $newJobCode = ProductionJob::generateNextJobCode();
 
                 $childJob = ProductionJob::create([
                     'job_code' => $newJobCode,
@@ -711,12 +701,7 @@ class ProductionWorkflowService
                 $candidateCode = 'PB-' . date('Y') . '-' . str_pad($job->id, 4, '0', STR_PAD_LEFT);
                 $parentBatch = ProductionBatch::where('batch_code', $candidateCode)->first();
                 if (!$parentBatch) {
-                    $latestBatchId = (int) (ProductionBatch::max('id') ?? 0);
-                    $candidateCode = 'PB-' . date('Y') . '-' . str_pad($latestBatchId + 1, 4, '0', STR_PAD_LEFT);
-                    while (ProductionBatch::where('batch_code', $candidateCode)->exists()) {
-                        $latestBatchId++;
-                        $candidateCode = 'PB-' . date('Y') . '-' . str_pad($latestBatchId + 1, 4, '0', STR_PAD_LEFT);
-                    }
+                    $candidateCode = ProductionBatch::generateNextBatchCode();
                     $parentBatch = ProductionBatch::create([
                         'batch_code'               => $candidateCode,
                         'manufacturing_product_id' => $job->manufacturing_product_id,
@@ -763,12 +748,7 @@ class ProductionWorkflowService
 
             $firstTask = $routingTasks->first() ?? Task::where('status', true)->first();
 
-            $latestJobId = ProductionJob::max('id') ?? 0;
-            $childJobCode = "JOB-" . date('Y') . "-" . str_pad($latestJobId + 1, 4, '0', STR_PAD_LEFT);
-            while (ProductionJob::where('job_code', $childJobCode)->exists()) {
-                $latestJobId++;
-                $childJobCode = "JOB-" . date('Y') . "-" . str_pad($latestJobId + 1, 4, '0', STR_PAD_LEFT);
-            }
+            $childJobCode = ProductionJob::generateNextJobCode();
 
             $childJob = ProductionJob::create([
                 'job_code'                 => $childJobCode,

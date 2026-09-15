@@ -30,15 +30,36 @@ class ProductionJob extends Model
         'converted_quantity' => 'integer',
     ];
 
+    public static function generateNextJobCode(): string
+    {
+        $year = date('Y');
+        $maxNum = static::where('job_code', 'like', "JOB-{$year}-%")
+            ->get()
+            ->map(function ($j) use ($year) {
+                $raw = str_replace("JOB-{$year}-", '', $j->job_code);
+                $code = explode('-', $raw)[0];
+                return (int) $code;
+            })
+            ->max() ?: 0;
+
+        $nextNum = max($maxNum + 1, (int) (static::max('id') ?? 0) + 1);
+        $candidate = sprintf("JOB-%s-%04d", $year, $nextNum);
+
+        while (static::where('job_code', $candidate)->exists()) {
+            $nextNum++;
+            $candidate = sprintf("JOB-%s-%04d", $year, $nextNum);
+        }
+
+        return $candidate;
+    }
+
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($job) {
             if (empty($job->job_code)) {
-                $year = date('Y');
-                $latestId = static::max('id') ?? 0;
-                $job->job_code = "JOB-{$year}-" . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
+                $job->job_code = static::generateNextJobCode();
             }
 
             if (empty($job->job_date)) {

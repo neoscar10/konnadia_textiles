@@ -899,12 +899,7 @@ class CuttingStageWizard extends Component
             }
 
             if (!$batch) {
-                $latestId = ProductionBatch::max('id') ?? 0;
-                $batchCodeStr = 'PB-' . date('Y') . '-' . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
-                while (ProductionBatch::where('batch_code', $batchCodeStr)->exists()) {
-                    $latestId++;
-                    $batchCodeStr = 'PB-' . date('Y') . '-' . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
-                }
+                $batchCodeStr = ProductionBatch::generateNextBatchCode();
 
                 $batch = ProductionBatch::create([
                     'batch_code'            => $batchCodeStr,

@@ -42,8 +42,7 @@ class CreateProductionBatch extends Component
         $firstSupervisor = FactorySupervisor::active()->orderBy('name')->first();
         $this->factory_supervisor_id = $firstSupervisor?->id;
 
-        $latestId = ProductionBatch::max('id') ?? 0;
-        $this->batch_code_preview = 'PB-' . date('Y') . '-' . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
+        $this->batch_code_preview = ProductionBatch::generateNextBatchCode();
 
         $firstProduct = ManufacturingProduct::first();
         if ($firstProduct) {
