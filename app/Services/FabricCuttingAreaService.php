@@ -233,8 +233,8 @@ class FabricCuttingAreaService
             ];
         }
 
-        // If pattern has legacy fabric_length and no patternFabricWidths defined
-        if ($pattern->patternFabricWidths->isEmpty() && (float) $pattern->fabric_length > 0) {
+        // If pattern has legacy fabric_length and no patternFabricWidths defined, and no specific width context was provided
+        if ($pattern->patternFabricWidths->isEmpty() && (float) $pattern->fabric_length > 0 && $rawMaterialOrWidth === null) {
             return [
                 'is_configured' => true,
                 'pfw' => null,
