@@ -592,7 +592,8 @@ class CuttingStageWizard extends Component
             if (!$product) continue;
 
             $pattern = $patId ? ManufacturingProductPattern::find($patId) : null;
-            $pieceAreaM2 = FabricCuttingAreaService::calculateProductPatternAreaM2($product, $pattern);
+            $rollContext = $roll?->fabricWidth ?? $rawMaterial;
+            $pieceAreaM2 = FabricCuttingAreaService::calculateProductPatternAreaM2($product, $pattern, $rollContext);
             if ($pieceAreaM2 <= 0) {
                 $pieceAreaM2 = FabricCuttingAreaService::calculateProductPieceArea($product, $unitGroupId);
             }
@@ -600,11 +601,11 @@ class CuttingStageWizard extends Component
             $itemUsedAreaBase = $pieceAreaM2 * $qty;
             $totalUsedAreaBase += $itemUsedAreaBase;
 
-            $pieceReqLen = FabricCuttingAreaService::resolvePatternFabricLength($product, $rawMaterial, $patId);
+            $pieceReqLen = FabricCuttingAreaService::resolvePatternFabricLength($product, $rollContext, $patId);
             $itemReqLen = $pieceReqLen * $qty;
             $totalStandardReqLength += $itemReqLen;
 
-            $dimDetails = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern);
+            $dimDetails = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $rollContext);
 
             $key = "{$pId}_{$patId}";
             $productDetails[$key] = [
@@ -631,25 +632,8 @@ class CuttingStageWizard extends Component
         $usagePercentage = $cutAreaBase > 0 ? round(($totalUsedAreaBase / $cutAreaBase) * 100, 1) : 0;
         $wastagePercentage = $cutAreaBase > 0 ? round(($remainingAreaBase / $cutAreaBase) * 100, 1) : 0;
 
-        $widthInches = \App\Services\UnitConversionService::convert($widthVal, $widthUnitStr, 'IN');
-        $widthCm = \App\Services\UnitConversionService::convert($widthVal, $widthUnitStr, 'CM');
-
-        $normalizedUnit = \App\Services\UnitConversionService::normalizeAlias($widthUnitStr);
-        if ($normalizedUnit === 'IN') {
-            $widthDisplay = round($widthInches, 2) . '" (' . round($widthCm, 1) . ' cm / ' . round($widthMeters, 2) . ' m)';
-        } elseif ($normalizedUnit === 'YD') {
-            $widthDisplay = round($widthVal, 2) . ' YD (' . round($widthMeters, 2) . ' m)';
-        } elseif ($normalizedUnit === 'CM') {
-            $widthDisplay = round($widthCm, 1) . ' cm (' . round($widthMeters, 2) . ' m)';
-        } elseif ($normalizedUnit === 'M') {
-            $widthDisplay = round($widthMeters, 2) . ' m (' . round($widthCm, 1) . ' cm)';
-        } elseif ($normalizedUnit === 'FT') {
-            $widthDisplay = round($widthVal, 2) . ' FT (' . round($widthMeters, 2) . ' m / ' . round($widthCm, 1) . ' cm)';
-        } else {
-            $widthDisplay = round($widthVal, 2) . ' ' . $widthUnitStr . ' (' . round($widthCm, 1) . ' cm)';
-        }
-
-        $cutLengthDisplay = round($cutLength, 2) . ' m';
+        $widthDisplay = FabricCuttingAreaService::formatSingleDimension($widthVal, $widthUnitStr);
+        $cutLengthDisplay = FabricCuttingAreaService::formatSingleDimension($cutLength, 'Meters');
         $dimensionsDisplay = "Width: {$widthDisplay} · Length: {$cutLengthDisplay}";
 
         return [
@@ -677,9 +661,15 @@ class CuttingStageWizard extends Component
         $allocated = [];
 
         foreach ($this->selectedFabrics as $fab) {
+            $matId = $fab['raw_material_id'] ?? null;
+            $rawMaterial = $matId ? RawMaterial::find($matId) : null;
+
             foreach ($fab['selected_rolls'] ?? [] as $rollId => $rData) {
                 $cutLen = floatval($rData['cut_length'] ?? 0);
                 if ($cutLen <= 0) continue;
+
+                $roll = InventoryBaleRoll::with('fabricWidth')->find($rollId);
+                $rollContext = $roll?->fabricWidth ?? $rawMaterial;
 
                 foreach ($rData['products'] ?? [] as $pItem) {
                     $pId = intval($pItem['manufacturing_product_id'] ?? 0);
@@ -692,7 +682,7 @@ class CuttingStageWizard extends Component
                     if (!isset($allocated[$key])) {
                         $product = ManufacturingProduct::find($pId);
                         $pattern = $patId ? ManufacturingProductPattern::find($patId) : null;
-                        $dimDetails = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern);
+                        $dimDetails = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $rollContext);
 
                         $allocated[$key] = [
                             'key' => $key,

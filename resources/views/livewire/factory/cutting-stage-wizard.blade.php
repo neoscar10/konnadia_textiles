@@ -342,7 +342,7 @@
                                                                         $rPatterns = $rProdId ? \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $rProdId)->get() : collect();
                                                                         $selProduct = $rProdId ? $manufacturingProducts->firstWhere('id', $rProdId) : null;
                                                                         $selPattern = $pRow['pattern_id'] ? \App\Models\ManufacturingProductPattern::with('patternFabricWidths.fabricWidth', 'fabricWidth')->find($pRow['pattern_id']) : null;
-                                                                        $pDims = $selProduct ? \App\Services\FabricCuttingAreaService::formatProductPatternDimensions($selProduct, $selPattern) : null;
+                                                                        $pDims = $selProduct ? \App\Services\FabricCuttingAreaService::formatProductPatternDimensions($selProduct, $selPattern, $roll) : null;
                                                                     @endphp
                                                                     <div wire:key="roll-prod-{{ $roll->id }}-{{ $pIdx }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
                                                                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">

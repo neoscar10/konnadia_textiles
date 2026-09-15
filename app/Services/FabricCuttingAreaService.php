@@ -55,9 +55,46 @@ class FabricCuttingAreaService
     }
 
     /**
+     * Helper to format a single measurement value with unit into clean string representation.
+     * If unit is meters ('M'), output e.g. "2 m".
+     * If unit is non-meters (e.g. 'Inches'), output e.g. "44 Inches (1.12 m)" or "2.1 Inches (0.05 m)".
+     */
+    public static function formatSingleDimension(float $value, ?string $unitStr): string
+    {
+        if ($value <= 0) {
+            return '—';
+        }
+
+        $unitStr = trim($unitStr ?? '');
+        if (empty($unitStr)) {
+            $unitStr = 'Meters';
+        }
+
+        $normUnit = UnitConversionService::normalizeAlias($unitStr);
+        $formattedVal = (round($value, 4) == round($value, 0)) ? (string) round($value, 0) : (string) round($value, 2);
+
+        if ($normUnit === 'M') {
+            return "{$formattedVal} m";
+        }
+
+        $metersVal = self::convertToMeters($value, $unitStr);
+        $formattedMeters = (round($metersVal, 4) == round($metersVal, 0)) ? (string) round($metersVal, 0) : (string) round($metersVal, 2);
+
+        $unitLabel = match($normUnit) {
+            'IN' => 'Inches',
+            'CM' => 'cm',
+            'YD' => 'yd',
+            'FT' => 'ft',
+            default => $unitStr,
+        };
+
+        return "{$formattedVal} {$unitLabel} ({$formattedMeters} m)";
+    }
+
+    /**
      * Resolve standard fabric length consumption per piece for a specific product/pattern at a given roll fabric width.
      */
-    public static function resolvePatternFabricLength(ManufacturingProduct $product, RawMaterial $rawMaterial, ?int $patternId = null): float
+    public static function resolvePatternFabricLength(ManufacturingProduct $product, mixed $rawMaterialOrWidth = null, ?int $patternId = null): float
     {
         $pattern = null;
         if ($patternId) {
@@ -76,11 +113,25 @@ class FabricCuttingAreaService
         }
 
         if ($pattern && $pattern->patternFabricWidths->isNotEmpty()) {
-            $rawWidthVal = (float) ($rawMaterial->standard_width ?: 0);
-            
+            $rawWidthVal = 0.0;
+            $fabricWidthId = null;
+
+            if ($rawMaterialOrWidth instanceof RawMaterial) {
+                $rawWidthVal = (float) ($rawMaterialOrWidth->fabricWidth?->value ?: ($rawMaterialOrWidth->standard_width ?: 0));
+                $fabricWidthId = $rawMaterialOrWidth->fabric_width_id;
+            } elseif ($rawMaterialOrWidth instanceof \App\Models\FabricWidth) {
+                $rawWidthVal = (float) ($rawMaterialOrWidth->value ?: ($rawMaterialOrWidth->width_inches ?: 0));
+                $fabricWidthId = $rawMaterialOrWidth->id;
+            } elseif ($rawMaterialOrWidth instanceof \App\Models\InventoryBaleRoll) {
+                $rawWidthVal = (float) ($rawMaterialOrWidth->fabricWidth?->value ?: 0);
+                $fabricWidthId = $rawMaterialOrWidth->fabric_width_id;
+            } elseif (is_numeric($rawMaterialOrWidth)) {
+                $rawWidthVal = (float) $rawMaterialOrWidth;
+            }
+
             foreach ($pattern->patternFabricWidths as $pfw) {
-                $pfwWidthVal = (float) ($pfw->fabricWidth?->width_inches ?: $pfw->fabricWidth?->width ?? 0);
-                if (abs($pfwWidthVal - $rawWidthVal) < 0.5 || ($pfw->fabric_width_id && $pfw->fabric_width_id === $rawMaterial->fabric_width_id)) {
+                $pfwWidthVal = (float) ($pfw->fabricWidth?->value ?: ($pfw->fabricWidth?->width_inches ?: ($pfw->fabricWidth?->width ?? 0)));
+                if (($fabricWidthId && $pfw->fabric_width_id === $fabricWidthId) || ($rawWidthVal > 0 && abs($pfwWidthVal - $rawWidthVal) < 0.5)) {
                     return (float) $pfw->fabric_length;
                 }
             }
@@ -96,8 +147,11 @@ class FabricCuttingAreaService
     /**
      * Calculate product/pattern surface area in square meters (m^2).
      */
-    public static function calculateProductPatternAreaM2(?ManufacturingProduct $product, ?ManufacturingProductPattern $pattern = null): float
-    {
+    public static function calculateProductPatternAreaM2(
+        ?ManufacturingProduct $product,
+        ?ManufacturingProductPattern $pattern = null,
+        mixed $rawMaterialOrWidth = null
+    ): float {
         if (!$product && !$pattern) {
             return 0.0;
         }
@@ -117,16 +171,48 @@ class FabricCuttingAreaService
         $widthUnit = 'Centimeters';
 
         if ($pattern) {
-            if ($pattern->relationLoaded('patternFabricWidths') ? $pattern->patternFabricWidths->isNotEmpty() : $pattern->patternFabricWidths()->exists()) {
-                $pfw = $pattern->patternFabricWidths->first() ?? $pattern->patternFabricWidths()->first();
-                if ($pfw) {
-                    $length = (float) ($pfw->fabric_length ?: $pattern->fabric_length ?: 0);
-                    $lengthUnit = $pattern->fabric_length_unit ?: ($product?->fabric_length_unit ?: 'Meters');
+            $pattern->loadMissing('patternFabricWidths.fabricWidth');
 
-                    $fw = $pfw->fabricWidth;
+            if ($pattern->patternFabricWidths->isNotEmpty()) {
+                $rawWidthVal = 0.0;
+                $fabricWidthId = null;
+
+                if ($rawMaterialOrWidth instanceof RawMaterial) {
+                    $rawWidthVal = (float) ($rawMaterialOrWidth->fabricWidth?->value ?: ($rawMaterialOrWidth->standard_width ?: 0));
+                    $fabricWidthId = $rawMaterialOrWidth->fabric_width_id;
+                } elseif ($rawMaterialOrWidth instanceof \App\Models\FabricWidth) {
+                    $rawWidthVal = (float) ($rawMaterialOrWidth->value ?: ($rawMaterialOrWidth->width_inches ?: 0));
+                    $fabricWidthId = $rawMaterialOrWidth->id;
+                } elseif ($rawMaterialOrWidth instanceof \App\Models\InventoryBaleRoll) {
+                    $rawWidthVal = (float) ($rawMaterialOrWidth->fabricWidth?->value ?: 0);
+                    $fabricWidthId = $rawMaterialOrWidth->fabric_width_id;
+                } elseif (is_numeric($rawMaterialOrWidth)) {
+                    $rawWidthVal = (float) $rawMaterialOrWidth;
+                }
+
+                $matchedPfw = null;
+                if ($fabricWidthId || $rawWidthVal > 0) {
+                    foreach ($pattern->patternFabricWidths as $pfw) {
+                        $pfwWidthVal = (float) ($pfw->fabricWidth?->value ?: ($pfw->fabricWidth?->width_inches ?: ($pfw->fabricWidth?->width ?? 0)));
+                        if (($fabricWidthId && $pfw->fabric_width_id === $fabricWidthId) || ($rawWidthVal > 0 && abs($pfwWidthVal - $rawWidthVal) < 0.5)) {
+                            $matchedPfw = $pfw;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$matchedPfw) {
+                    $matchedPfw = $pattern->patternFabricWidths->first();
+                }
+
+                if ($matchedPfw) {
+                    $length = (float) ($matchedPfw->fabric_length ?: $pattern->fabric_length ?: 0);
+                    $lengthUnit = $matchedPfw->fabric_length_unit ?: ($pattern->fabric_length_unit ?: ($product?->fabric_length_unit ?: 'Meters'));
+
+                    $fw = $matchedPfw->fabricWidth;
                     if ($fw) {
-                        $width = (float) ($fw->width_inches ?: $fw->value ?: $fw->width ?: 0);
-                        $widthUnit = $fw->unit ?: 'Inches';
+                        $width = (float) ($fw->value ?: ($fw->width_inches ?: ($fw->width ?: 0)));
+                        $widthUnit = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'Inches');
                     }
                 }
             }
@@ -138,8 +224,8 @@ class FabricCuttingAreaService
 
             if ($width <= 0 && $pattern->fabricWidth) {
                 $fw = $pattern->fabricWidth;
-                $width = (float) ($fw->width_inches ?: $fw->value ?: $fw->width ?: 0);
-                $widthUnit = $fw->unit ?: 'Inches';
+                $width = (float) ($fw->value ?: ($fw->width_inches ?: ($fw->width ?: 0)));
+                $widthUnit = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'Inches');
             }
         }
 
@@ -164,10 +250,13 @@ class FabricCuttingAreaService
     }
 
     /**
-     * Format dimensions (Length and Width) of a Product/Pattern into clean multi-unit conversion strings.
+     * Format dimensions (Length and Width) of a Product/Pattern into clean string representations.
      */
-    public static function formatProductPatternDimensions(?ManufacturingProduct $product, ?ManufacturingProductPattern $pattern = null): array
-    {
+    public static function formatProductPatternDimensions(
+        ?ManufacturingProduct $product,
+        ?ManufacturingProductPattern $pattern = null,
+        mixed $rawMaterialOrWidth = null
+    ): array {
         if (!$product && !$pattern) {
             return [
                 'length_val' => 0.0,
@@ -197,15 +286,47 @@ class FabricCuttingAreaService
         $widthUnit = 'Inches';
 
         if ($pattern) {
-            if ($pattern->relationLoaded('patternFabricWidths') ? $pattern->patternFabricWidths->isNotEmpty() : $pattern->patternFabricWidths()->exists()) {
-                $pfw = $pattern->patternFabricWidths->first() ?? $pattern->patternFabricWidths()->first();
-                if ($pfw) {
-                    $length = (float) ($pfw->fabric_length ?: $pattern->fabric_length ?: 0);
-                    $lengthUnit = $pfw->fabric_length_unit ?: ($pattern->fabric_length_unit ?: ($product?->fabric_length_unit ?: 'Meters'));
+            $pattern->loadMissing('patternFabricWidths.fabricWidth');
 
-                    $fw = $pfw->fabricWidth;
+            if ($pattern->patternFabricWidths->isNotEmpty()) {
+                $rawWidthVal = 0.0;
+                $fabricWidthId = null;
+
+                if ($rawMaterialOrWidth instanceof RawMaterial) {
+                    $rawWidthVal = (float) ($rawMaterialOrWidth->fabricWidth?->value ?: ($rawMaterialOrWidth->standard_width ?: 0));
+                    $fabricWidthId = $rawMaterialOrWidth->fabric_width_id;
+                } elseif ($rawMaterialOrWidth instanceof \App\Models\FabricWidth) {
+                    $rawWidthVal = (float) ($rawMaterialOrWidth->value ?: ($rawMaterialOrWidth->width_inches ?: 0));
+                    $fabricWidthId = $rawMaterialOrWidth->id;
+                } elseif ($rawMaterialOrWidth instanceof \App\Models\InventoryBaleRoll) {
+                    $rawWidthVal = (float) ($rawMaterialOrWidth->fabricWidth?->value ?: 0);
+                    $fabricWidthId = $rawMaterialOrWidth->fabric_width_id;
+                } elseif (is_numeric($rawMaterialOrWidth)) {
+                    $rawWidthVal = (float) $rawMaterialOrWidth;
+                }
+
+                $matchedPfw = null;
+                if ($fabricWidthId || $rawWidthVal > 0) {
+                    foreach ($pattern->patternFabricWidths as $pfw) {
+                        $pfwWidthVal = (float) ($pfw->fabricWidth?->value ?: ($pfw->fabricWidth?->width_inches ?: ($pfw->fabricWidth?->width ?? 0)));
+                        if (($fabricWidthId && $pfw->fabric_width_id === $fabricWidthId) || ($rawWidthVal > 0 && abs($pfwWidthVal - $rawWidthVal) < 0.5)) {
+                            $matchedPfw = $pfw;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$matchedPfw) {
+                    $matchedPfw = $pattern->patternFabricWidths->first();
+                }
+
+                if ($matchedPfw) {
+                    $length = (float) ($matchedPfw->fabric_length ?: $pattern->fabric_length ?: 0);
+                    $lengthUnit = $matchedPfw->fabric_length_unit ?: ($pattern->fabric_length_unit ?: ($product?->fabric_length_unit ?: 'Meters'));
+
+                    $fw = $matchedPfw->fabricWidth;
                     if ($fw) {
-                        $width = (float) ($fw->value ?: $fw->width_inches ?: $fw->width ?: 0);
+                        $width = (float) ($fw->value ?: ($fw->width_inches ?: ($fw->width ?: 0)));
                         $widthUnit = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'Inches');
                     }
                 }
@@ -218,7 +339,7 @@ class FabricCuttingAreaService
 
             if ($width <= 0 && $pattern->fabricWidth) {
                 $fw = $pattern->fabricWidth;
-                $width = (float) ($fw->value ?: $fw->width_inches ?: $fw->width ?: 0);
+                $width = (float) ($fw->value ?: ($fw->width_inches ?: ($fw->width ?: 0)));
                 $widthUnit = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'Inches');
             }
         }
@@ -233,46 +354,11 @@ class FabricCuttingAreaService
             $widthUnit = $product->fabric_width_unit ?: 'Inches';
         }
 
-        // Convert Length
+        $lengthDisplay = self::formatSingleDimension($length, $lengthUnit);
+        $widthDisplay = self::formatSingleDimension($width, $widthUnit);
+
         $lengthMeters = self::convertToMeters($length, $lengthUnit);
-        $lengthCm = UnitConversionService::convert($length, $lengthUnit, 'CM');
-        $lengthInches = UnitConversionService::convert($length, $lengthUnit, 'IN');
-        $lengthYards = UnitConversionService::convert($length, $lengthUnit, 'YD');
-
-        $normLenUnit = UnitConversionService::normalizeAlias($lengthUnit);
-        if ($normLenUnit === 'M') {
-            $lengthDisplay = round($length, 2) . ' m (' . round($lengthCm, 1) . ' cm / ' . round($lengthInches, 2) . '" / ' . round($lengthYards, 2) . ' yd)';
-        } elseif ($normLenUnit === 'IN') {
-            $lengthDisplay = round($length, 2) . '" (' . round($lengthCm, 1) . ' cm / ' . round($lengthMeters, 2) . ' m / ' . round($lengthYards, 2) . ' yd)';
-        } elseif ($normLenUnit === 'CM') {
-            $lengthDisplay = round($length, 1) . ' cm (' . round($lengthMeters, 2) . ' m / ' . round($lengthInches, 2) . '" / ' . round($lengthYards, 2) . ' yd)';
-        } elseif ($normLenUnit === 'YD') {
-            $lengthDisplay = round($length, 2) . ' YD (' . round($lengthMeters, 2) . ' m / ' . round($lengthCm, 1) . ' cm / ' . round($lengthInches, 2) . '")';
-        } elseif ($normLenUnit === 'FT') {
-            $lengthDisplay = round($length, 2) . ' FT (' . round($lengthMeters, 2) . ' m / ' . round($lengthCm, 1) . ' cm)';
-        } else {
-            $lengthDisplay = round($length, 2) . ' ' . $lengthUnit . ' (' . round($lengthCm, 1) . ' cm)';
-        }
-
-        // Convert Width
         $widthMeters = self::convertToMeters($width, $widthUnit);
-        $widthCm = UnitConversionService::convert($width, $widthUnit, 'CM');
-        $widthInches = UnitConversionService::convert($width, $widthUnit, 'IN');
-
-        $normWidthUnit = UnitConversionService::normalizeAlias($widthUnit);
-        if ($normWidthUnit === 'IN') {
-            $widthDisplay = round($widthInches, 2) . '" (' . round($widthCm, 1) . ' cm / ' . round($widthMeters, 2) . ' m)';
-        } elseif ($normWidthUnit === 'CM') {
-            $widthDisplay = round($widthCm, 1) . ' cm (' . round($widthInches, 2) . '" / ' . round($widthMeters, 2) . ' m)';
-        } elseif ($normWidthUnit === 'M') {
-            $widthDisplay = round($widthMeters, 2) . ' m (' . round($widthCm, 1) . ' cm / ' . round($widthInches, 2) . '")';
-        } elseif ($normWidthUnit === 'YD') {
-            $widthDisplay = round($width, 2) . ' YD (' . round($widthMeters, 2) . ' m / ' . round($widthCm, 1) . ' cm)';
-        } elseif ($normWidthUnit === 'FT') {
-            $widthDisplay = round($width, 2) . ' FT (' . round($widthMeters, 2) . ' m / ' . round($widthCm, 1) . ' cm)';
-        } else {
-            $widthDisplay = round($width, 2) . ' ' . $widthUnit . ' (' . round($widthCm, 1) . ' cm)';
-        }
 
         $pieceAreaM2 = round($lengthMeters * $widthMeters, 4);
         $dimensionsDisplay = "Length: {$lengthDisplay} · Width: {$widthDisplay}";
@@ -290,9 +376,6 @@ class FabricCuttingAreaService
         ];
     }
 
-    /**
-     * Helper to convert length/width value to meters.
-     */
     /**
      * Helper to convert length/width value to meters using database-driven unit conversion engine.
      */
@@ -521,7 +604,9 @@ class FabricCuttingAreaService
 
         // 6. Resolve Product Piece Requirement Length (in Meters)
         $pieceReqLength = 2.5; // Default fallback
-        if ($product && $rawMaterial) {
+        if ($product && $roll) {
+            $pieceReqLength = self::resolvePatternFabricLength($product, $roll);
+        } elseif ($product && $rawMaterial) {
             $pieceReqLength = self::resolvePatternFabricLength($product, $rawMaterial);
         } elseif ($product && (float)$product->standard_fabric_length > 0) {
             $pieceReqLength = (float) $product->standard_fabric_length;
@@ -539,23 +624,8 @@ class FabricCuttingAreaService
         $surplusPieces = max(0, $estYieldPieces - (int)$targetQty);
         $shortfallPieces = ($targetQty > 0 && $estYieldPieces < (int)$targetQty) ? ((int)$targetQty - $estYieldPieces) : 0;
 
-        $normalizedUnit = UnitConversionService::normalizeAlias($widthUnitStr);
-        if ($normalizedUnit === 'IN') {
-            $widthDisplay = round($widthInches, 2) . '" (' . round($widthCm, 1) . ' cm / ' . round($widthMeters, 2) . ' m)';
-        } elseif ($normalizedUnit === 'YD') {
-            $widthDisplay = round($widthVal, 2) . ' YD (' . round($widthMeters, 2) . ' m)';
-        } elseif ($normalizedUnit === 'CM') {
-            $widthDisplay = round($widthCm, 1) . ' cm (' . round($widthMeters, 2) . ' m)';
-        } elseif ($normalizedUnit === 'M') {
-            $widthDisplay = round($widthMeters, 2) . ' m (' . round($widthCm, 1) . ' cm)';
-        } elseif ($normalizedUnit === 'FT') {
-            $widthDisplay = round($widthVal, 2) . ' FT (' . round($widthMeters, 2) . ' m / ' . round($widthCm, 1) . ' cm)';
-        } else {
-            $widthDisplay = round($widthVal, 2) . ' ' . $widthUnitStr . ' (' . round($widthCm, 1) . ' cm)';
-        }
-
-        $cutLengthUnitDisplay = (strtolower($cutLengthUnitStr) === 'm' || strtolower($cutLengthUnitStr) === 'meters') ? 'm' : $cutLengthUnitStr;
-        $cutLengthDisplay = round($cutLength, 2) . ' ' . $cutLengthUnitDisplay;
+        $widthDisplay = self::formatSingleDimension($widthVal, $widthUnitStr);
+        $cutLengthDisplay = self::formatSingleDimension($cutLength, $cutLengthUnitStr);
         $dimensionsDisplay = "Width: {$widthDisplay} · Length: {$cutLengthDisplay}";
 
         return [

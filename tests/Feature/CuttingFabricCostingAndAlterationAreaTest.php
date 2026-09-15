@@ -284,4 +284,52 @@ class CuttingFabricCostingAndAlterationAreaTest extends TestCase
         $this->assertEquals(3800.00, $summary['total_manufacturing_cost']); // 3000 + 300 + 500
         $this->assertEquals(380.00, $summary['average_cost_per_unit']); // 3800 / 10 pcs
     }
+
+    public function test_pattern_width_resolution_and_single_dimension_formatting()
+    {
+        // 1. Single dimension formatting test
+        $this->assertEquals('2 m', FabricCuttingAreaService::formatSingleDimension(2.0, 'Meters'));
+        $this->assertEquals('44 Inches (1.12 m)', FabricCuttingAreaService::formatSingleDimension(44.0, 'Inches'));
+        $this->assertEquals('2.1 Inches (0.05 m)', FabricCuttingAreaService::formatSingleDimension(2.1, 'Inches'));
+
+        // 2. Pattern width resolution test
+        $fw36 = \App\Models\FabricWidth::create(['name' => '36 Inch', 'value' => 36, 'unit' => 'Inches']);
+        $fw44 = \App\Models\FabricWidth::create(['name' => '44 Inch', 'value' => 44, 'unit' => 'Inches']);
+
+        $product = ManufacturingProduct::create([
+            'name' => 'Burnaboy Gram Product',
+            'code' => 'MP-BURN-001',
+            'status' => 'active',
+        ]);
+
+        $pattern = ManufacturingProductPattern::create([
+            'manufacturing_product_id' => $product->id,
+            'name' => 'Standard Fold',
+            'is_default' => true,
+        ]);
+
+        \App\Models\ManufacturingPatternFabricWidth::create([
+            'pattern_id' => $pattern->id,
+            'manufacturing_product_pattern_id' => $pattern->id,
+            'fabric_width_id' => $fw36->id,
+            'fabric_length' => 2.5,
+            'fabric_length_unit' => 'Inches',
+        ]);
+
+        \App\Models\ManufacturingPatternFabricWidth::create([
+            'pattern_id' => $pattern->id,
+            'manufacturing_product_pattern_id' => $pattern->id,
+            'fabric_width_id' => $fw44->id,
+            'fabric_length' => 2.1,
+            'fabric_length_unit' => 'Inches',
+        ]);
+
+        // Resolving fabric length for 44-inch width should return 2.1 inches
+        $resolvedLen = FabricCuttingAreaService::resolvePatternFabricLength($product, $fw44);
+        $this->assertEquals(2.1, $resolvedLen);
+
+        // Formatting dimensions with 44-inch context
+        $dims = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $fw44);
+        $this->assertEquals('Length: 2.1 Inches (0.05 m) · Width: 44 Inches (1.12 m)', $dims['dimensions_display']);
+    }
 }
