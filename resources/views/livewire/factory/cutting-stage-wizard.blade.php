@@ -222,7 +222,7 @@
                     <!-- Bale Details & Active Rolls Section -->
                     @if(!empty($fabRow['inventory_bale_id']))
                         @php
-                            $selectedBale = \App\Models\InventoryBale::with('activeRolls')->find($fabRow['inventory_bale_id']);
+                            $selectedBale = \App\Models\InventoryBale::with('activeRolls.fabricWidth.unitModel')->find($fabRow['inventory_bale_id']);
                         @endphp
                         @if($selectedBale)
                             <div class="bg-surface-container-low/40 rounded-xl p-5 border border-outline-variant/40">

@@ -223,8 +223,8 @@ class CuttingStageWizard extends Component
                 $this->selectedFabrics[$index]['selected_rolls'] = [];
             } elseif ($field === 'selected_rolls' && str_contains($key, 'manufacturing_product_id')) {
                 // E.g. selectedFabrics.0.selected_rolls.12.products.0.manufacturing_product_id
-                $rollId = $parts[3] ?? null;
-                $pIdx = intval($parts[5] ?? 0);
+                $rollId = $parts[2] ?? null;
+                $pIdx = intval($parts[4] ?? 0);
                 $prodId = intval($value);
                 if ($prodId && $rollId && isset($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx])) {
                     $patterns = ManufacturingProductPattern::where('manufacturing_product_id', $prodId)->get();
