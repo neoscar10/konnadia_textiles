@@ -187,7 +187,12 @@ class FabricCuttingAreaService
         if ($pattern->patternFabricWidths->isNotEmpty()) {
             if ($fabricWidthId || $widthVal > 0) {
                 foreach ($pattern->patternFabricWidths as $pfw) {
-                    $pfwWidthVal = (float) ($pfw->fabricWidth?->value ?: ($pfw->fabricWidth?->width_inches ?: ($pfw->fabricWidth?->width ?? 0)));
+                    $fwModel = $pfw->fabricWidth;
+                    if (!$fwModel && $pfw->fabric_width_id) {
+                        $fwModel = \App\Models\FabricWidth::with('unitModel')->find($pfw->fabric_width_id);
+                    }
+
+                    $pfwWidthVal = (float) ($fwModel?->value ?: ($fwModel?->width_inches ?: ($fwModel?->width ?? 0)));
                     $pfwWidthId = $pfw->fabric_width_id;
 
                     if (
@@ -195,6 +200,9 @@ class FabricCuttingAreaService
                         ($widthVal > 0 && $pfwWidthVal > 0 && abs($pfwWidthVal - $widthVal) < 0.5)
                     ) {
                         $matchedPfw = $pfw;
+                        if ($fwModel && !$matchedPfw->relationLoaded('fabricWidth')) {
+                            $matchedPfw->setRelation('fabricWidth', $fwModel);
+                        }
                         break;
                     }
                 }

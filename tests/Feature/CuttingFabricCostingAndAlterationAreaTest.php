@@ -320,18 +320,22 @@ class CuttingFabricCostingAndAlterationAreaTest extends TestCase
             'pattern_id' => $pattern->id,
             'manufacturing_product_pattern_id' => $pattern->id,
             'fabric_width_id' => $fw44->id,
-            'fabric_length' => 2.1,
+            'fabric_length' => 5.1,
             'fabric_length_unit' => 'Inches',
         ]);
 
-        // Resolving fabric length for 44-inch width should return 2.1 inches
+        // Resolving fabric length for 44-inch width should return 5.1 inches
         $resolvedLen = FabricCuttingAreaService::resolvePatternFabricLength($product, $fw44);
-        $this->assertEquals(2.1, $resolvedLen);
+        $this->assertEquals(5.1, $resolvedLen);
 
         // Formatting dimensions with 44-inch context
         $dims = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $fw44);
         $this->assertTrue($dims['is_configured']);
-        $this->assertEquals('Length: 2.1 Inches (0.05 m) · Width: 44 Inches (1.12 m)', $dims['dimensions_display']);
+        $this->assertEquals('Length: 5.1 Inches (0.13 m) · Width: 44 Inches (1.12 m)', $dims['dimensions_display']);
+
+        // Piece area calculation for 44 inch X 5.1 inch
+        $areaM2 = FabricCuttingAreaService::calculateProductPatternAreaM2($product, $pattern, $fw44);
+        $this->assertEquals(0.1448, $areaM2);
 
         // 3. Unconfigured fabric width test (e.g. 66 Inch width)
         $fw66 = \App\Models\FabricWidth::create(['name' => '66 Inch', 'value' => 66, 'unit' => 'Inches']);

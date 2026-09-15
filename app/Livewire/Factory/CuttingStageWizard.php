@@ -594,13 +594,6 @@ class CuttingStageWizard extends Component
             $pattern = $patId ? ManufacturingProductPattern::find($patId) : null;
             $rollContext = $roll ?? $rawMaterial;
             $pieceAreaM2 = FabricCuttingAreaService::calculateProductPatternAreaM2($product, $pattern, $rollContext);
-            if ($pieceAreaM2 <= 0 && $pattern) {
-                // If pattern is configured, don't fall back to standard product piece area if length was not defined for that width
-                $res = FabricCuttingAreaService::resolvePatternFabricWidth($pattern, $rollContext);
-                if ($res['is_configured']) {
-                    $pieceAreaM2 = FabricCuttingAreaService::calculateProductPieceArea($product, $unitGroupId);
-                }
-            }
 
             $itemUsedAreaBase = $pieceAreaM2 * $qty;
             $totalUsedAreaBase += $itemUsedAreaBase;
