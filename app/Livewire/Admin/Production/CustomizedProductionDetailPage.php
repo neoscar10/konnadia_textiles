@@ -672,7 +672,8 @@ class CustomizedProductionDetailPage extends Component
 
                 $widths = $this->getAvailableWidthsForMaterial($matId);
                 $firstWidth = $widths->first();
-                $this->baleRollWidths[$i]        = $firstWidth ? (string) ($firstWidth->id ?? '') : '';
+                $wVal = $firstWidth ? ($firstWidth->id ?? ($firstWidth->value ?? '')) : '';
+                $this->baleRollWidths[$i]        = (string) $wVal;
 
                 $units = $this->getAvailableUnitsForMaterial($matId);
                 $matObj = $matId ? RawMaterial::find($matId) : null;
@@ -694,15 +695,17 @@ class CustomizedProductionDetailPage extends Component
         $this->checkBaleMismatchWarning();
     }
 
-    public function updatedBaleRollMaterials($value, $key)
+    public function updateRollMaterialWidthsAndUnits(int $index, int $matId)
     {
-        $index = (int) $key;
-        $matId = (int) $value;
-
         if ($matId) {
             $widths = $this->getAvailableWidthsForMaterial($matId);
             $firstWidth = $widths->first();
-            $this->baleRollWidths[$index] = $firstWidth ? (string) ($firstWidth->id ?? '') : '';
+            if ($firstWidth) {
+                $wVal = $firstWidth->id ?? ($firstWidth->value ?? '');
+                $this->baleRollWidths[$index] = (string) $wVal;
+            } else {
+                $this->baleRollWidths[$index] = '';
+            }
 
             $units = $this->getAvailableUnitsForMaterial($matId);
             $matObj = RawMaterial::find($matId);
@@ -721,6 +724,27 @@ class CustomizedProductionDetailPage extends Component
         }
 
         $this->checkBaleMismatchWarning();
+    }
+
+    public function updated($property, $value = null)
+    {
+        if (str_starts_with($property, 'baleRollMaterials.')) {
+            $index = (int) str_replace('baleRollMaterials.', '', $property);
+            $this->updateRollMaterialWidthsAndUnits($index, (int) $value);
+        }
+    }
+
+    public function updatedBaleRollMaterials($value, $key = null)
+    {
+        if (is_array($value)) {
+            foreach ($value as $k => $v) {
+                $this->updateRollMaterialWidthsAndUnits((int) $k, (int) $v);
+            }
+            return;
+        }
+        $index = (int) $key;
+        $matId = (int) $value;
+        $this->updateRollMaterialWidthsAndUnits($index, $matId);
     }
 
     public function updatedBaleRollUnits()

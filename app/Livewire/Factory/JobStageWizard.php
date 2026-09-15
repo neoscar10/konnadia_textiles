@@ -166,6 +166,11 @@ class JobStageWizard extends Component
         if ($property === 'producedQty' || str_starts_with($property, 'subsidiaryRows')) {
             $this->recalculateSubsidiaryRows();
         }
+        if (str_starts_with($property, 'baleRollMaterials.')) {
+            $index = (int) str_replace('baleRollMaterials.', '', $property);
+            $val = $this->baleRollMaterials[$index] ?? null;
+            $this->updateRollMaterialWidthsAndUnits($index, (int) $val);
+        }
     }
 
     public function recalculateSubsidiaryRows()
@@ -409,7 +414,8 @@ class JobStageWizard extends Component
 
                 $widths = $this->getAvailableWidthsForMaterial($matId);
                 $firstWidth = $widths->first();
-                $this->baleRollWidths[$i]        = $firstWidth ? (string) ($firstWidth->id ?? '') : '';
+                $wVal = $firstWidth ? ($firstWidth->id ?? ($firstWidth->value ?? '')) : '';
+                $this->baleRollWidths[$i]        = (string) $wVal;
 
                 $units = $this->getAvailableUnitsForMaterial($matId);
                 $matObj = $matId ? RawMaterial::find($matId) : null;
@@ -431,15 +437,17 @@ class JobStageWizard extends Component
         $this->checkBaleMismatchWarning();
     }
 
-    public function updatedBaleRollMaterials($value, $key)
+    public function updateRollMaterialWidthsAndUnits(int $index, int $matId)
     {
-        $index = (int) $key;
-        $matId = (int) $value;
-
         if ($matId) {
             $widths = $this->getAvailableWidthsForMaterial($matId);
             $firstWidth = $widths->first();
-            $this->baleRollWidths[$index] = $firstWidth ? (string) ($firstWidth->id ?? '') : '';
+            if ($firstWidth) {
+                $wVal = $firstWidth->id ?? ($firstWidth->value ?? '');
+                $this->baleRollWidths[$index] = (string) $wVal;
+            } else {
+                $this->baleRollWidths[$index] = '';
+            }
 
             $units = $this->getAvailableUnitsForMaterial($matId);
             $matObj = RawMaterial::find($matId);
@@ -458,6 +466,19 @@ class JobStageWizard extends Component
         }
 
         $this->checkBaleMismatchWarning();
+    }
+
+    public function updatedBaleRollMaterials($value, $key = null)
+    {
+        if (is_array($value)) {
+            foreach ($value as $k => $v) {
+                $this->updateRollMaterialWidthsAndUnits((int) $k, (int) $v);
+            }
+            return;
+        }
+        $index = (int) $key;
+        $matId = (int) $value;
+        $this->updateRollMaterialWidthsAndUnits($index, $matId);
     }
 
     public function updatedBaleRollUnits()

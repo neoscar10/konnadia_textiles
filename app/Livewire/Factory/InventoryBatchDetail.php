@@ -99,7 +99,8 @@ class InventoryBatchDetail extends Component
         $defaultMatId = $bale?->availableMaterials->first()?->id ?? $bale?->batch?->raw_material_id;
 
         $widths = $this->getAvailableWidthsForMaterial($defaultMatId);
-        $defaultWidthId = $widths->first()?->id ?? '';
+        $firstWidth = $widths->first();
+        $defaultWidthId = $firstWidth ? ($firstWidth->id ?? ($firstWidth->value ?? '')) : '';
 
         $units = $this->getAvailableUnitsForMaterial($defaultMatId);
         $matObj = $defaultMatId ? \App\Models\RawMaterial::find($defaultMatId) : null;
@@ -122,6 +123,14 @@ class InventoryBatchDetail extends Component
         $this->checkBaleMismatchWarning();
     }
 
+    public function updated($property, $value = null)
+    {
+        if (str_contains($property, 'baleRollLengths') && str_contains($property, 'raw_material_id')) {
+            $key = str_replace('baleRollLengths.', '', $property);
+            $this->updatedBaleRollLengths($value, $key);
+        }
+    }
+
     public function updatedBaleRollLengths($value, $key)
     {
         if (str_contains($key, 'raw_material_id')) {
@@ -129,7 +138,9 @@ class InventoryBatchDetail extends Component
             $matId = (int) $value;
             if ($matId) {
                 $widths = $this->getAvailableWidthsForMaterial($matId);
-                $this->baleRollLengths[$index]['fabric_width_id'] = (string) ($widths->first()?->id ?? '');
+                $firstWidth = $widths->first();
+                $wVal = $firstWidth ? ($firstWidth->id ?? ($firstWidth->value ?? '')) : '';
+                $this->baleRollLengths[$index]['fabric_width_id'] = (string) $wVal;
 
                 $units = $this->getAvailableUnitsForMaterial($matId);
                 $matObj = \App\Models\RawMaterial::find($matId);

@@ -486,7 +486,7 @@
                                         $unitShortCode = $selectedUnitObj ? $selectedUnitObj->short_code : 'M';
                                         $enteredLen = is_array($rollItem) ? ($rollItem['length'] ?? '') : $rollItem;
                                     @endphp
-                                    <div class="p-4 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-3">
+                                    <div wire:key="bale-roll-card-{{ $i }}-{{ $selectedRollMatId }}" class="p-4 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-3">
                                         <div class="flex justify-between items-center">
                                             <span class="font-mono font-extrabold text-sm text-primary">Roll #{{ $i + 1 }}</span>
                                             @if(!empty($enteredLen) && (float)$enteredLen > 0 && strtoupper($unitShortCode) !== 'M')
@@ -500,7 +500,7 @@
                                             @if($baleMats->count() > 1)
                                                 <div class="sm:col-span-2">
                                                     <label class="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Fabric Material *</label>
-                                                    <select wire:model.live="baleRollLengths.{{ $i }}.raw_material_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary">
+                                                    <select wire:model.live="baleRollLengths.{{ $i }}.raw_material_id" wire:key="roll-mat-select-{{ $i }}" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary">
                                                         @foreach($baleMats as $mat)
                                                             <option value="{{ $mat->id }}">{{ $mat->name }}</option>
                                                         @endforeach
@@ -513,14 +513,14 @@
                                                 @php
                                                     $availWidths = $this->getAvailableWidthsForMaterial($selectedRollMatId ?: $batch->raw_material_id);
                                                 @endphp
-                                                <select wire:model.live="baleRollLengths.{{ $i }}.fabric_width_id" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary">
+                                                <select wire:model.live="baleRollLengths.{{ $i }}.fabric_width_id" wire:key="roll-width-select-{{ $i }}-{{ $selectedRollMatId }}-{{ is_array($rollItem) ? ($rollItem['fabric_width_id'] ?? '') : '' }}" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-primary">
                                                     @if($availWidths->isEmpty())
                                                         <option value="">Default Standard Width</option>
                                                     @else
                                                         <option value="">— Select Width —</option>
                                                         @foreach($availWidths as $fw)
                                                             @php
-                                                                $fwId = $fw->id ?? null;
+                                                                $fwId = (string) ($fw->id ?? ($fw->value ?? ''));
                                                                 $fwName = $fw->name ?? (($fw->value ?? $fw->width_inches ?? '') . ' ' . ($fw->unit ?? 'Inch'));
                                                             @endphp
                                                             <option value="{{ $fwId }}">{{ $fwName }}</option>
@@ -536,7 +536,7 @@
                                                     @php
                                                         $availUnits = $this->getAvailableUnitsForMaterial($selectedRollMatId ?: $batch->raw_material_id);
                                                     @endphp
-                                                    <select wire:model.live="baleRollLengths.{{ $i }}.unit_id" class="bg-surface border border-outline-variant/60 rounded-xl px-2 py-2 text-xs font-extrabold text-primary shrink-0 focus:outline-none">
+                                                    <select wire:model.live="baleRollLengths.{{ $i }}.unit_id" wire:key="roll-unit-select-{{ $i }}-{{ $selectedRollMatId }}" class="bg-surface border border-outline-variant/60 rounded-xl px-2 py-2 text-xs font-extrabold text-primary shrink-0 focus:outline-none">
                                                         @foreach($availUnits as $u)
                                                             <option value="{{ $u->id }}">{{ $u->short_code }}</option>
                                                         @endforeach
