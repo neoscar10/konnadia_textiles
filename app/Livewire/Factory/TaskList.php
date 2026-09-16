@@ -24,6 +24,7 @@ class TaskList extends Component
     public bool $consumes_raw_material = false;
     public array $selected_category_ids = [];
     public bool $is_labor_required = true;
+    public ?int $labor_category_id = null;
     public array $selected_authorized_task_ids = [];
     public ?int $sequence_number = null;
 
@@ -46,6 +47,7 @@ class TaskList extends Component
             'status' => 'required|boolean',
             'consumes_raw_material' => 'required|boolean',
             'is_labor_required' => 'required|boolean',
+            'labor_category_id' => 'nullable|exists:labor_categories,id',
             'selected_category_ids' => 'required_if:consumes_raw_material,true|array',
             'selected_category_ids.*' => 'exists:raw_material_categories,id',
             'selected_authorized_task_ids' => 'nullable|array',
@@ -85,13 +87,14 @@ class TaskList extends Component
     public function openEditModal($id)
     {
         $this->resetModal();
-        $task = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->findOrFail($id);
+        $task = Task::with(['laborCategory', 'rawMaterialCategories', 'authorizedLaborTasks'])->findOrFail($id);
         $this->taskId = $task->id;
         $this->name = $task->name;
         $this->code = $task->code;
         $this->status = (bool) $task->status;
         $this->consumes_raw_material = (bool) $task->consumes_raw_material;
         $this->is_labor_required = (bool) $task->is_labor_required;
+        $this->labor_category_id = $task->labor_category_id;
         $this->sequence_number = $task->sequence_number;
         $this->selected_category_ids = $task->rawMaterialCategories->pluck('id')->map(fn($catId) => (string)$catId)->toArray();
         $this->selected_authorized_task_ids = $task->authorizedLaborTasks->pluck('id')->map(fn($tId) => (string)$tId)->toArray();
@@ -114,6 +117,7 @@ class TaskList extends Component
             'consumes_raw_material',
             'selected_category_ids',
             'is_labor_required',
+            'labor_category_id',
             'selected_authorized_task_ids',
             'sequence_number',
         ]);
@@ -126,6 +130,14 @@ class TaskList extends Component
     {
         if (!$value) {
             $this->selected_category_ids = [];
+        }
+    }
+
+    public function updatedIsLaborRequired($value)
+    {
+        if (!$value) {
+            $this->labor_category_id = null;
+            $this->selected_authorized_task_ids = [];
         }
     }
 
@@ -144,6 +156,7 @@ class TaskList extends Component
             'status' => $this->status,
             'consumes_raw_material' => $this->consumes_raw_material,
             'is_labor_required' => $this->is_labor_required,
+            'labor_category_id' => $this->is_labor_required ? $this->labor_category_id : null,
             'sequence_number' => $seq ?: null,
         ];
 
@@ -231,7 +244,7 @@ class TaskList extends Component
 
     public function render()
     {
-        $tasks = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])
+        $tasks = Task::with(['laborCategory', 'rawMaterialCategories', 'authorizedLaborTasks'])
             ->where(function($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
                   ->orWhere('code', 'like', '%' . $this->search . '%');
@@ -241,11 +254,13 @@ class TaskList extends Component
 
         $categories = RawMaterialCategory::all();
         $allLaborTasks = Task::where('status', true)->ordered()->get();
+        $laborCategories = \App\Models\LaborCategory::active()->orderBy('name')->get();
 
         return view('livewire.factory.task-list', [
             'tasks' => $tasks,
             'categories' => $categories,
             'allLaborTasks' => $allLaborTasks,
+            'laborCategories' => $laborCategories,
         ])->title('Task Master Manager');
     }
 }

@@ -107,10 +107,18 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @if($task->is_labor_required)
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-container/60 text-on-tertiary-container font-extrabold text-[10px] border border-tertiary/20 uppercase">
-                                        <span class="material-symbols-outlined text-[14px]">groups</span>
-                                        Yes
-                                    </span>
+                                    <div class="flex flex-col gap-1">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-container/60 text-on-tertiary-container font-extrabold text-[10px] border border-tertiary/20 uppercase w-fit">
+                                            <span class="material-symbols-outlined text-[14px]">groups</span>
+                                            Yes
+                                        </span>
+                                        @if($task->laborCategory)
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md w-fit">
+                                                <span class="material-symbols-outlined text-[12px]">badge</span>
+                                                {{ $task->laborCategory->name }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 @else
                                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant/60 font-extrabold text-[10px] border border-outline-variant/30 uppercase">
                                         <span class="material-symbols-outlined text-[14px]">person_off</span>
@@ -328,13 +336,31 @@
                         </p>
 
                         @if($is_labor_required)
-                            <div class="pt-3 border-t border-outline-variant/40 space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider">Required Worker Category / Authorized Tasks</p>
-                                        <p class="text-xs text-on-surface-variant/80">Select which worker authorized tasks (e.g. Cutting, Stitching, Packing) are qualified to execute this task.</p>
-                                    </div>
+                            <div class="pt-3 border-t border-outline-variant/40 space-y-4">
+                                <div>
+                                    <label class="block font-label-md text-xs font-bold text-on-surface-variant mb-1.5">Labour Category</label>
+                                    <select
+                                        wire:model="labor_category_id"
+                                        class="w-full rounded-xl border border-outline-variant/60 focus:border-tertiary focus:ring-1 focus:ring-tertiary font-body-md px-3.5 py-2.5 bg-surface text-sm font-semibold"
+                                    >
+                                        <option value="">-- Select Labour Category --</option>
+                                        @foreach($laborCategories as $cat)
+                                            <option value="{{ $cat->id }}">{{ $cat->name }} ({{ $cat->code }})</option>
+                                        @endforeach
+                                    </select>
+                                    @error('labor_category_id')
+                                        <span class="text-error text-xs block mt-1 font-semibold">{{ $message }}</span>
+                                    @enderror
+                                    <p class="text-[11px] text-on-surface-variant mt-1 font-medium">Categorizes this task (e.g., Tailor, Laundry Person) for assigning workers and payroll tracking.</p>
                                 </div>
+
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider">Authorized Cross-Tasks (Optional Multi-Select)</p>
+                                            <p class="text-xs text-on-surface-variant/80">Select which additional worker authorized tasks are qualified to execute this task.</p>
+                                        </div>
+                                    </div>
 
                                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     @foreach($allLaborTasks as $lTask)

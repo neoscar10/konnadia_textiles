@@ -56,6 +56,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         
         // Production & Labor Management System
         Route::get('labor', \App\Livewire\Admin\Labor\LaborList::class)->name('labor.index');
+        Route::get('labor-categories', \App\Livewire\Admin\Labor\LaborCategoryList::class)->name('labor-categories.index');
         Route::get('labor/{id}', \App\Livewire\Admin\Labor\LaborDetail::class)->name('labor.show');
         Route::get('production/products', \App\Livewire\Admin\Production\ManufacturingProductIndexPage::class)->name('production.products.index');
         Route::get('production/product-categories', \App\Livewire\Admin\Production\ManufacturingProductCategoryPage::class)->name('production.product-categories.index');

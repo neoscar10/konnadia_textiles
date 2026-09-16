@@ -20,7 +20,13 @@
                 <input wire:model.live.debounce.300ms="search" class="w-full px-4 py-2.5 bg-surface rounded-lg border border-outline-variant focus:ring-1 focus:ring-primary font-body-sm text-body-sm" placeholder="Search Name, Code, Mobile..." type="text"/>
             </div>
         </div>
-        <div class="flex gap-4">
+        <div class="flex flex-wrap gap-4">
+            <select wire:model.live="labor_category_filter" class="bg-surface border-outline-variant rounded-lg font-label-md text-label-md py-2.5 px-4 focus:ring-1 focus:ring-primary">
+                <option value="">Labour Category (All)</option>
+                @foreach($laborCategories as $cat)
+                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                @endforeach
+            </select>
             <select wire:model.live="payment_method_filter" class="bg-surface border-outline-variant rounded-lg font-label-md text-label-md py-2.5 px-4 focus:ring-1 focus:ring-primary">
                 <option value="">Payment Method (All)</option>
                 <option value="monthly_salary">Monthly Salary</option>
@@ -41,6 +47,7 @@
                 <tr class="bg-surface-container-low border-b border-outline-variant">
                     <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Labor Code</th>
                     <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Worker Name</th>
+                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Labour Category</th>
                     <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Contact</th>
                     <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Payment</th>
                     <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
@@ -60,6 +67,16 @@
                             <a href="{{ route('admin.labor.show', $labor->id) }}" wire:navigate class="font-body-md text-body-md font-semibold text-on-surface hover:text-primary hover:underline">
                                 {{ $labor->name }}
                             </a>
+                        </td>
+                        <td class="px-6 py-5 whitespace-nowrap">
+                            @if($labor->category)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+                                    <span class="material-symbols-outlined text-[14px]">work</span>
+                                    {{ $labor->category->name }}
+                                </span>
+                            @else
+                                <span class="text-xs text-on-surface-variant/60 italic">Unassigned</span>
+                            @endif
                         </td>
                         <td class="px-6 py-5 font-body-sm text-body-sm text-on-surface-variant">{{ $labor->mobile_number ?? '-' }}</td>
                         <td class="px-6 py-5">
@@ -97,7 +114,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-10 text-center text-on-surface-variant">
+                        <td colspan="7" class="px-6 py-10 text-center text-on-surface-variant">
                             No labor records found.
                         </td>
                     </tr>
@@ -135,6 +152,18 @@
                     </div>
 
                     <div>
+                        <label class="block text-label-md font-bold text-on-surface-variant mb-1">Labour Category</label>
+                        <select wire:model.live="labor_category_id" class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary font-semibold">
+                            <option value="">-- Select Category (e.g. Tailor, Laundry) --</option>
+                            @foreach($laborCategories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }} ({{ $cat->code }})</option>
+                            @endforeach
+                        </select>
+                        @error('labor_category_id') <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        <p class="text-[11px] text-on-surface-variant mt-1">Selecting a category will automatically filter and pre-select tasks attached to this role.</p>
+                    </div>
+
+                    <div>
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" wire:model="status" class="rounded border-outline-variant text-primary focus:ring-primary">
                             <span class="text-label-md font-bold text-on-surface-variant">Active Status</span>
@@ -167,17 +196,32 @@
 
             <!-- Authorized Tasks -->
             <div class="bg-white border border-outline-variant rounded-xl p-5 shadow-sm space-y-4 mb-8">
-                <h4 class="font-bold text-on-surface mb-2">Authorized Tasks</h4>
-                <p class="text-sm text-on-surface-variant mb-4">Select the production tasks this worker is authorized to perform.</p>
-                
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    @foreach($allTasks as $task)
-                    <label class="flex items-center gap-3 p-3 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors cursor-pointer">
-                        <input type="checkbox" wire:model="authorized_tasks" value="{{ $task->id }}" class="rounded border-outline-variant text-primary focus:ring-primary">
-                        <span class="text-sm font-semibold text-on-surface">{{ $task->name }}</span>
-                    </label>
-                    @endforeach
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-on-surface mb-1">Authorized Tasks</h4>
+                        <p class="text-xs text-on-surface-variant">Select or uncheck production tasks this worker is authorized to perform.</p>
+                    </div>
+                    @if($labor_category_id)
+                        <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                            Filtered by Category
+                        </span>
+                    @endif
                 </div>
+                
+                @if(count($allTasks) > 0)
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        @foreach($allTasks as $task)
+                        <label class="flex items-center gap-3 p-3 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors cursor-pointer">
+                            <input type="checkbox" wire:model="authorized_tasks" value="{{ $task->id }}" class="rounded border-outline-variant text-primary focus:ring-primary">
+                            <span class="text-sm font-semibold text-on-surface">{{ $task->name }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="p-4 bg-surface-container-low rounded-lg text-center text-xs text-on-surface-variant">
+                        No tasks attached to this category. You can configure task category links in Task Master.
+                    </div>
+                @endif
             </div>
 
             <div class="flex justify-end gap-md mt-xl pt-md border-t border-outline-variant/20">

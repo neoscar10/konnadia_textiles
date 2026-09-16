@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Labor extends Model
 {
     protected $fillable = [
-        'name', 'code', 'mobile_number', 'status', 'payment_method', 'monthly_salary'
+        'name', 'code', 'labor_category_id', 'mobile_number', 'status', 'payment_method', 'monthly_salary'
     ];
 
     protected $casts = [
@@ -18,6 +18,16 @@ class Labor extends Model
     public function scopeActive($query)
     {
         return $query->where('status', true);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(LaborCategory::class, 'labor_category_id');
+    }
+
+    public function laborCategory()
+    {
+        return $this->belongsTo(LaborCategory::class, 'labor_category_id');
     }
 
     public function tasks()

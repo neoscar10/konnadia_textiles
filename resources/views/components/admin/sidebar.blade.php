@@ -267,7 +267,7 @@
                 </div>
 
                 <!-- Labor & Payroll Group -->
-                <div x-data="{ open: {{ request()->routeIs('admin.labor.*') || request()->routeIs('admin.production.tracking-history') ? 'true' : 'false' }} }" class="flex flex-col">
+                <div x-data="{ open: {{ request()->routeIs('admin.labor.*') || request()->routeIs('admin.labor-categories.*') || request()->routeIs('admin.production.tracking-history') ? 'true' : 'false' }} }" class="flex flex-col">
                     <button @click="open = !open; if(!sidebarOpen && open) sidebarOpen = true;" type="button" class="flex items-center justify-between rounded-lg transition-all duration-200 text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30 w-full" :class="sidebarOpen ? 'px-md py-sm' : 'justify-center p-sm mx-xs'">
                         <div class="flex items-center gap-md">
                             <span class="material-symbols-outlined shrink-0" data-icon="engineering">engineering</span>
@@ -279,6 +279,9 @@
                         <div class="flex flex-col gap-1 pl-11 pr-2 py-1 relative before:absolute before:left-[22px] before:top-0 before:bottom-0 before:w-px before:bg-on-primary/10">
                             <a href="{{ route('admin.labor.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.labor.*') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Directory & Wages
+                            </a>
+                            <a href="{{ route('admin.labor-categories.index') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.labor-categories.*') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
+                                Labour Categories
                             </a>
                             <a href="{{ route('admin.production.tracking-history') }}" wire:navigate class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.production.tracking-history') ? 'is-active-link bg-primary-container/40 text-on-primary font-bold' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/20' }}">
                                 Tracking History

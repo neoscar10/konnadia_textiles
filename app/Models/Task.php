@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Task extends Model
 {
-    protected $fillable = ['name', 'code', 'status', 'consumes_raw_material', 'is_labor_required', 'sequence_number', 'cost_type', 'default_piece_rate'];
+    protected $fillable = ['name', 'code', 'status', 'labor_category_id', 'consumes_raw_material', 'is_labor_required', 'sequence_number', 'cost_type', 'default_piece_rate'];
 
     protected $casts = [
         'status' => 'boolean',
@@ -25,6 +25,11 @@ class Task extends Model
                 $task->code = 'TSK-' . str_pad($latestId + 1, 4, '0', STR_PAD_LEFT);
             }
         });
+    }
+
+    public function laborCategory()
+    {
+        return $this->belongsTo(LaborCategory::class, 'labor_category_id');
     }
 
     public function labors()
@@ -77,12 +82,27 @@ class Task extends Model
             $authTaskIds = [$this->id];
         }
 
-        $labors = Labor::active()
-            ->whereHas('tasks', function ($q) use ($authTaskIds) {
-                $q->whereIn('tasks.id', $authTaskIds);
-            })
-            ->orderBy('name')
-            ->get();
+        $query = Labor::active();
+
+        if ($this->labor_category_id) {
+            $query->where(function ($q) use ($authTaskIds) {
+                $q->where('labor_category_id', $this->labor_category_id)
+                  ->orWhereHas('tasks', fn($tq) => $tq->whereIn('tasks.id', $authTaskIds));
+            });
+        }
+
+        $query->whereHas('tasks', function ($q) use ($authTaskIds) {
+            $q->whereIn('tasks.id', $authTaskIds);
+        });
+
+        $labors = $query->orderBy('name')->get();
+
+        if ($labors->isEmpty() && $this->labor_category_id) {
+            $labors = Labor::active()
+                ->where('labor_category_id', $this->labor_category_id)
+                ->orderBy('name')
+                ->get();
+        }
 
         if ($labors->isEmpty()) {
             return Labor::active()->orderBy('name')->get();
