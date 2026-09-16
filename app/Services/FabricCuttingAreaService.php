@@ -530,12 +530,32 @@ class FabricCuttingAreaService
             : ($rawMaterialOrRoll?->rawMaterial ?? $rawMaterialOrRoll?->bale?->rawMaterial ?? $rawMaterialOrRoll?->bale?->batch?->rawMaterial);
 
         $unitGroupId = $rawMaterial?->unit_group_id;
-        $cutAreaBase = self::calculateCutArea($cutLength, $rawMaterialOrRoll);
-        
         $widthCtx = self::resolveWidthContext($rawMaterialOrRoll);
         $widthVal = $widthCtx['width_val'] > 0 ? $widthCtx['width_val'] : (float) ($rawMaterial?->standard_width ?: 60);
         $widthUnitStr = $widthCtx['unit'] ?: ($rawMaterial?->width_unit ?: 'IN');
+
+        if (!empty($productOutputs)) {
+            foreach ($productOutputs as $out) {
+                $patId = $out['pattern_id'] ?? null;
+                if ($patId) {
+                    $pat = ManufacturingProductPattern::find($patId);
+                    if ($pat) {
+                        $patWidthRes = self::resolvePatternFabricWidth($pat, $rawMaterialOrRoll);
+                        if (!$patWidthRes['is_configured']) {
+                            $patWidthRes = self::resolvePatternFabricWidth($pat, null);
+                        }
+                        if ($patWidthRes['is_configured'] && $patWidthRes['width'] > 0) {
+                            $widthVal = $patWidthRes['width'];
+                            $widthUnitStr = $patWidthRes['width_unit'];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         $widthMeters = self::convertToMeters($widthVal, $widthUnitStr);
+        $cutAreaBase = round($cutLength * $widthMeters, 4);
 
         $totalUsedAreaBase = 0.0;
         $totalStandardRequiredLength = 0.0;
