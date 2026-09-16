@@ -772,7 +772,7 @@ class ProductionCostingService
         $laborSummaryText = !empty($laborWorkers)
             ? implode(', ', $laborWorkers)
             : "Direct labor wages (₹" . number_format($totalLaborCost, 2) . ")";
-        $laborDetailsText = "{$laborSummaryText} & Stitching pool (₹" . number_format($stitchingCost, 2) . ")";
+        $laborDetailsText = $laborSummaryText;
 
         // 5. Packaging Details Summary
         $pkgConsumptions = $job->materialConsumptions()

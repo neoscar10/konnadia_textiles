@@ -277,10 +277,10 @@
                                             <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['subsidiary_cost'] ?? 0, 2) }}</td>
                                         </tr>
                                         <tr>
-                                            <td class="py-2.5 px-4 font-bold text-slate-900">Labor Wages &amp; Stitching</td>
-                                            <td class="py-2.5 px-4 text-slate-500 font-semibold">{{ $cSummary['labor_details']['summary_text'] ?? ("Direct labor wages (₹" . number_format($cSummary['total_labor_cost'] ?? 0, 2) . ") & Stitching pool (₹" . number_format($cSummary['stitching_cost'] ?? 0, 2) . ")") }}</td>
-                                            <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? (($cSummary['total_labor_cost'] ?? 0) + ($cSummary['stitching_cost'] ?? 0)) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
-                                            <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format(($cSummary['total_labor_cost'] ?? 0) + ($cSummary['stitching_cost'] ?? 0), 2) }}</td>
+                                            <td class="py-2.5 px-4 font-bold text-slate-900">Labor Wages</td>
+                                            <td class="py-2.5 px-4 text-slate-500 font-semibold">{{ $cSummary['labor_details']['summary_text'] ?? ("Direct labor wages (₹" . number_format($cSummary['total_labor_cost'] ?? 0, 2) . ")") }}</td>
+                                            <td class="py-2.5 px-4 text-right font-mono">₹{{ number_format(($cSummary['finished_units'] ?? 1) > 0 ? ($cSummary['total_labor_cost'] ?? 0) / ($cSummary['finished_units'] ?? 1) : 0, 2) }}</td>
+                                            <td class="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">₹{{ number_format($cSummary['total_labor_cost'] ?? 0, 2) }}</td>
                                         </tr>
                                         @if(($cSummary['packaging_cost'] ?? 0) > 0)
                                         <tr>
