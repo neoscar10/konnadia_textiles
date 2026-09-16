@@ -623,9 +623,19 @@ class ProductionCostingService
         if ($totalWastageCost > 0) {
             $avgFabricRate = (float) $job->materialConsumptions()
                 ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
-                ->avg('unit_cost') ?: ($defaultJobFabricRate ?: 150.00);
+                ->avg('unit_cost');
 
-            $wastageQty = round($totalWastageCost / max(1, $avgFabricRate), 2);
+            if ($avgFabricRate <= 0 && $batch) {
+                $avgFabricRate = (float) \App\Models\JobMaterialConsumption::whereIn('production_job_id', $batchJobs->pluck('id'))
+                    ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
+                    ->avg('unit_cost');
+            }
+
+            if ($avgFabricRate <= 0) {
+                $avgFabricRate = $defaultJobFabricRate ?: 150.00;
+            }
+
+            $wastageQty = round($totalWastageCost / max(0.01, $avgFabricRate), 2);
             $qtyFormatted = (floor($wastageQty) == $wastageQty) ? number_format($wastageQty, 0) : number_format($wastageQty, 2);
             $wastageDetailText = $wastageQty > 0 ? "{$qtyFormatted} M (Area-weighted waste allocation)" : "Area-weighted waste allocation";
         } else {
