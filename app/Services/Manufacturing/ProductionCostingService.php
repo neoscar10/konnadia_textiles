@@ -593,6 +593,14 @@ class ProductionCostingService
                             $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
                             $compositeKey = $job->pattern_id ? "{$job->manufacturing_product_id}_{$job->pattern_id}" : $job->manufacturing_product_id;
                             $pDetails = $bd['product_details'][$compositeKey] ?? $bd['product_details'][$job->manufacturing_product_id] ?? null;
+                            if (!$pDetails && !empty($bd['product_details'])) {
+                                foreach ($bd['product_details'] as $pKey => $pVal) {
+                                    if (isset($pVal['product_id']) && (int)$pVal['product_id'] === (int)$job->manufacturing_product_id) {
+                                        $pDetails = $pVal;
+                                        break;
+                                    }
+                                }
+                            }
                             if ($pDetails && !empty($pDetails['allocated_wastage_cost'])) {
                                 $itemWastageCost = (float) $pDetails['allocated_wastage_cost'];
                                 $totalWastageCost += $itemWastageCost;
