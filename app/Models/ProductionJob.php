@@ -76,6 +76,20 @@ class ProductionJob extends Model
         return $this->belongsTo(ProductionBatch::class, 'production_batch_db_id');
     }
 
+    public function getBatchAttribute()
+    {
+        if ($this->relationLoaded('batch') && $this->getRelation('batch')) {
+            return $this->getRelation('batch');
+        }
+        $rel = $this->batch()->getResults();
+        if ($rel) return $rel;
+
+        if (!empty($this->production_batch_id)) {
+            return ProductionBatch::where('batch_code', $this->production_batch_id)->first();
+        }
+        return null;
+    }
+
     /**
      * Get the manufacturing product.
      */

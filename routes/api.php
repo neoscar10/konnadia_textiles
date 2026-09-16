@@ -543,34 +543,6 @@ Route::prefix('v1')->group(function () {
                     Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'options']);
                     Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'show'])->where('id', '[0-9]+');
                     Route::get('/{id}/cost-summary', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'costSummary'])->where('id', '[0-9]+');
-                    Route::get('/{id}/debug', function(int $id) {
-                        try {
-                            $job = \App\Models\ProductionJob::find($id);
-                            $costingService = app(\App\Services\Manufacturing\ProductionCostingService::class);
-                            $batch = $job ? $job->batch : null;
-                            $batchConsumptions = $batch ? \App\Models\ProductionBatchConsumption::where('production_batch_id', $batch->id)->get() : [];
-                            $jobConsumptions = \App\Models\JobMaterialConsumption::where('production_job_id', $id)->get();
-                            $allBatchJobConsumptions = $batch ? \App\Models\JobMaterialConsumption::whereIn('production_job_id', $batch->jobs->pluck('id'))->get() : [];
-                            $jobCostSummary = $job ? $costingService->getJobCostSummary($id) : [];
-                            
-                            return response()->json([
-                                'job' => $job,
-                                'batch' => $batch,
-                                'batch_jobs' => $batch?->jobs,
-                                'batch_consumptions' => $batchConsumptions,
-                                'job_consumptions' => $jobConsumptions,
-                                'all_batch_job_consumptions' => $allBatchJobConsumptions,
-                                'job_cost_summary' => $jobCostSummary,
-                            ]);
-                        } catch (\Throwable $e) {
-                            return response()->json([
-                                'error' => $e->getMessage(),
-                                'file' => $e->getFile(),
-                                'line' => $e->getLine(),
-                                'trace' => $e->getTraceAsString(),
-                            ], 500);
-                        }
-                    })->where('id', '[0-9]+');
                     Route::post('/{id}/assign-laborers', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'assignLaborers'])->where('id', '[0-9]+');
                     Route::post('/{id}/record-output', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'recordOutput'])->where('id', '[0-9]+');
                     Route::post('/{id}/record-alteration', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'recordAlteration'])->where('id', '[0-9]+');

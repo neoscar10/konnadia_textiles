@@ -237,15 +237,13 @@ class ProductionCostingService
             if ($allocatedWastage > 0) {
                 $totalWastageCost = $allocatedWastage;
             } else {
-                $cuttingConsumptions = JobMaterialConsumption::whereIn('production_job_id', $jobIds)
-                    ->where(function($q) {
-                        $q->whereHas('inventoryBatch.rawMaterial.category', fn($cq) => $cq->where('code', 'CAT-FAB')->orWhere('code', 'like', '%FAB%')->orWhere('name', 'like', '%Fabric%'))
-                          ->orWhereNotNull('inventory_bale_roll_id')
-                          ->orWhere('consumed_length', '>', 0)
-                          ->orWhere('quantity_consumed', '>', 0);
-                    })
-                    ->get();
-                if ($cuttingConsumptions->isEmpty()) {
+                $cuttingConsumptions = JobMaterialConsumption::where(function($q) use ($jobIds, $jobCodes) {
+                    $q->whereIn('production_job_id', $jobIds)->orWhereIn('job_code', $jobCodes);
+                })->where(function($q) {
+                    $q->whereNotNull('inventory_bale_roll_id')
+                      ->orWhere('consumed_length', '>', 0);
+                })->get();
+                if ($cuttingConsumptions->isEmpty() && $batch && class_exists('\App\Models\ProductionBatchConsumption')) {
                     $cuttingConsumptions = \App\Models\ProductionBatchConsumption::where('production_batch_id', $batch->id)
                         ->where(function($q) {
                             $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
@@ -448,188 +446,166 @@ class ProductionCostingService
         // 6. Labor Wages (Job specific)
         $totalLaborCost = (float) $job->allocations()->sum('calculated_wage');
 
-        // 7. Wastage Log (Job specific or pro-rata if logged on shared roll)
+        // 7. Wastage Log & Costs (Area-Weighted Shared Cutting Stage Wastage + Direct Job Incidents)
         $defaultJobFabricRate = (float) $job->materialConsumptions()
             ->whereHas('inventoryBatch.rawMaterial.category', fn($q) => $q->where('code', 'CAT-FAB'))
             ->avg('unit_cost') ?: 150.00;
 
         $wastageLog = [];
-        $wastages = $job->wastages()->with(['manufacturingProduct', 'task', 'inventoryBaleRoll.bale'])->get();
 
-        if ($wastages->isEmpty() && $batchSummary['total_wastage_cost'] > 0) {
-            if (!empty($batchSummary['wastage_details']['wastage_log'])) {
-                foreach ($batchSummary['wastage_details']['wastage_log'] as $bW) {
-                    $apportionedWastageCost = round($bW['total_cost'] * $apportionRatio, 2);
-                    $wastageLog[] = [
-                        'product_name'    => $bW['product_name'] . ' (Apportioned)',
-                        'task_name'       => $bW['task_name'],
-                        'quantity_wasted' => round($bW['quantity_wasted'] * $apportionRatio, 2),
-                        'unit_cost'       => $bW['unit_cost'],
-                        'total_cost'      => $apportionedWastageCost,
-                    ];
-                }
-            } else {
-                $allocatedWastageCost = round($batchSummary['total_wastage_cost'] * $apportionRatio, 2);
-                $wastageLog[] = [
-                    'product_name'    => 'Shared Cutting Stage Wastage Allocation',
-                    'task_name'       => 'Cutting',
-                    'quantity_wasted' => 1,
-                    'unit_cost'       => $allocatedWastageCost,
-                    'total_cost'      => $allocatedWastageCost,
+        $jobIds = $batchJobs->pluck('id')->all();
+        $jobCodes = $batchJobs->pluck('job_code')->filter()->all();
+        if (empty($jobIds)) $jobIds = [$job->id];
+        if (empty($jobCodes) && $job->job_code) $jobCodes = [$job->job_code];
+
+        // Check for area-weighted shared cutting stage wastage from cutting roll consumptions
+        $cuttingConsumptions = \App\Models\JobMaterialConsumption::where(function($q) use ($jobIds, $jobCodes) {
+            $q->whereIn('production_job_id', $jobIds)->orWhereIn('job_code', $jobCodes);
+        })->where(function($q) {
+            $q->whereNotNull('inventory_bale_roll_id')
+              ->orWhere('consumed_length', '>', 0);
+        })->get();
+
+        if ($cuttingConsumptions->isEmpty() && $batch && class_exists('\App\Models\ProductionBatchConsumption')) {
+            $cuttingConsumptions = \App\Models\ProductionBatchConsumption::where(function($q) use ($batch) {
+                $q->where('production_batch_id', $batch->id)->orWhere('production_batch_id', $batch->batch_code);
+            })->where(function($q) {
+                $q->whereNotNull('inventory_bale_roll_id')
+                  ->orWhere('consumed_length', '>', 0);
+            })->get();
+        }
+
+        if ($cuttingConsumptions->isNotEmpty()) {
+            $targetOutputs = [];
+            foreach ($batchJobs as $bj) {
+                $targetOutputs[] = [
+                    'manufacturing_product_id' => $bj->manufacturing_product_id,
+                    'planned_quantity' => $bj->target_quantity,
+                    'pattern_id' => $bj->pattern_id,
                 ];
             }
-        } else {
-            foreach ($wastages as $w) {
-                $unitCost = $defaultJobFabricRate;
-                if ($w->inventoryBaleRoll?->bale?->unit_cost) {
-                    $unitCost = (float) $w->inventoryBaleRoll->bale->unit_cost;
+
+            $groupedByRoll = $cuttingConsumptions->groupBy('inventory_bale_roll_id');
+
+            foreach ($groupedByRoll as $rollId => $cGroup) {
+                $firstCons = $cGroup->first();
+                $rollModel = $firstCons->inventoryBaleRoll ?? ($rollId ? \App\Models\InventoryBaleRoll::find($rollId) : null);
+                $rawMat = $firstCons->inventoryBatch?->rawMaterial 
+                    ?? $rollModel?->rawMaterial 
+                    ?? $rollModel?->bale?->rawMaterial 
+                    ?? $rollModel?->bale?->batch?->rawMaterial
+                    ?? \App\Models\RawMaterial::whereHas('category', fn($q)=>$q->where('code', 'CAT-FAB'))->first();
+
+                $totalCutLenForRoll = (float) $cGroup->sum(fn($c) => (float) ($c->consumed_length ?: $c->quantity_consumed));
+                $rawRate = (float) ($firstCons->unit_cost ?? 0);
+                if ($rawRate <= 0) {
+                    $rawRate = (float) ($rollModel?->bale?->cost_per_unit 
+                        ?? $rollModel?->bale?->total_cost 
+                        ?? $rollModel?->bale?->batch?->purchase_rate 
+                        ?? $firstCons->inventoryBatch?->purchase_rate 
+                        ?? $rawMat?->purchase_rate 
+                        ?? 150.00);
                 }
+                $rate = $rawRate > 0 ? $rawRate : 150.00;
 
-                $qty = (float) $w->quantity_wasted;
-                $wCost = round($qty * $unitCost, 2);
-
-                $reason = trim($w->reason ?? '');
-                $prodName = $w->manufacturingProduct?->name;
-
-                if (!empty($reason)) {
-                    $title = $reason;
-                    if ($prodName && !str_contains(strtolower($reason), strtolower($prodName))) {
-                        $title .= " ({$prodName})";
-                    }
-                } else {
-                    $title = $prodName ? "Defective Piece - {$prodName}" : "Damaged Material / Scrap";
-                }
-
-                $wastageLog[] = [
-                    'product_name'    => $title,
-                    'task_name'       => $w->task?->name ?? 'Production',
-                    'quantity_wasted' => $qty,
-                    'unit_cost'       => $unitCost,
-                    'total_cost'      => $wCost,
-                ];
-            }
-        }
-
-        $totalWastageCost = array_sum(array_column($wastageLog, 'total_cost'));
-        if ($totalWastageCost === 0.0 && (float) $job->materialConsumptions()->sum('allocated_wastage_cost') > 0) {
-            $allocatedWastageCost = (float) $job->materialConsumptions()->sum('allocated_wastage_cost');
-            $totalWastageCost = $allocatedWastageCost;
-            $wastageLog[] = [
-                'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
-                'task_name'       => 'Cutting',
-                'quantity_wasted' => 1,
-                'unit_cost'       => $allocatedWastageCost,
-                'total_cost'      => $allocatedWastageCost,
-            ];
-        }
-
-        if ($totalWastageCost === 0.0 && (float) \App\Models\JobMaterialConsumption::whereIn('production_job_id', $jobIds)->sum('allocated_wastage_cost') > 0) {
-            $allocatedWastageCost = round((float) \App\Models\JobMaterialConsumption::whereIn('production_job_id', $jobIds)->sum('allocated_wastage_cost') * $apportionRatio, 2);
-            $totalWastageCost = $allocatedWastageCost;
-            $wastageLog[] = [
-                'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
-                'task_name'       => 'Cutting',
-                'quantity_wasted' => 1,
-                'unit_cost'       => $allocatedWastageCost,
-                'total_cost'      => $allocatedWastageCost,
-            ];
-        }
-
-        if ($totalWastageCost === 0.0) {
-            $cuttingConsumptions = \App\Models\JobMaterialConsumption::whereIn('production_job_id', $batchJobs->pluck('id'))
-                ->where(function($q) {
-                    $q->whereHas('inventoryBatch.rawMaterial.category', fn($cq) => $cq->where('code', 'CAT-FAB')->orWhere('code', 'like', '%FAB%')->orWhere('name', 'like', '%Fabric%'))
-                      ->orWhereNotNull('inventory_bale_roll_id')
-                      ->orWhere('consumed_length', '>', 0)
-                      ->orWhere('quantity_consumed', '>', 0);
-                })
-                ->get();
-            if ($cuttingConsumptions->isEmpty() && $batch) {
-                $cuttingConsumptions = \App\Models\ProductionBatchConsumption::where('production_batch_id', $batch->id)
-                    ->where(function($q) {
-                        $q->whereHas('inventoryBatch.rawMaterial.category', fn($cq) => $cq->where('code', 'CAT-FAB')->orWhere('code', 'like', '%FAB%')->orWhere('name', 'like', '%Fabric%'))
-                          ->orWhereNotNull('inventory_bale_roll_id')
-                          ->orWhere('consumed_length', '>', 0)
-                          ->orWhere('quantity_consumed', '>', 0);
-                    })
-                    ->get();
-            }
-            if ($cuttingConsumptions->isNotEmpty()) {
-                $targetOutputs = [];
-                foreach ($batchJobs as $bj) {
-                    $targetOutputs[] = [
-                        'manufacturing_product_id' => $bj->manufacturing_product_id,
-                        'planned_quantity' => $bj->target_quantity,
-                        'pattern_id' => $bj->pattern_id,
-                    ];
-                }
-
-                $groupedByRoll = $cuttingConsumptions->groupBy('inventory_bale_roll_id');
-
-                foreach ($groupedByRoll as $rollId => $cGroup) {
-                    $firstCons = $cGroup->first();
-                    $rollModel = $firstCons->inventoryBaleRoll ?? ($rollId ? \App\Models\InventoryBaleRoll::find($rollId) : null);
-                    $rawMat = $firstCons->inventoryBatch?->rawMaterial 
-                        ?? $rollModel?->rawMaterial 
-                        ?? $rollModel?->bale?->rawMaterial 
-                        ?? $rollModel?->bale?->batch?->rawMaterial
-                        ?? \App\Models\RawMaterial::whereHas('category', fn($q)=>$q->where('code', 'CAT-FAB'))->first();
-
-                    $totalCutLenForRoll = (float) $cGroup->sum(fn($c) => (float) ($c->consumed_length ?: $c->quantity_consumed));
-                    $rawRate = (float) ($firstCons->unit_cost ?? 0);
-                    if ($rawRate <= 0) {
-                        $rawRate = (float) ($rollModel?->bale?->cost_per_unit 
-                            ?? $rollModel?->bale?->total_cost 
-                            ?? $rollModel?->bale?->batch?->purchase_rate 
-                            ?? $firstCons->inventoryBatch?->purchase_rate 
-                            ?? $rawMat?->purchase_rate 
-                            ?? 150.00);
-                    }
-                    $rate = $rawRate > 0 ? $rawRate : 150.00;
-
-                    if ($totalCutLenForRoll > 0) {
-                        $rollContext = $rollModel ?? $rawMat;
-                        if ($rollContext) {
-                            $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
-                            $compositeKey = $job->pattern_id ? "{$job->manufacturing_product_id}_{$job->pattern_id}" : $job->manufacturing_product_id;
-                            $pDetails = $bd['product_details'][$compositeKey] ?? $bd['product_details'][$job->manufacturing_product_id] ?? null;
-                            if (!$pDetails && !empty($bd['product_details'])) {
-                                foreach ($bd['product_details'] as $pKey => $pVal) {
-                                    if (isset($pVal['product_id']) && (int)$pVal['product_id'] === (int)$job->manufacturing_product_id) {
-                                        $pDetails = $pVal;
-                                        break;
-                                    }
+                if ($totalCutLenForRoll > 0) {
+                    $rollContext = $rollModel ?? $rawMat;
+                    if ($rollContext) {
+                        $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
+                        $compositeKey = $job->pattern_id ? "{$job->manufacturing_product_id}_{$job->pattern_id}" : $job->manufacturing_product_id;
+                        $pDetails = $bd['product_details'][$compositeKey] ?? $bd['product_details'][$job->manufacturing_product_id] ?? null;
+                        if (!$pDetails && !empty($bd['product_details'])) {
+                            foreach ($bd['product_details'] as $pKey => $pVal) {
+                                if (isset($pVal['product_id']) && (int)$pVal['product_id'] === (int)$job->manufacturing_product_id) {
+                                    $pDetails = $pVal;
+                                    break;
                                 }
                             }
-                            if ($pDetails && !empty($pDetails['allocated_wastage_cost'])) {
-                                $itemWastageCost = (float) $pDetails['allocated_wastage_cost'];
-                                $totalWastageCost += $itemWastageCost;
-                                $itemWastageSqm = (float) ($pDetails['allocated_wastage_sqm'] ?? 0);
-                                $unitWastageCost = $itemWastageSqm > 0 ? round($itemWastageCost / $itemWastageSqm, 2) : $itemWastageCost;
-                                $wastageLog[] = [
-                                    'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
-                                    'task_name'       => 'Cutting',
-                                    'quantity_wasted' => $itemWastageSqm > 0 ? round($itemWastageSqm, 4) : 1,
-                                    'unit_cost'       => $unitWastageCost,
-                                    'total_cost'      => round($itemWastageCost, 2),
-                                ];
-                            } elseif (!empty($bd['total_wastage_cost'])) {
-                                $apportionedCost = round((float)$bd['total_wastage_cost'] * $apportionRatio, 2);
-                                $totalWastageCost += $apportionedCost;
-                                $wastageLog[] = [
-                                    'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
-                                    'task_name'       => 'Cutting',
-                                    'quantity_wasted' => 1,
-                                    'unit_cost'       => $apportionedCost,
-                                    'total_cost'      => $apportionedCost,
-                                ];
-                            }
+                        }
+
+                        if ($pDetails && !empty($pDetails['allocated_wastage_cost'])) {
+                            $itemWastageCost = (float) $pDetails['allocated_wastage_cost'];
+                            $itemWastageSqm = (float) ($pDetails['allocated_wastage_sqm'] ?? 0);
+                            $unitWastageCost = $itemWastageSqm > 0 ? round($itemWastageCost / $itemWastageSqm, 2) : $itemWastageCost;
+                            $wastageLog[] = [
+                                'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
+                                'task_name'       => 'Cutting',
+                                'quantity_wasted' => $itemWastageSqm > 0 ? round($itemWastageSqm, 4) : 1,
+                                'unit_cost'       => $unitWastageCost,
+                                'total_cost'      => round($itemWastageCost, 2),
+                            ];
+                        } elseif (!empty($bd['total_wastage_cost'])) {
+                            $apportionedCost = round((float)$bd['total_wastage_cost'] * $apportionRatio, 2);
+                            $wastageLog[] = [
+                                'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
+                                'task_name'       => 'Cutting',
+                                'quantity_wasted' => 1,
+                                'unit_cost'       => $apportionedCost,
+                                'total_cost'      => $apportionedCost,
+                            ];
                         }
                     }
                 }
             }
         }
 
+        // Direct job wastage incidents (e.g. defective pieces logged during production)
+        $wastages = $job->wastages()->with(['manufacturingProduct', 'task', 'inventoryBaleRoll.bale'])->get();
+        foreach ($wastages as $w) {
+            $unitCost = $defaultJobFabricRate;
+            if ($w->inventoryBaleRoll?->bale?->unit_cost) {
+                $unitCost = (float) $w->inventoryBaleRoll->bale->unit_cost;
+            }
+
+            $qty = (float) $w->quantity_wasted;
+            $wCost = round($qty * $unitCost, 2);
+
+            $reason = trim($w->reason ?? '');
+            $prodName = $w->manufacturingProduct?->name;
+
+            if (!empty($reason)) {
+                $title = $reason;
+                if ($prodName && !str_contains(strtolower($reason), strtolower($prodName))) {
+                    $title .= " ({$prodName})";
+                }
+            } else {
+                $title = $prodName ? "Defective Piece - {$prodName}" : "Damaged Material / Scrap";
+            }
+
+            $wastageLog[] = [
+                'product_name'    => $title,
+                'task_name'       => $w->task?->name ?? 'Production',
+                'quantity_wasted' => $qty,
+                'unit_cost'       => $unitCost,
+                'total_cost'      => $wCost,
+            ];
+        }
+
+        // Explicit allocated_wastage_cost fallback on consumption record
+        if (empty($wastageLog) && (float) $job->materialConsumptions()->sum('allocated_wastage_cost') > 0) {
+            $allocatedWastageCost = (float) $job->materialConsumptions()->sum('allocated_wastage_cost');
+            $wastageLog[] = [
+                'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
+                'task_name'       => 'Cutting',
+                'quantity_wasted' => 1,
+                'unit_cost'       => $allocatedWastageCost,
+                'total_cost'      => $allocatedWastageCost,
+            ];
+        }
+
+        // Pro-rata batch fallback if no roll details available
+        if (empty($wastageLog) && $batchSummary['total_wastage_cost'] > 0) {
+            $allocatedWastageCost = round($batchSummary['total_wastage_cost'] * $apportionRatio, 2);
+            $wastageLog[] = [
+                'product_name'    => 'Shared Cutting Stage Wastage Allocation',
+                'task_name'       => 'Cutting',
+                'quantity_wasted' => 1,
+                'unit_cost'       => $allocatedWastageCost,
+                'total_cost'      => $allocatedWastageCost,
+            ];
+        }
+
+        $totalWastageCost = array_sum(array_column($wastageLog, 'total_cost'));
         $totalManufacturingCost = $totalMaterialCost + $totalLaborCost + $totalWastageCost;
 
         $finishedUnits = (int) $job->total_produced_quantity;
