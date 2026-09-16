@@ -132,11 +132,17 @@ class AdminProductionBatchController extends Controller
             ], 404);
         }
 
-        $jobs = ProductionJob::where('production_batch_id', $batch->batch_code)
+        $jobQuery = ProductionJob::where('production_batch_id', $batch->batch_code)
             ->orWhere('production_batch_db_id', $batch->id)
-            ->with(['task', 'manufacturingProduct', 'stageExecutions.task'])
-            ->orderBy('sequence_index', 'asc')
-            ->get();
+            ->with(['task', 'manufacturingProduct', 'stageExecutions.task']);
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('production_jobs', 'sequence_index')) {
+            $jobQuery->orderBy('sequence_index', 'asc');
+        } else {
+            $jobQuery->orderBy('id', 'asc');
+        }
+
+        $jobs = $jobQuery->get();
 
         return response()->json([
             'success' => true,
@@ -195,12 +201,15 @@ class AdminProductionBatchController extends Controller
             ], 404);
         }
 
-        $unconvertedJobs = ProductionJob::where('production_batch_id', $batch->batch_code)
+        $unconvertedQuery = ProductionJob::where('production_batch_id', $batch->batch_code)
             ->orWhere('production_batch_db_id', $batch->id)
-            ->where('status', 'completed')
-            ->where('remaining_unconverted_quantity', '>', 0)
-            ->with(['manufacturingProduct'])
-            ->get();
+            ->where('status', 'completed');
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('production_jobs', 'remaining_unconverted_quantity')) {
+            $unconvertedQuery->where('remaining_unconverted_quantity', '>', 0);
+        }
+
+        $unconvertedJobs = $unconvertedQuery->with(['manufacturingProduct'])->get();
 
         $storefrontProducts = Product::where('is_active', true)
             ->with(['units', 'combinations'])

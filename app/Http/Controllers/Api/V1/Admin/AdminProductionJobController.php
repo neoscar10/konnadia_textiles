@@ -87,7 +87,9 @@ class AdminProductionJobController extends Controller
         $totalJobs = ProductionJob::count();
         $inProgressJobs = ProductionJob::where('status', 'in_progress')->count();
         $completedJobs = ProductionJob::where('status', 'completed')->count();
-        $unconvertedQty = (int) ProductionJob::where('status', 'completed')->sum('remaining_unconverted_quantity');
+        $unconvertedQty = \Illuminate\Support\Facades\Schema::hasColumn('production_jobs', 'remaining_unconverted_quantity')
+            ? (int) ProductionJob::where('status', 'completed')->sum('remaining_unconverted_quantity')
+            : 0;
 
         return response()->json([
             'success' => true,
