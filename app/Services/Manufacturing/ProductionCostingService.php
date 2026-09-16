@@ -239,7 +239,10 @@ class ProductionCostingService
             } else {
                 $cuttingConsumptions = JobMaterialConsumption::whereIn('production_job_id', $jobIds)
                     ->where(function($q) {
-                        $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
+                        $q->whereHas('inventoryBatch.rawMaterial.category', fn($cq) => $cq->where('code', 'CAT-FAB')->orWhere('code', 'like', '%FAB%')->orWhere('name', 'like', '%Fabric%'))
+                          ->orWhereNotNull('inventory_bale_roll_id')
+                          ->orWhere('consumed_length', '>', 0)
+                          ->orWhere('quantity_consumed', '>', 0);
                     })
                     ->get();
                 if ($cuttingConsumptions->isEmpty()) {
@@ -531,13 +534,19 @@ class ProductionCostingService
         if ($totalWastageCost === 0.0) {
             $cuttingConsumptions = \App\Models\JobMaterialConsumption::whereIn('production_job_id', $batchJobs->pluck('id'))
                 ->where(function($q) {
-                    $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
+                    $q->whereHas('inventoryBatch.rawMaterial.category', fn($cq) => $cq->where('code', 'CAT-FAB')->orWhere('code', 'like', '%FAB%')->orWhere('name', 'like', '%Fabric%'))
+                      ->orWhereNotNull('inventory_bale_roll_id')
+                      ->orWhere('consumed_length', '>', 0)
+                      ->orWhere('quantity_consumed', '>', 0);
                 })
                 ->get();
             if ($cuttingConsumptions->isEmpty() && $batch) {
                 $cuttingConsumptions = \App\Models\ProductionBatchConsumption::where('production_batch_id', $batch->id)
                     ->where(function($q) {
-                        $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
+                        $q->whereHas('inventoryBatch.rawMaterial.category', fn($cq) => $cq->where('code', 'CAT-FAB')->orWhere('code', 'like', '%FAB%')->orWhere('name', 'like', '%Fabric%'))
+                          ->orWhereNotNull('inventory_bale_roll_id')
+                          ->orWhere('consumed_length', '>', 0)
+                          ->orWhere('quantity_consumed', '>', 0);
                     })
                     ->get();
             }
