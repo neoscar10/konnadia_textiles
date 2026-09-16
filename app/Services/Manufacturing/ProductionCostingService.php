@@ -508,28 +508,32 @@ class ProductionCostingService
         }
 
         if ($totalWastageCost === 0.0) {
-            $cuttingConsumptions = \App\Models\JobMaterialConsumption::whereIn('production_job_id', $jobIds)
+            $cuttingConsumptions = \App\Models\JobMaterialConsumption::whereIn('production_job_id', $batchJobs->pluck('id'))
                 ->where(function($q) {
                     $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
                 })
                 ->get();
             if ($cuttingConsumptions->isNotEmpty()) {
+                $targetOutputs = [];
+                foreach ($batchJobs as $bj) {
+                    $targetOutputs[] = [
+                        'manufacturing_product_id' => $bj->manufacturing_product_id,
+                        'planned_quantity' => $bj->target_quantity,
+                        'pattern_id' => $bj->pattern_id,
+                    ];
+                }
+
                 foreach ($cuttingConsumptions as $cCons) {
                     $cutLen = (float) ($cCons->consumed_length ?: $cCons->quantity_consumed);
                     $rate = (float) $cCons->unit_cost;
-                    $rawMat = $cCons->inventoryBatch?->rawMaterial;
+                    $rawMat = $cCons->inventoryBatch?->rawMaterial ?? $cCons->inventoryBaleRoll?->bale?->rawMaterial;
                     if ($rawMat && $cutLen > 0) {
-                        $targetOutputs = [
-                            [
-                                'manufacturing_product_id' => $job->manufacturing_product_id,
-                                'planned_quantity' => $job->target_quantity,
-                                'pattern_id' => $job->pattern_id,
-                            ]
-                        ];
                         $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMat, $targetOutputs, $rate);
-                        $wCost = (float) ($bd['total_wastage_cost'] ?? 0);
-                        if ($wCost > 0) {
-                            $totalWastageCost += round($wCost * $apportionRatio, 2);
+                        $pDetails = $bd['product_details'][$job->manufacturing_product_id] ?? null;
+                        if ($pDetails && !empty($pDetails['allocated_wastage_cost'])) {
+                            $totalWastageCost += (float) $pDetails['allocated_wastage_cost'];
+                        } elseif (!empty($bd['total_wastage_cost'])) {
+                            $totalWastageCost += round((float)$bd['total_wastage_cost'] * $apportionRatio, 2);
                         }
                     }
                 }
