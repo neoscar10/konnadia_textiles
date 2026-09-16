@@ -344,6 +344,10 @@ class ProductionCostingService
      */
     public function getJobCostSummary(int $jobId): array
     {
+        if (function_exists('opcache_invalidate')) {
+            @opcache_invalidate(__FILE__, true);
+        }
+
         $job = \App\Models\ProductionJob::with(['batch', 'materialConsumptions.inventoryBatch.rawMaterial.category', 'allocations', 'wastages'])->findOrFail($jobId);
         $batchId = $job->production_batch_db_id ?: $job->batch?->id;
         $batch = $job->batch ?: \App\Models\ProductionBatch::find($batchId);
