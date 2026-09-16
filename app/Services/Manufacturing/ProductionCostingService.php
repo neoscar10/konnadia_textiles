@@ -263,7 +263,16 @@ class ProductionCostingService
                             ?? \App\Models\RawMaterial::whereHas('category', fn($q)=>$q->where('code', 'CAT-FAB'))->first();
 
                         $totalCutLenForRoll = (float) $cGroup->sum(fn($c) => (float) ($c->consumed_length ?: $c->quantity_consumed));
-                        $rate = (float) ($firstCons->unit_cost ?: ($rollModel?->bale?->unit_cost ?? 150.00));
+                        $rawRate = (float) ($firstCons->unit_cost ?? 0);
+                        if ($rawRate <= 0) {
+                            $rawRate = (float) ($rollModel?->bale?->cost_per_unit 
+                                ?? $rollModel?->bale?->total_cost 
+                                ?? $rollModel?->bale?->batch?->purchase_rate 
+                                ?? $firstCons->inventoryBatch?->purchase_rate 
+                                ?? $rawMat?->purchase_rate 
+                                ?? 150.00);
+                        }
+                        $rate = $rawRate > 0 ? $rawRate : 150.00;
 
                         if ($totalCutLenForRoll > 0) {
                             $targetOutputs = [];
@@ -554,7 +563,16 @@ class ProductionCostingService
                         ?? \App\Models\RawMaterial::whereHas('category', fn($q)=>$q->where('code', 'CAT-FAB'))->first();
 
                     $totalCutLenForRoll = (float) $cGroup->sum(fn($c) => (float) ($c->consumed_length ?: $c->quantity_consumed));
-                    $rate = (float) ($firstCons->unit_cost ?: ($rollModel?->bale?->unit_cost ?? 150.00));
+                    $rawRate = (float) ($firstCons->unit_cost ?? 0);
+                    if ($rawRate <= 0) {
+                        $rawRate = (float) ($rollModel?->bale?->cost_per_unit 
+                            ?? $rollModel?->bale?->total_cost 
+                            ?? $rollModel?->bale?->batch?->purchase_rate 
+                            ?? $firstCons->inventoryBatch?->purchase_rate 
+                            ?? $rawMat?->purchase_rate 
+                            ?? 150.00);
+                    }
+                    $rate = $rawRate > 0 ? $rawRate : 150.00;
 
                     if ($totalCutLenForRoll > 0) {
                         $rollContext = $rollModel ?? $rawMat;
