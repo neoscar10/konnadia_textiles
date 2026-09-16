@@ -322,6 +322,12 @@ class FabricCuttingAreaService
         if ($pattern) {
             $resolved = self::resolvePatternFabricWidth($pattern, $rawMaterialOrWidth);
             if (!$resolved['is_configured'] || $resolved['length'] <= 0 || $resolved['width'] <= 0) {
+                if ($rawMaterialOrWidth !== null) {
+                    $resolved = self::resolvePatternFabricWidth($pattern, null);
+                }
+            }
+
+            if (!$resolved['is_configured'] || $resolved['length'] <= 0 || $resolved['width'] <= 0) {
                 return 0.0;
             }
 
@@ -555,8 +561,9 @@ class FabricCuttingAreaService
             $itemReqLength = $pieceReqLength * $qty;
             $totalStandardRequiredLength += $itemReqLength;
 
-            $productDetails[$productId] = [
+            $itemDetails = [
                 'product_id' => $product->id,
+                'pattern_id' => $patternId,
                 'name' => $product->name,
                 'code' => $product->code,
                 'piece_area_base' => $pieceAreaBase,
@@ -565,6 +572,11 @@ class FabricCuttingAreaService
                 'total_req_length' => $itemReqLength,
                 'total_used_area_base' => $itemTotalUsedAreaBase,
             ];
+
+            $productDetails[$productId] = $itemDetails;
+            if ($patternId) {
+                $productDetails["{$productId}_{$patternId}"] = $itemDetails;
+            }
         }
 
         $remainingAreaBase = max(0.0, $cutAreaBase - $totalUsedAreaBase);

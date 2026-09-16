@@ -541,7 +541,8 @@ class ProductionCostingService
                     if ($rawMat && $totalCutLenForRoll > 0) {
                         $rollContext = $rollModel ?? $rawMat;
                         $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
-                        $pDetails = $bd['product_details'][$job->manufacturing_product_id] ?? null;
+                        $compositeKey = $job->pattern_id ? "{$job->manufacturing_product_id}_{$job->pattern_id}" : $job->manufacturing_product_id;
+                        $pDetails = $bd['product_details'][$compositeKey] ?? $bd['product_details'][$job->manufacturing_product_id] ?? null;
                         if ($pDetails && !empty($pDetails['allocated_wastage_cost'])) {
                             $totalWastageCost += (float) $pDetails['allocated_wastage_cost'];
                         } elseif (!empty($bd['total_wastage_cost'])) {
