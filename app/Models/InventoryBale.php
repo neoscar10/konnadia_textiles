@@ -39,6 +39,18 @@ class InventoryBale extends Model
         return $this->belongsTo(InventoryBatch::class, 'inventory_batch_id');
     }
 
+    public function rawMaterial()
+    {
+        return $this->hasOneThrough(
+            RawMaterial::class,
+            InventoryBatch::class,
+            'id', // Foreign key on InventoryBatch table...
+            'id', // Foreign key on RawMaterial table...
+            'inventory_batch_id', // Local key on InventoryBale table...
+            'raw_material_id' // Local key on InventoryBatch table...
+        );
+    }
+
     public function rolls()
     {
         return $this->hasMany(InventoryBaleRoll::class, 'inventory_bale_id');
