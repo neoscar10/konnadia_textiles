@@ -200,6 +200,36 @@ class AdminProductionJobController extends Controller
     }
 
     /**
+     * Get 360-degree real manufacturing cost summary breakdown for a production job.
+     */
+    public function costSummary(int $id): JsonResponse
+    {
+        $job = ProductionJob::find($id);
+        if (!$job) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Production job not found.',
+            ], 404);
+        }
+
+        $costingService = app(\App\Services\Manufacturing\ProductionCostingService::class);
+        $summary = $costingService->getJobCostSummary($id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Job cost summary retrieved successfully.',
+            'job_id' => $id,
+            'job_code' => $job->job_code,
+            'shared_cutting_wastage' => [
+                'total_wastage_cost' => $summary['total_wastage_cost'] ?? 0.0,
+                'summary_text' => $summary['wastage_details']['summary_text'] ?? '0.00 M (No cutting wastage)',
+                'wastage_log' => $summary['wastage_details']['wastage_log'] ?? [],
+            ],
+            'cost_summary' => $summary,
+        ]);
+    }
+
+    /**
      * Assign laborers and piece rates to a job step.
      */
     public function assignLaborers(AssignJobLaborersRequest $request, int $id)

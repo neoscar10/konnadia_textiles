@@ -542,6 +542,7 @@ Route::prefix('v1')->group(function () {
                     Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'index']);
                     Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'options']);
                     Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'show'])->where('id', '[0-9]+');
+                    Route::get('/{id}/cost-summary', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'costSummary'])->where('id', '[0-9]+');
                     Route::post('/{id}/assign-laborers', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'assignLaborers'])->where('id', '[0-9]+');
                     Route::post('/{id}/record-output', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'recordOutput'])->where('id', '[0-9]+');
                     Route::post('/{id}/record-alteration', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'recordAlteration'])->where('id', '[0-9]+');
