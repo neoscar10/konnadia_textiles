@@ -290,34 +290,84 @@
                                                         @endif
                                                     </div>
                                                     <span class="text-xs font-bold text-on-surface-variant">
-                                                        Available Stock: <strong class="text-on-surface px-2 py-0.5 bg-surface-container rounded-lg font-mono">{{ $roll->current_balance_length }}m</strong> / {{ $roll->initial_length }}m
+                                                        @if($isSelected && isset($rollData['selected_unit_id']))
+                                                            @php
+                                                                $availableUnitsHeader = $this->getAvailableUnitsForMaterial($fabRow['raw_material_id'] ?? $roll->raw_material_id ?: $roll->bale?->batch?->raw_material_id);
+                                                                $headerUnitModel = $availableUnitsHeader->firstWhere('id', $rollData['selected_unit_id']);
+                                                                $headerUnitCode = $headerUnitModel ? $headerUnitModel->short_code : 'm';
+                                                                $maxInHeaderUnit = $this->convertLengthFromMeters((float)$roll->current_balance_length, $rollData['selected_unit_id']);
+                                                                $maxInHeaderUnitDisp = (round($maxInHeaderUnit, 4) == round($maxInHeaderUnit, 0)) ? round($maxInHeaderUnit, 0) : round($maxInHeaderUnit, 2);
+                                                            @endphp
+                                                            Available Stock: <strong class="text-on-surface px-2 py-0.5 bg-surface-container rounded-lg font-mono">{{ $maxInHeaderUnitDisp }}{{ $headerUnitCode }}</strong>
+                                                            @if($headerUnitCode !== 'm' && $headerUnitCode !== 'M')
+                                                                <span class="text-[11px] text-on-surface-variant font-mono">({{ $roll->current_balance_length }}m)</span>
+                                                            @endif
+                                                            / {{ $roll->initial_length }}m
+                                                        @else
+                                                            Available Stock: <strong class="text-on-surface px-2 py-0.5 bg-surface-container rounded-lg font-mono">{{ $roll->current_balance_length }}m</strong> / {{ $roll->initial_length }}m
+                                                        @endif
                                                     </span>
                                                 </div>
 
-                                                @if($isSelected && $rollData)
-                                                    <div class="space-y-5 pt-4">
-                                                        <!-- Cut Length Control Row -->
-                                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/40">
-                                                            <div class="flex items-center gap-2 flex-1 max-w-md">
-                                                                <label class="text-xs font-extrabold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Cut Length (m) *</label>
-                                                                <input
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length"
-                                                                    max="{{ $roll->current_balance_length }}"
-                                                                    placeholder="Length in meters..."
-                                                                    class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-extrabold text-on-surface focus:border-primary focus:outline-none"
-                                                                />
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                wire:click="setFullRollCut({{ $fIdx }}, {{ $roll->id }})"
-                                                                class="px-4 py-2 bg-primary text-on-primary font-bold text-xs rounded-xl shadow-xs hover:bg-primary-container transition-all flex items-center justify-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
-                                                            >
-                                                                <span class="material-symbols-outlined text-[16px]">content_cut</span>
-                                                                Cut Full Roll ({{ $roll->current_balance_length }}m)
-                                                            </button>
-                                                        </div>
+                                                 @if($isSelected && $rollData)
+                                                     @php
+                                                         $availableUnits = $this->getAvailableUnitsForMaterial($fabRow['raw_material_id'] ?? $roll->raw_material_id ?: $roll->bale?->batch?->raw_material_id);
+                                                         $selUnitId = $rollData['selected_unit_id'] ?? null;
+                                                         $selUnitModel = $selUnitId ? $availableUnits->firstWhere('id', $selUnitId) : null;
+                                                         $selUnitCode = $selUnitModel ? $selUnitModel->short_code : 'm';
+                                                         $selUnitName = $selUnitModel ? $selUnitModel->name : 'Meters';
+
+                                                         $maxMeters = (float) $roll->current_balance_length;
+                                                         $maxInSelectedUnit = $this->convertLengthFromMeters($maxMeters, $selUnitId);
+                                                         $maxInSelectedUnitDisplay = (round($maxInSelectedUnit, 4) == round($maxInSelectedUnit, 0)) ? round($maxInSelectedUnit, 0) : round($maxInSelectedUnit, 2);
+                                                     @endphp
+                                                     <div class="space-y-5 pt-4">
+                                                         <!-- Cut Length Control Row -->
+                                                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/40">
+                                                             <div class="flex items-center gap-3 flex-1 max-w-xl">
+                                                                 <div class="flex items-center gap-2">
+                                                                     <label class="text-xs font-extrabold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Cut Length *</label>
+                                                                     <!-- Unit Selector Dropdown -->
+                                                                     <select
+                                                                         wire:model.live="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.selected_unit_id"
+                                                                         class="bg-surface border border-outline-variant/60 rounded-lg px-2.5 py-1.5 text-xs font-extrabold text-primary focus:border-primary focus:outline-none"
+                                                                     >
+                                                                         @foreach($availableUnits as $u)
+                                                                             <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->short_code }})</option>
+                                                                         @endforeach
+                                                                     </select>
+                                                                 </div>
+
+                                                                 <div class="relative w-full">
+                                                                     <input
+                                                                         type="number"
+                                                                         step="0.01"
+                                                                         wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length_input"
+                                                                         max="{{ round($maxInSelectedUnit, 2) }}"
+                                                                         placeholder="Length in {{ strtolower($selUnitName) }}..."
+                                                                         class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-3 pr-12 py-2 text-xs font-extrabold text-on-surface focus:border-primary focus:outline-none"
+                                                                     />
+                                                                     <span class="absolute right-3 top-2 text-xs font-bold text-primary">{{ $selUnitCode }}</span>
+                                                                 </div>
+                                                             </div>
+
+                                                             <div class="flex items-center gap-2">
+                                                                 @if($selUnitCode !== 'M' && $selUnitCode !== 'm')
+                                                                     <span class="text-[11px] font-mono font-bold text-on-surface-variant bg-surface px-2.5 py-1.5 rounded-lg border border-outline-variant/40">
+                                                                         &asymp; {{ round($rollData['cut_length'] ?? 0, 2) }}m
+                                                                     </span>
+                                                                 @endif
+
+                                                                 <button
+                                                                     type="button"
+                                                                     wire:click="setFullRollCut({{ $fIdx }}, {{ $roll->id }})"
+                                                                     class="px-4 py-2 bg-primary text-on-primary font-bold text-xs rounded-xl shadow-xs hover:bg-primary-container transition-all flex items-center justify-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
+                                                                 >
+                                                                     <span class="material-symbols-outlined text-[16px]">content_cut</span>
+                                                                     Cut Full Roll ({{ $maxInSelectedUnitDisplay }}{{ $selUnitCode }})
+                                                                 </button>
+                                                             </div>
+                                                         </div>
 
                                                         <!-- Per-Roll Products Allocation Repeater -->
                                                         <div class="bg-surface-container-low/60 p-4 rounded-xl border border-outline-variant/60 space-y-3">

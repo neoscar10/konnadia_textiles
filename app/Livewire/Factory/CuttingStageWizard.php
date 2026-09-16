@@ -131,12 +131,22 @@ class CuttingStageWizard extends Component
                 $firstPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
             }
 
+            $units = $this->getAvailableUnitsForMaterial($roll->raw_material_id ?: $roll->bale?->batch?->raw_material_id);
+            $rollMatObj = RawMaterial::find($roll->raw_material_id ?: $roll->bale?->batch?->raw_material_id);
+            $defaultUnitId = (string) ($rollMatObj?->unit_id ?? $units->firstWhere('short_code', 'M')?->id ?? $units->first()?->id ?? '');
+
+            $maxMeters = (float) $roll->current_balance_length;
+            $maxInSelectedUnit = $this->convertLengthFromMeters($maxMeters, $defaultUnitId);
+
             $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId] = [
-                'roll_id'     => $roll->id,
-                'roll_number' => $roll->roll_number,
-                'max_length'  => (float) $roll->current_balance_length,
-                'cut_length'  => (float) $roll->current_balance_length,
-                'products'    => [
+                'roll_id'                     => $roll->id,
+                'roll_number'                 => $roll->roll_number,
+                'selected_unit_id'            => $defaultUnitId,
+                'max_length'                  => $maxMeters, // always base meters
+                'max_length_in_selected_unit' => round($maxInSelectedUnit, 2),
+                'cut_length_input'            => round($maxInSelectedUnit, 2), // input in selected unit
+                'cut_length'                  => $maxMeters, // converted to meters
+                'products'                    => [
                     [
                         'manufacturing_product_id' => $firstProd?->id,
                         'pattern_id'               => $firstPattern?->id,
@@ -147,11 +157,67 @@ class CuttingStageWizard extends Component
         }
     }
 
+    public function convertLengthToMeters(float $val, ?string $unitId): float
+    {
+        if ($val <= 0) return 0.0;
+        if (empty($unitId)) return $val;
+        $unitModel = \App\Models\Unit::find($unitId);
+        if ($unitModel) {
+            return (float) $unitModel->toBaseQuantity($val);
+        }
+        return $val;
+    }
+
+    public function convertLengthFromMeters(float $metersVal, ?string $unitId): float
+    {
+        if ($metersVal <= 0) return 0.0;
+        if (empty($unitId)) return $metersVal;
+        $unitModel = \App\Models\Unit::find($unitId);
+        if ($unitModel) {
+            return (float) $unitModel->fromBaseQuantity($metersVal);
+        }
+        return $metersVal;
+    }
+
+    public function updateRollUnit(int $fabricIndex, int $rollId, string $newUnitId)
+    {
+        if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId])) {
+            $rData = &$this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId];
+            $oldUnitId = $rData['selected_unit_id'] ?? null;
+            $rData['selected_unit_id'] = $newUnitId;
+
+            $maxMeters = (float) ($rData['max_length'] ?? 0);
+            $maxInNewUnit = $this->convertLengthFromMeters($maxMeters, $newUnitId);
+            $rData['max_length_in_selected_unit'] = round($maxInNewUnit, 2);
+
+            // Re-convert cut_length_input to new unit using current base meters cut_length
+            $currentCutMeters = (float) ($rData['cut_length'] ?? $maxMeters);
+            $newCutInput = $this->convertLengthFromMeters($currentCutMeters, $newUnitId);
+            $rData['cut_length_input'] = round($newCutInput, 2);
+        }
+    }
+
+    public function updatedSelectedFabricsCutLengthInput(int $fabricIndex, int $rollId, $val)
+    {
+        if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId])) {
+            $rData = &$this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId];
+            $unitId = $rData['selected_unit_id'] ?? null;
+            $inputVal = floatval($val);
+            $metersVal = $this->convertLengthToMeters($inputVal, $unitId);
+            $rData['cut_length'] = $metersVal;
+        }
+    }
+
     public function setFullRollCut(int $fabricIndex, int $rollId)
     {
         if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId])) {
-            $max = $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['max_length'];
-            $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['cut_length'] = $max;
+            $rData = &$this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId];
+            $maxMeters = (float) $rData['max_length'];
+            $unitId = $rData['selected_unit_id'] ?? null;
+            $maxInSelectedUnit = $this->convertLengthFromMeters($maxMeters, $unitId);
+
+            $rData['cut_length_input'] = round($maxInSelectedUnit, 2);
+            $rData['cut_length']       = $maxMeters;
         }
     }
 
@@ -221,15 +287,28 @@ class CuttingStageWizard extends Component
                 }
             } elseif ($field === 'inventory_bale_id') {
                 $this->selectedFabrics[$index]['selected_rolls'] = [];
-            } elseif ($field === 'selected_rolls' && str_contains($key, 'manufacturing_product_id')) {
-                // E.g. selectedFabrics.0.selected_rolls.12.products.0.manufacturing_product_id
-                $rollId = $parts[2] ?? null;
-                $pIdx = intval($parts[4] ?? 0);
-                $prodId = intval($value);
-                if ($prodId && $rollId && isset($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx])) {
-                    $patterns = ManufacturingProductPattern::where('manufacturing_product_id', $prodId)->get();
-                    $defaultPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
-                    $this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx]['pattern_id'] = $defaultPattern?->id;
+            } elseif ($field === 'selected_rolls') {
+                // E.g. 0.selected_rolls.12.cut_length_input or 0.selected_rolls.12.selected_unit_id
+                $rollId = (int) ($parts[2] ?? 0);
+                $subField = $parts[3] ?? '';
+
+                if ($rollId && isset($this->selectedFabrics[$index]['selected_rolls'][$rollId])) {
+                    if ($subField === 'cut_length_input') {
+                        $unitId = $this->selectedFabrics[$index]['selected_rolls'][$rollId]['selected_unit_id'] ?? null;
+                        $inputVal = floatval($value);
+                        $metersVal = $this->convertLengthToMeters($inputVal, $unitId);
+                        $this->selectedFabrics[$index]['selected_rolls'][$rollId]['cut_length'] = $metersVal;
+                    } elseif ($subField === 'selected_unit_id') {
+                        $this->updateRollUnit($index, $rollId, (string)$value);
+                    } elseif ($subField === 'products' && str_contains($key, 'manufacturing_product_id')) {
+                        $pIdx = intval($parts[4] ?? 0);
+                        $prodId = intval($value);
+                        if ($prodId && isset($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx])) {
+                            $patterns = ManufacturingProductPattern::where('manufacturing_product_id', $prodId)->get();
+                            $defaultPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
+                            $this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx]['pattern_id'] = $defaultPattern?->id;
+                        }
+                    }
                 }
             }
         }
