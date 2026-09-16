@@ -537,18 +537,23 @@ class FabricCuttingAreaService
         if (!empty($productOutputs)) {
             foreach ($productOutputs as $out) {
                 $patId = $out['pattern_id'] ?? null;
+                $pId = $out['manufacturing_product_id'] ?? null;
+                $pat = null;
                 if ($patId) {
                     $pat = ManufacturingProductPattern::find($patId);
-                    if ($pat) {
-                        $patWidthRes = self::resolvePatternFabricWidth($pat, $rawMaterialOrRoll);
-                        if (!$patWidthRes['is_configured']) {
-                            $patWidthRes = self::resolvePatternFabricWidth($pat, null);
-                        }
-                        if ($patWidthRes['is_configured'] && $patWidthRes['width'] > 0) {
-                            $widthVal = $patWidthRes['width'];
-                            $widthUnitStr = $patWidthRes['width_unit'];
-                            break;
-                        }
+                } elseif ($pId) {
+                    $prod = ManufacturingProduct::find($pId);
+                    $pat = $prod?->defaultPattern ?? $prod?->patterns()?->first();
+                }
+                if ($pat) {
+                    $patWidthRes = self::resolvePatternFabricWidth($pat, $rawMaterialOrRoll);
+                    if (!$patWidthRes['is_configured']) {
+                        $patWidthRes = self::resolvePatternFabricWidth($pat, null);
+                    }
+                    if ($patWidthRes['is_configured'] && $patWidthRes['width'] > 0) {
+                        $widthVal = $patWidthRes['width'];
+                        $widthUnitStr = $patWidthRes['width_unit'];
+                        break;
                     }
                 }
             }
@@ -578,6 +583,9 @@ class FabricCuttingAreaService
             $totalUsedAreaBase += $itemTotalUsedAreaBase;
 
             $pieceReqLength = self::resolvePatternFabricLength($product, $rawMaterialOrRoll, $patternId);
+            if ($pieceReqLength <= 0) {
+                $pieceReqLength = self::resolvePatternFabricLength($product, null, $patternId);
+            }
             $itemReqLength = $pieceReqLength * $qty;
             $totalStandardRequiredLength += $itemReqLength;
 
