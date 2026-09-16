@@ -246,9 +246,11 @@ Route::prefix('v1')->group(function () {
                 Route::get('/stock-check', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'stockCheck']);
                 Route::post('/stock-check', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'stockCheck']);
                 Route::get('/barcode-search', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'barcodeSearch']);
+                Route::get('/search-barcode', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'barcodeSearch']);
                 Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'index']);
                 Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'show'])->where('id', '[0-9]+');
                 Route::post('/convert', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'convert']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'convert']);
                 Route::patch('/{id}/toggle-publish', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'togglePublish'])->where('id', '[0-9]+');
                 Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFinishedGoodsController::class, 'destroy'])->where('id', '[0-9]+');
             });
