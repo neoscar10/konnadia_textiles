@@ -143,6 +143,23 @@ class RawMaterialPurchaseEntry extends Component
         }
     }
 
+    public function getAvailableLengthUnitsProperty()
+    {
+        $lengthGroup = \App\Models\UnitGroup::where('code', 'LENGTH')->first();
+        return $lengthGroup ? $lengthGroup->activeUnits : \App\Models\Unit::where('is_active', true)->get();
+    }
+
+    public function convertQuantityToMeters(float $val, ?string $unitId): float
+    {
+        if ($val <= 0) return 0.0;
+        if (empty($unitId)) return $val;
+        $unitModel = \App\Models\Unit::find($unitId);
+        if ($unitModel) {
+            return (float) $unitModel->toBaseQuantity($val);
+        }
+        return $val;
+    }
+
     protected function initBaleItems(int $count, ?int $defaultMaterialId = null)
     {
         $availableMaterials = $this->raw_material_category_id 
@@ -150,6 +167,8 @@ class RawMaterialPurchaseEntry extends Component
             : collect();
 
         $defaultMatId = $defaultMaterialId ?? $availableMaterials->first()?->id;
+        $defaultMat = $defaultMatId ? RawMaterial::find($defaultMatId) : null;
+        $defaultUnitId = (string) ($defaultMat?->unit_id ?? $this->availableLengthUnits->firstWhere('short_code', 'M')?->id ?? $this->availableLengthUnits->first()?->id ?? '');
 
         $bales = [];
         for ($i = 0; $i < $count; $i++) {
@@ -166,6 +185,7 @@ class RawMaterialPurchaseEntry extends Component
 
                 $items[] = [
                     'raw_material_id' => $matId ? intval($matId) : null,
+                    'selected_unit_id' => $defaultUnitId,
                     'design_number' => $existingBale['design_number'] ?? '',
                     'stock_id' => $existingBale['stock_id'] ?? ('STK-' . Carbon::now()->format('ymd') . '-' . ($i + 1) . '-1'),
                     'declared_length' => $len !== '' ? $len : '',
@@ -194,12 +214,15 @@ class RawMaterialPurchaseEntry extends Component
             ? RawMaterial::where('raw_material_category_id', $this->raw_material_category_id)->active()->orderBy('name')->get()
             : collect();
         $defaultMatId = $availableMaterials->first()?->id;
+        $defaultMat = $defaultMatId ? RawMaterial::find($defaultMatId) : null;
+        $defaultUnitId = (string) ($defaultMat?->unit_id ?? $this->availableLengthUnits->firstWhere('short_code', 'M')?->id ?? $this->availableLengthUnits->first()?->id ?? '');
 
         $itemCount = count($this->bale_items[$baleIndex]['items']);
         $stockId = 'STK-' . Carbon::now()->format('ymd') . '-' . ($baleIndex + 1) . '-' . ($itemCount + 1);
 
         $this->bale_items[$baleIndex]['items'][] = [
             'raw_material_id' => $defaultMatId ? intval($defaultMatId) : null,
+            'selected_unit_id' => $defaultUnitId,
             'design_number' => '',
             'stock_id' => $stockId,
             'declared_length' => '',
@@ -222,9 +245,12 @@ class RawMaterialPurchaseEntry extends Component
                     ? RawMaterial::where('raw_material_category_id', $this->raw_material_category_id)->active()->orderBy('name')->get()
                     : collect();
                 $defaultMatId = $availableMaterials->first()?->id;
+                $defaultMat = $defaultMatId ? RawMaterial::find($defaultMatId) : null;
+                $defaultUnitId = (string) ($defaultMat?->unit_id ?? $this->availableLengthUnits->firstWhere('short_code', 'M')?->id ?? $this->availableLengthUnits->first()?->id ?? '');
 
                 $this->bale_items[$baleIndex]['items'][0] = [
                     'raw_material_id' => $defaultMatId ? intval($defaultMatId) : null,
+                    'selected_unit_id' => $defaultUnitId,
                     'design_number' => '',
                     'stock_id' => 'STK-' . Carbon::now()->format('ymd') . '-' . ($baleIndex + 1) . '-1',
                     'declared_length' => '',
@@ -245,6 +271,8 @@ class RawMaterialPurchaseEntry extends Component
             ? RawMaterial::where('raw_material_category_id', $this->raw_material_category_id)->active()->orderBy('name')->get()
             : collect();
         $defaultMatId = $availableMaterials->first()?->id;
+        $defaultMat = $defaultMatId ? RawMaterial::find($defaultMatId) : null;
+        $defaultUnitId = (string) ($defaultMat?->unit_id ?? $this->availableLengthUnits->firstWhere('short_code', 'M')?->id ?? $this->availableLengthUnits->first()?->id ?? '');
 
         $baleNumber = 'BALE-' . Carbon::now()->year . '-' . str_pad((string) ($baleIndex + 1), 4, '0', STR_PAD_LEFT);
 
@@ -253,6 +281,7 @@ class RawMaterialPurchaseEntry extends Component
             'items' => [
                 [
                     'raw_material_id' => $defaultMatId ? intval($defaultMatId) : null,
+                    'selected_unit_id' => $defaultUnitId,
                     'design_number' => '',
                     'stock_id' => 'STK-' . Carbon::now()->format('ymd') . '-' . ($baleIndex + 1) . '-1',
                     'declared_length' => '',
@@ -529,25 +558,27 @@ class RawMaterialPurchaseEntry extends Component
 
         DB::transaction(function () use (&$batchesCreated) {
             if ($this->unitType === 'length_based') {
-                $totalQty = 0.0;
+                $totalBaseMeters = 0.0;
+                $totalEnteredQty = 0.0;
+
                 foreach ($this->bale_items as $bale) {
                     foreach ($bale['items'] ?? [] as $it) {
-                        $totalQty += floatval($it['declared_length'] ?? 0);
+                        $len = floatval($it['declared_length'] ?? 0);
+                        $unitId = $it['selected_unit_id'] ?? null;
+                        $meters = $this->convertQuantityToMeters($len, $unitId);
+                        
+                        $totalEnteredQty += $len;
+                        $totalBaseMeters += $meters;
                     }
                 }
 
                 $effectiveGrandTotal = $this->grandTotal;
-                $effectiveRate = $totalQty > 0 ? round($effectiveGrandTotal / $totalQty, 4) : floatval($this->purchase_rate ?: 0);
+                $effectiveRatePerMeter = $totalBaseMeters > 0 ? round($effectiveGrandTotal / $totalBaseMeters, 4) : floatval($this->purchase_rate ?: 0);
 
                 $firstMatId = intval($this->bale_items[0]['items'][0]['raw_material_id'] ?? 0);
                 $firstMaterial = $firstMatId ? RawMaterial::with(['unitGroup', 'unitModel'])->find($firstMatId) : null;
 
                 $numBales = count($this->bale_items);
-
-                $baseQty = $totalQty;
-                if ($firstMaterial && $firstMaterial->unitModel) {
-                    $baseQty = $firstMaterial->unitModel->toBaseQuantity($totalQty);
-                }
 
                 $batch = InventoryBatch::create([
                     'raw_material_id' => $firstMatId ?: null,
@@ -556,14 +587,14 @@ class RawMaterialPurchaseEntry extends Component
                     'purchase_date' => $this->purchase_date,
                     'invoice_number' => trim($this->invoice_number),
                     'lot_number' => trim($this->lot_number),
-                    'quantity_received' => $totalQty,
-                    'balance_quantity' => $totalQty,
-                    'base_quantity' => $baseQty,
-                    'base_current_balance' => $baseQty,
+                    'quantity_received' => $totalBaseMeters,
+                    'balance_quantity' => $totalBaseMeters,
+                    'base_quantity' => $totalBaseMeters,
+                    'base_current_balance' => $totalBaseMeters,
                     'quantity_consumed' => 0.0000,
-                    'purchase_rate' => $effectiveRate,
+                    'purchase_rate' => $effectiveRatePerMeter,
                     'total_amount' => $effectiveGrandTotal,
-                    'unit' => $firstMaterial?->unit ?? 'Meters',
+                    'unit' => 'Meters',
                     'purchase_unit_id' => $firstMaterial?->unit_id,
                     'num_bales' => $numBales,
                     'status' => 'active',
@@ -572,13 +603,16 @@ class RawMaterialPurchaseEntry extends Component
                 foreach ($this->bale_items as $baleIndex => $bale) {
                     $baleNumber = trim($bale['bale_number'] ?? '') ?: ('BALE-' . Carbon::now()->year . '-' . str_pad((string)($baleIndex + 1), 4, '0', STR_PAD_LEFT));
 
-                    $baleLen = 0.0;
+                    $baleBaseMeters = 0.0;
                     $baleTotalCost = 0.0;
 
                     foreach ($bale['items'] ?? [] as $it) {
                         $len = floatval($it['declared_length'] ?? 0);
+                        $unitId = $it['selected_unit_id'] ?? null;
+                        $lenMeters = $this->convertQuantityToMeters($len, $unitId);
+
                         $rate = floatval(($it['cost_per_unit'] !== '' && $it['cost_per_unit'] !== null) ? $it['cost_per_unit'] : ($this->purchase_rate ?: 0));
-                        $baleLen += $len;
+                        $baleBaseMeters += $lenMeters;
                         $baleTotalCost += ($len * $rate);
                     }
 
@@ -586,13 +620,16 @@ class RawMaterialPurchaseEntry extends Component
                         'bale_number' => $baleNumber,
                         'item_name' => $firstMaterial?->name,
                         'status' => 'unopened',
-                        'declared_length' => $baleLen,
-                        'current_balance_length' => $baleLen,
+                        'declared_length' => $baleBaseMeters,
+                        'current_balance_length' => $baleBaseMeters,
                         'total_cost' => round($baleTotalCost, 2),
                     ]);
 
                     foreach ($bale['items'] ?? [] as $it) {
                         $len = floatval($it['declared_length'] ?? 0);
+                        $unitId = $it['selected_unit_id'] ?? null;
+                        $lenMeters = $this->convertQuantityToMeters($len, $unitId);
+
                         $rate = floatval(($it['cost_per_unit'] !== '' && $it['cost_per_unit'] !== null) ? $it['cost_per_unit'] : ($this->purchase_rate ?: 0));
                         $itemTotal = round($len * $rate, 2);
 
@@ -609,7 +646,7 @@ class RawMaterialPurchaseEntry extends Component
                             'item_name' => $itMat?->name ?? ($firstMaterial?->name ?? ''),
                             'design_number' => trim($it['design_number'] ?? '') ?: null,
                             'stock_id' => trim($it['stock_id'] ?? '') ?: null,
-                            'declared_length' => $len,
+                            'declared_length' => $lenMeters, // Base meters for stock tracking
                             'cost_per_unit' => $rate,
                             'total_cost' => $itemTotal,
                             'photo_path' => $photoPath,

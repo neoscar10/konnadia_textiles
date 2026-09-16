@@ -774,11 +774,37 @@ class CuttingStageWizard extends Component
                             'width_display' => $dimDetails['width_display'],
                             'piece_area_m2' => $dimDetails['piece_area_m2'],
                             'total_quantity' => 0,
+                            'total_product_area_m2' => 0.0,
                         ];
                     }
                     $allocated[$key]['total_quantity'] += $qty;
+                    $allocated[$key]['total_product_area_m2'] += ($dimDetails['piece_area_m2'] * $qty);
                 }
             }
+        }
+
+        // Calculate proportional wastage distribution across allocated products
+        $totalAllocatedProductArea = array_sum(array_column($allocated, 'total_product_area_m2'));
+        $breakdown = $this->fabricCuttingBreakdown;
+        $totalWastageArea = floatval($breakdown['wastage_area_m2'] ?? 0);
+        $totalCutFabricCost = floatval($breakdown['total_fabric_cut_cost'] ?? 0);
+        $totalCutArea = floatval($breakdown['cut_area_m2'] ?? 0);
+        $totalWastageCost = $totalCutArea > 0 ? ($totalWastageArea / $totalCutArea) * $totalCutFabricCost : 0.0;
+
+        foreach ($allocated as $k => $item) {
+            $itemArea = floatval($item['total_product_area_m2']);
+            $areaRatio = $totalAllocatedProductArea > 0 ? ($itemArea / $totalAllocatedProductArea) : 0.0;
+            $allocatedWastageArea = $totalWastageArea * $areaRatio;
+            $allocatedWastageCost = $totalWastageCost * $areaRatio;
+            $qty = max(1, intval($item['total_quantity']));
+            $perPieceWastageCost = $allocatedWastageCost / $qty;
+            $perPieceWastageArea = $allocatedWastageArea / $qty;
+
+            $allocated[$k]['area_share_percentage'] = $totalAllocatedProductArea > 0 ? round($areaRatio * 100, 1) : 0.0;
+            $allocated[$k]['allocated_wastage_area_m2'] = round($allocatedWastageArea, 4);
+            $allocated[$k]['allocated_wastage_cost'] = round($allocatedWastageCost, 2);
+            $allocated[$k]['per_piece_wastage_cost'] = round($perPieceWastageCost, 2);
+            $allocated[$k]['per_piece_wastage_area_m2'] = round($perPieceWastageArea, 4);
         }
 
         return array_values($allocated);

@@ -266,14 +266,31 @@
                                                                            class="w-full bg-surface border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none" />
                                                                 </div>
 
-                                                                <!-- Quantity / Length -->
-                                                                <div class="lg:col-span-2">
-                                                                    <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Qty ({{ $unitName }}) *</label>
-                                                                    <input type="number" 
-                                                                           step="0.01" 
-                                                                           wire:model.live="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.declared_length" 
-                                                                           placeholder="0.00" 
-                                                                           class="w-full bg-surface border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono font-extrabold text-on-surface focus:border-primary focus:outline-none" />
+                                                                <!-- Quantity / Length with Unit Selector -->
+                                                                <div class="lg:col-span-3">
+                                                                    <div class="flex items-center justify-between mb-1">
+                                                                        <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Qty *</label>
+                                                                        <!-- Unit Dropdown -->
+                                                                        <select wire:model.live="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.selected_unit_id"
+                                                                                class="bg-surface border border-outline-variant/40 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-primary focus:border-primary focus:outline-none">
+                                                                            @foreach($this->availableLengthUnits as $lu)
+                                                                                <option value="{{ $lu->id }}">{{ $lu->name }} ({{ $lu->short_code }})</option>
+                                                                            @endforeach
+                                                                        </select>
+                                                                    </div>
+                                                                    @php
+                                                                        $itemUnitId = $item['selected_unit_id'] ?? null;
+                                                                        $itemUnitObj = $itemUnitId ? $this->availableLengthUnits->firstWhere('id', $itemUnitId) : null;
+                                                                        $itemUnitCode = $itemUnitObj ? $itemUnitObj->short_code : 'm';
+                                                                    @endphp
+                                                                    <div class="relative">
+                                                                        <input type="number" 
+                                                                               step="0.01" 
+                                                                               wire:model.live="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.declared_length" 
+                                                                               placeholder="0.00" 
+                                                                               class="w-full bg-surface border border-outline-variant/40 rounded-xl pl-3 pr-10 py-2 text-xs font-mono font-extrabold text-on-surface focus:border-primary focus:outline-none" />
+                                                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-primary">{{ $itemUnitCode }}</span>
+                                                                    </div>
                                                                     @error("bale_items.{$baleIndex}.items.{$itemIndex}.declared_length")
                                                                         <p class="text-error text-[10px] font-semibold mt-1">{{ $message }}</p>
                                                                     @enderror
@@ -296,12 +313,12 @@
                                                                 </div>
 
                                                                 <!-- Stock ID -->
-                                                                <div class="lg:col-span-2">
+                                                                <div class="lg:col-span-1">
                                                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Stock ID</label>
                                                                     <input type="text" 
                                                                            wire:model.live="bale_items.{{ $baleIndex }}.items.{{ $itemIndex }}.stock_id" 
-                                                                           placeholder="e.g. STK-201-001" 
-                                                                           class="w-full bg-surface border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono font-bold text-primary focus:border-primary focus:outline-none" />
+                                                                           placeholder="Stock ID" 
+                                                                           class="w-full bg-surface border border-outline-variant/40 rounded-xl px-2 py-2 text-xs font-mono font-bold text-primary focus:border-primary focus:outline-none" />
                                                                 </div>
 
                                                                 <!-- Photo & Delete Action -->

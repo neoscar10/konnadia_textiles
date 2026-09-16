@@ -843,6 +843,72 @@
                     </div>
                 </div>
 
+                <!-- Fabric Wastage Allocation & Cost Breakdown Table -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[18px] text-amber-600">delete_sweep</span>
+                            Fabric Wastage Allocation &amp; Per-Piece Cost Breakdown
+                        </span>
+                        <span class="text-[11px] text-on-surface-variant font-semibold">Proportionally shared based on product surface area</span>
+                    </div>
+
+                    <div class="bg-surface-container-low rounded-xl border border-outline-variant/60 overflow-hidden">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-surface-container-high border-b border-outline-variant/60 text-on-surface-variant uppercase font-bold text-[10px] tracking-wider">
+                                    <th class="px-4 py-3">Product Name &amp; Pattern</th>
+                                    <th class="px-4 py-3 text-center">Output Qty</th>
+                                    <th class="px-4 py-3 text-center">Area Share</th>
+                                    <th class="px-4 py-3 text-center">Allocated Wastage Area</th>
+                                    <th class="px-4 py-3 text-right">Total Product Wastage Cost</th>
+                                    <th class="px-4 py-3 text-right">Per-Piece Wastage Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-outline-variant/40">
+                                @foreach($uniqueProds as $item)
+                                    <tr class="hover:bg-surface-container/40 font-semibold text-on-surface">
+                                        <td class="px-4 py-3">
+                                            <strong class="font-extrabold text-sm text-primary block">{{ $item['product_name'] }}</strong>
+                                            <span class="text-[10px] text-on-surface-variant font-bold">{{ $item['pattern_name'] }} &middot; {{ $item['dimensions_display'] ?? '' }}</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-black text-sm">
+                                            {{ number_format($item['total_quantity']) }} Pcs
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-bold">
+                                            <span class="px-2.5 py-1 bg-surface-container-high text-on-surface font-mono rounded-md text-[11px]">
+                                                {{ number_format($item['area_share_percentage'] ?? 0, 1) }}%
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-mono font-bold text-amber-900">
+                                            {{ number_format($item['allocated_wastage_area_m2'] ?? 0, 4) }} m²
+                                            <span class="text-[10px] text-on-surface-variant block font-normal">({{ number_format($item['per_piece_wastage_area_m2'] ?? 0, 4) }} m²/pc)</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-black text-amber-900 text-sm">
+                                            ₹{{ number_format($item['allocated_wastage_cost'] ?? 0, 2) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-black text-emerald-700 text-sm">
+                                            <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 rounded-lg">
+                                                ₹{{ number_format($item['per_piece_wastage_cost'] ?? 0, 2) }} / pc
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr class="bg-surface-container-high/60 font-black text-xs text-on-surface border-t border-outline-variant/60">
+                                    <td class="px-4 py-3">Total Conserved Summary</td>
+                                    <td class="px-4 py-3 text-center">{{ number_format($totalPlannedOutputQty) }} Pcs</td>
+                                    <td class="px-4 py-3 text-center">100.0%</td>
+                                    <td class="px-4 py-3 text-center text-amber-900 font-mono">{{ number_format($cBreakdown['wastage_area_m2'] ?? 0, 4) }} m²</td>
+                                    <td class="px-4 py-3 text-right text-amber-900">₹{{ number_format(($cBreakdown['cut_area_m2'] ?? 0) > 0 ? (($cBreakdown['wastage_area_m2'] ?? 0) / $cBreakdown['cut_area_m2']) * ($cBreakdown['total_fabric_cut_cost'] ?? 0) : 0, 2) }}</td>
+                                    <td class="px-4 py-3 text-right text-emerald-800">—</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Spawned Production Jobs Preview -->
                 <div class="space-y-3 pt-2">
                     <span class="text-xs font-black text-primary uppercase tracking-wider block">
