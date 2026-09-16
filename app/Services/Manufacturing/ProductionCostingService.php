@@ -242,22 +242,30 @@ class ProductionCostingService
                         $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
                     })
                     ->get();
+                if ($cuttingConsumptions->isEmpty()) {
+                    $cuttingConsumptions = \App\Models\ProductionBatchConsumption::where('production_batch_id', $batch->id)
+                        ->where(function($q) {
+                            $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
+                        })
+                        ->get();
+                }
                 if ($cuttingConsumptions->isNotEmpty()) {
                     // Group consumptions by roll if roll ID is set, or process individually
                     $groupedByRoll = $cuttingConsumptions->groupBy('inventory_bale_roll_id');
 
                     foreach ($groupedByRoll as $rollId => $cGroup) {
                         $firstCons = $cGroup->first();
-                        $rollModel = $firstCons->inventoryBaleRoll;
+                        $rollModel = $firstCons->inventoryBaleRoll ?? ($rollId ? \App\Models\InventoryBaleRoll::find($rollId) : null);
                         $rawMat = $firstCons->inventoryBatch?->rawMaterial 
                             ?? $rollModel?->rawMaterial 
                             ?? $rollModel?->bale?->rawMaterial 
-                            ?? $rollModel?->bale?->batch?->rawMaterial;
+                            ?? $rollModel?->bale?->batch?->rawMaterial
+                            ?? \App\Models\RawMaterial::whereHas('category', fn($q)=>$q->where('code', 'CAT-FAB'))->first();
 
                         $totalCutLenForRoll = (float) $cGroup->sum(fn($c) => (float) ($c->consumed_length ?: $c->quantity_consumed));
-                        $rate = (float) $firstCons->unit_cost;
+                        $rate = (float) ($firstCons->unit_cost ?: ($rollModel?->bale?->unit_cost ?? 150.00));
 
-                        if ($rawMat && $totalCutLenForRoll > 0) {
+                        if ($totalCutLenForRoll > 0) {
                             $targetOutputs = [];
                             foreach ($batchJobs as $bj) {
                                 $targetOutputs[] = [
@@ -267,10 +275,12 @@ class ProductionCostingService
                                 ];
                             }
                             $rollContext = $rollModel ?? $rawMat;
-                            $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
-                            $wCost = (float) ($bd['total_wastage_cost'] ?? 0);
-                            if ($wCost > 0) {
-                                $totalWastageCost += $wCost;
+                            if ($rollContext) {
+                                $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
+                                $wCost = (float) ($bd['total_wastage_cost'] ?? 0);
+                                if ($wCost > 0) {
+                                    $totalWastageCost += $wCost;
+                                }
                             }
                         }
                     }
@@ -515,6 +525,13 @@ class ProductionCostingService
                     $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
                 })
                 ->get();
+            if ($cuttingConsumptions->isEmpty() && $batch) {
+                $cuttingConsumptions = \App\Models\ProductionBatchConsumption::where('production_batch_id', $batch->id)
+                    ->where(function($q) {
+                        $q->whereNotNull('inventory_bale_roll_id')->orWhere('consumed_length', '>', 0);
+                    })
+                    ->get();
+            }
             if ($cuttingConsumptions->isNotEmpty()) {
                 $targetOutputs = [];
                 foreach ($batchJobs as $bj) {
@@ -529,35 +546,47 @@ class ProductionCostingService
 
                 foreach ($groupedByRoll as $rollId => $cGroup) {
                     $firstCons = $cGroup->first();
-                    $rollModel = $firstCons->inventoryBaleRoll;
+                    $rollModel = $firstCons->inventoryBaleRoll ?? ($rollId ? \App\Models\InventoryBaleRoll::find($rollId) : null);
                     $rawMat = $firstCons->inventoryBatch?->rawMaterial 
                         ?? $rollModel?->rawMaterial 
                         ?? $rollModel?->bale?->rawMaterial 
-                        ?? $rollModel?->bale?->batch?->rawMaterial;
+                        ?? $rollModel?->bale?->batch?->rawMaterial
+                        ?? \App\Models\RawMaterial::whereHas('category', fn($q)=>$q->where('code', 'CAT-FAB'))->first();
 
                     $totalCutLenForRoll = (float) $cGroup->sum(fn($c) => (float) ($c->consumed_length ?: $c->quantity_consumed));
-                    $rate = (float) $firstCons->unit_cost;
+                    $rate = (float) ($firstCons->unit_cost ?: ($rollModel?->bale?->unit_cost ?? 150.00));
 
-                    if ($rawMat && $totalCutLenForRoll > 0) {
+                    if ($totalCutLenForRoll > 0) {
                         $rollContext = $rollModel ?? $rawMat;
-                        $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
-                        $compositeKey = $job->pattern_id ? "{$job->manufacturing_product_id}_{$job->pattern_id}" : $job->manufacturing_product_id;
-                        $pDetails = $bd['product_details'][$compositeKey] ?? $bd['product_details'][$job->manufacturing_product_id] ?? null;
-                        if ($pDetails && !empty($pDetails['allocated_wastage_cost'])) {
-                            $totalWastageCost += (float) $pDetails['allocated_wastage_cost'];
-                        } elseif (!empty($bd['total_wastage_cost'])) {
-                            $totalWastageCost += round((float)$bd['total_wastage_cost'] * $apportionRatio, 2);
+                        if ($rollContext) {
+                            $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
+                            $compositeKey = $job->pattern_id ? "{$job->manufacturing_product_id}_{$job->pattern_id}" : $job->manufacturing_product_id;
+                            $pDetails = $bd['product_details'][$compositeKey] ?? $bd['product_details'][$job->manufacturing_product_id] ?? null;
+                            if ($pDetails && !empty($pDetails['allocated_wastage_cost'])) {
+                                $itemWastageCost = (float) $pDetails['allocated_wastage_cost'];
+                                $totalWastageCost += $itemWastageCost;
+                                $itemWastageSqm = (float) ($pDetails['allocated_wastage_sqm'] ?? 0);
+                                $unitWastageCost = $itemWastageSqm > 0 ? round($itemWastageCost / $itemWastageSqm, 2) : $itemWastageCost;
+                                $wastageLog[] = [
+                                    'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
+                                    'task_name'       => 'Cutting',
+                                    'quantity_wasted' => $itemWastageSqm > 0 ? round($itemWastageSqm, 4) : 1,
+                                    'unit_cost'       => $unitWastageCost,
+                                    'total_cost'      => round($itemWastageCost, 2),
+                                ];
+                            } elseif (!empty($bd['total_wastage_cost'])) {
+                                $apportionedCost = round((float)$bd['total_wastage_cost'] * $apportionRatio, 2);
+                                $totalWastageCost += $apportionedCost;
+                                $wastageLog[] = [
+                                    'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
+                                    'task_name'       => 'Cutting',
+                                    'quantity_wasted' => 1,
+                                    'unit_cost'       => $apportionedCost,
+                                    'total_cost'      => $apportionedCost,
+                                ];
+                            }
                         }
                     }
-                }
-                if ($totalWastageCost > 0) {
-                    $wastageLog[] = [
-                        'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
-                        'task_name'       => 'Cutting',
-                        'quantity_wasted' => 1,
-                        'unit_cost'       => $totalWastageCost,
-                        'total_cost'      => $totalWastageCost,
-                    ];
                 }
             }
         }
