@@ -516,12 +516,20 @@ class FabricCuttingAreaService
      * - Cutting Wastage Length & Cost
      * - Area-Weighted Cost Allocation per Product (so larger area products bear higher waste cost)
      */
-    public static function computeCuttingBreakdown(float $cutLength, RawMaterial $rawMaterial, array $productOutputs, float $purchaseRate = 0.0): array
+    public static function computeCuttingBreakdown(float $cutLength, mixed $rawMaterial, array $productOutputs, float $purchaseRate = 0.0): array
     {
-        $unitGroupId = $rawMaterial->unit_group_id;
-        $cutAreaBase = self::calculateCutArea($cutLength, $rawMaterial);
+        $rawMaterialOrRoll = $rawMaterial;
+        $rawMaterial = $rawMaterialOrRoll instanceof RawMaterial 
+            ? $rawMaterialOrRoll 
+            : ($rawMaterialOrRoll?->rawMaterial ?? $rawMaterialOrRoll?->bale?->rawMaterial ?? $rawMaterialOrRoll?->bale?->batch?->rawMaterial);
+
+        $unitGroupId = $rawMaterial?->unit_group_id;
+        $cutAreaBase = self::calculateCutArea($cutLength, $rawMaterialOrRoll);
         
-        $widthBase = self::convertToBaseUnit((float) ($rawMaterial->standard_width ?: 0), $rawMaterial->width_unit ?: 'Centimeters', $unitGroupId);
+        $widthCtx = self::resolveWidthContext($rawMaterialOrRoll);
+        $widthVal = $widthCtx['width_val'] > 0 ? $widthCtx['width_val'] : (float) ($rawMaterial?->standard_width ?: 60);
+        $widthUnitStr = $widthCtx['unit'] ?: ($rawMaterial?->width_unit ?: 'IN');
+        $widthMeters = self::convertToMeters($widthVal, $widthUnitStr);
 
         $totalUsedAreaBase = 0.0;
         $totalStandardRequiredLength = 0.0;
@@ -537,11 +545,13 @@ class FabricCuttingAreaService
             $product = ManufacturingProduct::find($productId);
             if (!$product) continue;
 
-            $pieceAreaBase = self::calculateProductPieceArea($product, $unitGroupId);
+            $pattern = $patternId ? ManufacturingProductPattern::find($patternId) : null;
+
+            $pieceAreaBase = self::calculateProductPatternAreaM2($product, $pattern, $rawMaterialOrRoll);
             $itemTotalUsedAreaBase = $pieceAreaBase * $qty;
             $totalUsedAreaBase += $itemTotalUsedAreaBase;
 
-            $pieceReqLength = self::resolvePatternFabricLength($product, $rawMaterial, $patternId);
+            $pieceReqLength = self::resolvePatternFabricLength($product, $rawMaterialOrRoll, $patternId);
             $itemReqLength = $pieceReqLength * $qty;
             $totalStandardRequiredLength += $itemReqLength;
 
@@ -563,9 +573,9 @@ class FabricCuttingAreaService
         // Wastage length based on pattern standard requirement (or area remaining)
         $patternWastageLength = max(0.0, $cutLength - $totalStandardRequiredLength);
 
-        // Auto wastage length in Base Unit = Remaining Area / Width in Base Unit
-        $wastageLengthBase = $widthBase > 0 ? ($remainingAreaBase / $widthBase) : 0.0;
-        $wastageLengthDisplay = self::convertFromBaseUnit($wastageLengthBase, $rawMaterial->unitModel ?? $rawMaterial->unit, $unitGroupId);
+        // Auto wastage length in Base Unit (Meters) = Remaining Area (m^2) / Width (m)
+        $wastageLengthBase = $widthMeters > 0 ? ($remainingAreaBase / $widthMeters) : 0.0;
+        $wastageLengthDisplay = $wastageLengthBase;
 
         // Effective wastage length is max of area remaining display and pattern wastage length
         $effectiveWastageLength = max($wastageLengthDisplay, $patternWastageLength);

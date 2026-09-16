@@ -243,11 +243,21 @@ class ProductionCostingService
                     })
                     ->get();
                 if ($cuttingConsumptions->isNotEmpty()) {
-                    foreach ($cuttingConsumptions as $cCons) {
-                        $cutLen = (float) ($cCons->consumed_length ?: $cCons->quantity_consumed);
-                        $rate = (float) $cCons->unit_cost;
-                        $rawMat = $cCons->inventoryBatch?->rawMaterial;
-                        if ($rawMat && $cutLen > 0) {
+                    // Group consumptions by roll if roll ID is set, or process individually
+                    $groupedByRoll = $cuttingConsumptions->groupBy('inventory_bale_roll_id');
+
+                    foreach ($groupedByRoll as $rollId => $cGroup) {
+                        $firstCons = $cGroup->first();
+                        $rollModel = $firstCons->inventoryBaleRoll;
+                        $rawMat = $firstCons->inventoryBatch?->rawMaterial 
+                            ?? $rollModel?->rawMaterial 
+                            ?? $rollModel?->bale?->rawMaterial 
+                            ?? $rollModel?->bale?->batch?->rawMaterial;
+
+                        $totalCutLenForRoll = (float) $cGroup->sum(fn($c) => (float) ($c->consumed_length ?: $c->quantity_consumed));
+                        $rate = (float) $firstCons->unit_cost;
+
+                        if ($rawMat && $totalCutLenForRoll > 0) {
                             $targetOutputs = [];
                             foreach ($batchJobs as $bj) {
                                 $targetOutputs[] = [
@@ -256,21 +266,13 @@ class ProductionCostingService
                                     'pattern_id' => $bj->pattern_id,
                                 ];
                             }
-                            $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMat, $targetOutputs, $rate);
+                            $rollContext = $rollModel ?? $rawMat;
+                            $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
                             $wCost = (float) ($bd['total_wastage_cost'] ?? 0);
                             if ($wCost > 0) {
                                 $totalWastageCost += $wCost;
                             }
                         }
-                    }
-                    if ($totalWastageCost > 0) {
-                        $wastageLog[] = [
-                            'product_name'    => 'Shared Cutting Stage Fabric Wastage Allocation',
-                            'task_name'       => 'Cutting',
-                            'quantity_wasted' => 1,
-                            'unit_cost'       => $totalWastageCost,
-                            'total_cost'      => $totalWastageCost,
-                        ];
                     }
                 }
             }
@@ -523,12 +525,22 @@ class ProductionCostingService
                     ];
                 }
 
-                foreach ($cuttingConsumptions as $cCons) {
-                    $cutLen = (float) ($cCons->consumed_length ?: $cCons->quantity_consumed);
-                    $rate = (float) $cCons->unit_cost;
-                    $rawMat = $cCons->inventoryBatch?->rawMaterial ?? $cCons->inventoryBaleRoll?->bale?->rawMaterial;
-                    if ($rawMat && $cutLen > 0) {
-                        $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($cutLen, $rawMat, $targetOutputs, $rate);
+                $groupedByRoll = $cuttingConsumptions->groupBy('inventory_bale_roll_id');
+
+                foreach ($groupedByRoll as $rollId => $cGroup) {
+                    $firstCons = $cGroup->first();
+                    $rollModel = $firstCons->inventoryBaleRoll;
+                    $rawMat = $firstCons->inventoryBatch?->rawMaterial 
+                        ?? $rollModel?->rawMaterial 
+                        ?? $rollModel?->bale?->rawMaterial 
+                        ?? $rollModel?->bale?->batch?->rawMaterial;
+
+                    $totalCutLenForRoll = (float) $cGroup->sum(fn($c) => (float) ($c->consumed_length ?: $c->quantity_consumed));
+                    $rate = (float) $firstCons->unit_cost;
+
+                    if ($rawMat && $totalCutLenForRoll > 0) {
+                        $rollContext = $rollModel ?? $rawMat;
+                        $bd = \App\Services\FabricCuttingAreaService::computeCuttingBreakdown($totalCutLenForRoll, $rollContext, $targetOutputs, $rate);
                         $pDetails = $bd['product_details'][$job->manufacturing_product_id] ?? null;
                         if ($pDetails && !empty($pDetails['allocated_wastage_cost'])) {
                             $totalWastageCost += (float) $pDetails['allocated_wastage_cost'];
