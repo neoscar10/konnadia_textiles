@@ -175,4 +175,62 @@ class CategoryPriceCascadeTest extends TestCase
         $product->refresh();
         $this->assertEquals(750.00, (float)$product->base_price);
     }
+
+    public function test_updating_leaf_category_default_product_type_cascades_to_all_products_under_it(): void
+    {
+        $leafCategory = Category::create([
+            'name' => 'Kids Wear Boys',
+            'slug' => 'kids-wear-boys',
+            'is_leaf' => true,
+            'is_active' => true,
+            'default_product_config' => [
+                'product_type' => 'retail',
+                'hsn_code' => '1122',
+                'gst_percentage' => '12.0',
+                'minimum_order_quantity' => 1,
+                'base_price' => '550.00',
+            ],
+        ]);
+
+        $product = Product::create([
+            'title' => 'test Product12',
+            'sku' => 'KT-P-0042',
+            'base_price' => 550.00,
+            'description' => 'test',
+            'is_active' => true,
+            'hsn_code' => '1122',
+            'gst_percentage' => 12.0,
+            'minimum_order_quantity' => 1,
+            'product_type' => 'retail',
+        ]);
+        $product->categories()->attach($leafCategory->id);
+
+        $this->assertEquals('retail', $product->product_type);
+
+        $this->actingAs($this->admin);
+
+        Livewire::test(CategoryIndexPage::class)
+            ->set('currentCategoryId', $leafCategory->id)
+            ->set('categoryDefaults', [
+                'base_price' => '550.00',
+                'description' => 'Updated description',
+                'hsn_code' => '1122',
+                'gst_percentage' => '12.0',
+                'minimum_order_quantity' => 1,
+                'product_type' => 'manufactured',
+                'pricingOverrides' => [],
+                'units' => [
+                    'level1_name' => 'Piece',
+                    'level1_code' => 'pcs',
+                    'level2_name' => '',
+                    'level2_code' => '',
+                    'level2_conversion' => '',
+                ],
+            ])
+            ->call('saveCategoryDefaults')
+            ->assertHasNoErrors();
+
+        $product->refresh();
+        $this->assertEquals('manufactured', $product->product_type);
+    }
 }

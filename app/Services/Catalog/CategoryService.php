@@ -288,16 +288,33 @@ class CategoryService
                 'default_product_config' => $defaults,
             ]);
 
-            // If this is a leaf category, update the base price and pricing overrides for all products under it
+            // If this is a leaf category, update default product template properties for all products under it
             if ($category->is_leaf) {
-                $basePrice = isset($defaults['base_price']) && $defaults['base_price'] !== '' ? (float) $defaults['base_price'] : null;
+                $updateData = [];
+
+                if (isset($defaults['product_type']) && $defaults['product_type'] !== '') {
+                    $updateData['product_type'] = $defaults['product_type'];
+                }
+                if (array_key_exists('hsn_code', $defaults)) {
+                    $updateData['hsn_code'] = !empty($defaults['hsn_code']) ? trim($defaults['hsn_code']) : null;
+                }
+                if (isset($defaults['gst_percentage']) && $defaults['gst_percentage'] !== '') {
+                    $updateData['gst_percentage'] = (float) $defaults['gst_percentage'];
+                }
+                if (isset($defaults['minimum_order_quantity']) && $defaults['minimum_order_quantity'] !== '') {
+                    $updateData['minimum_order_quantity'] = (int) $defaults['minimum_order_quantity'];
+                }
+                if (isset($defaults['base_price']) && $defaults['base_price'] !== '') {
+                    $updateData['base_price'] = (float) $defaults['base_price'];
+                }
+                if (array_key_exists('description', $defaults)) {
+                    $updateData['description'] = !empty($defaults['description']) ? trim($defaults['description']) : null;
+                }
 
                 $products = $category->products()->get();
                 foreach ($products as $product) {
-                    if ($basePrice !== null) {
-                        $product->update([
-                            'base_price' => $basePrice,
-                        ]);
+                    if (!empty($updateData)) {
+                        $product->update($updateData);
                     }
 
                     // Update pricing overrides if present
