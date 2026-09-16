@@ -20,7 +20,7 @@ class OverheadAllocationPage extends Component
     public int $selectedMonth;
 
     // Form inputs
-    public float $productionValue = 544200.00;
+    public float $productionValue = 0.0;
     public array $materialRows = [];
     public array $otherOverheadRows = [];
 
@@ -68,8 +68,7 @@ class OverheadAllocationPage extends Component
         $endDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->endOfMonth();
 
         $autoProdValue = (float) \App\Models\FinishedGoodsBatch::whereBetween('converted_date', [$startDate, $endDate])
-            ->get()
-            ->sum(fn($b) => (float)($b->converted_qty * 500)); // Default valuation estimate
+            ->sum('converted_qty'); // Sum of produced units (no hard‑coded multiplier)
 
         if ($existing) {
             $this->productionValue = (float) $existing->production_value;
@@ -84,10 +83,7 @@ class OverheadAllocationPage extends Component
                 ];
             }
         } else {
-            $this->productionValue = $autoProdValue > 0 ? $autoProdValue : 544200.00;
-            $this->otherOverheadRows = [
-                ['category' => 'General Consumables', 'custom_category' => '', 'amount' => 2400.00],
-            ];
+            $this->otherOverheadRows = [];
         }
 
         // Fetch Raw Materials strictly of category CAT-STITCH, CAT-OHD (stitching & general overheads)
@@ -155,7 +151,7 @@ class OverheadAllocationPage extends Component
                     $unitCost = (float) $eItem->unit_cost;
                 }
             } else {
-                $closingQty = max(0.0, $openingQty + $purchasesQty - 1.0);
+                $closingQty = $openingQty + $purchasesQty;
             }
 
             $consumedQty = max(0.0, $openingQty + $purchasesQty - $closingQty);
