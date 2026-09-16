@@ -487,17 +487,26 @@ class FabricCuttingAreaService
     /**
      * Calculate Fabric Roll Cut Area in Base Unit^2.
      */
-    public static function calculateCutArea(float $cutLength, RawMaterial $rawMaterial): float
+    public static function calculateCutArea(float $cutLength, mixed $rawMaterialOrRoll): float
     {
         if ($cutLength <= 0) {
             return 0.0;
         }
 
-        $unitGroupId = $rawMaterial->unit_group_id;
-        $cutLengthBase = self::convertToBaseUnit($cutLength, $rawMaterial->unitModel ?? $rawMaterial->unit, $unitGroupId);
-        $widthBase = self::convertToBaseUnit((float) ($rawMaterial->standard_width ?: 0), $rawMaterial->width_unit ?: 'Centimeters', $unitGroupId);
+        $cutLengthMeters = self::convertToMeters($cutLength, 'Meters');
 
-        return $cutLengthBase * $widthBase;
+        $widthCtx = self::resolveWidthContext($rawMaterialOrRoll);
+        $widthVal = $widthCtx['width_val'];
+        $unitStr = $widthCtx['unit'];
+
+        if ($widthVal <= 0) {
+            $widthVal = 60.0;
+            $unitStr = 'IN';
+        }
+
+        $widthMeters = self::convertToMeters($widthVal, $unitStr);
+
+        return round($cutLengthMeters * $widthMeters, 4);
     }
 
     /**

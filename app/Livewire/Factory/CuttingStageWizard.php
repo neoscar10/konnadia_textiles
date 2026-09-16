@@ -652,8 +652,8 @@ class CuttingStageWizard extends Component
 
         $widthMeters = FabricCuttingAreaService::convertToMeters($widthVal, $widthUnitStr);
 
-        $unitGroupId = $rawMaterial->unit_group_id;
-        $cutAreaBase = FabricCuttingAreaService::calculateCutArea($cutLength, $rawMaterial);
+        $rollContext = $roll ?? $rawMaterial;
+        $cutAreaBase = FabricCuttingAreaService::calculateCutArea($cutLength, $rollContext);
         $totalFabricCutCost = round($cutLength * $purchaseRate, 2);
 
         $totalUsedAreaBase = 0.0;
