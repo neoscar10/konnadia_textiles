@@ -70,11 +70,12 @@ class JobStageWizard extends Component
                 'manufacturingProduct.tasks',
                 'pattern.tasks',
                 'batch.factorySupervisor',
-                'stageExecutions.task',
+                'stageExecutions.task.laborCategory',
                 'productOutputs',
                 'wastages',
                 'alterations',
-                'allocations',
+                'allocations.labor',
+                'allocations.task',
                 'materialConsumptions.inventoryBatch.rawMaterial',
                 'materialConsumptions.inventoryBaleRoll.bale',
             ])->findOrFail($jobId);
@@ -1171,7 +1172,7 @@ class JobStageWizard extends Component
     {
         $labors          = $this->activeStage?->task ? $this->activeStage->task->getEligibleLabors() : Labor::active()->orderBy('name')->get();
         $allProducts     = ManufacturingProduct::with('patterns')->orderBy('name')->get();
-        $stageExecutions = $this->job->stageExecutions()->with('task')->orderBy('sequence_number')->get();
+        $stageExecutions = $this->job->stageExecutions()->with(['task.laborCategory'])->orderBy('sequence_number')->get();
         $fabricMaterials = RawMaterial::active()->fabricsOnly()->orderBy('name')->get();
         $fabricWidths    = FabricWidth::active()->orderBy('value', 'asc')->get();
 

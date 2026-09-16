@@ -356,6 +356,95 @@
                                     </div>
                                 </div>
                             @endif
+
+                            <!-- Stage-by-Stage Labor Wages Breakdown Table -->
+                            <div class="pt-2 space-y-2">
+                                <h4 class="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-[16px] text-slate-600">groups</span>
+                                    <span>Stage-by-Stage Labor Wages Breakdown</span>
+                                </h4>
+                                <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-xs">
+                                    <table class="w-full text-left border-collapse text-xs">
+                                        <thead>
+                                            <tr class="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-500 uppercase tracking-wider font-extrabold">
+                                                <th class="py-2.5 px-3">STAGE / TASK NAME</th>
+                                                <th class="py-2.5 px-3">LABOUR CATEGORY</th>
+                                                <th class="py-2.5 px-3 text-center">STAGE STATUS</th>
+                                                <th class="py-2.5 px-3">ASSIGNED WORKERS &amp; ALLOCATED WAGES</th>
+                                                <th class="py-2.5 px-3 text-right">STAGE LABOR COST</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                                            @php $grandTotalLaborWages = 0; @endphp
+                                            @foreach($stageExecutions as $stgIdx => $stg)
+                                                @php
+                                                    $stgAllocations = $job->allocations->where('task_id', $stg->task_id);
+                                                    $stgWageCost = $stg->is_skipped ? 0 : (float)$stgAllocations->sum('calculated_wage');
+                                                    $grandTotalLaborWages += $stgWageCost;
+
+                                                    $categoryName = $stg->task?->laborCategory?->name;
+                                                    
+                                                    $workerDetails = [];
+                                                    if ($stg->is_skipped) {
+                                                        $workerSummary = '<span class="text-slate-400 italic text-[11px]">Stage Skipped - No Labor Cost</span>';
+                                                    } elseif ($stgAllocations->isNotEmpty()) {
+                                                        foreach ($stgAllocations as $alloc) {
+                                                            $wName = $alloc->labor?->name ?? 'Worker';
+                                                            $wWage = number_format($alloc->calculated_wage, 2);
+                                                            $workerDetails[] = "{$wName} (₹{$wWage})";
+                                                        }
+                                                        $workerSummary = '<span class="font-semibold text-slate-800">' . implode(', ', array_unique($workerDetails)) . '</span>';
+                                                    } else {
+                                                        $workerSummary = '<span class="text-slate-400 italic text-[11px]">No Workers Assigned</span>';
+                                                    }
+                                                @endphp
+                                                <tr class="{{ $stg->is_skipped ? 'bg-slate-50/50' : '' }}">
+                                                    <td class="py-2.5 px-3 text-slate-900 font-bold">
+                                                        {{ $stgIdx + 1 }}. {{ $stg->task?->name }}
+                                                    </td>
+                                                    <td class="py-2.5 px-3 whitespace-nowrap">
+                                                        @if($categoryName)
+                                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-bold">
+                                                                <span class="material-symbols-outlined text-[13px]">work</span>
+                                                                {{ $categoryName }}
+                                                            </span>
+                                                        @else
+                                                            <span class="text-slate-400 italic text-[11px]">Unassigned</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                                                        @if($stg->is_skipped)
+                                                            <span class="px-2 py-0.5 bg-slate-200 text-slate-700 text-[10px] font-extrabold rounded-full uppercase">Skipped</span>
+                                                        @elseif($stg->status === 'completed')
+                                                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-full uppercase">Completed</span>
+                                                        @elseif($stg->status === 'in_progress')
+                                                            <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-extrabold rounded-full uppercase">In Progress</span>
+                                                        @else
+                                                            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-extrabold rounded-full uppercase">Pending</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="py-2.5 px-3 text-slate-700">
+                                                        {!! $workerSummary !!}
+                                                    </td>
+                                                    <td class="py-2.5 px-3 text-right font-mono font-bold whitespace-nowrap {{ $stg->is_skipped ? 'text-slate-400' : 'text-emerald-700' }}">
+                                                        @if($stg->is_skipped)
+                                                            <span class="line-through text-slate-400">₹0.00</span> <span class="text-[10px] font-normal text-slate-400">(Skipped)</span>
+                                                        @else
+                                                            ₹{{ number_format($stgWageCost, 2) }}
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="bg-slate-50 border-t border-slate-200 font-extrabold text-slate-900">
+                                                <td colspan="4" class="py-2.5 px-3 text-right uppercase text-[10px] tracking-wider text-slate-600">Total Labor Wages Across All Stages:</td>
+                                                <td class="py-2.5 px-3 text-right font-mono text-emerald-800 text-xs font-black">₹{{ number_format($grandTotalLaborWages, 2) }}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     @endif
 
