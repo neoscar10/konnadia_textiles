@@ -206,6 +206,10 @@ class AdminProductionJobController extends Controller
      */
     public function costSummary(int $id): JsonResponse
     {
+        if (function_exists('opcache_reset')) {
+            @opcache_reset();
+        }
+
         $job = ProductionJob::find($id);
         if (!$job) {
             return response()->json([
