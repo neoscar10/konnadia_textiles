@@ -150,7 +150,7 @@ class CuttingStageWizard extends Component
                     [
                         'manufacturing_product_id' => $firstProd?->id,
                         'pattern_id'               => $firstPattern?->id,
-                        'planned_quantity'         => 50,
+                        'planned_quantity'         => '',
                     ]
                 ],
             ];
@@ -234,7 +234,7 @@ class CuttingStageWizard extends Component
             $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'][] = [
                 'manufacturing_product_id' => $firstProd?->id,
                 'pattern_id'               => $firstPattern?->id,
-                'planned_quantity'         => 50,
+                'planned_quantity'         => '',
             ];
         }
     }

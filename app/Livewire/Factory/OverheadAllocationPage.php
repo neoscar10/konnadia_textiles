@@ -21,6 +21,7 @@ class OverheadAllocationPage extends Component
 
     // Form inputs
     public float $productionValue = 0.0;
+    public array $productionValueData = [];
     public array $materialRows = [];
     public array $otherOverheadRows = [];
 
@@ -54,23 +55,30 @@ class OverheadAllocationPage extends Component
         $this->loadMonthData();
     }
 
+    public function refreshProductionValue()
+    {
+        $prodValueService = app(\App\Services\Manufacturing\MonthlyProductionValueService::class);
+        $this->productionValueData = $prodValueService->calculate($this->selectedYear, $this->selectedMonth);
+        $this->productionValue = (float) $this->productionValueData['total_production_value'];
+    }
+
     public function loadMonthData()
     {
         $periodDate = Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1)->format('Y-m-d');
+        $startDate  = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->startOfMonth();
+        $endDate    = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->endOfMonth();
         
         $existing = MonthlyOverheadAllocation::with(['materialItems.rawMaterial', 'otherItems'])
             ->where('year', $this->selectedYear)
             ->where('month', $this->selectedMonth)
             ->first();
 
-        // Calculate auto production value if available
-        $startDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->startOfMonth();
-        $endDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->endOfMonth();
+        // Calculate accurate monthly production value from completed jobs and storefront packaging
+        $prodValueService = app(\App\Services\Manufacturing\MonthlyProductionValueService::class);
+        $this->productionValueData = $prodValueService->calculate($this->selectedYear, $this->selectedMonth);
+        $autoProdValue = (float) $this->productionValueData['total_production_value'];
 
-        $autoProdValue = (float) \App\Models\FinishedGoodsBatch::whereBetween('converted_date', [$startDate, $endDate])
-            ->sum('converted_qty'); // Sum of produced units (no hard‑coded multiplier)
-
-        if ($existing) {
+        if ($existing && (float) $existing->production_value > 0) {
             $this->productionValue = (float) $existing->production_value;
             $this->otherOverheadRows = [];
             foreach ($existing->otherItems as $oItem) {
@@ -83,6 +91,7 @@ class OverheadAllocationPage extends Component
                 ];
             }
         } else {
+            $this->productionValue = $autoProdValue > 0 ? $autoProdValue : 500000.00;
             $this->otherOverheadRows = [];
         }
 

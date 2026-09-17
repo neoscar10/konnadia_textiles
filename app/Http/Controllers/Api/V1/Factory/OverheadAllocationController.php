@@ -220,10 +220,9 @@ class OverheadAllocationController extends Controller
             ->where('month', $month)
             ->first();
 
-        // Calculate auto production value if available
-        $autoProdValue = (float) \App\Models\FinishedGoodsBatch::whereBetween('converted_date', [$startDate, $endDate])
-            ->get()
-            ->sum(fn($b) => (float)($b->converted_qty * 500));
+        // Calculate accurate monthly production value from completed jobs and storefront packaging
+        $prodValueData = app(\App\Services\Manufacturing\MonthlyProductionValueService::class)->calculate($year, $month);
+        $autoProdValue = (float) $prodValueData['total_production_value'];
 
         if ($existing) {
             $prodValue = (float) $existing->production_value;
@@ -239,7 +238,7 @@ class OverheadAllocationController extends Controller
                 ];
             }
         } else {
-            $prodValue = $autoProdValue > 0 ? $autoProdValue : 544200.00;
+            $prodValue = $autoProdValue > 0 ? $autoProdValue : 500000.00;
             $otherRows = [
                 [
                     'category' => 'General Consumables',

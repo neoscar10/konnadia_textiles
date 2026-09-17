@@ -243,10 +243,21 @@
                 </div>
 
                 <!-- Production Value Input -->
-                <div class="space-y-2 bg-surface-container-low p-4 rounded-xl border border-outline-variant">
-                    <label class="block font-label-md text-label-md font-bold text-on-surface uppercase tracking-wider">
-                        Production Value for the Month (₹) *
-                    </label>
+                <div class="space-y-3 bg-surface-container-low p-4 rounded-xl border border-outline-variant">
+                    <div class="flex items-center justify-between">
+                        <label class="block font-label-md text-label-md font-bold text-on-surface uppercase tracking-wider">
+                            Production Value for the Month (₹) *
+                        </label>
+                        <button 
+                            type="button" 
+                            wire:click="refreshProductionValue" 
+                            title="Re-calculate from completed jobs and storefront packaging"
+                            class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-dark transition cursor-pointer"
+                        >
+                            <span class="material-symbols-outlined text-[16px]">sync</span>
+                            Sync from Jobs
+                        </button>
+                    </div>
                     <div>
                         <input 
                             type="number" 
@@ -255,6 +266,27 @@
                             class="w-full font-mono font-headline-sm text-headline-sm font-bold text-on-surface bg-surface border border-outline-variant rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-primary"
                         />
                     </div>
+
+                    @if(!empty($productionValueData))
+                        <div class="mt-2 pt-2 border-t border-outline-variant/60 text-xs space-y-1.5 text-on-surface-variant">
+                            <div class="flex justify-between items-center">
+                                <span>Completed Jobs ({{ $productionValueData['completed_jobs_count'] ?? 0 }}):</span>
+                                <span class="font-mono font-semibold text-on-surface">₹{{ number_format($productionValueData['total_jobs_cost'] ?? 0, 2) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span>Storefront Packaging ({{ $productionValueData['conversions_count'] ?? 0 }}):</span>
+                                <span class="font-mono font-semibold text-on-surface">₹{{ number_format($productionValueData['total_packaging_cost'] ?? 0, 2) }}</span>
+                            </div>
+                            @if(($productionValueData['total_salaried_labor_excluded'] ?? 0) > 0)
+                                <div class="p-2 bg-amber-500/10 rounded-lg text-[11px] text-amber-800 flex items-start gap-1.5 mt-1 border border-amber-500/20">
+                                    <span class="material-symbols-outlined text-[14px] shrink-0 text-amber-600 mt-0.5">info</span>
+                                    <span>
+                                        <strong>₹{{ number_format($productionValueData['total_salaried_labor_excluded'], 2) }}</strong> salaried staff stage wages excluded from jobs to prevent double counting with Pillar 2.
+                                    </span>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Breakdown List -->
