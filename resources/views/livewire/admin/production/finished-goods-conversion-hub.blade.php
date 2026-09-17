@@ -697,7 +697,41 @@
                                                 {{ $item->manufacturingProduct?->name ?? 'Manufacturing Product Item' }}
                                             </td>
                                             <td class="py-2.5 px-3 font-mono text-[11px] text-on-surface-variant">
-                                                {{ $item->productionJob?->job_code ?? ($item->productionBatch?->batch_code ?? 'FIFO Stock Allocation') }}
+                                                @if($item->production_job_id || $item->productionJob)
+                                                    @php
+                                                        $jobId = $item->production_job_id ?: $item->productionJob->id;
+                                                        $jobUrl = \Illuminate\Support\Facades\Route::has('admin.production.jobs.show') 
+                                                            ? route('admin.production.jobs.show', $jobId) 
+                                                            : (\Illuminate\Support\Facades\Route::has('production.jobs.show') ? route('production.jobs.show', $jobId) : url("/admin/production/jobs/{$jobId}"));
+                                                    @endphp
+                                                    <a 
+                                                        href="{{ $jobUrl }}" 
+                                                        target="_blank" 
+                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 hover:underline font-bold transition-all"
+                                                        title="Open Job Details (Opens in new tab)"
+                                                    >
+                                                        <span>{{ $item->productionJob?->job_code ?? ('JOB #' . $jobId) }}</span>
+                                                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                                                    </a>
+                                                @elseif($item->production_batch_id || $item->productionBatch)
+                                                    @php
+                                                        $batchParam = $item->productionBatch?->batch_code ?? $item->production_batch_id;
+                                                        $batchUrl = \Illuminate\Support\Facades\Route::has('admin.production.batches.jobs') 
+                                                            ? route('admin.production.batches.jobs', $batchParam) 
+                                                            : (\Illuminate\Support\Facades\Route::has('production.batches.jobs') ? route('production.batches.jobs', $batchParam) : url("/admin/production/batches/{$batchParam}/jobs"));
+                                                    @endphp
+                                                    <a 
+                                                        href="{{ $batchUrl }}" 
+                                                        target="_blank" 
+                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest hover:underline font-bold transition-all"
+                                                        title="Open Batch Jobs (Opens in new tab)"
+                                                    >
+                                                        <span>{{ $item->productionBatch?->batch_code ?? ('BATCH #' . $item->production_batch_id) }}</span>
+                                                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                                                    </a>
+                                                @else
+                                                    <span class="text-on-surface-variant/70 italic">FIFO Stock Allocation</span>
+                                                @endif
                                             </td>
                                             <td class="py-2.5 px-3 text-right font-mono font-bold text-primary">
                                                 {{ $item->quantity_used }} Pcs
@@ -732,24 +766,46 @@
                     @endif
 
                     <!-- Costing Summary Grid -->
-                    <div class="p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-2">
-                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-on-surface">Unit Costing Summary</h3>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    @php
+                        $cs = $auditBatch->effective_costing_summary;
+                    @endphp
+                    <div class="p-4 rounded-2xl bg-surface-container-low/60 border border-outline-variant/60 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-extrabold uppercase tracking-wider text-on-surface flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-[18px]">payments</span>
+                                Unit Costing Breakdown (Per Converted Unit)
+                            </h3>
+                            @if(!empty($cs['is_dynamic']))
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-800 border border-emerald-500/30 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    Live Rollup from Jobs
+                                </span>
+                            @endif
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
                             <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/40">
                                 <div class="text-[10px] text-on-surface-variant font-bold">Fabric Cost</div>
-                                <div class="font-mono font-bold text-on-surface mt-0.5">{{ $auditBatch->costing_summary['fabricCost'] ?? '₹310.00' }}</div>
+                                <div class="font-mono font-bold text-on-surface mt-0.5">{{ $cs['fabricCost'] ?? '₹0.00' }}</div>
                             </div>
                             <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/40">
-                                <div class="text-[10px] text-on-surface-variant font-bold">Labor Cost</div>
-                                <div class="font-mono font-bold text-on-surface mt-0.5">{{ $auditBatch->costing_summary['laborCost'] ?? '₹42.00' }}</div>
+                                <div class="text-[10px] text-on-surface-variant font-bold">Trims / Subsidiary</div>
+                                <div class="font-mono font-bold text-on-surface mt-0.5">{{ $cs['subsidiaryCost'] ?? '₹0.00' }}</div>
                             </div>
                             <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/40">
-                                <div class="text-[10px] text-on-surface-variant font-bold">Packaging Cost</div>
-                                <div class="font-mono font-bold text-on-surface mt-0.5">{{ $auditBatch->costing_summary['packagingCost'] ?? '₹10.00' }}</div>
+                                <div class="text-[10px] text-on-surface-variant font-bold">Labor Wages</div>
+                                <div class="font-mono font-bold text-on-surface mt-0.5">{{ $cs['laborCost'] ?? '₹0.00' }}</div>
                             </div>
-                            <div class="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
+                            <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/40">
+                                <div class="text-[10px] text-on-surface-variant font-bold">Packaging</div>
+                                <div class="font-mono font-bold text-on-surface mt-0.5">{{ $cs['packagingCost'] ?? '₹0.00' }}</div>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/40">
+                                <div class="text-[10px] text-on-surface-variant font-bold">Wastage / Scrap</div>
+                                <div class="font-mono font-bold text-on-surface mt-0.5">{{ $cs['wastageCost'] ?? '₹0.00' }}</div>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-primary/10 border border-primary/30">
                                 <div class="text-[10px] text-primary font-bold">Total Unit Cost</div>
-                                <div class="font-mono font-black text-primary mt-0.5">{{ $auditBatch->costing_summary['totalUnitCost'] ?? '₹362.00' }}</div>
+                                <div class="font-mono font-black text-primary mt-0.5">{{ $cs['totalUnitCost'] ?? '₹0.00' }}</div>
                             </div>
                         </div>
                     </div>

@@ -419,6 +419,12 @@ class FinishedGoodsConversionService
                 ]);
             }
 
+            // 4.1 Compute and persist actual dynamic unit costing breakdown
+            $dynamicCosting = $fgBatch->calculateDynamicCostingSummary();
+            if (!empty($dynamicCosting) && ($dynamicCosting['raw_values']['total'] ?? 0) > 0) {
+                $fgBatch->update(['costing_summary' => $dynamicCosting]);
+            }
+
             // 5. Increment Storefront Product stock & record Inventory Movement
             $storefrontProduct->increment('stock_quantity', $targetQty);
 
