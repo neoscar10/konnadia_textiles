@@ -70,11 +70,11 @@ class AdminOrderService
             
             if ($hasManufactured && !$hasRetail) {
                 $total_amount = (float) $order->items->filter(function ($item) {
-                    return $item->product && $item->product->product_type === 'retail';
+                    return $item->product && $item->product->product_type === 'manufactured';
                 })->sum('line_total');
             } elseif ($hasRetail && !$hasManufactured) {
                 $total_amount = (float) $order->items->filter(function ($item) {
-                    return $item->product && $item->product->product_type === 'manufactured';
+                    return $item->product && $item->product->product_type === 'retail';
                 })->sum('line_total');
             } elseif (!$hasManufactured && !$hasRetail) {
                 $total_amount = 0.0;
@@ -122,11 +122,11 @@ class AdminOrderService
                 $hasItemsInScope = false;
                 if ($hasManufactured && !$hasRetail) {
                     $hasItemsInScope = $order->items()->whereHas('product', function($q) {
-                        $q->where('product_type', 'retail');
+                        $q->where('product_type', 'manufactured');
                     })->exists();
                 } elseif ($hasRetail && !$hasManufactured) {
                     $hasItemsInScope = $order->items()->whereHas('product', function($q) {
-                        $q->where('product_type', 'manufactured');
+                        $q->where('product_type', 'retail');
                     })->exists();
                 } elseif ($hasManufactured && $hasRetail) {
                     $hasItemsInScope = true;
@@ -167,11 +167,11 @@ class AdminOrderService
 
             if ($hasManufactured && !$hasRetail) {
                 $filteredItems = $order->items->filter(function ($item) {
-                    return $item->product && $item->product->product_type === 'retail';
+                    return $item->product && $item->product->product_type === 'manufactured';
                 });
             } elseif ($hasRetail && !$hasManufactured) {
                 $filteredItems = $order->items->filter(function ($item) {
-                    return $item->product && $item->product->product_type === 'manufactured';
+                    return $item->product && $item->product->product_type === 'retail';
                 });
             } elseif (!$hasManufactured && !$hasRetail) {
                 $filteredItems = collect();
@@ -511,7 +511,7 @@ class AdminOrderService
                     ->whereIn('orders.id', (clone $baseQuery)->pluck('id'))
                     ->whereNotIn('orders.status', ['cancelled', 'rejected'])
                     ->whereNull('products.deleted_at')
-                    ->where('products.product_type', 'retail')
+                    ->where('products.product_type', 'manufactured')
                     ->sum('order_items.line_total');
             } elseif ($hasRetail && !$hasManufactured) {
                 // Sum line_total for only retail items
@@ -521,7 +521,7 @@ class AdminOrderService
                     ->whereIn('orders.id', (clone $baseQuery)->pluck('id'))
                     ->whereNotIn('orders.status', ['cancelled', 'rejected'])
                     ->whereNull('products.deleted_at')
-                    ->where('products.product_type', 'manufactured')
+                    ->where('products.product_type', 'retail')
                     ->sum('order_items.line_total');
             } else {
                 $totalValue = 0.0;
@@ -711,11 +711,11 @@ class AdminOrderService
 
             if ($hasManufactured && !$hasRetail) {
                 $query->whereHas('items.product', function ($q) {
-                    $q->where('product_type', 'retail');
+                    $q->where('product_type', 'manufactured');
                 });
             } elseif ($hasRetail && !$hasManufactured) {
                 $query->whereHas('items.product', function ($q) {
-                    $q->where('product_type', 'manufactured');
+                    $q->where('product_type', 'retail');
                 });
             } elseif (!$hasManufactured && !$hasRetail) {
                 $query->whereRaw('1 = 0');
