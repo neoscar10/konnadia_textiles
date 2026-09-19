@@ -165,7 +165,7 @@
                                 <tr class="hover:bg-primary/[0.02] transition-colors">
                                     <td class="px-lg py-md">
                                         <div class="flex items-start gap-md">
-                                            @if(in_array($orderData['status'], ['approved', 'partially_dispatched']) && $item['status'] === 'pending_dispatch' && $item['product_type'] === 'retail')
+                                            @if(in_array($orderData['status'], ['approved', 'partially_dispatched']) && $item['status'] === 'pending_dispatch')
                                                 <input type="checkbox" wire:model.live="selectedItemIds" value="{{ $item['id'] }}" class="w-4.5 h-4.5 rounded border-outline-variant text-[#5c44c4] focus:ring-[#5c44c4] cursor-pointer mt-0.5">
                                             @endif
                                             
@@ -591,7 +591,7 @@
         <div class="fixed inset-0 bg-black/25 backdrop-blur-xs flex items-center justify-center p-lg z-50">
             <div class="bg-surface-container-lowest p-xl border border-outline-variant/30 rounded-xl shadow-lg w-full max-w-lg">
                 <h3 class="font-headline-md text-primary mb-md">Bulk Dispatch Items</h3>
-                <p class="font-body-md text-on-surface-variant mb-md">Confirm quantities and enter a dispatch note for the selected manufactured items.</p>
+                <p class="font-body-md text-on-surface-variant mb-md">Confirm quantities and enter a dispatch note for the selected items.</p>
                 
                 <div class="space-y-md max-h-[300px] overflow-y-auto pr-xs mb-md">
                     @foreach($selectedItemIds as $itemId)
