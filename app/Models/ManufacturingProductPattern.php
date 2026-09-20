@@ -73,4 +73,12 @@ class ManufacturingProductPattern extends Model
             ->orderByPivot('sequence_number', 'asc')
             ->withTimestamps();
     }
+
+    /**
+     * Get labor allocations for this pattern.
+     */
+    public function laborAllocations()
+    {
+        return $this->hasMany(JobLaborAllocation::class, 'pattern_id');
+    }
 }

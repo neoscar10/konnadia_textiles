@@ -263,6 +263,7 @@ class AdminProductionJobController extends Controller
                         'production_job_id' => $job->id,
                         'task_id' => $taskId,
                         'manufacturing_product_id' => $job->manufacturing_product_id,
+                        'pattern_id' => $job->pattern_id,
                         'rate_per_piece' => $allocData['rate_per_piece'] ?? 0,
                         'assigned_quantity' => $allocData['assigned_quantity'] ?? $job->target_quantity,
                         'quantity_processed' => 0,
@@ -466,7 +467,7 @@ class AdminProductionJobController extends Controller
      */
     public function trackingHistory(Request $request): JsonResponse
     {
-        $query = JobLaborAllocation::with(['labor', 'task', 'manufacturingProduct', 'productionJob', 'inventoryBaleRoll.bale']);
+        $query = JobLaborAllocation::with(['labor', 'task', 'manufacturingProduct', 'pattern', 'productionJob', 'inventoryBaleRoll.bale']);
 
         if ($request->filled('search')) {
             $search = trim($request->query('search'));
@@ -475,7 +476,8 @@ class AdminProductionJobController extends Controller
                   ->orWhere('production_batch_id', 'like', "%{$search}%")
                   ->orWhereHas('labor', fn($l) => $l->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"))
                   ->orWhereHas('task', fn($t) => $t->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('manufacturingProduct', fn($p) => $p->where('title', 'like', "%{$search}%")->orWhere('product_code', 'like', "%{$search}%"));
+                  ->orWhereHas('manufacturingProduct', fn($p) => $p->where('title', 'like', "%{$search}%")->orWhere('product_code', 'like', "%{$search}%"))
+                  ->orWhereHas('pattern', fn($pat) => $pat->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -527,6 +529,7 @@ class AdminProductionJobController extends Controller
                 $labor = $alloc->labor;
                 $task = $alloc->task;
                 $product = $alloc->manufacturingProduct;
+                $pattern = $alloc->pattern;
                 $baleRoll = $alloc->inventoryBaleRoll;
                 $bale = $baleRoll ? $baleRoll->bale : null;
 
@@ -549,6 +552,10 @@ class AdminProductionJobController extends Controller
                         'id' => $product->id,
                         'title' => $product->title ?? $product->name,
                         'product_code' => $product->product_code ?? $product->code,
+                    ] : null,
+                    'pattern' => $pattern ? [
+                        'id' => $pattern->id,
+                        'name' => $pattern->name,
                     ] : null,
                     'roll_info' => $baleRoll ? [
                         'roll_id' => $baleRoll->id,

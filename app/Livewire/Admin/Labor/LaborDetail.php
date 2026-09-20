@@ -65,7 +65,7 @@ class LaborDetail extends Component
         $labor = Labor::with('tasks')->findOrFail($this->laborId);
 
         $query = JobLaborAllocation::where('labor_id', $this->laborId)
-            ->with(['task', 'productionJob', 'inventoryBaleRoll.bale', 'manufacturingProduct']);
+            ->with(['task', 'productionJob', 'inventoryBaleRoll.bale', 'manufacturingProduct', 'pattern']);
 
         if ($this->date_from) {
             $query->whereDate('created_at', '>=', $this->date_from);
@@ -90,7 +90,8 @@ class LaborDetail extends Component
             $query->where(function ($q) {
                 $q->where('job_id', 'like', '%' . $this->search . '%')
                   ->orWhere('production_batch_id', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('manufacturingProduct', fn($pq) => $pq->where('name', 'like', '%' . $this->search . '%')->orWhere('code', 'like', '%' . $this->search . '%'));
+                  ->orWhereHas('manufacturingProduct', fn($pq) => $pq->where('name', 'like', '%' . $this->search . '%')->orWhere('code', 'like', '%' . $this->search . '%'))
+                  ->orWhereHas('pattern', fn($pat) => $pat->where('name', 'like', '%' . $this->search . '%'));
             });
         }
 

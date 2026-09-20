@@ -100,6 +100,7 @@ class AdminProductionBatchController extends Controller
         $validated = $request->validated();
 
         $supervisorId = $validated['factory_supervisor_id'] ?? $validated['supervisor_id'] ?? null;
+        $cutterId = $validated['cutter_id'] ?? null;
 
         $response = $this->workflowService->initiateBatch(
             $validated['manufacturing_product_id'] ?? null,
@@ -109,7 +110,8 @@ class AdminProductionBatchController extends Controller
             $validated['notes'] ?? $validated['remarks'] ?? null,
             $validated['batch_date'] ?? null,
             $validated['pattern_id'] ?? null,
-            $validated['items'] ?? []
+            $validated['items'] ?? [],
+            $cutterId
         );
 
         return $response;

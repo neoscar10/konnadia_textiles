@@ -62,7 +62,7 @@ class AdminProductTransferApiTest extends TestCase
             'description' => 'Fine silk saree set',
             'stock_quantity' => 100,
             'is_active' => true,
-            'product_type' => 'retail',
+            'product_type' => 'manufactured',
         ]);
 
         $this->unit = ProductUnit::create([

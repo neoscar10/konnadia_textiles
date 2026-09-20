@@ -34,6 +34,16 @@ class ProductionBatchResource extends JsonResource
                 'name' => $supervisor->name,
                 'email' => $supervisor->email,
             ] : null,
+            'factory_supervisor' => $this->factorySupervisor ? [
+                'id' => $this->factorySupervisor->id,
+                'name' => $this->factorySupervisor->name,
+                'code' => $this->factorySupervisor->code,
+            ] : null,
+            'cutter' => $this->cutter ? [
+                'id' => $this->cutter->id,
+                'name' => $this->cutter->name,
+                'worker_code' => $this->cutter->worker_code,
+            ] : null,
             'progress' => [
                 'total_jobs' => $jobsCount,
                 'completed_jobs' => $completedJobsCount,

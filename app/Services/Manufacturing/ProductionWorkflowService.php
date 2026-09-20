@@ -71,10 +71,10 @@ class ProductionWorkflowService
      * @param string|null $batchDate
      * @return JsonResponse
      */
-    public function initiateBatch($productId, $supervisorId, int $plannedQuantity, string $priority = 'Normal', ?string $remarks = null, ?string $batchDate = null, $patternId = null, array $items = []): JsonResponse
+    public function initiateBatch($productId, $supervisorId, int $plannedQuantity, string $priority = 'Normal', ?string $remarks = null, ?string $batchDate = null, $patternId = null, array $items = [], $cutterId = null): JsonResponse
     {
         try {
-            $result = DB::transaction(function () use ($productId, $supervisorId, $plannedQuantity, $priority, $remarks, $batchDate, $patternId, $items) {
+            $result = DB::transaction(function () use ($productId, $supervisorId, $plannedQuantity, $priority, $remarks, $batchDate, $patternId, $items, $cutterId) {
                 if (empty($items)) {
                     $items = [
                         [
@@ -100,6 +100,7 @@ class ProductionWorkflowService
                     'batch_date'               => $batchDate ?? now()->format('Y-m-d'),
                     'supervisor_id'            => $userId,
                     'factory_supervisor_id'    => $factorySupervisorId,
+                    'cutter_id'                => $cutterId,
                     'manufacturing_product_id' => $firstProduct?->id,
                     'pattern_id'               => $firstPattern?->id,
                     'planned_quantity'         => $totalPlannedQty ?: $plannedQuantity,

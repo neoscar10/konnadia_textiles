@@ -18,6 +18,7 @@ class StoreProductionBatchRequest extends FormRequest
             'planned_quantity' => ['nullable', 'required_without:items', 'integer', 'min:1'],
             'supervisor_id' => ['nullable', 'integer'],
             'factory_supervisor_id' => ['nullable', 'integer', 'exists:factory_supervisors,id'],
+            'cutter_id' => ['nullable', 'integer', 'exists:labors,id'],
             'pattern_id' => ['nullable', 'integer', 'exists:manufacturing_product_patterns,id'],
             'priority' => ['nullable', 'string', 'in:Urgent,High,Normal,Low'],
             'batch_date' => ['nullable', 'date'],

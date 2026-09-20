@@ -257,6 +257,9 @@
                             <td class="px-4 py-3.5 text-center font-semibold text-on-surface-variant">
                                 {{ $alloc->manufacturingProduct?->name ?? $alloc->productionJob?->manufacturingProduct?->name }} 
                                 <span class="text-[10px] text-outline font-mono block">({{ $alloc->manufacturingProduct?->code ?? $alloc->productionJob?->manufacturingProduct?->code }})</span>
+                                @if($alloc->pattern)
+                                    <span class="text-[10px] text-primary font-semibold block font-sans">Pattern: {{ $alloc->pattern->name }}</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3.5 text-center font-black text-primary text-sm">
                                 {{ number_format($alloc->quantity_processed) }} Pcs

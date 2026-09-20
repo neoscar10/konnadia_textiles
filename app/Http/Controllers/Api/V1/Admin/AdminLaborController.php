@@ -283,7 +283,7 @@ class AdminLaborController extends Controller
         $labor = Labor::with('tasks')->findOrFail($id);
 
         $query = \App\Models\JobLaborAllocation::where('labor_id', $id)
-            ->with(['task', 'productionJob', 'inventoryBaleRoll.bale', 'manufacturingProduct']);
+            ->with(['task', 'productionJob', 'inventoryBaleRoll.bale', 'manufacturingProduct', 'pattern']);
 
         // Handle Date Preset
         $preset = $request->query('preset');
@@ -326,7 +326,8 @@ class AdminLaborController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('job_id', 'like', "%{$search}%")
                   ->orWhere('production_batch_id', 'like', "%{$search}%")
-                  ->orWhereHas('manufacturingProduct', fn($pq) => $pq->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"));
+                  ->orWhereHas('manufacturingProduct', fn($pq) => $pq->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"))
+                  ->orWhereHas('pattern', fn($pat) => $pat->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -392,6 +393,7 @@ class AdminLaborController extends Controller
                 'production_batch_id' => $alloc->production_batch_id,
                 'task_name' => $alloc->task ? $alloc->task->name : 'N/A',
                 'manufacturing_product_title' => $alloc->manufacturingProduct ? $alloc->manufacturingProduct->title : 'N/A',
+                'pattern_name' => $alloc->pattern ? $alloc->pattern->name : 'N/A',
                 'quantity_processed' => (int) $alloc->quantity_processed,
                 'piece_rate' => (float) ($alloc->piece_rate ?? $alloc->rate_per_piece ?? 0),
                 'calculated_wage' => (float) $alloc->calculated_wage,

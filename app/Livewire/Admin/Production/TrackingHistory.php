@@ -56,14 +56,16 @@ class TrackingHistory extends Component
 
     public function render()
     {
-        $query = JobLaborAllocation::with(['labor', 'task', 'manufacturingProduct']);
+        $query = JobLaborAllocation::with(['labor', 'task', 'manufacturingProduct', 'pattern']);
 
         if (!empty($this->search)) {
             $query->where(function ($q) {
                 $q->where('job_id', 'like', "%{$this->search}%")
                   ->orWhere('production_batch_id', 'like', "%{$this->search}%")
                   ->orWhereHas('labor', fn($l) => $l->where('name', 'like', "%{$this->search}%")->orWhere('code', 'like', "%{$this->search}%"))
-                  ->orWhereHas('task', fn($t) => $t->where('name', 'like', "%{$this->search}%"));
+                  ->orWhereHas('task', fn($t) => $t->where('name', 'like', "%{$this->search}%"))
+                  ->orWhereHas('manufacturingProduct', fn($p) => $p->where('title', 'like', "%{$this->search}%")->orWhere('name', 'like', "%{$this->search}%"))
+                  ->orWhereHas('pattern', fn($pat) => $pat->where('name', 'like', "%{$this->search}%"));
             });
         }
 

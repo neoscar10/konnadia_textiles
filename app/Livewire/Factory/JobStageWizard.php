@@ -1041,17 +1041,19 @@ class JobStageWizard extends Component
                         $wage      = round($effective * $processed, 2);
 
                         JobLaborAllocation::create([
-                            'job_id'              => $this->job->job_code,
-                            'production_batch_id' => $this->job->batch?->batch_code ?? 'BATCH',
-                            'labor_id'            => $lRow['labor_id'],
-                            'task_id'             => $taskId,
-                            'rate_type'           => 'piece_rate',
-                            'base_rate'           => $baseRate,
-                            'bonus_rate'          => $bonusRate,
-                            'rate_applied'        => $effective,
-                            'quantity_processed'  => $processed,
-                            'calculated_wage'     => $wage,
-                            'status'              => 'approved',
+                            'job_id'                   => $this->job->job_code,
+                            'production_batch_id'      => $this->job->batch?->batch_code ?? 'BATCH',
+                            'labor_id'                 => $lRow['labor_id'],
+                            'manufacturing_product_id' => $this->job->manufacturing_product_id,
+                            'pattern_id'               => $this->job->pattern_id,
+                            'task_id'                  => $taskId,
+                            'rate_type'                => 'piece_rate',
+                            'base_rate'                => $baseRate,
+                            'bonus_rate'               => $bonusRate,
+                            'rate_applied'             => $effective,
+                            'quantity_processed'       => $processed,
+                            'calculated_wage'          => $wage,
+                            'status'                   => 'approved',
                         ]);
                     }
                 }

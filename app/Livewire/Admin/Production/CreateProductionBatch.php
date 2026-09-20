@@ -80,6 +80,7 @@ class CreateProductionBatch extends Component
             'priority'                  => 'required|in:Urgent,Normal,Low',
             'batch_date'               => 'required|date',
             'factory_supervisor_id'    => 'required|exists:factory_supervisors,id',
+            'cutter_id'                => 'nullable|exists:labors,id',
             'remarks'                  => 'nullable|string|max:1000',
         ], [
             'manufacturing_product_id.required'  => 'Please select a manufacturing product.',
@@ -94,7 +95,9 @@ class CreateProductionBatch extends Component
             $this->priority,
             $this->remarks,
             $this->batch_date,
-            $this->pattern_id
+            $this->pattern_id,
+            [],
+            $this->cutter_id
         );
 
         $responseData = $response->getData(true);

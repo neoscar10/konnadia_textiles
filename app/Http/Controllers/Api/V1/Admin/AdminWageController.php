@@ -245,7 +245,7 @@ class AdminWageController extends Controller
         }
 
         $query = JobLaborAllocation::where('labor_id', $laborId)
-            ->with(['task', 'manufacturingProduct', 'productionJob']);
+            ->with(['task', 'manufacturingProduct', 'pattern', 'productionJob']);
 
         if ($dateFrom) {
             $query->where('created_at', '>=', $dateFrom);
@@ -290,6 +290,10 @@ class AdminWageController extends Controller
                         'id' => $alloc->manufacturingProduct->id,
                         'title' => $alloc->manufacturingProduct->title ?? $alloc->manufacturingProduct->name,
                         'product_code' => $alloc->manufacturingProduct->product_code ?? $alloc->manufacturingProduct->code,
+                    ] : null,
+                    'pattern' => $alloc->pattern ? [
+                        'id' => $alloc->pattern->id,
+                        'name' => $alloc->pattern->name,
                     ] : null,
                     'quantity_processed' => (int) $alloc->quantity_processed,
                     'base_rate' => (float) ($alloc->base_rate ?? 0),

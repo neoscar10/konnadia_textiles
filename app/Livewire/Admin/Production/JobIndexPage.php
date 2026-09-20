@@ -48,6 +48,16 @@ class JobIndexPage extends Component
 
     public function mount(): void
     {
+        if (empty($this->factory_supervisor_id)) {
+            $firstSupervisor = \App\Models\FactorySupervisor::active()->orderBy('name')->first();
+            $this->factory_supervisor_id = $firstSupervisor?->id;
+        }
+
+        if (empty($this->cutter_id)) {
+            $firstCutter = \App\Models\Labor::active()->orderBy('name')->first();
+            $this->cutter_id = $firstCutter?->id;
+        }
+
         if (empty($this->batchProducts)) {
             $firstProduct = ManufacturingProduct::first();
             $firstPattern = null;
@@ -351,12 +361,11 @@ class JobIndexPage extends Component
     {
         $this->validate([
             'factory_supervisor_id' => 'required|exists:factory_supervisors,id',
-            'cutter_id'             => 'required|exists:labors,id',
+            'cutter_id'             => 'nullable|exists:labors,id',
             'priority'              => 'required|in:Urgent,Normal,Low',
             'notes'                 => 'nullable|string|max:1000',
         ], [
             'factory_supervisor_id.required' => 'Please select a supervisor.',
-            'cutter_id.required'             => 'Please select a cutter for this batch.',
         ]);
 
         $workflowService = resolve(\App\Services\Manufacturing\ProductionWorkflowService::class);

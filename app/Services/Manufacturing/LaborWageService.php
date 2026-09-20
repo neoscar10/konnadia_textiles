@@ -49,10 +49,18 @@ class LaborWageService
                     ? $manufacturingProductId
                     : ManufacturingProduct::find($manufacturingProductId);
 
+                $jobObj = null;
+                if ($jobId) {
+                    $jobObj = is_string($jobId)
+                        ? \App\Models\ProductionJob::where('job_code', $jobId)->first()
+                        : \App\Models\ProductionJob::find($jobId);
+                }
+
                 foreach ($allocations as $allocation) {
                     $laborId = $allocation['labor_id'] ?? null;
                     $quantity = $allocation['quantity'] ?? $allocation['quantity_processed'] ?? 0;
                     $rowProductId = $allocation['manufacturing_product_id'] ?? ($defaultProduct ? $defaultProduct->id : $manufacturingProductId);
+                    $rowPatternId = $allocation['pattern_id'] ?? ($jobObj ? $jobObj->pattern_id : null);
 
                     if (!$laborId) {
                         throw new Exception("Labor ID is required for each allocation.");
@@ -77,8 +85,28 @@ class LaborWageService
 
                     if ($labor->payment_method === 'job_work') {
                         if (is_null($baseRate)) {
-                            // Step 1: Explicitly query the manufacturing_product_task pivot for standard_labor_rate
-                            if ($rowProductId && $taskId) {
+                            // Step 1: Check pattern task routing pivot if pattern_id is set
+                            if ($rowPatternId && $taskId) {
+                                $patternPivotRate = DB::table('manufacturing_pattern_tasks')
+                                    ->where('pattern_id', $rowPatternId)
+                                    ->where('task_id', $taskId)
+                                    ->value('standard_labor_rate');
+
+                                if (!is_null($patternPivotRate) && (float) $patternPivotRate > 0) {
+                                    $baseRate = (float) $patternPivotRate;
+                                }
+                            }
+
+                            // Step 2: Check pattern model default standard_labor_rate if set
+                            if (is_null($baseRate) && $rowPatternId) {
+                                $patObj = \App\Models\ManufacturingProductPattern::find($rowPatternId);
+                                if ($patObj && !is_null($patObj->standard_labor_rate) && (float) $patObj->standard_labor_rate > 0) {
+                                    $baseRate = (float) $patObj->standard_labor_rate;
+                                }
+                            }
+
+                            // Step 3: Explicitly query the manufacturing_product_task pivot for standard_labor_rate
+                            if (is_null($baseRate) && $rowProductId && $taskId) {
                                 $pivotRate = DB::table('manufacturing_product_task')
                                     ->where('manufacturing_product_id', $rowProductId)
                                     ->where('task_id', $taskId)
@@ -89,7 +117,7 @@ class LaborWageService
                                 }
                             }
 
-                            // Step 2: Fall back to model accessor if pivot returned nothing.
+                            // Step 4: Fall back to model accessor if pivot returned nothing.
                             if (is_null($baseRate) && $product) {
                                 $baseRate = $product->getStandardLaborRateForTask($taskId);
                             }
@@ -115,6 +143,7 @@ class LaborWageService
                         'job_id' => $jobId,
                         'labor_id' => $labor->id,
                         'manufacturing_product_id' => $product ? $product->id : $rowProductId,
+                        'pattern_id' => $rowPatternId,
                         'task_id' => $taskId,
                         'quantity_processed' => $quantity,
                         'base_rate' => $baseRate ?? 0.00,

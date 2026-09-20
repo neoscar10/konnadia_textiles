@@ -435,6 +435,7 @@
                                                                         $selProduct = $rProdId ? $manufacturingProducts->firstWhere('id', $rProdId) : null;
                                                                         $selPattern = $pRow['pattern_id'] ? \App\Models\ManufacturingProductPattern::with('patternFabricWidths.fabricWidth.unitModel', 'fabricWidth')->find($pRow['pattern_id']) : null;
                                                                         $pDims = $selProduct ? \App\Services\FabricCuttingAreaService::formatProductPatternDimensions($selProduct, $selPattern, $roll) : null;
+                                                                        $cLenVal = floatval($rollData['cut_length'] ?? 0);
                                                                     @endphp
                                                                     <div wire:key="roll-prod-{{ $roll->id }}-{{ $pIdx }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
                                                                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">

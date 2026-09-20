@@ -14,6 +14,7 @@ class JobLaborAllocation extends Model
         'job_id',
         'labor_id',
         'manufacturing_product_id',
+        'pattern_id',
         'inventory_bale_roll_id',
         'task_id',
         'quantity_processed',
@@ -28,6 +29,7 @@ class JobLaborAllocation extends Model
         'bonus_rate' => 'decimal:2',
         'calculated_wage' => 'decimal:2',
         'inventory_bale_roll_id' => 'integer',
+        'pattern_id' => 'integer',
     ];
 
     /**
@@ -60,6 +62,14 @@ class JobLaborAllocation extends Model
     public function manufacturingProduct()
     {
         return $this->belongsTo(ManufacturingProduct::class);
+    }
+
+    /**
+     * Get the pattern associated with this allocation.
+     */
+    public function pattern()
+    {
+        return $this->belongsTo(ManufacturingProductPattern::class, 'pattern_id');
     }
 
     /**

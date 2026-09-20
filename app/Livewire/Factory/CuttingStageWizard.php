@@ -1428,6 +1428,7 @@ class CuttingStageWizard extends Component
                             'job_id'                   => $job->job_code,
                             'labor_id'                 => $wLaborId,
                             'manufacturing_product_id' => $pId,
+                            'pattern_id'               => $patId,
                             'task_id'                  => $this->cutting_task_id,
                             'rate_type'                => 'piece_rate',
                             'base_rate'                => $bRate,

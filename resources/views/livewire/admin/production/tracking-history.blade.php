@@ -93,7 +93,13 @@
                                 </span>
                             </td>
                             <td class="px-4 py-4 text-sm text-on-surface-variant whitespace-nowrap">
-                                {{ $allocation->manufacturingProduct?->name ?? ($allocation->manufacturing_product_id ? 'Product #'.$allocation->manufacturing_product_id : 'N/A') }}
+                                <p class="font-bold text-on-surface text-sm whitespace-nowrap">{{ $allocation->manufacturingProduct?->name ?? ($allocation->manufacturing_product_id ? 'Product #'.$allocation->manufacturing_product_id : 'N/A') }}</p>
+                                @if($allocation->pattern)
+                                    <span class="inline-flex items-center gap-1 text-xs text-primary font-semibold">
+                                        <span class="material-symbols-outlined text-[14px]">texture</span>
+                                        {{ $allocation->pattern->name }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-4 py-4 text-center font-bold text-on-surface whitespace-nowrap">
                                 {{ number_format($allocation->quantity_processed) }} <span class="text-xs font-normal text-outline">Units</span>

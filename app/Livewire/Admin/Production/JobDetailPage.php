@@ -3039,6 +3039,7 @@ class JobDetailPage extends Component
                         'task_id' => $this->selectedTaskId,
                         'labor_id' => $labor->id,
                         'manufacturing_product_id' => $prodId,
+                        'pattern_id' => $this->job->pattern_id,
                         'inventory_bale_roll_id' => $rId,
                         'quantity_processed' => (int)$alloc['quantity'],
                         'piece_rate' => $pieceRate,
