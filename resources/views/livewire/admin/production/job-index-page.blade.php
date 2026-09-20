@@ -493,7 +493,7 @@
     <x-admin.modal id="create-job-modal" title="Create New Production Batch" maxWidth="2xl">
         <form wire:submit.prevent="saveJob" class="space-y-5">
             <p class="text-on-surface-variant text-xs">
-                Select factory supervisor, set batch priority, and add notes. Products to produce will be defined during the fabric cutting stage.
+                Select factory supervisor, select designated cutter, set batch priority, and add notes. Products to produce will be defined during the fabric cutting stage.
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
