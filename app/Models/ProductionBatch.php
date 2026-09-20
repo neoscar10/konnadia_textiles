@@ -15,6 +15,7 @@ class ProductionBatch extends Model
         'batch_date',
         'supervisor_id',
         'factory_supervisor_id',
+        'cutter_id',
         'manufacturing_product_id',
         'pattern_id',
         'planned_quantity',
@@ -138,6 +139,14 @@ class ProductionBatch extends Model
     public function factorySupervisor()
     {
         return $this->belongsTo(FactorySupervisor::class, 'factory_supervisor_id');
+    }
+
+    /**
+     * Get the designated primary cutter assigned to this batch.
+     */
+    public function cutter()
+    {
+        return $this->belongsTo(Labor::class, 'cutter_id');
     }
 
     /**

@@ -164,6 +164,7 @@ class JobStageWizard extends Component
 
     public function updated($property)
     {
+        $this->resetErrorBag();
         if ($property === 'producedQty' || str_starts_with($property, 'subsidiaryRows')) {
             $this->recalculateSubsidiaryRows();
         }

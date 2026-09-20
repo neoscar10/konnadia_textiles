@@ -25,10 +25,10 @@ class ProductionWorkflowService
      * @param string|null $batchDate
      * @return JsonResponse
      */
-    public function initiateEmptyBatch($supervisorId, string $priority = 'Normal', ?string $remarks = null, ?string $batchDate = null): JsonResponse
+    public function initiateEmptyBatch($supervisorId, string $priority = 'Normal', ?string $remarks = null, ?string $batchDate = null, $cutterId = null): JsonResponse
     {
         try {
-            $batch = DB::transaction(function () use ($supervisorId, $priority, $remarks, $batchDate) {
+            $batch = DB::transaction(function () use ($supervisorId, $priority, $remarks, $batchDate, $cutterId) {
                 $factorySupervisor = $supervisorId ? \App\Models\FactorySupervisor::find($supervisorId) : null;
                 $factorySupervisorId = $factorySupervisor?->id ?: \App\Models\FactorySupervisor::active()->first()?->id;
                 $userId = auth()->id() ?: \App\Models\User::first()?->id;
@@ -37,6 +37,7 @@ class ProductionWorkflowService
                     'batch_date'            => $batchDate ?? now()->format('Y-m-d'),
                     'supervisor_id'         => $userId,
                     'factory_supervisor_id' => $factorySupervisorId,
+                    'cutter_id'             => $cutterId,
                     'planned_quantity'      => 0,
                     'priority'              => $priority,
                     'status'                => 'In Cutting',

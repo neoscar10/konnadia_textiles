@@ -19,6 +19,7 @@ class CreateProductionBatch extends Component
     public string $priority = 'Normal'; // Urgent, Normal, Low
     public string $batch_date = '';
     public $factory_supervisor_id = null;
+    public $cutter_id = null;
     public string $remarks = '';
 
     public function mount()
@@ -41,6 +42,9 @@ class CreateProductionBatch extends Component
         // Default to first active supervisor if available
         $firstSupervisor = FactorySupervisor::active()->orderBy('name')->first();
         $this->factory_supervisor_id = $firstSupervisor?->id;
+
+        $firstCutter = \App\Models\Labor::active()->orderBy('name')->first();
+        $this->cutter_id = $firstCutter?->id;
 
         $this->batch_code_preview = ProductionBatch::generateNextBatchCode();
 
@@ -121,6 +125,7 @@ class CreateProductionBatch extends Component
 
         $recentBatches = ProductionBatch::with(['manufacturingProduct', 'pattern', 'factorySupervisor', 'childBatches', 'parentBatch'])->latest()->take(10)->get();
         $supervisors = FactorySupervisor::active()->orderBy('name')->get();
+        $cutters = \App\Models\Labor::active()->orderBy('name')->get();
 
         return view('livewire.admin.production.create-production-batch', [
             'allProducts'       => $allProducts,
@@ -129,6 +134,7 @@ class CreateProductionBatch extends Component
             'selectedPattern'   => $selectedPattern,
             'recentBatches'     => $recentBatches,
             'supervisors'       => $supervisors,
+            'cutters'           => $cutters,
         ])->title('Create Production Batch');
     }
 }

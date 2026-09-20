@@ -35,6 +35,9 @@ class CuttingStageWizard extends Component
     public ?ProductionBatch $batchModel = null;
     public int $currentStep = 1;
 
+    // Global Search by Bale Number / Batch Number
+    public string $globalSearch = '';
+
     // Step 1: Fabric Selection & Bales/Rolls Cutting + Per-Roll Products Allocation
     public array $selectedFabrics = []; 
     // Structure per fabric:
@@ -117,8 +120,101 @@ class CuttingStageWizard extends Component
         $this->selectedFabrics = array_values($this->selectedFabrics);
     }
 
+    public function computeMaxPcsForRollProduct($rollId, float $cutLengthMeters, int $productId, ?int $patternId): int
+    {
+        if ($cutLengthMeters <= 0 || !$productId) return 0;
+
+        $product = ManufacturingProduct::find($productId);
+        if (!$product) return 0;
+
+        $pattern = $patternId ? ManufacturingProductPattern::find($patternId) : null;
+        $roll = InventoryBaleRoll::with(['fabricWidth.unitModel', 'rawMaterial.unitModel', 'bale.batch.rawMaterial.unitModel'])->find($rollId);
+        $rollContext = $roll ?? $product;
+
+        $pieceReqLen = FabricCuttingAreaService::resolvePatternFabricLength($product, $rollContext, $patternId);
+        if ($pieceReqLen > 0) {
+            return max(1, (int) floor($cutLengthMeters / $pieceReqLen));
+        }
+
+        $pieceAreaM2 = FabricCuttingAreaService::calculateProductPatternAreaM2($product, $pattern, $rollContext);
+        $cutAreaM2 = FabricCuttingAreaService::calculateCutArea($cutLengthMeters, $rollContext);
+        if ($pieceAreaM2 > 0 && $cutAreaM2 > 0) {
+            return max(1, (int) floor($cutAreaM2 / $pieceAreaM2));
+        }
+
+        return 1;
+    }
+
+    public function selectSearchedBaleOrBatch($baleId = null, $batchId = null)
+    {
+        $this->resetErrorBag();
+        $bale = $baleId ? InventoryBale::with('batch.rawMaterial')->find($baleId) : null;
+        $batch = $batchId ? InventoryBatch::with('rawMaterial')->find($batchId) : ($bale?->batch);
+
+        if (!$batch || !$batch->raw_material_id) {
+            return;
+        }
+
+        if (empty($this->selectedFabrics)) {
+            $this->addFabricRow();
+        }
+
+        $fIdx = 0;
+        $this->selectedFabrics[$fIdx]['raw_material_id'] = (string) $batch->raw_material_id;
+        $this->selectedFabrics[$fIdx]['inventory_batch_id'] = (string) $batch->id;
+
+        $this->autoEnsureBalesAndSelect($fIdx, $batch);
+
+        if ($bale) {
+            $this->selectedFabrics[$fIdx]['inventory_bale_id'] = (string) $bale->id;
+        }
+
+        $this->globalSearch = '';
+        $this->dispatch('toast', message: "Selected " . ($bale ? "Bale {$bale->bale_number}" : "Batch {$batch->batch_number}"), type: 'success');
+    }
+
+    public function getMatchingSearchResultsProperty()
+    {
+        $term = trim($this->globalSearch);
+        if (strlen($term) < 2) {
+            return collect();
+        }
+
+        $bales = InventoryBale::with(['batch.rawMaterial'])
+            ->where('status', '!=', 'depleted')
+            ->where(function ($q) use ($term) {
+                $q->where('bale_number', 'like', "%{$term}%")
+                  ->orWhereHas('batch', fn($b) => $b->where('batch_number', 'like', "%{$term}%")->orWhereHas('rawMaterial', fn($m) => $m->where('name', 'like', "%{$term}%")->orWhere('code', 'like', "%{$term}%")));
+            })
+            ->take(10)
+            ->get()
+            ->map(fn($b) => [
+                'type' => 'bale',
+                'bale_id' => $b->id,
+                'batch_id' => $b->inventory_batch_id,
+                'title' => "Bale {$b->bale_number}",
+                'subtitle' => "Batch {$b->batch?->batch_number} · {$b->batch?->rawMaterial?->name} (Bal: {$b->current_balance_length}m)",
+            ]);
+
+        $batches = InventoryBatch::with(['rawMaterial'])
+            ->where('balance_quantity', '>', 0)
+            ->where('batch_number', 'like', "%{$term}%")
+            ->take(10)
+            ->get()
+            ->map(fn($b) => [
+                'type' => 'batch',
+                'bale_id' => null,
+                'batch_id' => $b->id,
+                'title' => "Batch {$b->batch_number}",
+                'subtitle' => "{$b->rawMaterial?->name} (Bal: {$b->balance_quantity} {$b->unit})",
+            ]);
+
+        return $bales->concat($batches)->take(10);
+    }
+
     public function toggleRollSelection(int $fabricIndex, int $rollId)
     {
+        $this->resetErrorBag();
         $roll = InventoryBaleRoll::findOrFail($rollId);
 
         if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId])) {
@@ -138,6 +234,8 @@ class CuttingStageWizard extends Component
             $maxMeters = (float) $roll->current_balance_length;
             $maxInSelectedUnit = $this->convertLengthFromMeters($maxMeters, $defaultUnitId);
 
+            $autoQty = ($firstProd && $maxMeters > 0) ? $this->computeMaxPcsForRollProduct($roll->id, $maxMeters, $firstProd->id, $firstPattern?->id) : 20;
+
             $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId] = [
                 'roll_id'                     => $roll->id,
                 'roll_number'                 => $roll->roll_number,
@@ -150,7 +248,7 @@ class CuttingStageWizard extends Component
                     [
                         'manufacturing_product_id' => $firstProd?->id,
                         'pattern_id'               => $firstPattern?->id,
-                        'planned_quantity'         => '',
+                        'planned_quantity'         => $autoQty,
                     ]
                 ],
             ];
@@ -223,7 +321,11 @@ class CuttingStageWizard extends Component
 
     public function addProductToRoll(int $fabricIndex, int $rollId)
     {
+        $this->resetErrorBag();
         if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId])) {
+            $rData = $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId];
+            $cutLen = floatval($rData['cut_length'] ?? 0);
+
             $firstProd = ManufacturingProduct::active()->first();
             $firstPattern = null;
             if ($firstProd) {
@@ -231,10 +333,12 @@ class CuttingStageWizard extends Component
                 $firstPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
             }
 
+            $autoQty = ($firstProd && $cutLen > 0) ? $this->computeMaxPcsForRollProduct($rollId, $cutLen, $firstProd->id, $firstPattern?->id) : 20;
+
             $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'][] = [
                 'manufacturing_product_id' => $firstProd?->id,
                 'pattern_id'               => $firstPattern?->id,
-                'planned_quantity'         => '',
+                'planned_quantity'         => $autoQty,
             ];
         }
     }
@@ -251,6 +355,8 @@ class CuttingStageWizard extends Component
 
     public function updatedSelectedFabrics($value, $key)
     {
+        $this->resetErrorBag();
+
         $parts = explode('.', $key);
         if (count($parts) >= 2) {
             $index = (int) $parts[0];
@@ -298,15 +404,45 @@ class CuttingStageWizard extends Component
                         $inputVal = floatval($value);
                         $metersVal = $this->convertLengthToMeters($inputVal, $unitId);
                         $this->selectedFabrics[$index]['selected_rolls'][$rollId]['cut_length'] = $metersVal;
+
+                        // Auto-recalculate planned_quantity for products on this roll
+                        foreach ($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'] ?? [] as $pIdx => &$pItem) {
+                            $pId = intval($pItem['manufacturing_product_id'] ?? 0);
+                            $patId = intval($pItem['pattern_id'] ?? 0);
+                            if ($pId && $metersVal > 0) {
+                                $maxPcs = $this->computeMaxPcsForRollProduct($rollId, $metersVal, $pId, $patId);
+                                $pItem['planned_quantity'] = $maxPcs;
+                            }
+                        }
+                        unset($pItem);
                     } elseif ($subField === 'selected_unit_id') {
                         $this->updateRollUnit($index, $rollId, (string)$value);
-                    } elseif ($subField === 'products' && str_contains($key, 'manufacturing_product_id')) {
+                    } elseif ($subField === 'products') {
                         $pIdx = intval($parts[4] ?? 0);
-                        $prodId = intval($value);
-                        if ($prodId && isset($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx])) {
-                            $patterns = ManufacturingProductPattern::where('manufacturing_product_id', $prodId)->get();
-                            $defaultPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
-                            $this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx]['pattern_id'] = $defaultPattern?->id;
+                        $productProp = $parts[5] ?? '';
+                        if (isset($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx])) {
+                            $pItem = &$this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx];
+                            if ($productProp === 'manufacturing_product_id') {
+                                $prodId = intval($value);
+                                if ($prodId) {
+                                    $patterns = ManufacturingProductPattern::where('manufacturing_product_id', $prodId)->get();
+                                    $defaultPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
+                                    $pItem['pattern_id'] = $defaultPattern?->id;
+
+                                    $cLen = floatval($this->selectedFabrics[$index]['selected_rolls'][$rollId]['cut_length'] ?? 0);
+                                    if ($cLen > 0) {
+                                        $pItem['planned_quantity'] = $this->computeMaxPcsForRollProduct($rollId, $cLen, $prodId, $defaultPattern?->id);
+                                    }
+                                }
+                            } elseif ($productProp === 'pattern_id') {
+                                $prodId = intval($pItem['manufacturing_product_id'] ?? 0);
+                                $patId = intval($value);
+                                $cLen = floatval($this->selectedFabrics[$index]['selected_rolls'][$rollId]['cut_length'] ?? 0);
+                                if ($prodId && $cLen > 0) {
+                                    $pItem['planned_quantity'] = $this->computeMaxPcsForRollProduct($rollId, $cLen, $prodId, $patId);
+                                }
+                            }
+                            unset($pItem);
                         }
                     }
                 }
@@ -683,6 +819,8 @@ class CuttingStageWizard extends Component
 
             $dimDetails = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $rollContext);
 
+            $maxPcs = $this->computeMaxPcsForRollProduct($rollId, $cutLength, $pId, $patId);
+
             $key = "{$pId}_{$patId}";
             $productDetails[$key] = [
                 'product_id' => $product->id,
@@ -691,6 +829,7 @@ class CuttingStageWizard extends Component
                 'pattern_name' => $pattern?->name ?? 'Standard',
                 'piece_area_m2' => round($pieceAreaM2, 4),
                 'quantity' => $qty,
+                'max_pcs' => $maxPcs,
                 'piece_req_length' => round($pieceReqLen, 2),
                 'total_req_length' => round($itemReqLen, 2),
                 'total_used_area_m2' => round($itemUsedAreaBase, 4),
@@ -716,6 +855,7 @@ class CuttingStageWizard extends Component
 
         return [
             'cut_length' => round($cutLength, 2),
+            'total_req_length' => round($totalStandardReqLength, 2),
             'cut_length_display' => $cutLengthDisplay,
             'roll_width_display' => $widthDisplay,
             'dimensions_display' => $dimensionsDisplay,
@@ -814,6 +954,8 @@ class CuttingStageWizard extends Component
     {
         $totalCutAreaBase = 0.0;
         $totalCutLength = 0.0;
+        $totalReqLength = 0.0;
+        $totalWastageLength = 0.0;
         $totalFabricCutCost = 0.0;
         $totalUsedAreaBase = 0.0;
         $hasOverCapacity = false;
@@ -841,6 +983,8 @@ class CuttingStageWizard extends Component
                 $bd = $this->getRollCutBreakdown($rollId, $cutLen, $matId, $rData['products'] ?? []);
                 if (!empty($bd)) {
                     $totalCutLength += $cutLen;
+                    $totalReqLength += ($bd['total_req_length'] ?? 0);
+                    $totalWastageLength += ($bd['wastage_length'] ?? 0);
                     $totalCutAreaBase += $bd['cut_area_m2'];
                     $totalUsedAreaBase += $bd['used_area_m2'];
                     $totalFabricCutCost += $bd['total_fabric_cut_cost'];
@@ -857,6 +1001,8 @@ class CuttingStageWizard extends Component
 
         return [
             'total_cut_length' => round($totalCutLength, 2),
+            'total_req_length' => round($totalReqLength, 2),
+            'total_wastage_length' => round($totalWastageLength, 2),
             'cut_area_m2' => round($totalCutAreaBase, 4),
             'used_area_m2' => round($totalUsedAreaBase, 4),
             'remaining_area_m2' => round($remainingAreaBase, 4),
@@ -871,6 +1017,7 @@ class CuttingStageWizard extends Component
     protected function syncLaborAndOutputs()
     {
         $unique = $this->uniqueAllocatedProducts;
+        $defaultCutterId = $this->batchModel?->cutter_id;
 
         $newLaborAllocations = [];
         $newOutputs = [];
@@ -888,6 +1035,9 @@ class CuttingStageWizard extends Component
                 if (count($workers) === 1 && intval($workers[0]['quantity']) != $qty) {
                     $workers[0]['quantity'] = $qty;
                 }
+                if (count($workers) === 1 && empty($workers[0]['labor_id']) && $defaultCutterId) {
+                    $workers[0]['labor_id'] = $defaultCutterId;
+                }
                 $existingGroup['workers'] = $workers;
                 $newLaborAllocations[$key] = $existingGroup;
             } else {
@@ -901,7 +1051,7 @@ class CuttingStageWizard extends Component
                     'total_cut_quantity' => $qty,
                     'workers' => [
                         [
-                            'labor_id' => null,
+                            'labor_id' => $defaultCutterId,
                             'quantity' => $qty,
                             'base_rate' => 15.00,
                             'bonus_rate' => 0.00,
@@ -989,6 +1139,7 @@ class CuttingStageWizard extends Component
 
     protected function validateStep1(): bool
     {
+        $this->resetErrorBag();
         $hasSelectedRolls = false;
         $hasOverCapacity = false;
         $hasProductAllocated = false;
@@ -1052,6 +1203,7 @@ class CuttingStageWizard extends Component
 
     protected function validateStep2(): bool
     {
+        $this->resetErrorBag();
         foreach ($this->laborAllocations as $key => $group) {
             $totalCut = intval($group['total_cut_quantity'] ?? 0);
             $workers = $group['workers'] ?? [];
@@ -1089,6 +1241,7 @@ class CuttingStageWizard extends Component
 
     protected function validateStep3(): bool
     {
+        $this->resetErrorBag();
         foreach ($this->outputItems as $idx => $out) {
             if (empty($out['expected_quantity']) || intval($out['expected_quantity']) <= 0) {
                 $this->addError("outputItems.{$idx}.expected_quantity", "Expected output quantity must be > 0.");

@@ -135,6 +135,48 @@
                 </button>
             </div>
 
+            <!-- Quick Search by Bale Number / Batch Number -->
+            <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 shadow-xs space-y-3 relative" x-data="{ open: true }">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-black text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">search</span>
+                        Quick Search by Bale Number, Bale or Batch Number
+                    </label>
+                    <span class="text-[11px] text-on-surface-variant font-semibold">Live search auto-fills Material, Batch &amp; Bale</span>
+                </div>
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        wire:model.live.debounce.250ms="globalSearch" 
+                        @focus="open = true" 
+                        placeholder="Type bale # (e.g. BALE-001) or batch # (e.g. BATCH-2026) to search..." 
+                        class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-10 pr-4 py-3 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                    <span class="material-symbols-outlined absolute left-3 top-3.5 text-on-surface-variant text-lg">search</span>
+
+                    @if(!empty($globalSearch) && count($this->matchingSearchResults) > 0)
+                        <div x-show="open" @click.outside="open = false" class="absolute z-50 left-0 right-0 mt-1 bg-surface border border-outline-variant/60 rounded-xl shadow-xl overflow-hidden divide-y divide-outline-variant/30 font-body-md text-xs max-h-60 overflow-y-auto">
+                            @foreach($this->matchingSearchResults as $res)
+                                <div 
+                                    wire:click="selectSearchedBaleOrBatch({{ $res['bale_id'] ? $res['bale_id'] : 'null' }}, {{ $res['batch_id'] ? $res['batch_id'] : 'null' }})"
+                                    @click="open = false"
+                                    class="p-3 hover:bg-primary/10 cursor-pointer flex items-center justify-between transition-colors"
+                                >
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="material-symbols-outlined text-primary text-base">{{ $res['type'] === 'bale' ? 'view_week' : 'inventory_2' }}</span>
+                                        <div>
+                                            <p class="font-extrabold text-on-surface text-xs">{{ $res['title'] }}</p>
+                                            <p class="text-[11px] text-on-surface-variant font-semibold">{{ $res['subtitle'] }}</p>
+                                        </div>
+                                    </div>
+                                    <span class="px-3 py-1 bg-primary text-on-primary font-bold text-[10px] rounded-lg shadow-xs">Auto-Select &rarr;</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             @foreach($selectedFabrics as $fIdx => $fabRow)
                 <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs relative space-y-6">
                     <div class="flex justify-between items-center pb-3 border-b border-outline-variant/40">
@@ -417,7 +459,15 @@
                                                                             </div>
 
                                                                             <div class="sm:col-span-3">
-                                                                                <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">QUANTITY (PCS) *</label>
+                                                                                @php
+                                                                                    $calcMaxPcs = ($cLenVal > 0 && $rProdId) ? $this->computeMaxPcsForRollProduct($roll->id, $cLenVal, $rProdId, $pRow['pattern_id'] ?? null) : 0;
+                                                                                @endphp
+                                                                                <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">
+                                                                                    QUANTITY (PCS) *
+                                                                                    @if($calcMaxPcs > 0)
+                                                                                        <span class="text-primary font-mono text-[10px] lowercase font-semibold ml-1">(max: {{ $calcMaxPcs }})</span>
+                                                                                    @endif
+                                                                                </label>
                                                                                 <div class="flex items-center gap-1.5">
                                                                                     <input type="number" min="1" placeholder="Qty (Pcs)..." wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.products.{{ $pIdx }}.planned_quantity" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
                                                                                     @if(count($rollData['products'] ?? []) > 1)
@@ -470,30 +520,30 @@
                                                             <div class="p-4 bg-primary/5 border rounded-xl text-xs space-y-3 {{ !empty($rLive['is_over_capacity']) ? 'border-error bg-error-container/10' : 'border-primary/20' }}">
                                                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pb-3 border-b border-primary/10">
                                                                     <div class="space-y-1">
-                                                                        <p class="text-[10px] font-extrabold text-primary uppercase tracking-wider">Roll Cut Area</p>
+                                                                        <p class="text-[10px] font-extrabold text-primary uppercase tracking-wider">Roll Cut Length</p>
                                                                         <div class="flex items-center gap-2">
-                                                                            <span class="material-symbols-outlined text-primary text-lg">aspect_ratio</span>
-                                                                            <span class="text-sm font-black text-on-surface">{{ $rLive['cut_area_m2'] }} m²</span>
+                                                                            <span class="material-symbols-outlined text-primary text-lg">straighten</span>
+                                                                            <span class="text-sm font-black text-on-surface">{{ $rLive['cut_length'] }} m</span>
                                                                         </div>
-                                                                        <p class="text-[11px] text-on-surface-variant font-bold"><span class="text-primary">{{ $rLive['dimensions_display'] ?? ('Width: ' . $rLive['roll_width_display']) }}</span></p>
+                                                                        <p class="text-[11px] text-on-surface-variant font-bold">Cut Area: <span class="text-primary">{{ $rLive['cut_area_m2'] }} m²</span> &middot; {{ $rLive['dimensions_display'] ?? ('Width: ' . $rLive['roll_width_display']) }}</p>
                                                                     </div>
 
                                                                     <div class="space-y-1">
-                                                                        <p class="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">Allocated Products Area</p>
+                                                                        <p class="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">Allocated Fabric Length</p>
                                                                         <div class="flex items-center gap-2">
                                                                             <span class="material-symbols-outlined text-emerald-600 text-lg">fact_check</span>
-                                                                            <span class="text-sm font-black {{ !empty($rLive['is_over_capacity']) ? 'text-error' : 'text-emerald-700' }}">{{ $rLive['used_area_m2'] }} m²</span>
+                                                                            <span class="text-sm font-black {{ !empty($rLive['is_over_capacity']) ? 'text-error' : 'text-emerald-700' }}">{{ $rLive['total_req_length'] ?? 0 }} m</span>
                                                                         </div>
-                                                                        <p class="text-[11px] text-on-surface-variant font-bold">Utilized: {{ $rLive['usage_percentage'] }}% &middot; Wastage: {{ $rLive['wastage_percentage'] }}%</p>
+                                                                        <p class="text-[11px] text-on-surface-variant font-bold">Product Area: {{ $rLive['used_area_m2'] }} m² &middot; Utilized: {{ $rLive['usage_percentage'] }}%</p>
                                                                     </div>
 
                                                                     <div class="space-y-1">
-                                                                        <p class="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">Fabric Wastage</p>
+                                                                        <p class="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">Fabric Wastage Length</p>
                                                                         <div class="flex items-center gap-2">
                                                                             <span class="material-symbols-outlined text-amber-600 text-lg">delete_sweep</span>
-                                                                            <span class="text-sm font-black text-amber-900">{{ $rLive['wastage_area_m2'] }} m² ({{ $rLive['wastage_percentage'] }}%)</span>
+                                                                            <span class="text-sm font-black text-amber-900">{{ $rLive['wastage_length'] }} m</span>
                                                                         </div>
-                                                                        <p class="text-[11px] text-amber-800 font-bold">Wastage Len: {{ $rLive['wastage_length'] }} m &middot; Cost: ₹{{ number_format($rLive['wastage_cost'], 2) }}</p>
+                                                                        <p class="text-[11px] text-amber-800 font-bold">Wastage Area: {{ $rLive['wastage_area_m2'] }} m² ({{ $rLive['wastage_percentage'] }}%) &middot; Cost: ₹{{ number_format($rLive['wastage_cost'], 2) }}</p>
                                                                     </div>
 
                                                                     <div class="space-y-1">
@@ -813,21 +863,21 @@
 
                 <div class="flex flex-wrap lg:flex-nowrap gap-3 text-xs">
                     <div class="flex-1 min-w-[150px] bg-surface-container-low p-4 rounded-xl border border-outline-variant/40">
-                        <span class="text-on-surface-variant block text-[10px] font-bold uppercase">Total Cut Length &amp; Area</span>
-                        <span class="text-xl font-black text-primary">{{ $cBreakdown['cut_area_m2'] ?? 0 }} m²</span>
-                        <span class="text-xs text-on-surface-variant block font-bold mt-0.5">{{ $cBreakdown['total_cut_length'] ?? 0 }}m Fabric Cut</span>
+                        <span class="text-on-surface-variant block text-[10px] font-bold uppercase">Total Cut Length</span>
+                        <span class="text-xl font-black text-primary">{{ $cBreakdown['total_cut_length'] ?? 0 }} m</span>
+                        <span class="text-xs text-on-surface-variant block font-bold mt-0.5">{{ $cBreakdown['cut_area_m2'] ?? 0 }} m² Surface Area</span>
                     </div>
 
                     <div class="flex-1 min-w-[150px] bg-surface-container-low p-4 rounded-xl border border-outline-variant/40">
-                        <span class="text-on-surface-variant block text-[10px] font-bold uppercase">Utilized Product Area</span>
-                        <span class="text-xl font-black text-emerald-700">{{ $cBreakdown['used_area_m2'] ?? 0 }} m²</span>
-                        <span class="text-xs text-emerald-800 font-bold block mt-0.5">{{ $cBreakdown['usage_percentage'] ?? 0 }}% Utilized</span>
+                        <span class="text-on-surface-variant block text-[10px] font-bold uppercase">Utilized Fabric Length</span>
+                        <span class="text-xl font-black text-emerald-700">{{ $cBreakdown['total_req_length'] ?? 0 }} m</span>
+                        <span class="text-xs text-emerald-800 font-bold block mt-0.5">{{ $cBreakdown['used_area_m2'] ?? 0 }} m² ({{ $cBreakdown['usage_percentage'] ?? 0 }}% Utilized)</span>
                     </div>
 
                     <div class="flex-1 min-w-[150px] bg-surface-container-low p-4 rounded-xl border border-outline-variant/40">
-                        <span class="text-on-surface-variant block text-[10px] font-bold uppercase">Fabric Wastage</span>
-                        <span class="text-xl font-black text-amber-800">{{ $cBreakdown['wastage_area_m2'] ?? 0 }} m²</span>
-                        <span class="text-xs text-amber-900 font-bold block mt-0.5">{{ $cBreakdown['wastage_percentage'] ?? 0 }}% Wastage</span>
+                        <span class="text-on-surface-variant block text-[10px] font-bold uppercase">Fabric Wastage Length</span>
+                        <span class="text-xl font-black text-amber-800">{{ $cBreakdown['total_wastage_length'] ?? 0 }} m</span>
+                        <span class="text-xs text-amber-900 font-bold block mt-0.5">{{ $cBreakdown['wastage_area_m2'] ?? 0 }} m² ({{ $cBreakdown['wastage_percentage'] ?? 0 }}% Wastage)</span>
                     </div>
 
                     <div class="flex-1 min-w-[150px] bg-surface-container-low p-4 rounded-xl border border-outline-variant/40">

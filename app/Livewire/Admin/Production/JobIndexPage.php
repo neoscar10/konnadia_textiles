@@ -32,6 +32,7 @@ class JobIndexPage extends Component
     public $manufacturing_product_id = null;
     public $pattern_id = null;
     public $factory_supervisor_id = null;
+    public $cutter_id = null;
     public int $planned_quantity = 200;
     public string $priority = 'Normal';
     public string $notes = '';
@@ -88,6 +89,9 @@ class JobIndexPage extends Component
 
         $firstSupervisor = \App\Models\FactorySupervisor::active()->orderBy('name')->first();
         $this->factory_supervisor_id = $firstSupervisor?->id;
+
+        $firstCutter = \App\Models\Labor::active()->orderBy('name')->first();
+        $this->cutter_id = $firstCutter?->id;
 
         $this->dispatch('open-modal', 'create-job-modal');
     }
@@ -347,10 +351,12 @@ class JobIndexPage extends Component
     {
         $this->validate([
             'factory_supervisor_id' => 'required|exists:factory_supervisors,id',
+            'cutter_id'             => 'required|exists:labors,id',
             'priority'              => 'required|in:Urgent,Normal,Low',
             'notes'                 => 'nullable|string|max:1000',
         ], [
             'factory_supervisor_id.required' => 'Please select a supervisor.',
+            'cutter_id.required'             => 'Please select a cutter for this batch.',
         ]);
 
         $workflowService = resolve(\App\Services\Manufacturing\ProductionWorkflowService::class);
@@ -358,7 +364,8 @@ class JobIndexPage extends Component
             $this->factory_supervisor_id,
             $this->priority,
             $this->notes,
-            now()->format('Y-m-d')
+            now()->format('Y-m-d'),
+            $this->cutter_id
         );
 
         $responseData = $response->getData(true);
@@ -445,6 +452,7 @@ class JobIndexPage extends Component
             : collect();
         $selectedPattern = $availablePatterns->firstWhere('id', $this->pattern_id);
         $supervisors = \App\Models\FactorySupervisor::active()->orderBy('name')->get();
+        $cutters = \App\Models\Labor::active()->orderBy('name')->get();
 
         // Eligible Completed Jobs for Conversion Picker
         $completedJobsForPicker = ProductionJob::with(['manufacturingProduct'])
@@ -480,6 +488,7 @@ class JobIndexPage extends Component
             'availablePatterns'             => $availablePatterns,
             'selectedPattern'               => $selectedPattern,
             'supervisors'                   => $supervisors,
+            'cutters'                       => $cutters,
             'completedJobsForPicker'        => $completedJobsForPicker,
             'storefrontProducts'            => $storefrontProducts,
             'totalCompletedJobsCount'       => $totalCompletedJobsCount,

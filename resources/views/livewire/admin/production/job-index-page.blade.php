@@ -498,7 +498,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Supervisor -->
-                <div class="md:col-span-2">
+                <div>
                     <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider mb-1">FACTORY SUPERVISOR *</label>
                     @if($supervisors->isEmpty())
                         <div class="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-amber-800 font-semibold flex items-center gap-1.5">
@@ -514,6 +514,25 @@
                         </select>
                     @endif
                     @error('factory_supervisor_id') <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Cutter Selection -->
+                <div>
+                    <label class="block text-[11px] font-black text-on-surface-variant uppercase tracking-wider mb-1">DESIGNATED CUTTER *</label>
+                    @if($cutters->isEmpty())
+                        <div class="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-amber-800 font-semibold flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px]">warning</span>
+                            <span>No active cutters.</span>
+                        </div>
+                    @else
+                        <select wire:model="cutter_id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3.5 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                            <option value="">— Select Batch Cutter —</option>
+                            @foreach($cutters as $cutter)
+                                <option value="{{ $cutter->id }}">{{ $cutter->name }} ({{ $cutter->worker_code }})</option>
+                            @endforeach
+                        </select>
+                    @endif
+                    @error('cutter_id') <span class="text-error text-[11px] block mt-1 font-semibold">{{ $message }}</span> @enderror
                 </div>
 
                 <!-- Priority -->
