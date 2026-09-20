@@ -407,7 +407,7 @@ class ProductTransferIndexPage extends Component
 
         // Fetch paginated list of manufactured products for Step 2
         $productsQuery = Product::where('is_active', true)
-            ->where('product_type', 'retail');
+            ->where('product_type', 'manufactured');
 
         if (!empty($this->wizardProductSearch)) {
             $searchVal = $this->wizardProductSearch;

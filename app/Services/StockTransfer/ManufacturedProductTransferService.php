@@ -135,7 +135,7 @@ class ManufacturedProductTransferService
                 if (!$product->is_active) {
                     throw new Exception("Selected product is not active.");
                 }
-                if ($product->product_type !== 'retail') {
+                if ($product->product_type !== 'manufactured') {
                     throw new Exception("Only manufactured products can be transferred.");
                 }
 
