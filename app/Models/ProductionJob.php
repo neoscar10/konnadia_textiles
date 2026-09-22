@@ -243,8 +243,8 @@ class ProductionJob extends Model
     }
 
     /**
-     * Get completed quantity based on the average output across product routing stages
-     * or final stage output, capped at target quantity.
+     * Get completed quantity based on the output of the final product routing stage
+     * or overall job completion status, capped at target quantity.
      */
     public function getCompletedQuantityAttribute(): int
     {
@@ -263,12 +263,21 @@ class ProductionJob extends Model
                 }
             }
 
-            $lastCompleted = $stageExecs->where('status', 'completed')->sortByDesc('sequence_number')->first();
-            if ($lastCompleted) {
-                $lastOutput = (int) $this->productOutputs()->where('task_id', $lastCompleted->task_id)->sum('quantity_produced');
-                if ($lastOutput > 0) return (int) min($this->target_quantity, $lastOutput);
-                if ($lastCompleted->completed_quantity > 0) return (int) min($this->target_quantity, $lastCompleted->completed_quantity);
+            $isAllCompleted = $stageExecs->where('status', '!=', 'completed')->count() === 0;
+            if ($isAllCompleted) {
+                $lastCompleted = $stageExecs->sortByDesc('sequence_number')->first();
+                if ($lastCompleted) {
+                    $lastOutput = (int) $this->productOutputs()->where('task_id', $lastCompleted->task_id)->sum('quantity_produced');
+                    if ($lastOutput > 0) return (int) min($this->target_quantity, $lastOutput);
+                    if ($lastCompleted->completed_quantity > 0) return (int) min($this->target_quantity, $lastCompleted->completed_quantity);
+                }
             }
+
+            $rawStatus = $this->attributes['status'] ?? 'pending';
+            if ($rawStatus === 'completed') {
+                return (int) $this->target_quantity;
+            }
+            return 0;
         }
 
         $rawStatus = $this->attributes['status'] ?? 'pending';
@@ -281,35 +290,52 @@ class ProductionJob extends Model
     }
 
     /**
-     * Dynamically resolve job status, automatically returning 'completed' if overall output progress hits 100%.
+     * Dynamically resolve job status.
+     * Returns 'completed' ONLY when all stage executions are finished, or (if no stage executions exist) target quantity is met.
      */
     public function getStatusAttribute($value): string
     {
         $rawStatus = $value ?? ($this->attributes['status'] ?? 'pending');
-        if (!$this->exists || $rawStatus === 'completed' || $rawStatus === 'cancelled') {
+        if (!$this->exists || $rawStatus === 'cancelled') {
             return $rawStatus;
         }
 
-        $targetQty = (int) $this->target_quantity;
-        if ($targetQty > 0) {
-            $stageExecs = $this->stageExecutions()->get();
-            $isAllStagesCompleted = $stageExecs->count() > 0 && $stageExecs->where('status', '!=', 'completed')->count() === 0;
-            $isTargetQuantityMet = $this->getCompletedQuantityAttribute() >= $targetQty;
-
-            if ($isAllStagesCompleted || $isTargetQuantityMet) {
-                if ($rawStatus !== 'completed') {
-                    \Illuminate\Support\Facades\DB::table('production_jobs')->where('id', $this->id)->update(['status' => 'completed']);
-                    $this->attributes['status'] = 'completed';
+        $stageExecs = $this->stageExecutions()->get();
+        if ($stageExecs->count() > 0) {
+            $hasIncompleteStages = $stageExecs->where('status', '!=', 'completed')->count() > 0;
+            if ($hasIncompleteStages) {
+                if ($rawStatus === 'completed') {
+                    \Illuminate\Support\Facades\DB::table('production_jobs')->where('id', $this->id)->update(['status' => 'in_progress']);
+                    $this->attributes['status'] = 'in_progress';
                 }
-                return 'completed';
+                return 'in_progress';
             }
+
+            if ($rawStatus !== 'completed') {
+                \Illuminate\Support\Facades\DB::table('production_jobs')->where('id', $this->id)->update(['status' => 'completed']);
+                $this->attributes['status'] = 'completed';
+            }
+            return 'completed';
+        }
+
+        if ($rawStatus === 'completed') {
+            return 'completed';
+        }
+
+        $targetQty = (int) $this->target_quantity;
+        if ($targetQty > 0 && $this->getCompletedQuantityAttribute() >= $targetQty) {
+            if ($rawStatus !== 'completed') {
+                \Illuminate\Support\Facades\DB::table('production_jobs')->where('id', $this->id)->update(['status' => 'completed']);
+                $this->attributes['status'] = 'completed';
+            }
+            return 'completed';
         }
 
         return $rawStatus;
     }
 
     /**
-     * Calculate overall completion progress percentage.
+     * Calculate overall completion progress percentage based on stage execution progression.
      */
     public function getProgressPercentageAttribute(): float
     {
@@ -319,6 +345,27 @@ class ProductionJob extends Model
 
         if ($this->status === 'completed') {
             return 100.0;
+        }
+
+        $stageExecs = $this->stageExecutions()->get();
+        if ($stageExecs->count() > 0) {
+            $totalStages = $stageExecs->count();
+            $completedStages = $stageExecs->where('status', 'completed')->count();
+
+            $stageProgress = ($completedStages / $totalStages) * 100;
+
+            $inProgressStage = $stageExecs->where('status', 'in_progress')->first();
+            if ($inProgressStage && $inProgressStage->target_quantity > 0) {
+                $stageOutput = (int) $this->productOutputs()->where('task_id', $inProgressStage->task_id)->sum('quantity_produced');
+                $stageAlloc = (int) $this->allocations()->where('task_id', $inProgressStage->task_id)->sum('quantity_processed');
+                $currDone = max($stageOutput, $stageAlloc);
+                if ($currDone > 0) {
+                    $inProgressFraction = min(1.0, $currDone / $inProgressStage->target_quantity);
+                    $stageProgress += ($inProgressFraction / $totalStages) * 100;
+                }
+            }
+
+            return (float) min(99.9, round($stageProgress, 1));
         }
 
         $completed = $this->completed_quantity;
