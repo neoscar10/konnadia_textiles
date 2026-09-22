@@ -926,7 +926,7 @@
                                             <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">
                                                 BASE RATE (₹ / PC)
                                             </label>
-                                            <input type="number" step="0.5" wire:model.live="laborRows.{{ $index }}.base_rate" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                            <input type="number" step="0.01" min="0" wire:model.live="laborRows.{{ $index }}.base_rate" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                                         </div>
 
                                         <!-- Bonus Rate -->
@@ -934,7 +934,7 @@
                                             <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">
                                                 BONUS RATE (₹ / PC)
                                             </label>
-                                            <input type="number" step="0.5" wire:model.live="laborRows.{{ $index }}.bonus_rate" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                            <input type="number" step="0.01" min="0" wire:model.live="laborRows.{{ $index }}.bonus_rate" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                                         </div>
 
                                         <!-- Remove Row Button -->
@@ -1338,7 +1338,7 @@
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">SCRAP QUANTITY (PCS)</label>
-                                        <input type="number" step="0.5" wire:model="scrapQty" placeholder="e.g. 1.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <input type="number" step="0.01" min="0" wire:model="scrapQty" placeholder="e.g. 1.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">SCRAP ACTION / REASON NOTE</label>
@@ -1355,7 +1355,7 @@
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">DAMAGED QUANTITY (PCS)</label>
-                                        <input type="number" step="0.5" wire:model="damageQty" placeholder="e.g. 2.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <input type="number" step="0.01" min="0" wire:model="damageQty" placeholder="e.g. 2.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">DAMAGE REASON / REJECT NOTE</label>

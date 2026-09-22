@@ -1280,13 +1280,13 @@
                                 <!-- Base Rate -->
                                 <div class="col-span-6 md:col-span-2 space-y-1">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Base Rate (₹ / PC)</label>
-                                    <input type="number" step="0.50" min="0" wire:model.live="laborAllocations.{{ $index }}.base_rate" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface text-center focus:ring-2 focus:ring-primary/20">
+                                    <input type="number" step="0.01" min="0" wire:model.live="laborAllocations.{{ $index }}.base_rate" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-on-surface text-center focus:ring-2 focus:ring-primary/20">
                                 </div>
 
                                 <!-- Bonus Rate -->
                                 <div class="col-span-6 md:col-span-2 space-y-1">
                                     <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Bonus Rate (₹ / PC)</label>
-                                    <input type="number" step="0.50" min="0" wire:model.live="laborAllocations.{{ $index }}.bonus_rate" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-amber-700 text-center focus:ring-2 focus:ring-amber-500/20">
+                                    <input type="number" step="0.01" min="0" wire:model.live="laborAllocations.{{ $index }}.bonus_rate" @if($this->isSelectedStageCompleted) disabled @endif placeholder="0.00" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2.5 text-xs font-bold text-amber-700 text-center focus:ring-2 focus:ring-amber-500/20">
                                 </div>
 
                                 <!-- Effective Total Rate & Subtotal -->

@@ -603,7 +603,7 @@
                                             </div>
                                             <div>
                                                 <label class="block text-[10px] font-extrabold uppercase tracking-wider text-on-surface-variant mb-1">BASE RATE (₹)</label>
-                                                <input type="number" step="0.5" wire:model.live="laborRows.{{ $idx }}.base_rate" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
+                                                <input type="number" step="0.01" min="0" wire:model.live="laborRows.{{ $idx }}.base_rate" class="w-full px-3 py-2 bg-surface-container-lowest text-xs rounded-xl border border-outline-variant/60 font-mono font-bold text-on-surface" />
                                             </div>
                                         </div>
                                     </div>

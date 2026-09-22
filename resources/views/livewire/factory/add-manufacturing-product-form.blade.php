@@ -171,7 +171,7 @@
                                                     <div class="w-20 sm:w-24 shrink-0">
                                                         <div class="relative flex items-center">
                                                             <span class="absolute left-2.5 text-xs font-extrabold text-slate-400">₹</span>
-                                                            <input type="number" step="0.50" wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.standard_labor_rate" placeholder="Rate" class="w-full pl-6 pr-2 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs">
+                                                            <input type="number" step="0.01" min="0" wire:model="patternsList.{{ $pIdx }}.tasks.{{ $tIdx }}.standard_labor_rate" placeholder="Rate" class="w-full pl-6 pr-2 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-2xs">
                                                         </div>
                                                     </div>
 

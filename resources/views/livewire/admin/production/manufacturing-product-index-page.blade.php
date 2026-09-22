@@ -339,7 +339,7 @@
                             <label class="block text-[10px] font-bold text-on-surface-variant uppercase sm:hidden mb-1">Labor Rate (₹/Pcs) *</label>
                             <div class="relative">
                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-secondary pointer-events-none select-none">₹</span>
-                                <input type="number" step="0.50" min="0" wire:model.live="routingTasks.{{ $index }}.standard_labor_rate"
+                                <input type="number" step="0.01" min="0" wire:model.live="routingTasks.{{ $index }}.standard_labor_rate"
                                     class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl pl-10 pr-3 py-2.5 text-xs font-black text-secondary text-right focus:ring-2 focus:ring-secondary/20">
                             </div>
                             @error("routingTasks.{$index}.standard_labor_rate")

@@ -177,7 +177,7 @@
                             </div>
 
                             <div class="w-28">
-                                <input type="number" step="0.50" wire:model="defaultTasksList.{{ $index }}.standard_labor_rate" placeholder="Rate (₹)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800">
+                                <input type="number" step="0.01" min="0" wire:model="defaultTasksList.{{ $index }}.standard_labor_rate" placeholder="Rate (₹)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800">
                             </div>
 
                             <label class="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-700 shrink-0">
