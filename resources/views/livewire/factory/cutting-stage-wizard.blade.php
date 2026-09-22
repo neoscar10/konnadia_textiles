@@ -407,7 +407,7 @@
                                                                         $pDims = $selProduct ? \App\Services\FabricCuttingAreaService::formatProductPatternDimensions($selProduct, $selPattern, $roll) : null;
                                                                         $cLenVal = floatval($rollData['cut_length'] ?? 0);
                                                                     @endphp
-                                                                    <div wire:key="roll-prod-{{ $roll->id }}-{{ $pIdx }}-{{ $cLenVal }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
+                                                                    <div wire:key="roll-prod-{{ $roll->id }}-{{ $pIdx }}-{{ $cLenVal }}-{{ $pRow['planned_quantity'] ?? 0 }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
                                                                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                                                                             <div class="sm:col-span-5">
                                                                                 <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">PRODUCT *</label>
@@ -440,7 +440,7 @@
                                                                                     @endif
                                                                                 </label>
                                                                                 <div class="flex items-center gap-1.5">
-                                                                                    <input type="number" min="1" placeholder="Qty (Pcs)..." wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.products.{{ $pIdx }}.planned_quantity" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
+                                                                                    <input type="number" min="1" placeholder="Qty (Pcs)..." wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.products.{{ $pIdx }}.planned_quantity" value="{{ $pRow['planned_quantity'] ?? '' }}" class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface">
                                                                                     @if(count($rollData['products'] ?? []) > 1)
                                                                                         <button type="button" wire:click="removeProductFromRoll({{ $fIdx }}, {{ $roll->id }}, {{ $pIdx }})" class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0">
                                                                                             <span class="material-symbols-outlined text-base">delete</span>
@@ -558,67 +558,8 @@
         </div>
     @endif
 
-    <!-- STEP 2: Output Items Definition -->
+    <!-- STEP 2: Cutting Stage Review & Confirm -->
     @if($currentStep === 2)
-        <div class="space-y-6">
-            <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-xs space-y-6">
-                <div class="flex justify-between items-center border-b border-outline-variant/40 pb-4">
-                    <div>
-                        <h3 class="font-headline-sm text-base font-extrabold text-primary">Define Cutting Output Items &amp; Notes</h3>
-                        <p class="text-xs text-on-surface-variant mt-0.5">Verify expected output quantities and remarks for each product/pattern to be spawned into production jobs.</p>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    @foreach($outputItems as $oIdx => $out)
-                        <div wire:key="output-item-{{ $oIdx }}" class="p-4 bg-surface-container-low/40 rounded-xl border border-outline-variant/40 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h4 class="font-bold text-on-surface text-sm">{{ $out['product_name'] }}</h4>
-                                    <div class="flex items-center gap-2 mt-0.5">
-                                        <span class="text-xs text-outline font-semibold">Pattern: {{ $out['pattern_name'] }}</span>
-                                        @if(!empty($out['dimensions_display']))
-                                            <span class="px-2 py-0.5 bg-primary/10 text-primary text-[11px] font-bold rounded-lg border border-primary/20">
-                                                {{ $out['dimensions_display'] }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <span class="px-3 py-1 bg-primary/10 text-primary font-mono font-black rounded-lg text-xs">
-                                    {{ $out['expected_quantity'] }} Pcs Expected
-                                </span>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                                <div class="md:col-span-4">
-                                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Expected Output Quantity *</label>
-                                    <input type="number" min="1" wire:model.live.debounce.300ms="outputItems.{{ $oIdx }}.expected_quantity" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface" />
-                                </div>
-
-                                <div class="md:col-span-8">
-                                    <label class="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Remarks / Cutting Output Note</label>
-                                    <input type="text" wire:model="outputItems.{{ $oIdx }}.remarks" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface" placeholder="Remarks..." />
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            <div class="flex justify-between pt-4">
-                <button type="button" wire:click="goToStep(1)" class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer">
-                    Back to Step 1
-                </button>
-                <button type="button" wire:click="goToStep(3)" class="px-8 py-3.5 bg-primary text-on-primary font-extrabold text-xs rounded-xl shadow-md hover:bg-primary-container transition-all cursor-pointer flex items-center gap-2">
-                    Proceed to Step 3 (Review &amp; Confirm)
-                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </button>
-            </div>
-        </div>
-    @endif
-
-    <!-- STEP 3: Cutting Stage Review & Confirm -->
-    @if($currentStep === 3)
         <div class="space-y-6">
             <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-6">
                 <div class="flex justify-between items-center border-b border-outline-variant/40 pb-4">

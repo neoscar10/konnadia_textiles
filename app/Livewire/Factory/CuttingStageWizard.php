@@ -289,22 +289,20 @@ class CuttingStageWizard extends Component
     public function updateRollUnit(int $fabricIndex, int $rollId, string $newUnitId)
     {
         if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId])) {
-            $rData = &$this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId];
-            $oldUnitId = $rData['selected_unit_id'] ?? null;
-            $rData['selected_unit_id'] = $newUnitId;
+            $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['selected_unit_id'] = $newUnitId;
 
-            $maxMeters = (float) ($rData['max_length'] ?? 0);
+            $maxMeters = (float) ($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['max_length'] ?? 0);
             $maxInNewUnit = $this->convertLengthFromMeters($maxMeters, $newUnitId);
-            $rData['max_length_in_selected_unit'] = round($maxInNewUnit, 2);
+            $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['max_length_in_selected_unit'] = round($maxInNewUnit, 2);
 
             // Re-convert cut_length_input to new unit using current base meters cut_length
-            $currentCutMeters = (float) ($rData['cut_length'] ?? $maxMeters);
+            $currentCutMeters = (float) ($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['cut_length'] ?? $maxMeters);
             $newCutInput = $this->convertLengthFromMeters($currentCutMeters, $newUnitId);
-            $rData['cut_length_input'] = round($newCutInput, 2);
+            $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['cut_length_input'] = round($newCutInput, 2);
 
             // Live recalculate planned_quantity for products on roll
-            if (isset($rData['products']) && is_array($rData['products'])) {
-                foreach ($rData['products'] as $pIdx => $pItem) {
+            if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products']) && is_array($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'])) {
+                foreach ($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'] as $pIdx => $pItem) {
                     $pId = intval($pItem['manufacturing_product_id'] ?? 0);
                     $patId = intval($pItem['pattern_id'] ?? 0);
                     if ($pId && $currentCutMeters > 0) {
@@ -319,14 +317,13 @@ class CuttingStageWizard extends Component
     public function updatedSelectedFabricsCutLengthInput(int $fabricIndex, int $rollId, $val)
     {
         if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId])) {
-            $rData = &$this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId];
-            $unitId = $rData['selected_unit_id'] ?? null;
+            $unitId = $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['selected_unit_id'] ?? null;
             $inputVal = floatval($val);
             $metersVal = $this->convertLengthToMeters($inputVal, $unitId);
-            $rData['cut_length'] = $metersVal;
+            $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['cut_length'] = $metersVal;
 
-            if (isset($rData['products']) && is_array($rData['products'])) {
-                foreach ($rData['products'] as $pIdx => $pItem) {
+            if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products']) && is_array($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'])) {
+                foreach ($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'] as $pIdx => $pItem) {
                     $pId = intval($pItem['manufacturing_product_id'] ?? 0);
                     $patId = intval($pItem['pattern_id'] ?? 0);
                     if ($pId && $metersVal > 0) {
@@ -343,16 +340,15 @@ class CuttingStageWizard extends Component
     public function setFullRollCut(int $fabricIndex, int $rollId)
     {
         if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId])) {
-            $rData = &$this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId];
-            $maxMeters = (float) $rData['max_length'];
-            $unitId = $rData['selected_unit_id'] ?? null;
+            $maxMeters = (float) $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['max_length'];
+            $unitId = $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['selected_unit_id'] ?? null;
             $maxInSelectedUnit = $this->convertLengthFromMeters($maxMeters, $unitId);
 
-            $rData['cut_length_input'] = round($maxInSelectedUnit, 2);
-            $rData['cut_length']       = $maxMeters;
+            $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['cut_length_input'] = round($maxInSelectedUnit, 2);
+            $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['cut_length']       = $maxMeters;
 
-            if (isset($rData['products']) && is_array($rData['products'])) {
-                foreach ($rData['products'] as $pIdx => $pItem) {
+            if (isset($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products']) && is_array($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'])) {
+                foreach ($this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'] as $pIdx => $pItem) {
                     $pId = intval($pItem['manufacturing_product_id'] ?? 0);
                     $patId = intval($pItem['pattern_id'] ?? 0);
                     if ($pId && $maxMeters > 0) {
@@ -451,43 +447,44 @@ class CuttingStageWizard extends Component
                         $this->selectedFabrics[$index]['selected_rolls'][$rollId]['cut_length'] = $metersVal;
 
                         // Auto-recalculate planned_quantity for products on this roll
-                        foreach ($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'] ?? [] as $pIdx => &$pItem) {
-                            $pId = intval($pItem['manufacturing_product_id'] ?? 0);
-                            $patId = intval($pItem['pattern_id'] ?? 0);
-                            if ($pId && $metersVal > 0) {
-                                $maxPcs = $this->computeMaxPcsForRollProduct($rollId, $metersVal, $pId, $patId);
-                                $pItem['planned_quantity'] = $maxPcs;
+                        if (isset($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products']) && is_array($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'])) {
+                            foreach ($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'] as $pIdx => $pItem) {
+                                $pId = intval($pItem['manufacturing_product_id'] ?? 0);
+                                $patId = intval($pItem['pattern_id'] ?? 0);
+                                if ($pId && $metersVal > 0) {
+                                    $maxPcs = $this->computeMaxPcsForRollProduct($rollId, $metersVal, $pId, $patId);
+                                    $this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx]['planned_quantity'] = $maxPcs;
+                                } elseif ($metersVal <= 0) {
+                                    $this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx]['planned_quantity'] = 0;
+                                }
                             }
                         }
-                        unset($pItem);
                     } elseif ($subField === 'selected_unit_id') {
                         $this->updateRollUnit($index, $rollId, (string)$value);
                     } elseif ($subField === 'products') {
                         $pIdx = intval($parts[4] ?? 0);
                         $productProp = $parts[5] ?? '';
                         if (isset($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx])) {
-                            $pItem = &$this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx];
                             if ($productProp === 'manufacturing_product_id') {
                                 $prodId = intval($value);
                                 if ($prodId) {
                                     $patterns = ManufacturingProductPattern::where('manufacturing_product_id', $prodId)->get();
                                     $defaultPattern = $patterns->firstWhere('is_default', true) ?? $patterns->first();
-                                    $pItem['pattern_id'] = $defaultPattern?->id;
+                                    $this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx]['pattern_id'] = $defaultPattern?->id;
 
                                     $cLen = floatval($this->selectedFabrics[$index]['selected_rolls'][$rollId]['cut_length'] ?? 0);
                                     if ($cLen > 0) {
-                                        $pItem['planned_quantity'] = $this->computeMaxPcsForRollProduct($rollId, $cLen, $prodId, $defaultPattern?->id);
+                                        $this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx]['planned_quantity'] = $this->computeMaxPcsForRollProduct($rollId, $cLen, $prodId, $defaultPattern?->id);
                                     }
                                 }
                             } elseif ($productProp === 'pattern_id') {
-                                $prodId = intval($pItem['manufacturing_product_id'] ?? 0);
+                                $prodId = intval($this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx]['manufacturing_product_id'] ?? 0);
                                 $patId = intval($value);
                                 $cLen = floatval($this->selectedFabrics[$index]['selected_rolls'][$rollId]['cut_length'] ?? 0);
                                 if ($prodId && $cLen > 0) {
-                                    $pItem['planned_quantity'] = $this->computeMaxPcsForRollProduct($rollId, $cLen, $prodId, $patId);
+                                    $this->selectedFabrics[$index]['selected_rolls'][$rollId]['products'][$pIdx]['planned_quantity'] = $this->computeMaxPcsForRollProduct($rollId, $cLen, $prodId, $patId);
                                 }
                             }
-                            unset($pItem);
                         }
                     }
                 }
