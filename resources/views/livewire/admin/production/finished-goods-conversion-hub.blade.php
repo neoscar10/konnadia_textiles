@@ -147,7 +147,7 @@
                                     <option value="">Select Leaf Category...</option>
                                     @foreach($leafCategories as $cat)
                                         @php $isCfg = in_array($cat->id, $configuredCategoryIds); @endphp
-                                        <option value="{{ $cat->id }}">{{ $cat->name }} {{ $isCfg ? '✓' : '(Not Configured)' }}</option>
+                                        <option value="{{ $cat->id }}">{{ $cat->name }} {{ $isCfg ? '✓ (Configured)' : '(Not Configured)' }}</option>
                                     @endforeach
                                 </select>
                             </div>

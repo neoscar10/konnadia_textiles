@@ -93,12 +93,25 @@ class CategoryService
             ->ordered()
             ->get();
 
+        $configuredCategoryIds = \App\Models\FrontEndProduct::has('components')
+            ->pluck('category_id')
+            ->filter()
+            ->toArray();
+
         if ($manufacturedOnly) {
-            $categories = $categories->filter(function ($cat) {
+            $categories = $categories->filter(function ($cat) use ($configuredCategoryIds) {
+                if (in_array($cat->id, $configuredCategoryIds)) {
+                    return true;
+                }
                 $type = $cat->default_product_config['product_type'] ?? 'manufactured';
                 return $type === 'manufactured';
             });
         }
+
+        // Sort configured categories first
+        $categories = $categories->sortByDesc(function ($cat) use ($configuredCategoryIds) {
+            return in_array($cat->id, $configuredCategoryIds) ? 1 : 0;
+        });
 
         foreach ($categories as $cat) {
             $cat->full_path = $this->buildPath($cat);

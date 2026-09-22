@@ -470,7 +470,7 @@ class JobIndexPage extends Component
         // Auto-select leaf category
         $leafCatService = app(\App\Services\Catalog\CategoryService::class);
         $leafCategories = $leafCatService->getLeafCategories(manufacturedOnly: true);
-        $firstConfigFe = \App\Models\FrontEndProduct::whereNotNull('category_id')->where('is_active', true)->first();
+        $firstConfigFe = \App\Models\FrontEndProduct::has('components')->whereNotNull('category_id')->where('is_active', true)->first();
 
         $this->selectedCategoryIdForBatchConv = $firstConfigFe?->category_id ?? $leafCategories->first()?->id;
 
@@ -859,6 +859,7 @@ class JobIndexPage extends Component
             'availableUnconvertedPoolUnits' => $availableUnconvertedPoolUnits,
             'packagingRawMaterials'         => $packagingRawMaterials,
             'conversionSummary'             => $this->conversionSummary,
+            'configuredCategoryIds'         => \App\Models\FrontEndProduct::has('components')->pluck('category_id')->filter()->toArray(),
         ])->title('Production Jobs Hub');
     }
 }

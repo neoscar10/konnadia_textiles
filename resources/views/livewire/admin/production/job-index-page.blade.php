@@ -940,7 +940,8 @@
                 <select wire:model.live="selectedCategoryIdForBatchConv" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
                     <option value="">-- Select Storefront Leaf Category --</option>
                     @foreach($leafCats as $lc)
-                        <option value="{{ $lc->id }}">{{ $lc->name }} ({{ $lc->parent?->name ?? 'Category' }})</option>
+                        @php $isCfg = in_array($lc->id, $configuredCategoryIds ?? []); @endphp
+                        <option value="{{ $lc->id }}">{{ $lc->name }} {{ $isCfg ? '✓ (Configured)' : '(Not Configured)' }}</option>
                     @endforeach
                 </select>
             </div>

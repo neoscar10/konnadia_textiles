@@ -87,6 +87,13 @@ class FrontEndProduct extends Model
             $feProduct = static::create($data);
         }
 
+        // Ensure category default_product_config specifies product_type = manufactured
+        $currentConfig = $category->default_product_config ?? [];
+        if (($currentConfig['product_type'] ?? null) !== 'manufactured') {
+            $currentConfig['product_type'] = 'manufactured';
+            $category->update(['default_product_config' => $currentConfig]);
+        }
+
         return $feProduct;
     }
 }

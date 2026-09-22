@@ -59,7 +59,8 @@ class FinishedGoodsConversionHub extends Component
 
         // Auto-select first configured manufactured leaf category if available
         $manufacturedCatIds = $leafCategories->pluck('id')->toArray();
-        $configuredFeProduct = FrontEndProduct::whereNotNull('category_id')
+        $configuredFeProduct = FrontEndProduct::has('components')
+            ->whereNotNull('category_id')
             ->whereIn('category_id', $manufacturedCatIds)
             ->where('is_active', true)
             ->first();
@@ -489,7 +490,7 @@ class FinishedGoodsConversionHub extends Component
             ->paginate(10);
 
         $leafCategories = $categoryService->getLeafCategories(manufacturedOnly: true);
-        $configuredCategoryIds = FrontEndProduct::whereNotNull('category_id')->pluck('category_id')->toArray();
+        $configuredCategoryIds = FrontEndProduct::has('components')->whereNotNull('category_id')->pluck('category_id')->toArray();
 
         $activePrintBatch = $this->activePrintBatchId ? FinishedGoodsBatch::with('frontEndProduct')->find($this->activePrintBatchId) : null;
 
