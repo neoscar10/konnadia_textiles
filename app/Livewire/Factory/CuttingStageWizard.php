@@ -221,6 +221,59 @@ class CuttingStageWizard extends Component
         return $this->getMatchingSearchResults();
     }
 
+    public function getAvailableFabricsForBaleOrBatch($baleId = null, $batchId = null)
+    {
+        $materialIds = collect();
+
+        if (!empty($baleId)) {
+            $bale = InventoryBale::with(['rolls.rawMaterial', 'batch.rawMaterial'])->find($baleId);
+            if ($bale) {
+                if (!empty($bale->raw_material_id)) {
+                    $materialIds->push($bale->raw_material_id);
+                }
+                if ($bale->batch?->raw_material_id) {
+                    $materialIds->push($bale->batch->raw_material_id);
+                }
+                foreach ($bale->rolls as $roll) {
+                    if (!empty($roll->raw_material_id)) {
+                        $materialIds->push($roll->raw_material_id);
+                    }
+                }
+            }
+        } elseif (!empty($batchId)) {
+            $batch = InventoryBatch::with(['rawMaterial', 'bales.rolls.rawMaterial'])->find($batchId);
+            if ($batch) {
+                if (!empty($batch->raw_material_id)) {
+                    $materialIds->push($batch->raw_material_id);
+                }
+                foreach ($batch->bales as $bale) {
+                    if (!empty($bale->raw_material_id)) {
+                        $materialIds->push($bale->raw_material_id);
+                    }
+                    foreach ($bale->rolls as $roll) {
+                        if (!empty($roll->raw_material_id)) {
+                            $materialIds->push($roll->raw_material_id);
+                        }
+                    }
+                }
+            }
+        }
+
+        $uniqueIds = $materialIds->filter()->unique()->values()->toArray();
+
+        if (!empty($uniqueIds)) {
+            return RawMaterial::whereIn('id', $uniqueIds)->orderBy('name')->get();
+        }
+
+        // Fallback if no bale or batch selected yet
+        $fabrics = RawMaterial::fabricsOnly()->active()->orderBy('name')->get();
+        if ($fabrics->isEmpty()) {
+            $fabrics = RawMaterial::active()->orderBy('name')->get();
+        }
+
+        return $fabrics;
+    }
+
     public function toggleRollSelection(int $fabricIndex, int $rollId)
     {
         $this->resetErrorBag();
