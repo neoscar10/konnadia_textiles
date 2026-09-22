@@ -153,7 +153,7 @@
             <div>
                 <span class="text-[10px] uppercase font-bold text-amber-800 tracking-wider block">Job Production Value</span>
                 <span class="text-3xl font-black text-amber-900 block mt-1">₹{{ number_format($totalJobCostValue, 2) }}</span>
-                <span class="text-[10px] font-medium text-amber-700 block mt-1">Valuation @ standard piece rates</span>
+                <span class="text-[10px] font-medium text-amber-700 block mt-1">Total direct wages paid</span>
             </div>
             <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-900 flex items-center justify-center">
                 <span class="material-symbols-outlined text-2xl">calculate</span>

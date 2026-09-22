@@ -30,6 +30,31 @@ class LaborDetail extends Component
         'search' => ['except' => ''],
     ];
 
+    public function updatedDateFrom()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDateTo()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedBatchFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedTaskFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
     public function mount(int $id)
     {
         $this->laborId = $id;
@@ -91,7 +116,8 @@ class LaborDetail extends Component
                 $q->where('job_id', 'like', '%' . $this->search . '%')
                   ->orWhere('production_batch_id', 'like', '%' . $this->search . '%')
                   ->orWhereHas('manufacturingProduct', fn($pq) => $pq->where('name', 'like', '%' . $this->search . '%')->orWhere('code', 'like', '%' . $this->search . '%'))
-                  ->orWhereHas('pattern', fn($pat) => $pat->where('name', 'like', '%' . $this->search . '%'));
+                  ->orWhereHas('pattern', fn($pat) => $pat->where('name', 'like', '%' . $this->search . '%'))
+                  ->orWhereHas('task', fn($t) => $t->where('name', 'like', '%' . $this->search . '%'));
             });
         }
 
@@ -101,14 +127,8 @@ class LaborDetail extends Component
         $totalPieces = (int) $allAllocations->sum('quantity_processed');
         $totalDirectWages = (float) $allAllocations->sum('calculated_wage');
         
-        $totalJobCostValue = 0.0;
-        foreach ($allAllocations as $alloc) {
-            $rate = (float) $alloc->piece_rate;
-            if ($rate <= 0 && $alloc->manufacturingProduct) {
-                $rate = (float) $alloc->manufacturingProduct->getStandardLaborRateForTask($alloc->task_id);
-            }
-            $totalJobCostValue += round((float)$alloc->quantity_processed * $rate, 2);
-        }
+        // Job Production Value displays the total sum of all direct wages paid
+        $totalJobCostValue = $totalDirectWages;
 
         $uniqueBatches = $allAllocations->pluck('production_batch_id')->filter()->unique();
         $uniqueJobs = $allAllocations->pluck('job_id')->filter()->unique();
@@ -118,21 +138,13 @@ class LaborDetail extends Component
         $groupedByBatch = $allAllocations->groupBy('production_batch_id');
         foreach ($groupedByBatch as $batchCode => $items) {
             $bPieces = $items->sum('quantity_processed');
-            $bWages = $items->sum('calculated_wage');
-            $bValuation = 0.0;
-            foreach ($items as $it) {
-                $r = (float) $it->piece_rate;
-                if ($r <= 0 && $it->manufacturingProduct) {
-                    $r = (float) $it->manufacturingProduct->getStandardLaborRateForTask($it->task_id);
-                }
-                $bValuation += round((float)$it->quantity_processed * $r, 2);
-            }
+            $bWages = (float) $items->sum('calculated_wage');
 
             $batchBreakdown[] = [
                 'batch_code' => $batchCode ?: 'General Batch',
                 'total_pieces' => $bPieces,
                 'total_wages' => $bWages,
-                'total_valuation' => $bValuation,
+                'total_valuation' => $bWages,
                 'jobs_count' => $items->pluck('job_id')->unique()->count(),
             ];
         }
