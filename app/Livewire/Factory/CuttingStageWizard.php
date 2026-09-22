@@ -177,9 +177,9 @@ class CuttingStageWizard extends Component
         $this->dispatch('toast', message: "Auto-filled " . ($bale ? "Bale {$bale->bale_number}" : "Batch {$batch->batch_number}") . " for Fabric Item #" . ($fabricIndex + 1), type: 'success');
     }
 
-    public function getMatchingSearchResultsProperty()
+    public function getMatchingSearchResults(?string $term = null)
     {
-        $term = trim($this->globalSearch);
+        $term = trim($term ?? $this->globalSearch);
         if (strlen($term) < 2) {
             return collect();
         }
@@ -214,6 +214,11 @@ class CuttingStageWizard extends Component
             ]);
 
         return $bales->concat($batches)->take(10);
+    }
+
+    public function getMatchingSearchResultsProperty()
+    {
+        return $this->getMatchingSearchResults();
     }
 
     public function toggleRollSelection(int $fabricIndex, int $rollId)
