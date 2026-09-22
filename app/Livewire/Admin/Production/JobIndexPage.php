@@ -407,21 +407,196 @@ class JobIndexPage extends Component
         }
     }
 
-    // Batch Conversion Properties
+    // Batch Design Selection & Conversion Properties
     public ?int $selectedBatchDbId = null;
+    public ?string $selectedBatchCode = null;
+    public array $batchDesignOptions = [];
+    public ?string $selectedDesignId = null;
+    public ?int $selectedCategoryIdForBatchConv = null;
+    public int $prefilledTargetSets = 1;
+    public array $availableSpareProducts = [];
+    public array $selectedSpareProductAllocations = []; // [spare_id => qty_to_use]
+
+    public function openBatchDesignModal(int $batchId): void
+    {
+        $this->resetValidation();
+        $batch = \App\Models\ProductionBatch::with(['jobs.manufacturingProduct', 'manufacturingProduct'])->findOrFail($batchId);
+        $this->selectedBatchDbId = $batch->id;
+        $this->selectedBatchCode = $batch->batch_code;
+        $this->batchDesignOptions = $batch->getDesignIdsWithProductCounts();
+        $this->selectedDesignId = null;
+
+        if (count($this->batchDesignOptions) === 1) {
+            $this->selectDesignForConversion($this->batchDesignOptions[0]['design_id']);
+            return;
+        }
+
+        $this->dispatch('open-modal', 'select-batch-design-modal');
+    }
+
+    public function selectDesignForConversion(string $designId): void
+    {
+        $this->selectedDesignId = $designId;
+        $this->dispatch('close-modal', 'select-batch-design-modal');
+        $this->prepareBatchConversionWizard();
+    }
+
+    public function prepareBatchConversionWizard(): void
+    {
+        if (!$this->selectedBatchDbId || !$this->selectedDesignId) {
+            return;
+        }
+
+        $batch = \App\Models\ProductionBatch::with(['jobs.manufacturingProduct', 'manufacturingProduct'])->find($this->selectedBatchDbId);
+        if (!$batch) return;
+
+        // Fetch available spare products matching this Design ID
+        $spares = \App\Models\SpareProduct::with(['manufacturingProduct', 'productionBatch'])
+            ->where('design_id', $this->selectedDesignId)
+            ->get()
+            ->filter(fn($sp) => $sp->available_quantity > 0);
+
+        $this->availableSpareProducts = $spares->map(fn($sp) => [
+            'id' => $sp->id,
+            'manufacturing_product_id' => $sp->manufacturing_product_id,
+            'product_name' => $sp->manufacturingProduct?->name ?? 'Spare Item',
+            'available_qty' => $sp->available_quantity,
+            'source_batch' => $sp->productionBatch?->batch_code ?? 'Prev Batch',
+            'qty_to_use' => 0,
+        ])->toArray();
+
+        $this->selectedSpareProductAllocations = [];
+
+        // Auto-select leaf category
+        $leafCatService = app(\App\Services\Catalog\CategoryService::class);
+        $leafCategories = $leafCatService->getLeafCategories(manufacturedOnly: true);
+        $firstConfigFe = \App\Models\FrontEndProduct::whereNotNull('category_id')->where('is_active', true)->first();
+
+        $this->selectedCategoryIdForBatchConv = $firstConfigFe?->category_id ?? $leafCategories->first()?->id;
+
+        $this->recalculateBatchConversionMaxSets();
+
+        $this->dispatch('open-modal', 'batch-conversion-wizard-modal');
+    }
+
+    public function updatedSelectedCategoryIdForBatchConv(): void
+    {
+        $this->recalculateBatchConversionMaxSets();
+    }
+
+    public function toggleAddAllSpareStock(int $index): void
+    {
+        if (isset($this->availableSpareProducts[$index])) {
+            $avail = $this->availableSpareProducts[$index]['available_qty'];
+            $current = $this->availableSpareProducts[$index]['qty_to_use'];
+            $this->availableSpareProducts[$index]['qty_to_use'] = $current > 0 ? 0 : $avail;
+            $this->recalculateBatchConversionMaxSets();
+        }
+    }
+
+    public function updatedAvailableSpareProducts(): void
+    {
+        $this->recalculateBatchConversionMaxSets();
+    }
+
+    public function recalculateBatchConversionMaxSets(): void
+    {
+        if (!$this->selectedBatchDbId || !$this->selectedCategoryIdForBatchConv) {
+            $this->prefilledTargetSets = 1;
+            return;
+        }
+
+        $feProduct = \App\Models\FrontEndProduct::with(['components.manufacturingProduct'])
+            ->where('category_id', $this->selectedCategoryIdForBatchConv)
+            ->first();
+
+        if (!$feProduct || $feProduct->components->isEmpty()) {
+            $this->prefilledTargetSets = 1;
+            return;
+        }
+
+        $batch = \App\Models\ProductionBatch::with('jobs')->find($this->selectedBatchDbId);
+        $possibleSets = [];
+
+        foreach ($feProduct->components as $comp) {
+            $mfgId = $comp->manufacturing_product_id;
+            $reqPerSet = max(1, (int) $comp->quantity);
+
+            // Sum batch output for this component
+            $batchQty = 0;
+            if ($batch) {
+                foreach ($batch->jobs as $bJob) {
+                    if ($bJob->manufacturing_product_id == $mfgId) {
+                        $batchQty += $bJob->remaining_unconverted_quantity;
+                    }
+                }
+            }
+
+            // Sum selected spare stock for this component
+            $spareQty = 0;
+            foreach ($this->availableSpareProducts as $sp) {
+                if (($sp['manufacturing_product_id'] ?? 0) == $mfgId) {
+                    $spareQty += max(0, intval($sp['qty_to_use'] ?? 0));
+                }
+            }
+
+            $totalCompAvail = $batchQty + $spareQty;
+            $setsPossible = (int) floor($totalCompAvail / $reqPerSet);
+            $possibleSets[] = $setsPossible;
+        }
+
+        $this->prefilledTargetSets = !empty($possibleSets) ? max(1, (int) min($possibleSets)) : 1;
+    }
+
+    public function processBatchConversionSubmit(): void
+    {
+        if (!$this->selectedBatchDbId || !$this->selectedCategoryIdForBatchConv) {
+            $this->addError('selectedCategoryIdForBatchConv', 'Please select a valid Category.');
+            return;
+        }
+
+        if ($this->prefilledTargetSets <= 0) {
+            $this->addError('prefilledTargetSets', 'Target sets must be at least 1.');
+            return;
+        }
+
+        try {
+            $spareSelections = [];
+            foreach ($this->availableSpareProducts as $sp) {
+                $qtyToUse = intval($sp['qty_to_use'] ?? 0);
+                if ($qtyToUse > 0) {
+                    $spareSelections[] = [
+                        'spare_product_id' => $sp['id'],
+                        'quantity_used' => $qtyToUse,
+                    ];
+                }
+            }
+
+            $conversionService = resolve(FinishedGoodsConversionService::class);
+            $fgBatch = $conversionService->convertCategoryToFinishedGoods([
+                'category_id' => $this->selectedCategoryIdForBatchConv,
+                'target_qty' => $this->prefilledTargetSets,
+                'design_type' => 'new',
+                'design_id' => $this->selectedDesignId ?: 'DEFAULT',
+                'production_batch_id' => $this->selectedBatchDbId,
+                'spare_stock_selections' => $spareSelections,
+                'notes' => "Converted from Production Batch Code {$this->selectedBatchCode} with Design ID {$this->selectedDesignId}",
+            ]);
+
+            $this->dispatch('close-modal', 'batch-conversion-wizard-modal');
+            $this->dispatch('toast', message: "Production Batch {$this->selectedBatchCode} converted to Storefront Lot {$fgBatch->barcode}! Created {$fgBatch->converted_qty} set(s). Any leftover items saved to Spare Products.", type: 'success');
+        } catch (\Exception $e) {
+            $this->addError('prefilledTargetSets', $e->getMessage());
+            $this->dispatch('toast', message: $e->getMessage(), type: 'error');
+        }
+    }
 
     public function openBatchConversionModal(string $batchCode): void
     {
-        $this->resetValidation();
-        $this->target_product_id = null;
-        $this->productSearch = '';
-        $this->conversion_notes = '';
-        $this->conversionComponents = [];
-        $this->conversionPackaging = [];
-        $this->addConversionPackagingRow();
-        $this->addConversionComponentRow();
-
-        $this->dispatch('open-modal', 'storefront-conversion-modal');
+        $batch = \App\Models\ProductionBatch::where('batch_code', $batchCode)->first();
+        if ($batch) {
+            $this->openBatchDesignModal($batch->id);
+        }
     }
 
     public function openDiscrepancyModal(int $jobId): void
@@ -445,6 +620,7 @@ class JobIndexPage extends Component
 
         $this->dispatch('open-modal', 'discrepancy-resolution-modal');
     }
+
 
     public function fillAllScrap(): void
     {

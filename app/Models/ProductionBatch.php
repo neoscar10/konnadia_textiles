@@ -47,11 +47,117 @@ class ProductionBatch extends Model
             return false;
         }
 
-        return $this->status === 'Completed' 
-            && !$this->is_converted 
-            && $job->stageExecutions()->count() > 0 
-            && !$job->stageExecutions()->where('status', '!=', 'completed')->exists();
+        return $this->isFullyCompleted() && !$this->is_converted;
     }
+
+    /**
+     * Check if all jobs in the batch are completed and all wastages/discrepancies recorded.
+     */
+    public function isFullyCompleted(): bool
+    {
+        $jobs = $this->jobs;
+        if ($jobs->isEmpty() && $this->job) {
+            $jobs = collect([$this->job]);
+        }
+
+        if ($jobs->isEmpty()) {
+            return $this->status === 'Completed';
+        }
+
+        foreach ($jobs as $job) {
+            if ($job->status !== 'completed') {
+                return false;
+            }
+            if ($job->has_unresolved_discrepancy) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Extract unique Design IDs used in this production batch and aggregate total manufactured product counts.
+     */
+    public function getDesignIdsWithProductCounts(): array
+    {
+        $jobs = $this->jobs;
+        if ($jobs->isEmpty() && $this->job) {
+            $jobs = collect([$this->job]);
+        }
+
+        $designMap = [];
+
+        foreach ($jobs as $job) {
+            $jobDesigns = collect();
+
+            $consumptions = $job->materialConsumptions()->with(['inventoryBaleRoll', 'inventoryBatch'])->get();
+            foreach ($consumptions as $mc) {
+                if (!empty($mc->inventoryBaleRoll?->design_number)) {
+                    $jobDesigns->push(trim($mc->inventoryBaleRoll->design_number));
+                } elseif (!empty($mc->inventoryBatch?->design_number)) {
+                    $jobDesigns->push(trim($mc->inventoryBatch->design_number));
+                }
+            }
+
+            if ($jobDesigns->isEmpty()) {
+                if (!empty($job->pattern?->name)) {
+                    $jobDesigns->push(trim($job->pattern->name));
+                } elseif (!empty($this->pattern?->name)) {
+                    $jobDesigns->push(trim($this->pattern->name));
+                } else {
+                    $jobDesigns->push('DSG-BATCH-' . $this->id);
+                }
+            }
+
+            $uniqueJobDesigns = $jobDesigns->unique()->values();
+            $jobQty = $job->completed_quantity > 0 ? $job->completed_quantity : ($job->target_quantity > 0 ? $job->target_quantity : $this->planned_quantity);
+            $mfgProduct = $job->manufacturingProduct;
+
+            foreach ($uniqueJobDesigns as $dId) {
+                if (!isset($designMap[$dId])) {
+                    $designMap[$dId] = [
+                        'design_id' => $dId,
+                        'total_produced_qty' => 0,
+                        'products' => [],
+                    ];
+                }
+
+                $designMap[$dId]['total_produced_qty'] += $jobQty;
+                $pId = $mfgProduct?->id ?? 0;
+                $pName = $mfgProduct?->name ?? ('Product #' . $job->id);
+
+                if (!isset($designMap[$dId]['products'][$pId])) {
+                    $designMap[$dId]['products'][$pId] = [
+                        'id' => $pId,
+                        'name' => $pName,
+                        'qty' => 0,
+                    ];
+                }
+                $designMap[$dId]['products'][$pId]['qty'] += $jobQty;
+            }
+        }
+
+        if (empty($designMap)) {
+            $dId = 'DSG-BATCH-' . $this->id;
+            $qty = $this->total_finished_quantity > 0 ? $this->total_finished_quantity : $this->planned_quantity;
+            $mfgProduct = $this->manufacturingProduct;
+            $designMap[$dId] = [
+                'design_id' => $dId,
+                'total_produced_qty' => $qty,
+                'products' => [
+                    ($mfgProduct?->id ?? 0) => [
+                        'id' => $mfgProduct?->id ?? 0,
+                        'name' => $mfgProduct?->name ?? 'Manufacturing Product',
+                        'qty' => $qty,
+                    ],
+                ],
+            ];
+        }
+
+        return array_values($designMap);
+    }
+
 
     public static function generateNextBatchCode(): string
     {

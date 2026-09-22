@@ -193,6 +193,11 @@
                     <span class="font-label-md text-label-md" x-show="sidebarOpen">Leaf Category Config</span>
                 </a>
 
+                <!-- Spare Products (Standalone) -->
+                <a href="{{ route('admin.production.spare-products') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('admin.production.spare-products') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">
+                    <span class="material-symbols-outlined shrink-0" data-icon="inventory">inventory</span>
+                    <span class="font-label-md text-label-md" x-show="sidebarOpen">Spare Products</span>
+                </a>
 
                 <!-- Wastage Log (Standalone) -->
                 <a href="{{ route('factory.wastage-log.index') }}" wire:navigate class="flex items-center rounded-lg transition-all duration-200 {{ request()->routeIs('factory.wastage-log.*') ? 'is-active-link bg-primary-container text-on-primary font-title-md shadow-sm' : 'text-on-primary/70 hover:text-on-primary hover:bg-primary-container/30' }}" :class="sidebarOpen ? 'gap-md px-md py-sm' : 'justify-center p-sm mx-xs'">

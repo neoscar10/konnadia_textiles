@@ -126,6 +126,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/production/customized/{id}', \App\Livewire\Admin\Production\CustomizedProductionDetailPage::class)->name('admin.production.customized.detail');
 
 
+    // Spare Products Management
+    Route::get('/admin/production/spare-products', \App\Livewire\Admin\Production\SpareProductIndexPage::class)->name('admin.production.spare-products');
+
     // Overhead Allocation
     Route::get('/factory/overhead-allocation', \App\Livewire\Factory\OverheadAllocationPage::class)->name('factory.overhead-allocation.index');
 

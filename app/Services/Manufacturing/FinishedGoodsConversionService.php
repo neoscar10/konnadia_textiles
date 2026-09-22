@@ -299,15 +299,48 @@ class FinishedGoodsConversionService
                 ],
             ]);
 
-            // 3. Deduct manufacturing output stock FIFO from completed ProductionJobs / Batches with Pattern support
+            // 3. Deduct manufacturing output stock FIFO from completed ProductionJobs / Batches with Pattern support & Spare Stock
             $componentSelections = $data['component_selections'] ?? [];
+            $spareStockSelections = $data['spare_stock_selections'] ?? [];
+
+            // Process explicit Spare Stock selections first
+            if (!empty($spareStockSelections)) {
+                foreach ($spareStockSelections as $spareItem) {
+                    $spareId = intval($spareItem['spare_product_id'] ?? 0);
+                    $qtyToUse = intval($spareItem['quantity_used'] ?? 0);
+                    if ($spareId > 0 && $qtyToUse > 0) {
+                        $spareObj = \App\Models\SpareProduct::find($spareId);
+                        if ($spareObj && $spareObj->available_quantity > 0) {
+                            $deductSpare = min($qtyToUse, $spareObj->available_quantity);
+                            $spareObj->increment('used_quantity', $deductSpare);
+
+                            FinishedGoodsBatchItem::create([
+                                'finished_goods_batch_id' => $fgBatch->id,
+                                'manufacturing_product_id' => $spareObj->manufacturing_product_id,
+                                'pattern_id' => null,
+                                'production_batch_id' => $spareObj->production_batch_id,
+                                'production_job_id' => $spareObj->production_job_id,
+                                'quantity_used' => $deductSpare,
+                            ]);
+                        }
+                    }
+                }
+            }
 
             foreach ($feProduct->components as $idx => $comp) {
                 $mfgProduct = $comp->manufacturingProduct;
                 if (!$mfgProduct) continue;
 
                 $totalCompNeeded = $comp->quantity * $targetQty;
-                $patternAllocations = $componentSelections[$idx] ?? [ ['pattern_id' => '', 'quantity' => $totalCompNeeded] ];
+
+                // Account for spare stock already deducted for this manufacturing product
+                $spareDeductedForMfg = FinishedGoodsBatchItem::where('finished_goods_batch_id', $fgBatch->id)
+                    ->where('manufacturing_product_id', $mfgProduct->id)
+                    ->sum('quantity_used');
+
+                $remainingCompNeeded = max(0, $totalCompNeeded - $spareDeductedForMfg);
+
+                $patternAllocations = $componentSelections[$idx] ?? [ ['pattern_id' => '', 'quantity' => $remainingCompNeeded] ];
 
                 foreach ($patternAllocations as $patRow) {
                     $patId = !empty($patRow['pattern_id']) ? intval($patRow['pattern_id']) : null;
@@ -388,6 +421,37 @@ class FinishedGoodsConversionService
                     }
                 }
             }
+
+            // Save leftover unconverted output from source batch as Spare Products
+            $sourceBatchId = intval($data['production_batch_id'] ?? 0);
+            if ($sourceBatchId > 0) {
+                $sourceBatch = \App\Models\ProductionBatch::find($sourceBatchId);
+                if ($sourceBatch) {
+                    $jobsToSweep = $sourceBatch->jobs;
+                    if ($jobsToSweep->isEmpty() && $sourceBatch->job) {
+                        $jobsToSweep = collect([$sourceBatch->job]);
+                    }
+
+                    foreach ($jobsToSweep as $bJob) {
+                        $leftover = $bJob->remaining_unconverted_quantity;
+                        if ($leftover > 0) {
+                            \App\Models\SpareProduct::create([
+                                'production_batch_id' => $sourceBatch->id,
+                                'production_job_id' => $bJob->id,
+                                'manufacturing_product_id' => $bJob->manufacturing_product_id,
+                                'design_id' => $designId ?: 'DEFAULT',
+                                'quantity' => $leftover,
+                                'used_quantity' => 0,
+                                'notes' => "Unconverted spare product leftover from Batch {$sourceBatch->batch_code}",
+                            ]);
+
+                            $bJob->update(['converted_quantity' => (int) $bJob->converted_quantity + $leftover]);
+                        }
+                    }
+                    $sourceBatch->update(['is_converted' => true]);
+                }
+            }
+
 
             // 4. FIFO deduct packaging materials
             foreach ($feProduct->packagingItems as $pkg) {
