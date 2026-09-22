@@ -91,10 +91,12 @@ class ProductionBatch extends Model
         foreach ($jobs as $job) {
             $jobDesigns = collect();
 
-            $consumptions = $job->materialConsumptions()->with(['inventoryBaleRoll', 'inventoryBatch'])->get();
+            $consumptions = $job->materialConsumptions()->with(['inventoryBaleRoll.bale', 'inventoryBatch'])->get();
             foreach ($consumptions as $mc) {
                 if (!empty($mc->inventoryBaleRoll?->design_number)) {
                     $jobDesigns->push(trim($mc->inventoryBaleRoll->design_number));
+                } elseif (!empty($mc->inventoryBaleRoll?->bale?->design_number)) {
+                    $jobDesigns->push(trim($mc->inventoryBaleRoll->bale->design_number));
                 } elseif (!empty($mc->inventoryBatch?->design_number)) {
                     $jobDesigns->push(trim($mc->inventoryBatch->design_number));
                 }

@@ -426,11 +426,6 @@ class JobIndexPage extends Component
         $this->batchDesignOptions = $batch->getDesignIdsWithProductCounts();
         $this->selectedDesignId = null;
 
-        if (count($this->batchDesignOptions) === 1) {
-            $this->selectDesignForConversion($this->batchDesignOptions[0]['design_id']);
-            return;
-        }
-
         $this->dispatch('open-modal', 'select-batch-design-modal');
     }
 
