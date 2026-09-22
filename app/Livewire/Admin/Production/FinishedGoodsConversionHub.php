@@ -106,6 +106,68 @@ class FinishedGoodsConversionHub extends Component
         }
     }
 
+    public function getAvailableDesignIdsForMfgProduct(?ManufacturingProduct $mfg): array
+    {
+        if (!$mfg) return [];
+
+        $designs = collect();
+
+        $consumptions = \App\Models\JobMaterialConsumption::whereHas('productionJob', function($q) use ($mfg) {
+            $q->where('manufacturing_product_id', $mfg->id);
+        })
+        ->with(['inventoryBaleRoll.bale.items', 'inventoryBatch.bales.items'])
+        ->get();
+
+        foreach ($consumptions as $mc) {
+            if (!empty($mc->inventoryBaleRoll?->design_number)) {
+                $designs->push(trim($mc->inventoryBaleRoll->design_number));
+            }
+            if (!empty($mc->inventoryBaleRoll?->bale?->design_number)) {
+                $designs->push(trim($mc->inventoryBaleRoll->bale->design_number));
+            }
+            if ($mc->inventoryBaleRoll?->bale?->items) {
+                foreach ($mc->inventoryBaleRoll->bale->items as $bItem) {
+                    if (!empty($bItem->design_number)) {
+                        $designs->push(trim($bItem->design_number));
+                    }
+                }
+            }
+            if (!empty($mc->inventoryBatch?->design_number)) {
+                $designs->push(trim($mc->inventoryBatch->design_number));
+            }
+        }
+
+        if ($designs->isEmpty()) {
+            $baleDesigns = \App\Models\InventoryBale::whereNotNull('design_number')
+                ->where('design_number', '!=', '')
+                ->pluck('design_number')
+                ->filter()
+                ->unique();
+
+            foreach ($baleDesigns as $bd) {
+                $designs->push(trim($bd));
+            }
+
+            $rollDesigns = \App\Models\InventoryBaleRoll::whereNotNull('design_number')
+                ->where('design_number', '!=', '')
+                ->pluck('design_number')
+                ->filter()
+                ->unique();
+
+            foreach ($rollDesigns as $rd) {
+                $designs->push(trim($rd));
+            }
+        }
+
+        $uniqueDesigns = $designs->map(fn($d) => trim($d))->filter()->unique(fn($d) => mb_strtolower($d))->values();
+
+        if ($uniqueDesigns->isEmpty()) {
+            $uniqueDesigns = collect(['DSG-001']);
+        }
+
+        return $uniqueDesigns->toArray();
+    }
+
     public function ensureComponentSelectionsInitialized()
     {
         $config = $this->categoryConfiguration;
@@ -120,16 +182,17 @@ class FinishedGoodsConversionHub extends Component
             $existing = $this->componentSelections[$idx] ?? $this->componentSelections[(string)$idx] ?? null;
 
             $mfg = $comp->manufacturingProduct;
-            $defaultPatId = ($mfg && $mfg->patterns->isNotEmpty()) ? (string) $mfg->patterns->first()->id : '';
+            $availDesigns = $this->getAvailableDesignIdsForMfgProduct($mfg);
+            $defaultDesignId = !empty($availDesigns) ? $availDesigns[0] : '';
 
             if (!$existing || !is_array($existing) || empty($existing)) {
                 $this->componentSelections[$idx] = [
-                    ['pattern_id' => $defaultPatId, 'quantity' => $reqQty]
+                    ['pattern_id' => $defaultDesignId, 'quantity' => $reqQty]
                 ];
             } else {
                 if (count($existing) === 1) {
-                    if (empty($existing[0]['pattern_id']) && $defaultPatId) {
-                        $this->componentSelections[$idx][0]['pattern_id'] = $defaultPatId;
+                    if (empty($existing[0]['pattern_id']) && $defaultDesignId) {
+                        $this->componentSelections[$idx][0]['pattern_id'] = $defaultDesignId;
                     }
                     $this->componentSelections[$idx][0]['quantity'] = $reqQty;
                 }
@@ -144,8 +207,9 @@ class FinishedGoodsConversionHub extends Component
         }
         $comp = $this->categoryConfiguration?->components->get($compIdx);
         $mfg = $comp?->manufacturingProduct;
-        $defaultPatId = ($mfg && $mfg->patterns->isNotEmpty()) ? (string) $mfg->patterns->first()->id : '';
-        $this->componentSelections[$compIdx][] = ['pattern_id' => $defaultPatId, 'quantity' => 0];
+        $availDesigns = $this->getAvailableDesignIdsForMfgProduct($mfg);
+        $defaultDesignId = !empty($availDesigns) ? $availDesigns[0] : '';
+        $this->componentSelections[$compIdx][] = ['pattern_id' => $defaultDesignId, 'quantity' => 0];
     }
 
     public function removePatternRow(int $compIdx, int $pIdx)
@@ -160,9 +224,10 @@ class FinishedGoodsConversionHub extends Component
             $targetQty = max(0, intval($this->produceQty));
             $reqQty = ($comp?->quantity ?? 1) * $targetQty;
             $mfg = $comp?->manufacturingProduct;
-            $defaultPatId = ($mfg && $mfg->patterns->isNotEmpty()) ? (string) $mfg->patterns->first()->id : '';
+            $availDesigns = $this->getAvailableDesignIdsForMfgProduct($mfg);
+            $defaultDesignId = !empty($availDesigns) ? $availDesigns[0] : '';
             $this->componentSelections[$compIdx] = [
-                ['pattern_id' => $defaultPatId, 'quantity' => $reqQty]
+                ['pattern_id' => $defaultDesignId, 'quantity' => $reqQty]
             ];
         }
     }

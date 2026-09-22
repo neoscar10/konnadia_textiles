@@ -270,24 +270,20 @@
                                             <div class="space-y-2.5">
                                                 @foreach($patRows as $pIdx => $pRow)
                                                     <div class="grid grid-cols-12 gap-2 items-center">
-                                                        <!-- Pattern Dropdown -->
+                                                        <!-- Fabric Design ID Dropdown -->
                                                         <div class="col-span-7 sm:col-span-8">
                                                             <select wire:model.live="componentSelections.{{ $idx }}.{{ $pIdx }}.pattern_id" class="w-full px-3 py-2 bg-surface-container-low text-xs rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface font-semibold">
-                                                                @if($mfg && $mfg->patterns->isNotEmpty())
-                                                                    @if(empty($pRow['pattern_id']))
-                                                                        <option value="" disabled selected>-- Select Pattern --</option>
-                                                                    @endif
-                                                                    @foreach($mfg->patterns as $pat)
-                                                                        @php
-                                                                            $pStock = $this->getPatternAvailableStock($mfg, $pat->id, $availStock);
-                                                                        @endphp
-                                                                        <option value="{{ $pat->id }}">
-                                                                            {{ $pat->name }}{{ $pat->fabricWidth ? ' (Width: ' . $pat->fabricWidth->name . ')' : '' }} — Stock: {{ $pStock }} Pcs
-                                                                        </option>
-                                                                    @endforeach
-                                                                @else
-                                                                    <option value="">Default Pattern / Auto-allocate {{ $designId ? '(Design #' . $designId . ')' : '' }} — Stock: {{ $availStock }} Pcs</option>
+                                                                @php
+                                                                    $availDesigns = $this->getAvailableDesignIdsForMfgProduct($mfg);
+                                                                @endphp
+                                                                @if(empty($pRow['pattern_id']))
+                                                                    <option value="" disabled selected>-- Select Fabric Design ID --</option>
                                                                 @endif
+                                                                @foreach($availDesigns as $dCode)
+                                                                    <option value="{{ $dCode }}">
+                                                                        Fabric Design ID: {{ $dCode }} — Stock: {{ $availStock }} Pcs
+                                                                    </option>
+                                                                @endforeach
                                                             </select>
                                                         </div>
 

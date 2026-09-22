@@ -91,24 +91,61 @@ class ProductionBatch extends Model
         foreach ($jobs as $job) {
             $jobDesigns = collect();
 
-            $consumptions = $job->materialConsumptions()->with(['inventoryBaleRoll.bale', 'inventoryBatch'])->get();
+            $consumptions = $job->materialConsumptions()->with([
+                'inventoryBaleRoll.bale.items',
+                'inventoryBatch.bales.items'
+            ])->get();
+
             foreach ($consumptions as $mc) {
                 if (!empty($mc->inventoryBaleRoll?->design_number)) {
                     $jobDesigns->push(trim($mc->inventoryBaleRoll->design_number));
-                } elseif (!empty($mc->inventoryBaleRoll?->bale?->design_number)) {
+                }
+                if (!empty($mc->inventoryBaleRoll?->bale?->design_number)) {
                     $jobDesigns->push(trim($mc->inventoryBaleRoll->bale->design_number));
-                } elseif (!empty($mc->inventoryBatch?->design_number)) {
+                }
+                if ($mc->inventoryBaleRoll?->bale?->items) {
+                    foreach ($mc->inventoryBaleRoll->bale->items as $bItem) {
+                        if (!empty($bItem->design_number)) {
+                            $jobDesigns->push(trim($bItem->design_number));
+                        }
+                    }
+                }
+                if (!empty($mc->inventoryBatch?->design_number)) {
                     $jobDesigns->push(trim($mc->inventoryBatch->design_number));
+                }
+                if ($mc->inventoryBatch?->bales) {
+                    foreach ($mc->inventoryBatch->bales as $bale) {
+                        if (!empty($bale->design_number)) {
+                            $jobDesigns->push(trim($bale->design_number));
+                        }
+                    }
                 }
             }
 
             if ($jobDesigns->isEmpty()) {
-                if (!empty($job->pattern?->name)) {
-                    $jobDesigns->push(trim($job->pattern->name));
-                } elseif (!empty($this->pattern?->name)) {
-                    $jobDesigns->push(trim($this->pattern->name));
-                } else {
-                    $jobDesigns->push('DSG-BATCH-' . $this->id);
+                // Fetch design numbers recorded on fabric purchase entries / bales in inventory
+                $baleDesigns = \App\Models\InventoryBale::whereNotNull('design_number')
+                    ->where('design_number', '!=', '')
+                    ->pluck('design_number')
+                    ->filter()
+                    ->unique();
+
+                foreach ($baleDesigns as $bd) {
+                    $jobDesigns->push(trim($bd));
+                }
+
+                $rollDesigns = \App\Models\InventoryBaleRoll::whereNotNull('design_number')
+                    ->where('design_number', '!=', '')
+                    ->pluck('design_number')
+                    ->filter()
+                    ->unique();
+
+                foreach ($rollDesigns as $rd) {
+                    $jobDesigns->push(trim($rd));
+                }
+
+                if ($jobDesigns->isEmpty()) {
+                    $jobDesigns->push('DSG-' . $this->batch_code);
                 }
             }
 
@@ -148,7 +185,7 @@ class ProductionBatch extends Model
         }
 
         if (empty($designMap)) {
-            $dId = 'DSG-BATCH-' . $this->id;
+            $dId = 'DSG-' . $this->batch_code;
             $qty = $this->total_finished_quantity > 0 ? $this->total_finished_quantity : $this->planned_quantity;
             $mfgProduct = $this->manufacturingProduct;
             $designMap[mb_strtolower($dId)] = [
