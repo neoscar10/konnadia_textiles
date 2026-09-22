@@ -252,47 +252,30 @@ class ProductionJob extends Model
             return 0;
         }
 
+        $stageExecs = $this->stageExecutions()->get();
+        if ($stageExecs->count() > 0) {
+            $finalExec = $stageExecs->sortByDesc('sequence_number')->first();
+            if ($finalExec) {
+                $finalOutput = (int) $this->productOutputs()->where('task_id', $finalExec->task_id)->sum('quantity_produced');
+                if ($finalOutput > 0) return (int) min($this->target_quantity, $finalOutput);
+                if ($finalExec->status === 'completed' && $finalExec->completed_quantity > 0) {
+                    return (int) min($this->target_quantity, $finalExec->completed_quantity);
+                }
+            }
+
+            $lastCompleted = $stageExecs->where('status', 'completed')->sortByDesc('sequence_number')->first();
+            if ($lastCompleted) {
+                $lastOutput = (int) $this->productOutputs()->where('task_id', $lastCompleted->task_id)->sum('quantity_produced');
+                if ($lastOutput > 0) return (int) min($this->target_quantity, $lastOutput);
+                if ($lastCompleted->completed_quantity > 0) return (int) min($this->target_quantity, $lastCompleted->completed_quantity);
+            }
+        }
+
         $rawStatus = $this->attributes['status'] ?? 'pending';
         if ($rawStatus === 'completed') {
             return (int) $this->target_quantity;
         }
 
-        // Check stage executions if present
-        $stageExecs = $this->stageExecutions()->get();
-        if ($stageExecs->count() > 0) {
-            $allCompleted = $stageExecs->where('status', '!=', 'completed')->count() === 0;
-            if ($allCompleted) {
-                return (int) $this->target_quantity;
-            }
-
-            $stageCompletions = [];
-            foreach ($stageExecs as $exec) {
-                $outputQty = (int) $this->productOutputs()->where('task_id', $exec->task_id)->sum('quantity_produced');
-                $laborQty = (int) $this->allocations()->where('task_id', $exec->task_id)->sum('quantity_processed');
-                $done = max($exec->completed_quantity, $outputQty, $laborQty);
-                if ($exec->status === 'completed') {
-                    $done = max($done, $exec->target_quantity > 0 ? $exec->target_quantity : $this->target_quantity);
-                }
-                $stageCompletions[] = min($this->target_quantity, $done);
-            }
-            $avg = array_sum($stageCompletions) / count($stageCompletions);
-            return (int) min($this->target_quantity, round($avg));
-        }
-
-        $product = $this->manufacturingProduct;
-        if ($product && $product->tasks()->count() > 0) {
-            $taskIds = $product->tasks()->pluck('tasks.id');
-            $stageSums = [];
-            foreach ($taskIds as $tid) {
-                $outputQty = (int) $this->productOutputs()->where('task_id', $tid)->sum('quantity_produced');
-                $laborQty = (int) $this->allocations()->where('task_id', $tid)->sum('quantity_processed');
-                $stageSums[] = max($outputQty, $laborQty);
-            }
-            $avgCompleted = array_sum($stageSums) / count($stageSums);
-            return (int) min($this->target_quantity, round($avgCompleted));
-        }
-
-        // Fallback for single task or unlinked product
         $sum = (int) max($this->productOutputs()->sum('quantity_produced'), $this->allocations()->sum('quantity_processed'));
         return (int) min($this->target_quantity, $sum);
     }
@@ -399,6 +382,9 @@ class ProductionJob extends Model
                 if ($finalOutput > 0) {
                     return $finalOutput;
                 }
+                if ($finalExec->status === 'completed' && $finalExec->completed_quantity > 0) {
+                    return (int) $finalExec->completed_quantity;
+                }
             }
 
             // Check output of the most recent completed stage
@@ -438,7 +424,14 @@ class ProductionJob extends Model
         // Fallback for completed job or single task
         if (($this->attributes['status'] ?? '') === 'completed') {
             $lastOutput = (int) $this->productOutputs()->latest('id')->value('quantity_produced');
-            return $lastOutput > 0 ? $lastOutput : (int) $this->target_quantity;
+            if ($lastOutput > 0) return $lastOutput;
+
+            $lastStageExec = $stageExecs->sortByDesc('sequence_number')->first();
+            if ($lastStageExec && $lastStageExec->completed_quantity > 0) {
+                return (int) $lastStageExec->completed_quantity;
+            }
+
+            return (int) $this->target_quantity;
         }
 
         return (int) min($this->target_quantity, $this->completed_quantity);
@@ -505,5 +498,61 @@ class ProductionJob extends Model
         }
 
         return collect();
+    }
+
+    /**
+     * Get initial cut quantity (from cutting stage output / stage 1).
+     */
+    public function getInitialCutQuantityAttribute(): int
+    {
+        $stageExecs = $this->stageExecutions()->get();
+        if ($stageExecs->isNotEmpty()) {
+            $firstStage = $stageExecs->sortBy('sequence_number')->first();
+            if ($firstStage) {
+                $outputQty = (int) $this->productOutputs()->where('task_id', $firstStage->task_id)->sum('quantity_produced');
+                if ($outputQty > 0) return $outputQty;
+                if ($firstStage->completed_quantity > 0) return (int) $firstStage->completed_quantity;
+            }
+        }
+        return (int) $this->target_quantity;
+    }
+
+    /**
+     * Get discrepancy between initial cut quantity and final completed output quantity.
+     */
+    public function getDiscrepancyQuantityAttribute(): int
+    {
+        if ($this->status !== 'completed') {
+            return 0;
+        }
+        $cutQty = $this->initial_cut_quantity;
+        $finalYield = $this->final_produced_yield;
+        return max(0, $cutQty - $finalYield);
+    }
+
+    /**
+     * Get total recorded discrepancy items (scrap + damage + alterations).
+     */
+    public function getRecordedDiscrepancyQuantityAttribute(): int
+    {
+        $scrap = (int) $this->wastages()->sum('quantity_wasted');
+        $alt = (int) $this->alterations()->sum('source_quantity');
+        return $scrap + $alt;
+    }
+
+    /**
+     * Check if job has an unresolved discrepancy.
+     */
+    public function getHasUnresolvedDiscrepancyAttribute(): bool
+    {
+        if ($this->status !== 'completed') {
+            return false;
+        }
+        $discrepancy = $this->discrepancy_quantity;
+        if ($discrepancy <= 0) {
+            return false;
+        }
+        $recorded = $this->recorded_discrepancy_quantity;
+        return $recorded < $discrepancy;
     }
 }

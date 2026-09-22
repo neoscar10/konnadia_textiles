@@ -145,7 +145,7 @@ class SubsidiaryMaterialsProductionStepTest extends TestCase
     }
 
     /** @test */
-    public function it_saves_subsidiary_material_consumption_including_extra_qty_and_deducts_stock()
+    public function it_saves_subsidiary_material_consumption_automatically_and_deducts_stock()
     {
         $this->actingAs($this->admin);
 
@@ -157,16 +157,15 @@ class SubsidiaryMaterialsProductionStepTest extends TestCase
             'status' => 'active',
         ]);
 
-        // Set extra 5 buttons damaged/extra
+        // Complete stage with 10 Pcs labor recorded -> Auto deducts 20 buttons (2*10) and 10 zippers (1*10)
         Livewire::test(\App\Livewire\Factory\JobStageWizard::class, ['id' => $this->prodJob->id])
             ->set('laborRows.0.labor_id', $labor->id)
-            ->set('producedQty', 10)
-            ->set('subsidiaryRows.0.extra_qty', 5) // Button total: (2*10)+5 = 25 Pcs
+            ->set('laborRows.0.processed_qty', 10)
             ->call('completeActiveStage');
 
-        // Check Button Inventory Batch Stock: 1000 - 25 = 975
+        // Check Button Inventory Batch Stock: 1000 - 20 = 980
         $this->buttonBatch->refresh();
-        $this->assertEquals(975, (float)$this->buttonBatch->balance_quantity);
+        $this->assertEquals(980, (float)$this->buttonBatch->balance_quantity);
 
         // Check Zipper Inventory Batch Stock: 500 - 10 = 490
         $this->zipperBatch->refresh();
@@ -178,15 +177,15 @@ class SubsidiaryMaterialsProductionStepTest extends TestCase
             ->first();
 
         $this->assertNotNull($buttonConsumption);
-        $this->assertEquals(25, (float)$buttonConsumption->quantity_consumed);
+        $this->assertEquals(20, (float)$buttonConsumption->quantity_consumed);
         $this->assertEquals(0.50, (float)$buttonConsumption->unit_cost);
-        $this->assertEquals(12.50, (float)$buttonConsumption->total_cost); // 25 * 0.50 = 12.50
+        $this->assertEquals(10.00, (float)$buttonConsumption->total_cost); // 20 * 0.50 = 10.00
 
         // Check batch cost summary rollup in ProductionCostingService
         $costingService = new ProductionCostingService();
         $batchSummary = $costingService->getBatchCostSummary($this->prodBatch->id);
 
-        // Button cost ($12.50) + Zipper cost ($20.00) = $32.50
-        $this->assertEquals(32.50, (float)$batchSummary['subsidiary_cost']);
+        // Button cost ($10.00) + Zipper cost ($20.00) = $30.00
+        $this->assertEquals(30.00, (float)$batchSummary['subsidiary_cost']);
     }
 }

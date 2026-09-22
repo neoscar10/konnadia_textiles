@@ -226,26 +226,45 @@ class ProductionJobProcessEnhancementsTest extends TestCase
     /** @test */
     public function it_records_scrap_and_damage_wastage_separately()
     {
-        $labor = \App\Models\Labor::create([
-            'name' => 'Test Ironer',
-            'worker_code' => 'W-IRON-01',
-            'daily_rate' => 400,
-            'piece_rate' => 8,
-            'status' => 'active',
+        // 1. Record outputs for cutting (100) and final stage (85) -> Discrepancy of 15 Pcs
+        $firstTask = $this->job->stageExecutions->sortBy('sequence_number')->first()->task_id;
+        $lastTask = $this->job->stageExecutions->sortByDesc('sequence_number')->first()->task_id;
+
+        \App\Models\JobProductionOutput::create([
+            'job_code'                 => $this->job->job_code,
+            'production_job_id'        => $this->job->id,
+            'manufacturing_product_id' => $this->product->id,
+            'task_id'                  => $firstTask,
+            'quantity_produced'        => 100,
         ]);
 
-        $ironingTask = Task::where('name', 'Ironing')->first();
-        $ironingStage = $this->job->stageExecutions->firstWhere('task_id', $ironingTask->id);
+        \App\Models\JobProductionOutput::create([
+            'job_code'                 => $this->job->job_code,
+            'production_job_id'        => $this->job->id,
+            'manufacturing_product_id' => $this->product->id,
+            'task_id'                  => $lastTask,
+            'quantity_produced'        => 85,
+        ]);
 
-        Livewire::test(JobStageWizard::class, ['id' => $this->job->id])
-            ->call('selectStage', $ironingStage->id)
-            ->set('laborRows.0.labor_id', $labor->id)
-            ->set('producedQty', 85)
+        foreach ($this->job->stageExecutions as $stg) {
+            $stg->update(['status' => 'completed']);
+        }
+        $this->job->update(['status' => 'completed']);
+
+        $this->job->unsetRelation('stageExecutions');
+        $this->job->unsetRelation('productOutputs');
+        $this->job->refresh();
+        $this->assertEquals(15, $this->job->discrepancy_quantity);
+
+        // 2. Record discrepancy (10 scrap, 5 damage) via JobIndexPage modal
+        Livewire::test(\App\Livewire\Admin\Production\JobIndexPage::class)
+            ->call('openDiscrepancyModal', $this->job->id)
             ->set('scrapQty', 10)
             ->set('scrapNotes', '10 items converted / sold as scrap')
             ->set('damageQty', 5)
             ->set('damageNotes', '5 items severely torn')
-            ->call('completeActiveStage');
+            ->call('saveDiscrepancyResolution')
+            ->assertHasNoErrors();
 
         $this->assertDatabaseHas('job_wastages', [
             'production_job_id' => $this->job->id,
@@ -260,6 +279,9 @@ class ProductionJobProcessEnhancementsTest extends TestCase
             'quantity_wasted'   => 5,
             'reason'            => '5 items severely torn',
         ]);
+
+        $this->job->refresh();
+        $this->assertFalse($this->job->has_unresolved_discrepancy);
     }
 
     /** @test */

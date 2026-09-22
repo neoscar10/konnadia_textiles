@@ -929,10 +929,41 @@ class JobStageWizard extends Component
         $this->resetErrorBag();
     }
 
+    public function getStageInputTargetProperty(): int
+    {
+        if (!$this->activeStage) {
+            return (int) $this->job->target_quantity;
+        }
+
+        if ($this->activeStage->sequence_number === 1) {
+            return (int) ($this->activeStage->target_quantity ?: $this->job->target_quantity);
+        }
+
+        $prevStage = $this->job->stageExecutions
+            ->where('sequence_number', '<', $this->activeStage->sequence_number)
+            ->sortByDesc('sequence_number')
+            ->first();
+
+        if ($prevStage) {
+            $prevOutput = (int) $this->job->productOutputs()->where('task_id', $prevStage->task_id)->sum('quantity_produced');
+            if ($prevOutput > 0) return $prevOutput;
+
+            $prevLabor = (int) $this->job->allocations()->where('task_id', $prevStage->task_id)->sum('quantity_processed');
+            if ($prevLabor > 0) return $prevLabor;
+
+            if ($prevStage->completed_quantity > 0) return (int) $prevStage->completed_quantity;
+            if ($prevStage->target_quantity > 0) return (int) $prevStage->target_quantity;
+        }
+
+        return (int) ($this->activeStage->target_quantity ?: $this->job->target_quantity);
+    }
+
     public function validateLaborRows(): bool
     {
         $this->resetErrorBag();
         $hasSelectedWorker = false;
+        $totalLaborQty = 0;
+
         foreach ($this->laborRows as $idx => $row) {
             if (empty($row['labor_id'])) {
                 $this->addError("laborRows.{$idx}.labor_id", "Please select a worker for Worker #" . ($idx + 1) . ".");
@@ -940,8 +971,11 @@ class JobStageWizard extends Component
                 $hasSelectedWorker = true;
             }
 
-            if (empty($row['processed_qty']) || intval($row['processed_qty']) <= 0) {
+            $qty = intval($row['processed_qty'] ?? 0);
+            if ($qty <= 0) {
                 $this->addError("laborRows.{$idx}.processed_qty", "Quantity worked must be > 0.");
+            } else {
+                $totalLaborQty += $qty;
             }
         }
 
@@ -949,7 +983,67 @@ class JobStageWizard extends Component
             $this->addError('laborRows', 'Please select at least one worker for recorded labor.');
         }
 
+        $maxAllowed = $this->stageInputTarget;
+        if ($totalLaborQty > $maxAllowed) {
+            $this->addError('laborRows', "Total recorded labor quantity ({$totalLaborQty} Pcs) cannot exceed the stage input target ({$maxAllowed} Pcs).");
+        }
+
         return $this->getErrorBag()->isEmpty();
+    }
+
+    protected function processAutomaticSubsidiaryDeduction(int $recordedLaborOutput)
+    {
+        if ($recordedLaborOutput <= 0) return;
+
+        $materials = $this->job->getEffectiveSubsidiaryMaterials();
+        if ($materials->isEmpty()) return;
+
+        $taskId = $this->activeStage->task_id;
+
+        foreach ($materials as $mat) {
+            $bomPerUnit = (float) ($mat->pivot->consumption_quantity ?? 1.0);
+            $totalRequired = round($bomPerUnit * $recordedLaborOutput, 4);
+
+            if ($totalRequired <= 0) continue;
+
+            $batches = InventoryBatch::where('raw_material_id', $mat->id)
+                ->where('balance_quantity', '>', 0)
+                ->orderBy('purchase_date', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
+
+            $remainingToDeduct = $totalRequired;
+
+            foreach ($batches as $batch) {
+                if ($remainingToDeduct <= 0) break;
+
+                $deduct = min($remainingToDeduct, (float) $batch->balance_quantity);
+                $batch->deductQuantity($deduct);
+
+                $unitCost = (float) ($batch->purchase_rate ?: ($batch->unit_cost ?: 0.0));
+                $totalCost = round($deduct * $unitCost, 2);
+
+                JobMaterialConsumption::create([
+                    'job_code'           => $this->job->job_code,
+                    'production_job_id'   => $this->job->id,
+                    'inventory_batch_id' => $batch->id,
+                    'task_id'            => $taskId,
+                    'quantity_consumed'  => $deduct,
+                    'unit_cost'          => $unitCost,
+                    'total_cost'         => $totalCost,
+                ]);
+
+                InventoryBatchLogger::log(
+                    $batch->id,
+                    'consumed',
+                    $deduct,
+                    null,
+                    "Auto FIFO subsidiary material consumption ({$mat->name}) for Job {$this->job->job_code} Stage {$this->activeStage->task?->name}"
+                );
+
+                $remainingToDeduct -= $deduct;
+            }
+        }
     }
 
     // --- COMPLETE STAGE ACTION ---
@@ -971,65 +1065,10 @@ class JobStageWizard extends Component
             return;
         }
 
-        // Validate alteration surface area before transaction
-        if ($this->isFinalStage($this->activeStage) && !empty($this->alterationRows)) {
-            $srcProduct = $this->job->manufacturingProduct;
-            $srcPattern = $this->job->pattern;
-            $srcArea = \App\Services\FabricCuttingAreaService::calculateProductPatternAreaM2($srcProduct, $srcPattern);
-
-            foreach ($this->alterationRows as $altRow) {
-                $altQty = intval($altRow['altered_qty'] ?? 0);
-                $targetPId = $altRow['target_product_id'] ?? null;
-                $targetPatId = $altRow['target_pattern_id'] ?? null;
-
-                if ($altQty > 0) {
-                    if (!$targetPId || !$targetPatId) {
-                        $this->dispatch('toast', message: "Please select a Target Product and Target Pattern for all alteration items with altered quantity greater than 0.", type: 'error');
-                        return;
-                    }
-                    $targetProduct = ManufacturingProduct::find($targetPId);
-                    $targetPattern = $targetPatId ? \App\Models\ManufacturingProductPattern::find($targetPatId) : null;
-                    if ($targetProduct) {
-                        $targetArea = \App\Services\FabricCuttingAreaService::calculateProductPatternAreaM2($targetProduct, $targetPattern);
-                        if ($srcArea > 0 && $targetArea > 0 && $targetArea > ($srcArea + 0.0001)) {
-                            $this->dispatch('toast', message: "Cannot alter to target product '{$targetProduct->name}' ({$targetArea} m²) because its surface area is larger than source product '{$srcProduct->name}' ({$srcArea} m²).", type: 'error');
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Pre-validate subsidiary material stock totals across all active batches
-        if ($this->isFinalStage($this->activeStage) && !empty($this->subsidiaryRows)) {
-            foreach ($this->subsidiaryRows as $sRow) {
-                $totQty = floatval($sRow['total_qty'] ?? 0);
-                $matId  = $sRow['raw_material_id'] ?? null;
-
-                if ($totQty > 0 && $matId) {
-                    $totalAvailableStock = (float) InventoryBatch::where('raw_material_id', $matId)
-                        ->where('balance_quantity', '>', 0)
-                        ->sum('balance_quantity');
-
-                    $batchCount = InventoryBatch::where('raw_material_id', $matId)->count();
-
-                    if ($batchCount > 0 && $totQty > $totalAvailableStock) {
-                        $matName = $sRow['material_name'] ?? 'Material';
-                        $unit    = $sRow['unit'] ?? 'Pcs';
-                        $shortage = round($totQty - $totalAvailableStock, 4);
-                        $this->dispatch('toast',
-                            message: "Insufficient total inventory balance for '{$matName}'. Available across active batches: {$totalAvailableStock} {$unit}, but {$totQty} {$unit} is required (Short by {$shortage} {$unit}). Please add stock or adjust consumption.",
-                            type: 'error'
-                        );
-                        return;
-                    }
-                }
-            }
-        }
-
         try {
             DB::transaction(function () {
                 $taskId = $this->activeStage->task_id;
+                $totalLaborQty = 0;
 
                 // 1. Record Labor Allocations with Base Rate + Bonus Rate
                 foreach ($this->laborRows as $lRow) {
@@ -1039,6 +1078,7 @@ class JobStageWizard extends Component
                         $processed = intval($lRow['processed_qty'] ?? 0);
                         $effective = $baseRate + $bonusRate;
                         $wage      = round($effective * $processed, 2);
+                        $totalLaborQty += $processed;
 
                         JobLaborAllocation::create([
                             'job_id'                   => $this->job->job_code,
@@ -1058,8 +1098,8 @@ class JobStageWizard extends Component
                     }
                 }
 
-                // 2. Record Product Output for this stage
-                $actualProduced = max(0, intval($this->producedQty ?? 0));
+                // 2. Record Product Output for this stage (Labor total = Stage Output)
+                $actualProduced = max(0, $totalLaborQty);
                 if ($actualProduced > 0) {
                     JobProductionOutput::create([
                         'job_code'                 => $this->job->job_code,
@@ -1070,143 +1110,10 @@ class JobStageWizard extends Component
                     ]);
                 }
 
-                // 3. Subsidiary Materials Consumption Logging (Final Stage with Multi-Batch FIFO Support)
-                $isFinalStep = $this->isFinalStage($this->activeStage);
-                if ($isFinalStep && !empty($this->subsidiaryRows)) {
-                    foreach ($this->subsidiaryRows as $sRow) {
-                        $totQty  = floatval($sRow['total_qty'] ?? 0);
-                        $matId   = $sRow['raw_material_id'] ?? null;
-                        $selectedBatchId = $sRow['inventory_batch_id'] ?? null;
+                $this->activeStage->update(['completed_quantity' => $actualProduced]);
 
-                        if ($totQty > 0 && $matId) {
-                            $remainingToDeduct = $totQty;
-
-                            // 1. Deduct from selected batch first
-                            if ($selectedBatchId) {
-                                $primaryBatch = InventoryBatch::find($selectedBatchId);
-                                if ($primaryBatch && (float) $primaryBatch->balance_quantity > 0) {
-                                    $deduct = min($remainingToDeduct, (float) $primaryBatch->balance_quantity);
-                                    $primaryBatch->deductQuantity($deduct);
-
-                                    $unitCost = (float) ($primaryBatch->purchase_rate ?: ($primaryBatch->unit_cost ?: 0));
-                                    $itemTotalCost = round($deduct * $unitCost, 2);
-
-                                    JobMaterialConsumption::create([
-                                        'job_code'            => $this->job->job_code,
-                                        'production_job_id'    => $this->job->id,
-                                        'inventory_batch_id'  => $primaryBatch->id,
-                                        'task_id'             => $taskId,
-                                        'quantity_consumed'   => $deduct,
-                                        'unit_cost'           => $unitCost,
-                                        'total_cost'          => $itemTotalCost,
-                                    ]);
-
-                                    InventoryBatchLogger::log(
-                                        $primaryBatch->id,
-                                        'consumed',
-                                        $deduct,
-                                        null,
-                                        "Subsidiary material consumption ({$sRow['material_name']}) for Job {$this->job->job_code} Stage {$this->activeStage->task?->name}"
-                                    );
-
-                                    $remainingToDeduct -= $deduct;
-                                }
-                            }
-
-                            // 2. Deduct remaining quantity FIFO from other active batches for this raw material
-                            if ($remainingToDeduct > 0) {
-                                $otherBatches = InventoryBatch::where('raw_material_id', $matId)
-                                    ->where('balance_quantity', '>', 0)
-                                    ->when($selectedBatchId, fn($q) => $q->where('id', '!=', $selectedBatchId))
-                                    ->orderBy('purchase_date', 'asc')
-                                    ->orderBy('id', 'asc')
-                                    ->get();
-
-                                foreach ($otherBatches as $otherBatch) {
-                                    if ($remainingToDeduct <= 0) break;
-
-                                    $deduct = min($remainingToDeduct, (float) $otherBatch->balance_quantity);
-                                    $otherBatch->deductQuantity($deduct);
-
-                                    $unitCost = (float) ($otherBatch->purchase_rate ?: ($otherBatch->unit_cost ?: 0));
-                                    $itemTotalCost = round($deduct * $unitCost, 2);
-
-                                    JobMaterialConsumption::create([
-                                        'job_code'            => $this->job->job_code,
-                                        'production_job_id'    => $this->job->id,
-                                        'inventory_batch_id'  => $otherBatch->id,
-                                        'task_id'             => $taskId,
-                                        'quantity_consumed'   => $deduct,
-                                        'unit_cost'           => $unitCost,
-                                        'total_cost'          => $itemTotalCost,
-                                    ]);
-
-                                    InventoryBatchLogger::log(
-                                        $otherBatch->id,
-                                        'consumed',
-                                        $deduct,
-                                        null,
-                                        "Subsidiary material consumption ({$sRow['material_name']}) for Job {$this->job->job_code} Stage {$this->activeStage->task?->name}"
-                                    );
-
-                                    $remainingToDeduct -= $deduct;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 4. Final Step Reconciliation: Record Wastage (Scrap & Damage) and Alteration Jobs
-                $isFinalStep = $this->isFinalStage($this->activeStage);
-                if ($isFinalStep) {
-                    // Record Scrap Wastage (Completely Unusable Loss)
-                    if ($this->scrapQty > 0) {
-                        JobWastage::create([
-                            'job_code'                 => $this->job->job_code,
-                            'production_job_id'        => $this->job->id,
-                            'manufacturing_product_id' => $this->job->manufacturing_product_id,
-                            'pattern_id'               => $this->job->pattern_id,
-                            'task_id'                  => $taskId,
-                            'wastage_type'             => 'scrap',
-                            'quantity_wasted'          => $this->scrapQty,
-                            'reason'                   => $this->scrapNotes ?: "Scrap / Cutting Waste",
-                        ]);
-                    }
-
-                    // Record Damage Wastage (Damaged Material / B-Grade)
-                    if ($this->damageQty > 0) {
-                        JobWastage::create([
-                            'job_code'                 => $this->job->job_code,
-                            'production_job_id'        => $this->job->id,
-                            'manufacturing_product_id' => $this->job->manufacturing_product_id,
-                            'pattern_id'               => $this->job->pattern_id,
-                            'task_id'                  => $taskId,
-                            'wastage_type'             => 'damage',
-                            'quantity_wasted'          => $this->damageQty,
-                            'reason'                   => $this->damageNotes ?: "Partially damaged / resold items",
-                        ]);
-                    }
-
-                    // Spawn Alteration Production Jobs
-                    $workflowService = resolve(ProductionWorkflowService::class);
-                    foreach ($this->alterationRows as $altRow) {
-                        $altQty    = intval($altRow['altered_qty'] ?? 0);
-                        $targetPId = $altRow['target_product_id'] ?? null;
-                        $targetPat = $altRow['target_pattern_id'] ?? null;
-
-                        if ($altQty > 0 && $targetPId) {
-                            $workflowService->recordJobAlteration(
-                                job: $this->job,
-                                sourceProductId: $this->job->manufacturing_product_id ?? $targetPId,
-                                sourceQty: $altQty,
-                                targetProductId: $targetPId,
-                                targetQty: $altQty,
-                                reason: $this->remarks ?: "Final Task Reconciliation Alteration",
-                                targetPatternId: $targetPat
-                            );
-                        }
-                    }
-                }
+                // 3. Automatic Subsidiary Materials Consumption Logging (FIFO Support)
+                $this->processAutomaticSubsidiaryDeduction($actualProduced);
 
                 // 4. Advance Workflow Service
                 $workflowService = resolve(ProductionWorkflowService::class);

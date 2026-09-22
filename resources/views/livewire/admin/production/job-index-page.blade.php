@@ -65,130 +65,220 @@
         </div>
     </div>
 
-    <!-- Filters & Search Bar -->
-    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/60 mb-6 flex flex-wrap items-center gap-4 shadow-xs">
-        <div class="w-full max-w-md">
-            <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-on-surface-variant">search</span>
-                <input wire:model.live.debounce.300ms="search" class="w-full px-4 py-2.5 bg-surface rounded-xl border border-outline-variant/60 focus:ring-2 focus:ring-primary/20 focus:border-primary font-body-sm text-body-sm" placeholder="Search Job Code, Batch ID, Product Name..." type="text"/>
-            </div>
-        </div>
-        <div>
-            <select wire:model.live="statusFilter" class="bg-surface border border-outline-variant/60 rounded-xl font-label-md text-label-md py-2.5 px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold">
-                <option value="">Status (All Jobs)</option>
-                <option value="in_progress">In Progress</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-            </select>
-        </div>
-        <div>
-            <select wire:model.live="supervisorFilter" class="bg-surface border border-outline-variant/60 rounded-xl font-label-md text-label-md py-2.5 px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold">
-                <option value="">All Supervisors</option>
-                @foreach($supervisors as $sup)
-                    <option value="{{ $sup->id }}">{{ $sup->name }}</option>
-                @endforeach
-            </select>
-        </div>
+    <!-- Main Hub Tab Switcher -->
+    <div class="flex items-center gap-2 border-b border-outline-variant/60 mb-6">
+        <button type="button" wire:click="$set('activeTab', 'all')" class="pb-3 px-4 text-sm font-black border-b-2 transition-all flex items-center gap-2 {{ $activeTab === 'all' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
+            <span class="material-symbols-outlined text-base">layers</span>
+            <span>All Production Batches &amp; Jobs</span>
+        </button>
+        <button type="button" wire:click="$set('activeTab', 'discrepancies')" class="pb-3 px-4 text-sm font-black border-b-2 transition-all flex items-center gap-2 {{ $activeTab === 'discrepancies' ? 'border-amber-600 text-amber-800' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
+            <span class="material-symbols-outlined text-base">warning</span>
+            <span>Completed Jobs with Discrepancies</span>
+            @if(count($discrepancyJobs) > 0)
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white">
+                    {{ count($discrepancyJobs) }}
+                </span>
+            @else
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                    0
+                </span>
+            @endif
+        </button>
     </div>
 
-    <!-- Data List: Pure Production Batches Hub -->
-    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 overflow-hidden shadow-xs">
-        <table class="w-full text-left border-collapse font-body-md">
-            <thead>
-                <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
-                    <th class="px-6 py-4 font-bold">Production Batch ID</th>
-                    <th class="px-6 py-4 font-bold">Manufacturing Product</th>
-                    <th class="px-6 py-4 font-bold text-center">Total Jobs</th>
-                    <th class="px-6 py-4 font-bold text-center">Batch Target Qty</th>
-                    <th class="px-6 py-4 font-bold text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-outline-variant/40">
-                @forelse($paginatedBatches as $batchCode => $batchJobs)
-                    @php
-                        $firstJob = $batchJobs->first();
-                        $supervisorObj = $firstJob?->factorySupervisor 
-                            ?? $firstJob?->batch?->factorySupervisor 
-                            ?? $firstJob?->supervisor;
-                        $supervisorName = $supervisorObj?->name ?? 'Unassigned';
-                        $plannedTargetQty = $batchJobs->sum(fn($j) => $j->target_quantity);
-                        $batchDbId = $firstJob?->production_batch_db_id;
-                        if (!$batchDbId && !empty($batchCode)) {
-                            $batchObj = \App\Models\ProductionBatch::where('batch_code', $batchCode)->first();
-                            if (!$batchObj) {
-                                $batchObj = \App\Models\ProductionBatch::create([
-                                    'batch_code' => $batchCode,
-                                    'manufacturing_product_id' => $firstJob?->manufacturing_product_id,
-                                    'planned_quantity' => $plannedTargetQty,
-                                    'status' => 'In Progress',
-                                    'supervisor_id' => auth()->id(),
-                                    'factory_supervisor_id' => $firstJob?->factory_supervisor_id,
-                                ]);
+    @if($activeTab === 'discrepancies')
+        <!-- Completed Jobs Discrepancies Table -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 overflow-hidden shadow-xs mb-6">
+            <div class="p-4 bg-amber-50/80 border-b border-amber-200">
+                <h3 class="font-extrabold text-sm text-amber-950 uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-700">warning</span>
+                    <span>Completed Jobs Pending Discrepancy Recording</span>
+                </h3>
+                <p class="text-xs text-amber-800 font-medium mt-0.5">
+                    These finished production jobs have a discrepancy between the initial cut quantity and final completed labor output. Click "Record Discrepancy" to categorize scrap, damage, and alterations.
+                </p>
+            </div>
+
+            <table class="w-full text-left border-collapse font-body-md">
+                <thead>
+                    <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
+                        <th class="px-6 py-4 font-bold">Job Code &amp; Batch</th>
+                        <th class="px-6 py-4 font-bold">Manufacturing Product</th>
+                        <th class="px-6 py-4 font-bold text-center">Initial Cut Qty</th>
+                        <th class="px-6 py-4 font-bold text-center">Final Output Qty</th>
+                        <th class="px-6 py-4 font-bold text-center">Discrepancy Qty</th>
+                        <th class="px-6 py-4 font-bold text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/40">
+                    @forelse($discrepancyJobs as $dJob)
+                        <tr class="hover:bg-surface-container/50 transition-colors">
+                            <td class="px-6 py-4">
+                                <span class="font-bold text-primary text-base font-mono block">{{ $dJob->job_code }}</span>
+                                <span class="text-xs text-outline font-mono block">Batch: {{ $dJob->production_batch_id }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="font-bold text-on-surface text-sm">{{ $dJob->manufacturingProduct?->name }}</p>
+                                @if($dJob->pattern)
+                                    <span class="text-xs text-amber-700 font-semibold block">Pattern: {{ $dJob->pattern->name }}</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-center font-bold text-slate-800">
+                                {{ $dJob->initial_cut_quantity }} Pcs
+                            </td>
+                            <td class="px-6 py-4 text-center font-bold text-emerald-800">
+                                {{ $dJob->final_produced_yield }} Pcs
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-3 py-1 bg-rose-100 text-rose-800 font-black rounded-full text-xs font-mono border border-rose-200">
+                                    {{ $dJob->discrepancy_quantity }} Pcs
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button type="button" wire:click="openDiscrepancyModal({{ $dJob->id }})" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl transition-all shadow-xs active:scale-95 inline-flex items-center gap-1 cursor-pointer">
+                                    <span class="material-symbols-outlined text-[16px]">edit_note</span>
+                                    <span>Record Discrepancy</span>
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-on-surface-variant">
+                                <span class="material-symbols-outlined text-4xl text-emerald-600 mb-2">check_circle</span>
+                                <p class="font-body-lg text-body-lg font-bold">No completed jobs with unresolved discrepancies.</p>
+                                <p class="text-xs text-outline mt-1">All finished jobs match their initial cut quantities!</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @else
+        <!-- Filters & Search Bar -->
+        <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/60 mb-6 flex flex-wrap items-center gap-4 shadow-xs">
+            <div class="w-full max-w-md">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-on-surface-variant">search</span>
+                    <input wire:model.live.debounce.300ms="search" class="w-full px-4 py-2.5 bg-surface rounded-xl border border-outline-variant/60 focus:ring-2 focus:ring-primary/20 focus:border-primary font-body-sm text-body-sm" placeholder="Search Job Code, Batch ID, Product Name..." type="text"/>
+                </div>
+            </div>
+            <div>
+                <select wire:model.live="statusFilter" class="bg-surface border border-outline-variant/60 rounded-xl font-label-md text-label-md py-2.5 px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold">
+                    <option value="">Status (All Jobs)</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div>
+                <select wire:model.live="supervisorFilter" class="bg-surface border border-outline-variant/60 rounded-xl font-label-md text-label-md py-2.5 px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold">
+                    <option value="">All Supervisors</option>
+                    @foreach($supervisors as $sup)
+                        <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <!-- Data List: Pure Production Batches Hub -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 overflow-hidden shadow-xs">
+            <table class="w-full text-left border-collapse font-body-md">
+                <thead>
+                    <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
+                        <th class="px-6 py-4 font-bold">Production Batch ID</th>
+                        <th class="px-6 py-4 font-bold">Manufacturing Product</th>
+                        <th class="px-6 py-4 font-bold text-center">Total Jobs</th>
+                        <th class="px-6 py-4 font-bold text-center">Batch Target Qty</th>
+                        <th class="px-6 py-4 font-bold text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/40">
+                    @forelse($paginatedBatches as $batchCode => $batchJobs)
+                        @php
+                            $firstJob = $batchJobs->first();
+                            $supervisorObj = $firstJob?->factorySupervisor 
+                                ?? $firstJob?->batch?->factorySupervisor 
+                                ?? $firstJob?->supervisor;
+                            $supervisorName = $supervisorObj?->name ?? 'Unassigned';
+                            $plannedTargetQty = $batchJobs->sum(fn($j) => $j->target_quantity);
+                            $batchDbId = $firstJob?->production_batch_db_id;
+                            if (!$batchDbId && !empty($batchCode)) {
+                                $batchObj = \App\Models\ProductionBatch::where('batch_code', $batchCode)->first();
+                                if (!$batchObj) {
+                                    $batchObj = \App\Models\ProductionBatch::create([
+                                        'batch_code' => $batchCode,
+                                        'manufacturing_product_id' => $firstJob?->manufacturing_product_id,
+                                        'planned_quantity' => $plannedTargetQty,
+                                        'status' => 'In Progress',
+                                        'supervisor_id' => auth()->id(),
+                                        'factory_supervisor_id' => $firstJob?->factory_supervisor_id,
+                                    ]);
+                                }
+                                $batchDbId = $batchObj->id;
                             }
-                            $batchDbId = $batchObj->id;
-                        }
-                        $uniqueProducts = $batchJobs->map(fn($j) => $j->manufacturingProduct)->filter()->unique('id');
-                    @endphp
-                    <tr class="hover:bg-surface-container/50 transition-colors">
-                        <td class="px-6 py-4">
-                            <a href="{{ route('admin.production.batches.jobs', $batchCode) }}" wire:navigate class="font-bold text-primary text-base font-mono hover:underline flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">layers</span>
-                                {{ $batchCode }}
-                            </a>
-                            <span class="text-xs text-outline block">Supervisor: {{ $supervisorName }}</span>
-                        </td>
-                        <td class="px-6 py-4 space-y-1.5">
-                            @forelse($uniqueProducts as $prod)
-                                <div>
-                                    <p class="font-bold text-on-surface text-sm">{{ $prod->name }}</p>
-                                    <span class="text-xs text-outline font-mono">{{ $prod->code }}</span>
-                                </div>
-                            @empty
-                                <p class="font-bold text-on-surface text-sm">Custom Batch</p>
-                            @endforelse
-                        </td>
-                        <td class="px-6 py-4 text-center font-bold text-on-surface">
-                            <span class="px-3 py-1 bg-primary/10 text-primary font-black rounded-full text-xs font-mono">
-                                {{ $batchJobs->count() }} Job(s)
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-center font-black text-on-surface text-sm">
-                            {{ number_format($plannedTargetQty) }} Pcs
-                        </td>
-                        <td class="px-6 py-4 text-right space-x-2">
-
-                            <a href="{{ route('admin.production.batches.jobs', $batchCode) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary text-on-primary hover:bg-primary-container px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95">
-                                View Jobs
-                                <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
-                            </a>
-                            @if($batchDbId)
-                                <a href="{{ route('admin.production.batches.ledger', $batchDbId) }}" wire:navigate class="inline-flex items-center gap-1 bg-surface border border-outline-variant/60 text-on-surface hover:bg-surface-container px-3 py-1.5 rounded-xl text-xs font-bold transition-all">
-                                    360 Ledger
+                            $uniqueProducts = $batchJobs->map(fn($j) => $j->manufacturingProduct)->filter()->unique('id');
+                        @endphp
+                        <tr class="hover:bg-surface-container/50 transition-colors">
+                            <td class="px-6 py-4">
+                                <a href="{{ route('admin.production.batches.jobs', $batchCode) }}" wire:navigate class="font-bold text-primary text-base font-mono hover:underline flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[18px]">layers</span>
+                                    {{ $batchCode }}
                                 </a>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-on-surface-variant">
-                            <span class="material-symbols-outlined text-4xl text-outline mb-2">assignment_late</span>
-                            <p class="font-body-lg text-body-lg">No production batches found.</p>
-                            <button type="button" wire:click="openCreateModal" class="mt-3 text-primary font-bold text-sm hover:underline">
-                                + Create your first production batch
-                            </button>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                                <span class="text-xs text-outline block">Supervisor: {{ $supervisorName }}</span>
+                            </td>
+                            <td class="px-6 py-4 space-y-1.5">
+                                @forelse($uniqueProducts as $prod)
+                                    <div>
+                                        <p class="font-bold text-on-surface text-sm">{{ $prod->name }}</p>
+                                        <span class="text-xs text-outline font-mono">{{ $prod->code }}</span>
+                                    </div>
+                                @empty
+                                    <p class="font-bold text-on-surface text-sm">Custom Batch</p>
+                                @endforelse
+                            </td>
+                            <td class="px-6 py-4 text-center font-bold text-on-surface">
+                                <span class="px-3 py-1 bg-primary/10 text-primary font-black rounded-full text-xs font-mono">
+                                    {{ $batchJobs->count() }} Job(s)
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center font-black text-on-surface text-sm">
+                                {{ number_format($plannedTargetQty) }} Pcs
+                            </td>
+                            <td class="px-6 py-4 text-right space-x-2">
 
-        @if($paginatedBatches->hasPages())
-            <div class="px-6 py-4 bg-surface-container-low border-t border-outline-variant/60">
-                {{ $paginatedBatches->links() }}
-            </div>
-        @endif
-    </div>
+                                <a href="{{ route('admin.production.batches.jobs', $batchCode) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary text-on-primary hover:bg-primary-container px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95">
+                                    View Jobs
+                                    <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                                </a>
+                                @if($batchDbId)
+                                    <a href="{{ route('admin.production.batches.ledger', $batchDbId) }}" wire:navigate class="inline-flex items-center gap-1 bg-surface border border-outline-variant/60 text-on-surface hover:bg-surface-container px-3 py-1.5 rounded-xl text-xs font-bold transition-all">
+                                        360 Ledger
+                                    </a>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-on-surface-variant">
+                                <span class="material-symbols-outlined text-4xl text-outline mb-2">assignment_late</span>
+                                <p class="font-body-lg text-body-lg">No production batches found.</p>
+                                <button type="button" wire:click="openCreateModal" class="mt-3 text-primary font-bold text-sm hover:underline">
+                                    + Create your first production batch
+                                </button>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+
+            @if($paginatedBatches->hasPages())
+                <div class="px-6 py-4 bg-surface-container-low border-t border-outline-variant/60">
+                    {{ $paginatedBatches->links() }}
+                </div>
+            @endif
+        </div>
+    @endif
 
     <!-- Storefront Finished Goods Conversion Modal -->
     <x-admin.modal id="storefront-conversion-modal" title="Convert Completed Goods to Storefront Product" maxWidth="4xl">
@@ -561,6 +651,178 @@
                 </button>
             </div>
         </form>
+    </x-admin.modal>
+
+    <!-- Discrepancy Resolution Modal -->
+    <x-admin.modal id="discrepancy-resolution-modal" title="Record Job Discrepancy &amp; Reconciliation" maxWidth="3xl">
+        @if($activeDiscrepancyJob)
+            <form wire:submit.prevent="saveDiscrepancyResolution" class="space-y-6">
+                <!-- Summary Header -->
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2 text-amber-950">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-black text-sm uppercase tracking-wider text-amber-900 font-display">
+                            Job Discrepancy Summary — {{ $activeDiscrepancyJob->job_code }}
+                        </h4>
+                        <span class="px-3 py-1 bg-amber-200 text-amber-900 rounded-full font-black text-xs font-mono">
+                            Discrepancy: {{ $activeDiscrepancyJob->discrepancy_quantity }} Pcs
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-4 text-xs font-bold">
+                        <span>Product: <strong class="text-slate-900">{{ $activeDiscrepancyJob->manufacturingProduct?->name }}</strong></span>
+                        <span>·</span>
+                        <span>Initial Cut Qty: <strong>{{ $activeDiscrepancyJob->initial_cut_quantity }} Pcs</strong></span>
+                        <span>·</span>
+                        <span>Final Recorded Output: <strong class="text-emerald-800">{{ $activeDiscrepancyJob->final_produced_yield }} Pcs</strong></span>
+                    </div>
+                </div>
+
+                @error('discrepancyTotal')
+                    <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700">
+                        {{ $message }}
+                    </div>
+                @enderror
+
+                <!-- 1. Alteration Units (Spawns New Alteration Production Job) -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div>
+                            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                                1. Alteration Units (Spawns New Alteration Production Job)
+                            </h4>
+                            <p class="text-[11px] text-slate-500">Products sent for alteration will instantiate a new Production Job inside the batch for the chosen target product and pattern.</p>
+                        </div>
+                        <button type="button" wire:click="addDiscrepancyAlterationRow" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs rounded-lg transition-all cursor-pointer">
+                            ＋ Add Alteration Item
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        @foreach($alterationRows as $aIdx => $aRow)
+                            @php
+                                $selectedTargetProdId = $aRow['target_product_id'] ?? null;
+                                $targetProdObj = $selectedTargetProdId ? $allProducts->firstWhere('id', $selectedTargetProdId) : null;
+                                $targetPatterns = $targetProdObj ? $targetProdObj->patterns : collect();
+                            @endphp
+                            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                                <div class="sm:col-span-3">
+                                    <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">ALTERED QTY (PCS) *</label>
+                                    <input type="number" min="0" wire:model.live="alterationRows.{{ $aIdx }}.altered_qty" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                </div>
+                                <div class="sm:col-span-4">
+                                    <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">TARGET PRODUCT *</label>
+                                    <select wire:model.live="alterationRows.{{ $aIdx }}.target_product_id" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <option value="">-- Select Target Product --</option>
+                                        @foreach($allProducts as $ap)
+                                            <option value="{{ $ap->id }}">{{ $ap->name }} ({{ $ap->code }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-4">
+                                    <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">TARGET PATTERN *</label>
+                                    <select wire:model="alterationRows.{{ $aIdx }}.target_pattern_id" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <option value="">-- Select Target Pattern --</option>
+                                        @foreach($targetPatterns as $pat)
+                                            <option value="{{ $pat->id }}">{{ $pat->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-1 flex justify-end">
+                                    @if(count($alterationRows) > 1)
+                                        <button type="button" wire:click="removeDiscrepancyAlterationRow({{ $aIdx }})" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer">
+                                            ✕
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- 2. Non-Good Output Categorization: Scrap vs. Damage -->
+                <div class="space-y-4 pt-2 border-t border-slate-200">
+                    <div>
+                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                            2. Non-Good Output Categorization: Scrap vs. Damage
+                        </h4>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Distinguish between completely unsalvageable scrap loss versus partially damaged items that can still be sold or reused.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Scrap Section Card -->
+                        <div class="p-4 bg-rose-50/60 border border-rose-200 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-extrabold uppercase text-rose-900 flex items-center gap-1">
+                                    <span>♻️</span> Scrap Output (Completely Unusable Loss)
+                                </span>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">SCRAP QUANTITY (PCS)</label>
+                                <input type="number" min="0" wire:model.live="scrapQty" placeholder="0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">SCRAP REASON NOTE</label>
+                                <input type="text" wire:model="scrapNotes" placeholder="e.g. Unusable fabric cut loss" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                            </div>
+                        </div>
+
+                        <!-- Damage Section Card -->
+                        <div class="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-extrabold uppercase text-amber-900 flex items-center gap-1">
+                                    <span>⚠️</span> Damaged Output (Partially Damaged / Resold)
+                                </span>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">DAMAGED QUANTITY (PCS)</label>
+                                <input type="number" min="0" wire:model.live="damageQty" placeholder="0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">DAMAGE REASON NOTE</label>
+                                <input type="text" wire:model="damageNotes" placeholder="e.g. Minor defect" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Total Reconciliation Match Indicator -->
+                @php
+                    $reqDiscrepancy = $activeDiscrepancyJob->discrepancy_quantity;
+                    $calcTotal = intval($scrapQty ?? 0) + intval($damageQty ?? 0);
+                    foreach($alterationRows as $ar) {
+                        $calcTotal += intval($ar['altered_qty'] ?? 0);
+                    }
+                    $isMatch = $calcTotal === $reqDiscrepancy;
+                @endphp
+                <div class="p-4 rounded-xl border flex items-center justify-between text-xs font-bold {{ $isMatch ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-rose-50 border-rose-300 text-rose-950' }}">
+                    <div>
+                        <span class="uppercase tracking-wider font-extrabold">Recorded Total: {{ $calcTotal }} / {{ $reqDiscrepancy }} Pcs</span>
+                        <span class="block text-[11px] font-medium text-slate-600">
+                            {{ $isMatch ? '✓ Perfect match! Discrepancy total is fully reconciled.' : '⚠️ Total recorded (Scrap + Damage + Alterations) must equal exactly ' . $reqDiscrepancy . ' Pcs.' }}
+                        </span>
+                    </div>
+                    <span class="px-3 py-1 rounded-full font-black text-xs uppercase {{ $isMatch ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white' }}">
+                        {{ $isMatch ? 'Ready to Save' : 'Mismatch' }}
+                    </span>
+                </div>
+
+                <!-- Remarks -->
+                <div>
+                    <label class="block text-xs font-extrabold uppercase text-slate-700 mb-1">Reconciliation Remarks</label>
+                    <input type="text" wire:model="discrepancyRemarks" placeholder="Optional audit notes" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900">
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                    <button type="button" @click="show = false" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer" {{ !$isMatch ? 'disabled' : '' }}>
+                        <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                        <span>Save Discrepancy Resolution</span>
+                    </button>
+                </div>
+            </form>
+        @endif
     </x-admin.modal>
 </div>
 

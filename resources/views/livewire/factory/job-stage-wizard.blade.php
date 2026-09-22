@@ -595,38 +595,9 @@
                         @else
                             <button type="button" 
                                     wire:click="goToStep(1)" 
-                                    class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 1 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
+                                    class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 border-amber-600 text-amber-800 font-black">
                                 1. Labour &amp; Bonus Rate
                             </button>
-                            <button type="button" 
-                                    wire:click="goToStep(2)" 
-                                    class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 2 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
-                                2. Output Items
-                            </button>
-                            @if($isFinalTask)
-                                <button type="button" 
-                                        wire:click="goToStep(3)" 
-                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 3 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
-                                    <span>3. Subsidiary Materials</span>
-                                </button>
-                                <button type="button" 
-                                        wire:click="goToStep(4)" 
-                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 flex items-center gap-1.5 {{ $activeStep === 4 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
-                                    <span>4. Wastage &amp; Alteration</span>
-                                    <span class="px-1.5 py-0.5 text-[9px] bg-amber-500/10 text-amber-800 border border-amber-500/30 rounded font-black uppercase">Final</span>
-                                </button>
-                                <button type="button" 
-                                        wire:click="goToStep(5)" 
-                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 5 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
-                                    5. Review &amp; Confirm
-                                </button>
-                            @else
-                                <button type="button" 
-                                        wire:click="goToStep(3)" 
-                                        class="py-3.5 px-4 font-bold text-xs border-b-2 transition-all shrink-0 {{ $activeStep === 3 ? 'border-amber-600 text-amber-800 font-black' : 'border-transparent text-slate-500 hover:text-slate-900' }}">
-                                    3. Review &amp; Confirm
-                                </button>
-                            @endif
                         @endif
                     </div>
                 </div>
@@ -1005,31 +976,34 @@
                             }
                         @endphp
                         <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                            <div class="flex items-center gap-2 text-xs font-bold text-slate-900">
+                            <div class="flex items-center justify-between text-xs font-bold text-slate-900">
                                 <span>Total Allotted Labor Quantity: <span class="font-extrabold text-amber-800">{{ $totalQtyProcessed }} Pcs</span></span>
-                                @if($totalQtyProcessed == $activeStage->target_quantity)
-                                    <span class="text-emerald-700 font-extrabold text-[11px]">(✓ Matches Batch Target {{ $activeStage->target_quantity }} Pcs)</span>
-                                @endif
+                                <span class="text-xs font-black text-slate-700 bg-slate-200/80 px-2.5 py-1 rounded-lg">
+                                    Stage Input Target: {{ $this->stageInputTarget }} Pcs
+                                </span>
                             </div>
                             <div class="text-xs font-extrabold text-slate-600">
                                 Total Stage Wages (All {{ count($laborRows) }} Worker{{ count($laborRows) > 1 ? 's' : '' }}): <span class="text-emerald-700 text-sm font-black">₹{{ number_format($totalWages, 2) }}</span>
                             </div>
                         </div>
 
-                        <!-- Next Navigation -->
+                        <!-- Next Navigation / Complete Button -->
                         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
                             @if($isCutting)
                                 <button type="button" wire:click="goToStep(1)" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50">
                                     ← Back to Fabric Selection
                                 </button>
+                                <button type="button" wire:click="goToStep(3)" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                                    <span>Next Step: Output Items</span>
+                                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                </button>
                             @else
                                 <div></div>
+                                <button type="button" wire:click="completeActiveStage" class="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer">
+                                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                    <span>Confirm &amp; Complete Stage</span>
+                                </button>
                             @endif
-
-                            <button type="button" wire:click="goToStep({{ $isCutting ? 3 : 2 }})" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
-                                <span>Next Step: Output Items</span>
-                                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                            </button>
                         </div>
                     </div>
                 @endif
