@@ -145,17 +145,12 @@ class FrontEndProductIndexPage extends Component
         $validPkgRows = array_filter($this->pkgRows, fn($r) => !empty($r['raw_material_id']) && intval($r['quantity']) > 0);
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validMfgRows, $validPkgRows) {
-            $sku = "CAT-CFG-" . str_pad((string) $this->editingCategoryId, 4, '0', STR_PAD_LEFT);
-
-            $feProduct = FrontEndProduct::updateOrCreate(
-                ['category_id' => $this->editingCategoryId],
-                [
-                    'name' => trim($this->categoryName),
-                    'sku' => $sku,
-                    'leaf_category_name' => trim($this->categoryName),
-                    'is_active' => true,
-                ]
-            );
+            $category = Category::findOrFail($this->editingCategoryId);
+            $feProduct = FrontEndProduct::saveConfigForCategory($category, [
+                'name' => trim($this->categoryName),
+                'leaf_category_name' => trim($this->categoryName),
+                'is_active' => true,
+            ]);
 
             // Sync components
             $feProduct->components()->delete();

@@ -478,16 +478,11 @@ class CategoryIndexPage extends Component
                 $categoryService->saveCategoryDefaults($category, $this->categoryDefaults);
 
                 if (!empty($validMfgRows)) {
-                    $sku = "CAT-CFG-" . str_pad((string) $this->currentCategoryId, 4, '0', STR_PAD_LEFT);
-                    $feProduct = \App\Models\FrontEndProduct::updateOrCreate(
-                        ['category_id' => $this->currentCategoryId],
-                        [
-                            'name' => trim($category->name),
-                            'sku' => $sku,
-                            'leaf_category_name' => trim($category->name),
-                            'is_active' => true,
-                        ]
-                    );
+                    $feProduct = \App\Models\FrontEndProduct::saveConfigForCategory($category, [
+                        'name' => trim($category->name),
+                        'leaf_category_name' => trim($category->name),
+                        'is_active' => true,
+                    ]);
 
                     $feProduct->components()->delete();
                     foreach ($validMfgRows as $mfg) {

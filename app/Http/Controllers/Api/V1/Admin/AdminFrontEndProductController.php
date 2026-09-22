@@ -231,18 +231,12 @@ class AdminFrontEndProductController extends Controller
         }
 
         $feProduct = DB::transaction(function () use ($category, $components, $packagingItems, $validated) {
-            $sku = 'CAT-CFG-' . str_pad((string) $category->id, 4, '0', STR_PAD_LEFT);
-
-            $fep = FrontEndProduct::updateOrCreate(
-                ['category_id' => $category->id],
-                [
-                    'name'               => trim($category->name),
-                    'sku'                => $sku,
-                    'leaf_category_name' => trim($category->name),
-                    'is_active'          => true,
-                    'description'        => $validated['description'] ?? null,
-                ]
-            );
+            $fep = FrontEndProduct::saveConfigForCategory($category, [
+                'name'               => trim($category->name),
+                'leaf_category_name' => trim($category->name),
+                'is_active'          => true,
+                'description'        => $validated['description'] ?? null,
+            ]);
 
             // Sync components (delete + recreate, matching web)
             $fep->components()->delete();

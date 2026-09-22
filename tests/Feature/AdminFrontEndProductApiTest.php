@@ -394,6 +394,44 @@ class AdminFrontEndProductApiTest extends TestCase
         $this->assertSoftDeleted('front_end_products', ['id' => $fep->id]);
     }
 
+    public function test_configure_category_after_soft_delete_restores_and_updates_without_duplicate_sku_error(): void
+    {
+        // 1. Create & soft-delete config for leaf category
+        $fep = FrontEndProduct::create([
+            'name'               => 'Bed Sheets',
+            'sku'                => 'CAT-CFG-' . str_pad($this->leafCategory->id, 4, '0', STR_PAD_LEFT),
+            'category_id'        => $this->leafCategory->id,
+            'leaf_category_name' => 'Bed Sheets',
+            'is_active'          => true,
+        ]);
+        $fep->delete();
+
+        $this->assertSoftDeleted('front_end_products', ['id' => $fep->id]);
+
+        // 2. Re-configure category
+        $response = $this->actingAs($this->admin, 'api')
+            ->postJson("/api/v1/factory/front-end-products/{$this->leafCategory->id}/configure", [
+                'components' => [
+                    ['manufacturing_product_id' => $this->mfgProduct->id, 'quantity' => 5],
+                ],
+            ]);
+
+        $response->assertStatus(200)->assertJsonPath('success', true);
+
+        // 3. Verify record was restored and updated
+        $this->assertDatabaseHas('front_end_products', [
+            'id'          => $fep->id,
+            'category_id' => $this->leafCategory->id,
+            'deleted_at'  => null,
+        ]);
+
+        $this->assertDatabaseHas('front_end_product_components', [
+            'front_end_product_id'    => $fep->id,
+            'manufacturing_product_id' => $this->mfgProduct->id,
+            'quantity'                 => 5,
+        ]);
+    }
+
     public function test_delete_returns_404_for_missing_config(): void
     {
         $this->actingAs($this->admin, 'api')
