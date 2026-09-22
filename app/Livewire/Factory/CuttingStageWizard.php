@@ -969,6 +969,7 @@ class CuttingStageWizard extends Component
         $totalAllocatedProductArea = array_sum(array_column($allocated, 'total_product_area_m2'));
         $breakdown = $this->fabricCuttingBreakdown;
         $totalWastageArea = floatval($breakdown['wastage_area_m2'] ?? 0);
+        $totalWastageLength = floatval($breakdown['total_wastage_length'] ?? 0);
         $totalCutFabricCost = floatval($breakdown['total_fabric_cut_cost'] ?? 0);
         $totalCutArea = floatval($breakdown['cut_area_m2'] ?? 0);
         $totalWastageCost = $totalCutArea > 0 ? ($totalWastageArea / $totalCutArea) * $totalCutFabricCost : 0.0;
@@ -977,16 +978,20 @@ class CuttingStageWizard extends Component
             $itemArea = floatval($item['total_product_area_m2']);
             $areaRatio = $totalAllocatedProductArea > 0 ? ($itemArea / $totalAllocatedProductArea) : 0.0;
             $allocatedWastageArea = $totalWastageArea * $areaRatio;
+            $allocatedWastageLength = $totalWastageLength * $areaRatio;
             $allocatedWastageCost = $totalWastageCost * $areaRatio;
             $qty = max(1, intval($item['total_quantity']));
             $perPieceWastageCost = $allocatedWastageCost / $qty;
             $perPieceWastageArea = $allocatedWastageArea / $qty;
+            $perPieceWastageLength = $allocatedWastageLength / $qty;
 
             $allocated[$k]['area_share_percentage'] = $totalAllocatedProductArea > 0 ? round($areaRatio * 100, 1) : 0.0;
             $allocated[$k]['allocated_wastage_area_m2'] = round($allocatedWastageArea, 4);
+            $allocated[$k]['allocated_wastage_length'] = round($allocatedWastageLength, 2);
             $allocated[$k]['allocated_wastage_cost'] = round($allocatedWastageCost, 2);
             $allocated[$k]['per_piece_wastage_cost'] = round($perPieceWastageCost, 2);
             $allocated[$k]['per_piece_wastage_area_m2'] = round($perPieceWastageArea, 4);
+            $allocated[$k]['per_piece_wastage_length'] = round($perPieceWastageLength, 2);
         }
 
         return array_values($allocated);

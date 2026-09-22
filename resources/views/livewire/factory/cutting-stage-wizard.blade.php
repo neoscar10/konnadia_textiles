@@ -697,7 +697,7 @@
                                     <th class="px-4 py-3">Product Name &amp; Pattern</th>
                                     <th class="px-4 py-3 text-center">Output Qty</th>
                                     <th class="px-4 py-3 text-center">Area Share</th>
-                                    <th class="px-4 py-3 text-center">Allocated Wastage Area</th>
+                                    <th class="px-4 py-3 text-center">Allocated Wastage Length</th>
                                     <th class="px-4 py-3 text-right">Total Product Wastage Cost</th>
                                     <th class="px-4 py-3 text-right">Per-Piece Wastage Cost</th>
                                 </tr>
@@ -718,8 +718,8 @@
                                             </span>
                                         </td>
                                         <td class="px-4 py-3 text-center font-mono font-bold text-amber-900">
-                                            {{ number_format($item['allocated_wastage_area_m2'] ?? 0, 4) }} m²
-                                            <span class="text-[10px] text-on-surface-variant block font-normal">({{ number_format($item['per_piece_wastage_area_m2'] ?? 0, 4) }} m²/pc)</span>
+                                            {{ number_format($item['allocated_wastage_length'] ?? 0, 2) }} m
+                                            <span class="text-[10px] text-on-surface-variant block font-normal">({{ number_format($item['allocated_wastage_area_m2'] ?? 0, 4) }} m²)</span>
                                         </td>
                                         <td class="px-4 py-3 text-right font-black text-amber-900 text-sm">
                                             ₹{{ number_format($item['allocated_wastage_cost'] ?? 0, 2) }}
@@ -737,7 +737,10 @@
                                     <td class="px-4 py-3">Total Conserved Summary</td>
                                     <td class="px-4 py-3 text-center">{{ number_format($totalPlannedOutputQty) }} Pcs</td>
                                     <td class="px-4 py-3 text-center">100.0%</td>
-                                    <td class="px-4 py-3 text-center text-amber-900 font-mono">{{ number_format($cBreakdown['wastage_area_m2'] ?? 0, 4) }} m²</td>
+                                    <td class="px-4 py-3 text-center text-amber-900 font-mono">
+                                        {{ number_format($cBreakdown['total_wastage_length'] ?? 0, 2) }} m
+                                        <span class="text-[10px] text-on-surface-variant block font-normal">({{ number_format($cBreakdown['wastage_area_m2'] ?? 0, 4) }} m²)</span>
+                                    </td>
                                     <td class="px-4 py-3 text-right text-amber-900">₹{{ number_format(($cBreakdown['cut_area_m2'] ?? 0) > 0 ? (($cBreakdown['wastage_area_m2'] ?? 0) / $cBreakdown['cut_area_m2']) * ($cBreakdown['total_fabric_cut_cost'] ?? 0) : 0, 2) }}</td>
                                     <td class="px-4 py-3 text-right text-emerald-800">—</td>
                                 </tr>
