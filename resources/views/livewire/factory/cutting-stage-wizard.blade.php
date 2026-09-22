@@ -18,11 +18,11 @@
                     </span>
                 @endif
             </div>
-            <p class="font-body-md text-body-md text-on-surface-variant mt-1">First mandatory stage: select fabric rolls, allocate products &amp; patterns per roll, record cutting labor rates, and spawn initial production jobs.</p>
+            <p class="font-body-md text-body-md text-on-surface-variant mt-1">First mandatory stage: select fabric rolls, allocate products &amp; patterns per roll, and spawn initial production jobs.</p>
         </div>
     </div>
 
-    <!-- Wizard Stepper Navigation (4 Steps) -->
+    <!-- Wizard Stepper Navigation (3 Steps) -->
     <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 mb-8 shadow-xs">
         <div class="flex items-center justify-between max-w-4xl mx-auto">
             <!-- Step 1 -->
@@ -65,7 +65,7 @@
                 </div>
                 <div class="text-left hidden sm:block">
                     <p class="text-xs font-extrabold {{ $currentStep === 2 ? 'text-primary' : 'text-on-surface-variant' }}">Step 2</p>
-                    <p class="text-xs font-semibold text-on-surface">Labor &amp; Rates</p>
+                    <p class="text-xs font-semibold text-on-surface">Output Items</p>
                 </div>
             </button>
 
@@ -78,35 +78,12 @@
                 class="flex items-center gap-3 cursor-pointer group"
             >
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all
-                    {{ $currentStep === 3 ? 'bg-primary text-on-primary shadow-md ring-4 ring-primary/20' : ($currentStep > 3 ? 'bg-secondary text-on-secondary' : 'bg-surface-container-high text-on-surface-variant') }}"
+                    {{ $currentStep === 3 ? 'bg-primary text-on-primary shadow-md ring-4 ring-primary/20' : 'bg-surface-container-high text-on-surface-variant' }}"
                 >
-                    @if($currentStep > 3)
-                        <span class="material-symbols-outlined text-[20px]">check</span>
-                    @else
-                        3
-                    @endif
+                    3
                 </div>
                 <div class="text-left hidden sm:block">
                     <p class="text-xs font-extrabold {{ $currentStep === 3 ? 'text-primary' : 'text-on-surface-variant' }}">Step 3</p>
-                    <p class="text-xs font-semibold text-on-surface">Output Items</p>
-                </div>
-            </button>
-
-            <div class="flex-1 h-0.5 bg-outline-variant/40 mx-3"></div>
-
-            <!-- Step 4 -->
-            <button
-                type="button"
-                wire:click="goToStep(4)"
-                class="flex items-center gap-3 cursor-pointer group"
-            >
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all
-                    {{ $currentStep === 4 ? 'bg-primary text-on-primary shadow-md ring-4 ring-primary/20' : 'bg-surface-container-high text-on-surface-variant' }}"
-                >
-                    4
-                </div>
-                <div class="text-left hidden sm:block">
-                    <p class="text-xs font-extrabold {{ $currentStep === 4 ? 'text-primary' : 'text-on-surface-variant' }}">Step 4</p>
                     <p class="text-xs font-semibold text-on-surface">Review &amp; Confirm</p>
                 </div>
             </button>
@@ -400,7 +377,7 @@
                                                                      <input
                                                                          type="number"
                                                                          step="0.01"
-                                                                         wire:model.live.debounce.300ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length_input"
+                                                                         wire:model.live.debounce.150ms="selectedFabrics.{{ $fIdx }}.selected_rolls.{{ $roll->id }}.cut_length_input"
                                                                          max="{{ round($maxInSelectedUnit, 2) }}"
                                                                          placeholder="Length in {{ strtolower($selUnitName) }}..."
                                                                          class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-3 pr-12 py-2 text-xs font-extrabold text-on-surface focus:border-primary focus:outline-none"
@@ -453,7 +430,7 @@
                                                                         $pDims = $selProduct ? \App\Services\FabricCuttingAreaService::formatProductPatternDimensions($selProduct, $selPattern, $roll) : null;
                                                                         $cLenVal = floatval($rollData['cut_length'] ?? 0);
                                                                     @endphp
-                                                                    <div wire:key="roll-prod-{{ $roll->id }}-{{ $pIdx }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
+                                                                    <div wire:key="roll-prod-{{ $roll->id }}-{{ $pIdx }}-{{ $cLenVal }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
                                                                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                                                                             <div class="sm:col-span-5">
                                                                                 <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">PRODUCT *</label>
@@ -597,200 +574,15 @@
                     wire:click="goToStep(2)"
                     class="px-8 py-3.5 bg-primary text-on-primary font-extrabold text-xs rounded-xl shadow-md hover:bg-primary-container transition-all active:scale-95 cursor-pointer flex items-center gap-2"
                 >
-                    Proceed to Step 2 (Labor &amp; Rates)
+                    Proceed to Step 2 (Output Items)
                     <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </button>
             </div>
         </div>
     @endif
 
-    <!-- STEP 2: Cutting Labor & Rates (per Product / Pattern allocation) -->
+    <!-- STEP 2: Output Items Definition -->
     @if($currentStep === 2)
-        <div class="space-y-6">
-            <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-xs space-y-6">
-                <div class="flex justify-between items-center border-b border-outline-variant/40 pb-4">
-                    <div>
-                        <h3 class="font-headline-sm text-base font-extrabold text-primary">Cutting Labor Worker Assignment &amp; Piece Rates</h3>
-                        <p class="text-xs text-on-surface-variant mt-0.5">Assign worker(s), specify quantities cut per worker, base rates, and bonus rates for each allocated product / pattern.</p>
-                    </div>
-                </div>
-
-                <!-- Labor Worker Repeater per Product/Pattern Card -->
-                <div class="space-y-6">
-                    @foreach($laborAllocations as $pKey => $lGroup)
-                        @php
-                            $totalCutQty = intval($lGroup['total_cut_quantity'] ?? 0);
-                            $workers = $lGroup['workers'] ?? [];
-                            $assignedQty = array_sum(array_column($workers, 'quantity'));
-                            $isOverAssigned = $assignedQty > $totalCutQty;
-                            $isFullyAssigned = $assignedQty === $totalCutQty;
-                        @endphp
-                        <div wire:key="labor-group-{{ $pKey }}" class="bg-surface-container-low/40 rounded-2xl p-5 border border-outline-variant/60 space-y-4">
-                            <!-- Product Header Bar -->
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-outline-variant/40">
-                                <div>
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <h4 class="font-extrabold text-sm text-primary">{{ $lGroup['product_name'] }}</h4>
-                                        <span class="px-2 py-0.5 bg-primary/10 text-primary text-[11px] font-bold rounded-lg border border-primary/20">
-                                            Pattern: {{ $lGroup['pattern_name'] }}
-                                        </span>
-                                        @if(!empty($lGroup['dimensions_display']))
-                                            <span class="px-2 py-0.5 bg-surface-container text-on-surface-variant text-[11px] font-bold rounded-lg border border-outline-variant/60 flex items-center gap-1">
-                                                <span class="material-symbols-outlined text-[14px] text-primary">square_foot</span>
-                                                {{ $lGroup['dimensions_display'] }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                    <p class="text-xs text-on-surface-variant font-semibold mt-0.5">
-                                        Total Cut Quantity across Rolls: <strong class="text-on-surface font-mono">{{ $totalCutQty }} Pcs</strong>
-                                    </p>
-                                </div>
-
-                                <div class="flex items-center gap-3">
-                                    <!-- Assigned Quantity Counter Badge -->
-                                    <span class="px-3 py-1 rounded-xl text-xs font-mono font-black border {{ $isOverAssigned ? 'bg-error-container/20 text-error border-error/40' : ($isFullyAssigned ? 'bg-emerald-500/10 text-emerald-800 border-emerald-500/30' : 'bg-amber-500/10 text-amber-900 border-amber-500/30') }}">
-                                        Assigned: {{ $assignedQty }} / {{ $totalCutQty }} Pcs
-                                    </span>
-
-                                    <!-- Add Worker Button -->
-                                    <button
-                                        type="button"
-                                        wire:click="addWorkerToProduct('{{ $pKey }}')"
-                                        class="px-3.5 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0"
-                                    >
-                                        <span class="material-symbols-outlined text-[16px]">person_add</span>
-                                        + Add Worker
-                                    </button>
-                                </div>
-                            </div>
-
-                            @error("laborAllocations.{$pKey}")
-                                <div class="bg-error-container/20 border border-error/40 text-error p-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-base">error</span>
-                                    <span>{{ $message }}</span>
-                                </div>
-                            @enderror
-
-                            <!-- Worker Allocation Repeater Rows -->
-                            <div class="space-y-3">
-                                @foreach($workers as $wIdx => $wRow)
-                                    @php
-                                        $baseRate = floatval($wRow['base_rate'] ?? 0);
-                                        $bonusRate = floatval($wRow['bonus_rate'] ?? 0);
-                                        $effRate = $baseRate + $bonusRate;
-                                        $wQty = intval($wRow['quantity'] ?? 0);
-                                        $subtotal = round($effRate * $wQty, 2);
-                                    @endphp
-                                    <div wire:key="worker-row-{{ $pKey }}-{{ $wIdx }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                                        <!-- Cutting Worker -->
-                                        <div class="sm:col-span-4">
-                                            <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">CUTTING WORKER *</label>
-                                            <select
-                                                wire:model="laborAllocations.{{ $pKey }}.workers.{{ $wIdx }}.labor_id"
-                                                class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface"
-                                            >
-                                                <option value="">— Select Worker —</option>
-                                                @foreach($labors as $l)
-                                                    <option value="{{ $l->id }}">{{ $l->name }} ({{ $l->worker_code }})</option>
-                                                @endforeach
-                                            </select>
-                                            @error("laborAllocations.{$pKey}.workers.{$wIdx}.labor_id")
-                                                <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span>
-                                            @enderror
-                                        </div>
-
-                                        <!-- Qty Worked Upon -->
-                                        <div class="sm:col-span-3">
-                                            <div class="flex items-center justify-between mb-1">
-                                                <label class="text-[10px] font-black text-on-surface-variant uppercase tracking-wider">WORKED QTY (PCS) *</label>
-                                                <button
-                                                    type="button"
-                                                    wire:click="assignAllToWorker('{{ $pKey }}', {{ $wIdx }})"
-                                                    class="text-[9px] font-extrabold text-primary hover:underline cursor-pointer"
-                                                >
-                                                    Assign All Qty ({{ $totalCutQty }})
-                                                </button>
-                                            </div>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                wire:model.live.debounce.300ms="laborAllocations.{{ $pKey }}.workers.{{ $wIdx }}.quantity"
-                                                class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface font-mono"
-                                            />
-                                            @error("laborAllocations.{$pKey}.workers.{$wIdx}.quantity")
-                                                <span class="text-error text-[10px] block mt-0.5 font-semibold">{{ $message }}</span>
-                                            @enderror
-                                        </div>
-
-                                        <!-- Piece Rates (Base & Bonus) -->
-                                        <div class="sm:col-span-4 grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">BASE RATE (₹) *</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    wire:model.live.debounce.300ms="laborAllocations.{{ $pKey }}.workers.{{ $wIdx }}.base_rate"
-                                                    class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface font-mono"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">BONUS RATE (₹)</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    wire:model.live.debounce.300ms="laborAllocations.{{ $pKey }}.workers.{{ $wIdx }}.bonus_rate"
-                                                    class="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-3 py-2 text-xs font-bold text-on-surface font-mono"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <!-- Subtotal & Actions -->
-                                        <div class="sm:col-span-1 flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0">
-                                            <div class="text-right shrink-0">
-                                                <span class="text-[10px] text-on-surface-variant block font-semibold">Subtotal</span>
-                                                <strong class="text-xs text-primary font-mono block">₹{{ number_format($subtotal, 2) }}</strong>
-                                            </div>
-                                            @if(count($workers) > 1)
-                                                <button
-                                                    type="button"
-                                                    wire:click="removeWorkerFromProduct('{{ $pKey }}', {{ $wIdx }})"
-                                                    class="text-error hover:bg-error-container/20 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
-                                                >
-                                                    <span class="material-symbols-outlined text-base">delete</span>
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            <!-- Navigation Buttons -->
-            <div class="flex justify-between pt-4">
-                <button
-                    type="button"
-                    wire:click="goToStep(1)"
-                    class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer"
-                >
-                    Back to Step 1
-                </button>
-                <button
-                    type="button"
-                    wire:click="goToStep(3)"
-                    class="px-8 py-3.5 bg-primary text-on-primary font-extrabold text-xs rounded-xl shadow-md hover:bg-primary-container transition-all cursor-pointer flex items-center gap-2"
-                >
-                    Proceed to Step 3 (Output Items)
-                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </button>
-            </div>
-        </div>
-    @endif
-
-    <!-- STEP 3: Output Items Definition -->
-    @if($currentStep === 3)
         <div class="space-y-6">
             <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-xs space-y-6">
                 <div class="flex justify-between items-center border-b border-outline-variant/40 pb-4">
@@ -837,19 +629,19 @@
             </div>
 
             <div class="flex justify-between pt-4">
-                <button type="button" wire:click="goToStep(2)" class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer">
-                    Back to Step 2
+                <button type="button" wire:click="goToStep(1)" class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer">
+                    Back to Step 1
                 </button>
-                <button type="button" wire:click="goToStep(4)" class="px-8 py-3.5 bg-primary text-on-primary font-extrabold text-xs rounded-xl shadow-md hover:bg-primary-container transition-all cursor-pointer flex items-center gap-2">
-                    Proceed to Step 4 (Review &amp; Confirm)
+                <button type="button" wire:click="goToStep(3)" class="px-8 py-3.5 bg-primary text-on-primary font-extrabold text-xs rounded-xl shadow-md hover:bg-primary-container transition-all cursor-pointer flex items-center gap-2">
+                    Proceed to Step 3 (Review &amp; Confirm)
                     <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </button>
             </div>
         </div>
     @endif
 
-    <!-- STEP 4: Cutting Stage Review & Confirm -->
-    @if($currentStep === 4)
+    <!-- STEP 3: Cutting Stage Review & Confirm -->
+    @if($currentStep === 3)
         <div class="space-y-6">
             <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs space-y-6">
                 <div class="flex justify-between items-center border-b border-outline-variant/40 pb-4">
@@ -907,6 +699,66 @@
                         <span class="text-on-surface-variant block text-[10px] font-bold uppercase">Total Cutting Labor Wage</span>
                         <span class="text-xl font-black text-primary">₹{{ number_format($totalLaborWage, 2) }}</span>
                         <span class="text-xs text-outline block font-semibold mt-0.5">Piece Rate Total</span>
+                    </div>
+                </div>
+
+                <!-- Recorded Cutting Worker & Saved Fee Earnings Summary Table -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-primary uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[18px]">badge</span>
+                            Recorded Cutting Worker &amp; Saved Fee Earnings
+                        </span>
+                        <span class="text-[11px] text-on-surface-variant font-semibold">Auto-calculated based on production batch cutter &amp; product pattern saved cutting fee</span>
+                    </div>
+
+                    <div class="bg-surface-container-low rounded-xl border border-outline-variant/60 overflow-hidden">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-surface-container-high border-b border-outline-variant/60 text-on-surface-variant uppercase font-bold text-[10px] tracking-wider">
+                                    <th class="px-4 py-3">Product Name &amp; Pattern</th>
+                                    <th class="px-4 py-3">Assigned Cutter Worker</th>
+                                    <th class="px-4 py-3 text-center">Cut Qty</th>
+                                    <th class="px-4 py-3 text-right">Saved Cutting Fee (₹/pc)</th>
+                                    <th class="px-4 py-3 text-right">Calculated Wage (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-outline-variant/40">
+                                @foreach($this->laborAllocations as $lGroup)
+                                    @foreach($lGroup['workers'] ?? [] as $wRow)
+                                        @php
+                                            $workerObj = !empty($wRow['labor_id']) ? \App\Models\Labor::find($wRow['labor_id']) : null;
+                                            $fee = floatval($wRow['base_rate'] ?? 0);
+                                            $qty = intval($wRow['quantity'] ?? 0);
+                                            $wage = round($fee * $qty, 2);
+                                        @endphp
+                                        <tr class="hover:bg-surface-container/40 font-semibold text-on-surface">
+                                            <td class="px-4 py-3">
+                                                <strong class="font-extrabold text-sm text-primary block">{{ $lGroup['product_name'] }}</strong>
+                                                <span class="text-[10px] text-on-surface-variant font-bold">{{ $lGroup['pattern_name'] }}</span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                @if($workerObj)
+                                                    <span class="font-extrabold text-on-surface">{{ $workerObj->name }}</span>
+                                                    <span class="text-[10px] text-on-surface-variant font-mono block">({{ $workerObj->worker_code }})</span>
+                                                @else
+                                                    <span class="text-outline font-italic">— Unassigned —</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-3 text-center font-black text-sm">
+                                                {{ number_format($qty) }} Pcs
+                                            </td>
+                                            <td class="px-4 py-3 text-right font-mono font-bold text-on-surface">
+                                                ₹{{ number_format($fee, 2) }}
+                                            </td>
+                                            <td class="px-4 py-3 text-right font-black text-primary text-sm">
+                                                ₹{{ number_format($wage, 2) }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -1031,8 +883,8 @@
 
             <!-- Action Buttons -->
             <div class="flex justify-between pt-4">
-                <button type="button" wire:click="goToStep(3)" class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer">
-                    Back to Step 3
+                <button type="button" wire:click="goToStep(2)" class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer">
+                    Back to Step 2
                 </button>
                 <button
                     type="button"

@@ -296,6 +296,18 @@ class CuttingStageWizard extends Component
             $currentCutMeters = (float) ($rData['cut_length'] ?? $maxMeters);
             $newCutInput = $this->convertLengthFromMeters($currentCutMeters, $newUnitId);
             $rData['cut_length_input'] = round($newCutInput, 2);
+
+            // Live recalculate planned_quantity for products on roll
+            if (isset($rData['products']) && is_array($rData['products'])) {
+                foreach ($rData['products'] as $pIdx => $pItem) {
+                    $pId = intval($pItem['manufacturing_product_id'] ?? 0);
+                    $patId = intval($pItem['pattern_id'] ?? 0);
+                    if ($pId && $currentCutMeters > 0) {
+                        $maxPcs = $this->computeMaxPcsForRollProduct($rollId, $currentCutMeters, $pId, $patId);
+                        $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'][$pIdx]['planned_quantity'] = $maxPcs;
+                    }
+                }
+            }
         }
     }
 
@@ -307,6 +319,19 @@ class CuttingStageWizard extends Component
             $inputVal = floatval($val);
             $metersVal = $this->convertLengthToMeters($inputVal, $unitId);
             $rData['cut_length'] = $metersVal;
+
+            if (isset($rData['products']) && is_array($rData['products'])) {
+                foreach ($rData['products'] as $pIdx => $pItem) {
+                    $pId = intval($pItem['manufacturing_product_id'] ?? 0);
+                    $patId = intval($pItem['pattern_id'] ?? 0);
+                    if ($pId && $metersVal > 0) {
+                        $maxPcs = $this->computeMaxPcsForRollProduct($rollId, $metersVal, $pId, $patId);
+                        $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'][$pIdx]['planned_quantity'] = $maxPcs;
+                    } elseif ($metersVal <= 0) {
+                        $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'][$pIdx]['planned_quantity'] = 0;
+                    }
+                }
+            }
         }
     }
 
@@ -320,6 +345,17 @@ class CuttingStageWizard extends Component
 
             $rData['cut_length_input'] = round($maxInSelectedUnit, 2);
             $rData['cut_length']       = $maxMeters;
+
+            if (isset($rData['products']) && is_array($rData['products'])) {
+                foreach ($rData['products'] as $pIdx => $pItem) {
+                    $pId = intval($pItem['manufacturing_product_id'] ?? 0);
+                    $patId = intval($pItem['pattern_id'] ?? 0);
+                    if ($pId && $maxMeters > 0) {
+                        $maxPcs = $this->computeMaxPcsForRollProduct($rollId, $maxMeters, $pId, $patId);
+                        $this->selectedFabrics[$fabricIndex]['selected_rolls'][$rollId]['products'][$pIdx]['planned_quantity'] = $maxPcs;
+                    }
+                }
+            }
         }
     }
 
@@ -1018,10 +1054,75 @@ class CuttingStageWizard extends Component
         ];
     }
 
+    public function resolveCuttingFee(int $productId, ?int $patternId): float
+    {
+        $taskId = $this->cutting_task_id;
+
+        // 1. Check pattern task routing pivot (manufacturing_pattern_tasks)
+        if ($patternId && $taskId) {
+            $patternPivotRate = DB::table('manufacturing_pattern_tasks')
+                ->where('pattern_id', $patternId)
+                ->where('task_id', $taskId)
+                ->value('standard_labor_rate');
+
+            if (!is_null($patternPivotRate) && (float) $patternPivotRate > 0) {
+                return (float) $patternPivotRate;
+            }
+        }
+
+        // 2. Check pattern model standard_labor_rate
+        if ($patternId) {
+            $patObj = ManufacturingProductPattern::find($patternId);
+            if ($patObj && !is_null($patObj->standard_labor_rate) && (float) $patObj->standard_labor_rate > 0) {
+                return (float) $patObj->standard_labor_rate;
+            }
+        }
+
+        // 3. Check manufacturing_product_task pivot
+        if ($productId && $taskId) {
+            $pivotRate = DB::table('manufacturing_product_task')
+                ->where('manufacturing_product_id', $productId)
+                ->where('task_id', $taskId)
+                ->value('standard_labor_rate');
+
+            if (!is_null($pivotRate) && (float) $pivotRate > 0) {
+                return (float) $pivotRate;
+            }
+        }
+
+        // 4. Fall back to product standard_labor_rate
+        if ($productId) {
+            $product = ManufacturingProduct::find($productId);
+            if ($product) {
+                $rate = $product->getStandardLaborRateForTask($taskId);
+                if (!is_null($rate) && (float) $rate > 0) {
+                    return (float) $rate;
+                }
+            }
+        }
+
+        return 0.00;
+    }
+
+    public function resolveDefaultCutterId(): ?int
+    {
+        if ($this->batchModel && $this->batchModel->cutter_id) {
+            return $this->batchModel->cutter_id;
+        }
+        $cuttingTask = $this->cutting_task_id ? Task::find($this->cutting_task_id) : null;
+        if ($cuttingTask) {
+            $eligible = $cuttingTask->getEligibleLabors();
+            if ($eligible->isNotEmpty()) {
+                return $eligible->first()->id;
+            }
+        }
+        return Labor::active()->first()?->id;
+    }
+
     protected function syncLaborAndOutputs()
     {
         $unique = $this->uniqueAllocatedProducts;
-        $defaultCutterId = $this->batchModel?->cutter_id;
+        $defaultCutterId = $this->resolveDefaultCutterId();
 
         $newLaborAllocations = [];
         $newOutputs = [];
@@ -1029,46 +1130,37 @@ class CuttingStageWizard extends Component
         foreach ($unique as $item) {
             $key = $item['key'];
             $qty = intval($item['total_quantity']);
-            $existingGroup = $this->laborAllocations[$key] ?? null;
+            $pId = $item['manufacturing_product_id'];
+            $patId = $item['pattern_id'];
 
-            if ($existingGroup && !empty($existingGroup['workers'])) {
-                $workers = $existingGroup['workers'];
-                $existingGroup['total_cut_quantity'] = $qty;
-                $existingGroup['dimensions_display'] = $item['dimensions_display'] ?? '';
+            $exactCuttingFee = $this->resolveCuttingFee($pId, $patId);
+            $calculatedWage = round($exactCuttingFee * $qty, 2);
 
-                if (count($workers) === 1 && intval($workers[0]['quantity']) != $qty) {
-                    $workers[0]['quantity'] = $qty;
-                }
-                if (count($workers) === 1 && empty($workers[0]['labor_id']) && $defaultCutterId) {
-                    $workers[0]['labor_id'] = $defaultCutterId;
-                }
-                $existingGroup['workers'] = $workers;
-                $newLaborAllocations[$key] = $existingGroup;
-            } else {
-                $newLaborAllocations[$key] = [
-                    'product_key' => $key,
-                    'manufacturing_product_id' => $item['manufacturing_product_id'],
-                    'pattern_id' => $item['pattern_id'],
-                    'product_name' => $item['product_name'],
-                    'pattern_name' => $item['pattern_name'],
-                    'dimensions_display' => $item['dimensions_display'] ?? '',
-                    'total_cut_quantity' => $qty,
-                    'workers' => [
-                        [
-                            'labor_id' => $defaultCutterId,
-                            'quantity' => $qty,
-                            'base_rate' => 15.00,
-                            'bonus_rate' => 0.00,
-                        ]
+            $newLaborAllocations[$key] = [
+                'product_key' => $key,
+                'manufacturing_product_id' => $pId,
+                'pattern_id' => $patId,
+                'product_name' => $item['product_name'],
+                'pattern_name' => $item['pattern_name'],
+                'dimensions_display' => $item['dimensions_display'] ?? '',
+                'total_cut_quantity' => $qty,
+                'cutting_fee' => $exactCuttingFee,
+                'calculated_wage' => $calculatedWage,
+                'workers' => [
+                    [
+                        'labor_id' => $defaultCutterId,
+                        'quantity' => $qty,
+                        'base_rate' => $exactCuttingFee,
+                        'bonus_rate' => 0.00,
                     ]
-                ];
-            }
+                ]
+            ];
 
             $existingOutput = collect($this->outputItems)->firstWhere('product_key', $key);
             $newOutputs[] = [
                 'product_key' => $key,
-                'manufacturing_product_id' => $item['manufacturing_product_id'],
-                'pattern_id' => $item['pattern_id'],
+                'manufacturing_product_id' => $pId,
+                'pattern_id' => $patId,
                 'product_name' => $item['product_name'],
                 'pattern_name' => $item['pattern_name'],
                 'dimensions_display' => $item['dimensions_display'] ?? '',
@@ -1087,11 +1179,14 @@ class CuttingStageWizard extends Component
             $totalCut = intval($this->laborAllocations[$productKey]['total_cut_quantity'] ?? 0);
             $usedSoFar = array_sum(array_column($this->laborAllocations[$productKey]['workers'] ?? [], 'quantity'));
             $remQty = max(0, $totalCut - $usedSoFar);
+            $pId = $this->laborAllocations[$productKey]['manufacturing_product_id'] ?? 0;
+            $patId = $this->laborAllocations[$productKey]['pattern_id'] ?? null;
+            $fee = $this->resolveCuttingFee($pId, $patId);
 
             $this->laborAllocations[$productKey]['workers'][] = [
-                'labor_id' => null,
+                'labor_id' => $this->resolveDefaultCutterId(),
                 'quantity' => $remQty,
-                'base_rate' => 15.00,
+                'base_rate' => $fee,
                 'bonus_rate' => 0.00,
             ];
         }
@@ -1130,11 +1225,6 @@ class CuttingStageWizard extends Component
         }
         if ($step > 2) {
             if (!$this->validateStep2()) {
-                return;
-            }
-        }
-        if ($step > 3) {
-            if (!$this->validateStep3()) {
                 return;
             }
         }
@@ -1208,44 +1298,6 @@ class CuttingStageWizard extends Component
     protected function validateStep2(): bool
     {
         $this->resetErrorBag();
-        foreach ($this->laborAllocations as $key => $group) {
-            $totalCut = intval($group['total_cut_quantity'] ?? 0);
-            $workers = $group['workers'] ?? [];
-            $assignedTotal = 0;
-
-            if (empty($workers)) {
-                $this->addError("laborAllocations.{$key}", "Please assign at least one worker for {$group['product_name']}.");
-            }
-
-            foreach ($workers as $wIdx => $w) {
-                if (empty($w['labor_id'])) {
-                    $this->addError("laborAllocations.{$key}.workers.{$wIdx}.labor_id", "Please select a worker for {$group['product_name']}.");
-                }
-                $wQty = intval($w['quantity'] ?? 0);
-                if ($wQty <= 0) {
-                    $this->addError("laborAllocations.{$key}.workers.{$wIdx}.quantity", "Quantity must be > 0.");
-                }
-                $assignedTotal += $wQty;
-
-                if (!isset($w['base_rate']) || floatval($w['base_rate']) < 0) {
-                    $this->addError("laborAllocations.{$key}.workers.{$wIdx}.base_rate", "Base rate cannot be negative.");
-                }
-                if (!isset($w['bonus_rate']) || floatval($w['bonus_rate']) < 0) {
-                    $this->addError("laborAllocations.{$key}.workers.{$wIdx}.bonus_rate", "Bonus rate cannot be negative.");
-                }
-            }
-
-            if ($assignedTotal > $totalCut) {
-                $this->addError("laborAllocations.{$key}", "Total worker quantity ({$assignedTotal} pcs) assigned for {$group['product_name']} ({$group['pattern_name']}) exceeds total cut quantity ({$totalCut} pcs).");
-            }
-        }
-
-        return $this->getErrorBag()->isEmpty();
-    }
-
-    protected function validateStep3(): bool
-    {
-        $this->resetErrorBag();
         foreach ($this->outputItems as $idx => $out) {
             if (empty($out['expected_quantity']) || intval($out['expected_quantity']) <= 0) {
                 $this->addError("outputItems.{$idx}.expected_quantity", "Expected output quantity must be > 0.");
@@ -1257,7 +1309,7 @@ class CuttingStageWizard extends Component
 
     public function submitCuttingStage()
     {
-        if (!$this->validateStep1() || !$this->validateStep2() || !$this->validateStep3()) {
+        if (!$this->validateStep1() || !$this->validateStep2()) {
             return;
         }
 

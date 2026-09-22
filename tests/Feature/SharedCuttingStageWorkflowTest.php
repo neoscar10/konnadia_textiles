@@ -154,6 +154,7 @@ class SharedCuttingStageWorkflowTest extends TestCase
 
         $batch = ProductionBatch::create([
             'factory_supervisor_id' => $this->supervisor->id,
+            'cutter_id' => $this->labor->id,
             'status' => 'In Cutting',
             'planned_quantity' => 0,
         ]);
@@ -182,12 +183,8 @@ class SharedCuttingStageWorkflowTest extends TestCase
             ])
             ->call('goToStep', 2)
             ->assertSet('currentStep', 2)
-            ->set("laborAllocations.{$this->product1->id}_0.workers.0.labor_id", $this->labor->id)
-            ->set("laborAllocations.{$this->product2->id}_0.workers.0.labor_id", $this->labor->id)
             ->call('goToStep', 3)
             ->assertSet('currentStep', 3)
-            ->call('goToStep', 4)
-            ->assertSet('currentStep', 4)
             ->call('submitCuttingStage')
             ->assertRedirect(route('admin.production.batches.jobs', $batch->batch_code));
 
@@ -205,16 +202,27 @@ class SharedCuttingStageWorkflowTest extends TestCase
             $stage2 = $job->stageExecutions()->where('sequence_number', 2)->first();
             $this->assertNotNull($stage2);
             $this->assertEquals('in_progress', $stage2->status);
+
+            $laborAlloc = \App\Models\JobLaborAllocation::where('job_id', $job->job_code)->first();
+            $this->assertNotNull($laborAlloc);
+            $this->assertEquals($this->labor->id, $laborAlloc->labor_id);
         }
     }
 
     /** @test */
-    public function cannot_proceed_from_step2_without_selecting_worker()
+    public function shared_cutting_stage_auto_records_batch_cutter_and_exact_saved_cutting_fee()
     {
         $this->actingAs($this->admin);
 
+        // Attach cutting task rate (₹25.50) to product 1
+        $this->product1->tasks()->attach($this->cuttingTask->id, [
+            'sequence_number' => 1,
+            'standard_labor_rate' => 25.50,
+        ]);
+
         $batch = ProductionBatch::create([
             'factory_supervisor_id' => $this->supervisor->id,
+            'cutter_id' => $this->labor->id,
             'status' => 'In Cutting',
             'planned_quantity' => 0,
         ]);
@@ -238,69 +246,18 @@ class SharedCuttingStageWorkflowTest extends TestCase
             ])
             ->call('goToStep', 2)
             ->assertSet('currentStep', 2)
-            // Attempt to go to step 3 without selecting a worker for laborAllocations
             ->call('goToStep', 3)
-            ->assertSet('currentStep', 2)
-            ->assertHasErrors(["laborAllocations.{$this->product1->id}_0.workers.0.labor_id"]);
-    }
-
-    /** @test */
-    public function multi_worker_allocation_per_product_in_cutting_stage()
-    {
-        $this->actingAs($this->admin);
-
-        $labor2 = Labor::create([
-            'name' => 'Cutter Jane',
-            'worker_code' => 'LBR-002',
-            'daily_rate' => 160.00,
-            'piece_rate' => 15.00,
-            'status' => true,
-        ]);
-
-        $batch = ProductionBatch::create([
-            'factory_supervisor_id' => $this->supervisor->id,
-            'status' => 'In Cutting',
-            'planned_quantity' => 0,
-        ]);
-
-        $component = Livewire::test(CuttingStageWizard::class, ['batch' => $batch->batch_code])
-            ->set('selectedFabrics.0.raw_material_id', $this->fabric->id)
-            ->set('selectedFabrics.0.inventory_batch_id', $this->batch->id)
-            ->set('selectedFabrics.0.inventory_bale_id', $this->bale->id)
-            ->set("selectedFabrics.0.selected_rolls.{$this->roll1->id}", [
-                'roll_id' => $this->roll1->id,
-                'roll_number' => $this->roll1->roll_number,
-                'max_length' => 1000.0,
-                'cut_length' => 100.0,
-                'products' => [
-                    [
-                        'manufacturing_product_id' => $this->product1->id,
-                        'pattern_id' => null,
-                        'planned_quantity' => 20,
-                    ],
-                ],
-            ])
-            ->call('goToStep', 2);
-
-        $key = "{$this->product1->id}_0";
-
-        // Set first worker and add second worker
-        $component->set("laborAllocations.{$key}.workers.0.labor_id", $this->labor->id);
-        $component->call('addWorkerToProduct', $key);
-        $component->set("laborAllocations.{$key}.workers.0.quantity", 12);
-        $component->set("laborAllocations.{$key}.workers.1.labor_id", $labor2->id);
-        $component->set("laborAllocations.{$key}.workers.1.quantity", 8);
-
-        $component->call('goToStep', 3)
             ->assertSet('currentStep', 3)
-            ->call('goToStep', 4)
             ->call('submitCuttingStage');
 
         $job = ProductionJob::where('production_batch_db_id', $batch->id)->first();
         $this->assertNotNull($job);
 
-        $allocations = \App\Models\JobLaborAllocation::where('job_id', $job->job_code)->get();
-        $this->assertCount(2, $allocations);
-        $this->assertEquals(20, $allocations->sum('quantity_processed'));
+        $alloc = \App\Models\JobLaborAllocation::where('job_id', $job->job_code)->first();
+        $this->assertNotNull($alloc);
+        $this->assertEquals($this->labor->id, $alloc->labor_id);
+        $this->assertEquals(20, $alloc->quantity_processed);
+        $this->assertEquals(25.50, $alloc->base_rate);
+        $this->assertEquals(510.00, $alloc->calculated_wage); // 20 pcs * 25.50
     }
 }
