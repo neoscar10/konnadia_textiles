@@ -216,12 +216,17 @@
                         <!-- 3. Select Fabric Raw Material (Fabric Material) -->
                         <div>
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Fabric Material <span class="text-error">*</span></label>
+                            @php
+                                $rowBaleId = $fabRow['inventory_bale_id'] ?? null;
+                                $rowBatchId = $fabRow['inventory_batch_id'] ?? null;
+                                $availableRowFabrics = $this->getAvailableFabricsForBaleOrBatch($rowBaleId, $rowBatchId);
+                            @endphp
                             <select
                                 wire:model.live="selectedFabrics.{{ $fIdx }}.raw_material_id"
                                 class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-body-md focus:border-primary focus:outline-none"
                             >
                                 <option value="">— Select Fabric Material —</option>
-                                @foreach($fabricMaterials as $fMat)
+                                @foreach($availableRowFabrics as $fMat)
                                     <option value="{{ $fMat->id }}">{{ $fMat->name }} ({{ $fMat->code }})</option>
                                 @endforeach
                             </select>

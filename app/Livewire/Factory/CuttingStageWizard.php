@@ -434,6 +434,18 @@ class CuttingStageWizard extends Component
                 }
             } elseif ($field === 'inventory_bale_id') {
                 $this->selectedFabrics[$index]['selected_rolls'] = [];
+
+                $baleId = $this->selectedFabrics[$index]['inventory_bale_id'] ?? null;
+                $batchId = $this->selectedFabrics[$index]['inventory_batch_id'] ?? null;
+                if ($baleId || $batchId) {
+                    $availFabrics = $this->getAvailableFabricsForBaleOrBatch($baleId, $batchId);
+                    if ($availFabrics->isNotEmpty()) {
+                        $currentMatId = (int) ($this->selectedFabrics[$index]['raw_material_id'] ?? 0);
+                        if (!$currentMatId || !$availFabrics->contains('id', $currentMatId)) {
+                            $this->selectedFabrics[$index]['raw_material_id'] = (string) $availFabrics->first()->id;
+                        }
+                    }
+                }
             } elseif ($field === 'selected_rolls') {
                 // E.g. 0.selected_rolls.12.cut_length_input or 0.selected_rolls.12.selected_unit_id
                 $rollId = (int) ($parts[2] ?? 0);
