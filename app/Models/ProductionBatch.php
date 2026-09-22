@@ -110,31 +110,38 @@ class ProductionBatch extends Model
                 }
             }
 
-            $uniqueJobDesigns = $jobDesigns->unique()->values();
+            $uniqueJobDesigns = $jobDesigns->map(fn($d) => trim($d))->filter()->unique(fn($d) => mb_strtolower($d))->values();
             $jobQty = $job->completed_quantity > 0 ? $job->completed_quantity : ($job->target_quantity > 0 ? $job->target_quantity : $this->planned_quantity);
             $mfgProduct = $job->manufacturingProduct;
 
             foreach ($uniqueJobDesigns as $dId) {
-                if (!isset($designMap[$dId])) {
-                    $designMap[$dId] = [
-                        'design_id' => $dId,
+                $trimmedDesign = trim($dId);
+                $lookupKey = mb_strtolower($trimmedDesign);
+
+                if (!isset($designMap[$lookupKey])) {
+                    $designMap[$lookupKey] = [
+                        'design_id' => $trimmedDesign,
                         'total_produced_qty' => 0,
                         'products' => [],
                     ];
+                } else {
+                    if (ctype_lower($designMap[$lookupKey]['design_id']) && !ctype_lower($trimmedDesign)) {
+                        $designMap[$lookupKey]['design_id'] = $trimmedDesign;
+                    }
                 }
 
-                $designMap[$dId]['total_produced_qty'] += $jobQty;
+                $designMap[$lookupKey]['total_produced_qty'] += $jobQty;
                 $pId = $mfgProduct?->id ?? 0;
                 $pName = $mfgProduct?->name ?? ('Product #' . $job->id);
 
-                if (!isset($designMap[$dId]['products'][$pId])) {
-                    $designMap[$dId]['products'][$pId] = [
+                if (!isset($designMap[$lookupKey]['products'][$pId])) {
+                    $designMap[$lookupKey]['products'][$pId] = [
                         'id' => $pId,
                         'name' => $pName,
                         'qty' => 0,
                     ];
                 }
-                $designMap[$dId]['products'][$pId]['qty'] += $jobQty;
+                $designMap[$lookupKey]['products'][$pId]['qty'] += $jobQty;
             }
         }
 
@@ -142,7 +149,7 @@ class ProductionBatch extends Model
             $dId = 'DSG-BATCH-' . $this->id;
             $qty = $this->total_finished_quantity > 0 ? $this->total_finished_quantity : $this->planned_quantity;
             $mfgProduct = $this->manufacturingProduct;
-            $designMap[$dId] = [
+            $designMap[mb_strtolower($dId)] = [
                 'design_id' => $dId,
                 'total_produced_qty' => $qty,
                 'products' => [

@@ -97,6 +97,65 @@ class SpareProductAndBatchConversionTest extends TestCase
         $this->assertGreaterThan(0, $designs[0]['total_produced_qty']);
     }
 
+    public function test_get_design_ids_groups_same_pattern_case_insensitively_without_duplicates()
+    {
+        $mfg1 = ManufacturingProduct::create([
+            'name' => 'Yawa bedsheet',
+            'code' => 'MP-YB-01',
+            'is_active' => true,
+        ]);
+
+        $mfg2 = ManufacturingProduct::create([
+            'name' => 'Burnaboy Gram',
+            'code' => 'MP-BG-01',
+            'is_active' => true,
+        ]);
+
+        $pattern1 = \App\Models\Pattern::create(['name' => 'Pattern 1']);
+        $pattern2 = \App\Models\Pattern::create(['name' => 'pattern 1']);
+
+        $batch = ProductionBatch::create([
+            'batch_code' => 'PB-2026-0033',
+            'planned_quantity' => 100,
+            'status' => 'Completed',
+        ]);
+
+        ProductionJob::create([
+            'job_code' => 'JOB-001',
+            'production_batch_db_id' => $batch->id,
+            'production_batch_id' => $batch->batch_code,
+            'manufacturing_product_id' => $mfg1->id,
+            'pattern_id' => $pattern1->id,
+            'target_quantity' => 50,
+            'completed_quantity' => 50,
+            'status' => 'completed',
+        ]);
+
+        ProductionJob::create([
+            'job_code' => 'JOB-002',
+            'production_batch_db_id' => $batch->id,
+            'production_batch_id' => $batch->batch_code,
+            'manufacturing_product_id' => $mfg2->id,
+            'pattern_id' => $pattern2->id,
+            'target_quantity' => 50,
+            'completed_quantity' => 50,
+            'status' => 'completed',
+        ]);
+
+        $designs = $batch->getDesignIdsWithProductCounts();
+
+        // Must return only 1 single design option for 'Pattern 1' / 'pattern 1'
+        $this->assertCount(1, $designs);
+        $this->assertEquals(100, $designs[0]['total_produced_qty']);
+
+        // Must list both products under products key
+        $products = $designs[0]['products'];
+        $this->assertCount(2, $products);
+        $productNames = collect($products)->pluck('name')->toArray();
+        $this->assertContains('Yawa bedsheet', $productNames);
+        $this->assertContains('Burnaboy Gram', $productNames);
+    }
+
     public function test_conversion_creates_spare_products_for_leftovers()
     {
         $category = Category::create([
