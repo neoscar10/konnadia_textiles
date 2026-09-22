@@ -1131,9 +1131,13 @@ class CustomizedProductionDetailPage extends Component
     public function isCuttingStage(?JobStageExecution $stage): bool
     {
         if (!$stage) return false;
-        return $stage->sequence_number === 1 
-            || str_contains(strtolower($stage->task?->name ?? ''), 'cut')
-            || (bool) ($stage->task?->consumes_raw_material ?? false);
+
+        // Final task step or any post-cutting stage must never include fabric selection & consumption
+        if ($this->isFinalStage($stage) && $this->job->stageExecutions->count() > 1) {
+            return false;
+        }
+
+        return $stage->sequence_number === 1;
     }
 
     public function isJobFullyCompleted(): bool
