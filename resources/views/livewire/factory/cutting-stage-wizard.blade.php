@@ -22,9 +22,9 @@
         </div>
     </div>
 
-    <!-- Wizard Stepper Navigation (3 Steps) -->
+    <!-- Wizard Stepper Navigation (2 Steps) -->
     <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 mb-8 shadow-xs">
-        <div class="flex items-center justify-between max-w-4xl mx-auto">
+        <div class="flex items-center justify-between max-w-2xl mx-auto">
             <!-- Step 1 -->
             <button
                 type="button"
@@ -32,7 +32,7 @@
                 class="flex items-center gap-3 cursor-pointer group"
             >
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all
-                    {{ $currentStep === 1 ? 'bg-primary text-on-primary shadow-md ring-4 ring-primary/20' : ($currentStep > 1 ? 'bg-secondary text-on-secondary' : 'bg-surface-container-high text-on-surface-variant') }}"
+                    {{ $currentStep === 1 ? 'bg-primary text-on-primary shadow-md ring-4 ring-primary/20' : 'bg-secondary text-on-secondary' }}"
                 >
                     @if($currentStep > 1)
                         <span class="material-symbols-outlined text-[20px]">check</span>
@@ -46,7 +46,7 @@
                 </div>
             </button>
 
-            <div class="flex-1 h-0.5 bg-outline-variant/40 mx-3"></div>
+            <div class="flex-1 h-0.5 bg-outline-variant/40 mx-6"></div>
 
             <!-- Step 2 -->
             <button
@@ -55,35 +55,12 @@
                 class="flex items-center gap-3 cursor-pointer group"
             >
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all
-                    {{ $currentStep === 2 ? 'bg-primary text-on-primary shadow-md ring-4 ring-primary/20' : ($currentStep > 2 ? 'bg-secondary text-on-secondary' : 'bg-surface-container-high text-on-surface-variant') }}"
+                    {{ $currentStep === 2 ? 'bg-primary text-on-primary shadow-md ring-4 ring-primary/20' : 'bg-surface-container-high text-on-surface-variant' }}"
                 >
-                    @if($currentStep > 2)
-                        <span class="material-symbols-outlined text-[20px]">check</span>
-                    @else
-                        2
-                    @endif
+                    2
                 </div>
                 <div class="text-left hidden sm:block">
                     <p class="text-xs font-extrabold {{ $currentStep === 2 ? 'text-primary' : 'text-on-surface-variant' }}">Step 2</p>
-                    <p class="text-xs font-semibold text-on-surface">Output Items</p>
-                </div>
-            </button>
-
-            <div class="flex-1 h-0.5 bg-outline-variant/40 mx-3"></div>
-
-            <!-- Step 3 -->
-            <button
-                type="button"
-                wire:click="goToStep(3)"
-                class="flex items-center gap-3 cursor-pointer group"
-            >
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all
-                    {{ $currentStep === 3 ? 'bg-primary text-on-primary shadow-md ring-4 ring-primary/20' : 'bg-surface-container-high text-on-surface-variant' }}"
-                >
-                    3
-                </div>
-                <div class="text-left hidden sm:block">
-                    <p class="text-xs font-extrabold {{ $currentStep === 3 ? 'text-primary' : 'text-on-surface-variant' }}">Step 3</p>
                     <p class="text-xs font-semibold text-on-surface">Review &amp; Confirm</p>
                 </div>
             </button>
@@ -574,7 +551,7 @@
                     wire:click="goToStep(2)"
                     class="px-8 py-3.5 bg-primary text-on-primary font-extrabold text-xs rounded-xl shadow-md hover:bg-primary-container transition-all active:scale-95 cursor-pointer flex items-center gap-2"
                 >
-                    Proceed to Step 2 (Output Items)
+                    Proceed to Step 2 (Review &amp; Confirm)
                     <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </button>
             </div>
@@ -883,8 +860,8 @@
 
             <!-- Action Buttons -->
             <div class="flex justify-between pt-4">
-                <button type="button" wire:click="goToStep(2)" class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer">
-                    Back to Step 2
+                <button type="button" wire:click="goToStep(1)" class="px-6 py-3 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer">
+                    Back to Step 1
                 </button>
                 <button
                     type="button"

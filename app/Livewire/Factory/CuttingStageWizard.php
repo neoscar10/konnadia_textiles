@@ -1223,11 +1223,6 @@ class CuttingStageWizard extends Component
             }
             $this->syncLaborAndOutputs();
         }
-        if ($step > 2) {
-            if (!$this->validateStep2()) {
-                return;
-            }
-        }
         $this->currentStep = $step;
     }
 
@@ -1295,21 +1290,9 @@ class CuttingStageWizard extends Component
         return $this->getErrorBag()->isEmpty();
     }
 
-    protected function validateStep2(): bool
-    {
-        $this->resetErrorBag();
-        foreach ($this->outputItems as $idx => $out) {
-            if (empty($out['expected_quantity']) || intval($out['expected_quantity']) <= 0) {
-                $this->addError("outputItems.{$idx}.expected_quantity", "Expected output quantity must be > 0.");
-            }
-        }
-
-        return $this->getErrorBag()->isEmpty();
-    }
-
     public function submitCuttingStage()
     {
-        if (!$this->validateStep1() || !$this->validateStep2()) {
+        if (!$this->validateStep1()) {
             return;
         }
 

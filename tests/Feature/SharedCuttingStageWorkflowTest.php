@@ -183,8 +183,6 @@ class SharedCuttingStageWorkflowTest extends TestCase
             ])
             ->call('goToStep', 2)
             ->assertSet('currentStep', 2)
-            ->call('goToStep', 3)
-            ->assertSet('currentStep', 3)
             ->call('submitCuttingStage')
             ->assertRedirect(route('admin.production.batches.jobs', $batch->batch_code));
 
@@ -246,8 +244,6 @@ class SharedCuttingStageWorkflowTest extends TestCase
             ])
             ->call('goToStep', 2)
             ->assertSet('currentStep', 2)
-            ->call('goToStep', 3)
-            ->assertSet('currentStep', 3)
             ->call('submitCuttingStage');
 
         $job = ProductionJob::where('production_batch_db_id', $batch->id)->first();
