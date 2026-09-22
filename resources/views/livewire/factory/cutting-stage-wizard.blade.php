@@ -135,63 +135,131 @@
                 </button>
             </div>
 
-            <!-- Quick Search by Bale Number / Batch Number -->
-            <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 shadow-xs space-y-3 relative" x-data="{ open: true }">
-                <div class="flex items-center justify-between">
-                    <label class="text-xs font-black text-primary uppercase tracking-wider flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[18px]">search</span>
-                        Quick Search by Bale Number, Bale or Batch Number
-                    </label>
-                    <span class="text-[11px] text-on-surface-variant font-semibold">Live search auto-fills Material, Batch &amp; Bale</span>
-                </div>
-                <div class="relative">
-                    <input 
-                        type="text" 
-                        wire:model.live.debounce.250ms="globalSearch" 
-                        @focus="open = true" 
-                        placeholder="Type bale # (e.g. BALE-001) or batch # (e.g. BATCH-2026) to search..." 
-                        class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-10 pr-4 py-3 text-sm font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                    />
-                    <span class="material-symbols-outlined absolute left-3 top-3.5 text-on-surface-variant text-lg">search</span>
-
-                    @if(!empty($globalSearch) && count($this->matchingSearchResults) > 0)
-                        <div x-show="open" @click.outside="open = false" class="absolute z-50 left-0 right-0 mt-1 bg-surface border border-outline-variant/60 rounded-xl shadow-xl overflow-hidden divide-y divide-outline-variant/30 font-body-md text-xs max-h-60 overflow-y-auto">
-                            @foreach($this->matchingSearchResults as $res)
-                                <div 
-                                    wire:click="selectSearchedBaleOrBatch({{ $res['bale_id'] ? $res['bale_id'] : 'null' }}, {{ $res['batch_id'] ? $res['batch_id'] : 'null' }})"
-                                    @click="open = false"
-                                    class="p-3 hover:bg-primary/10 cursor-pointer flex items-center justify-between transition-colors"
-                                >
-                                    <div class="flex items-center gap-2.5">
-                                        <span class="material-symbols-outlined text-primary text-base">{{ $res['type'] === 'bale' ? 'view_week' : 'inventory_2' }}</span>
-                                        <div>
-                                            <p class="font-extrabold text-on-surface text-xs">{{ $res['title'] }}</p>
-                                            <p class="text-[11px] text-on-surface-variant font-semibold">{{ $res['subtitle'] }}</p>
-                                        </div>
-                                    </div>
-                                    <span class="px-3 py-1 bg-primary text-on-primary font-bold text-[10px] rounded-lg shadow-xs">Auto-Select &rarr;</span>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-            </div>
-
             @foreach($selectedFabrics as $fIdx => $fabRow)
                 <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-6 shadow-xs relative space-y-6">
-                    <div class="flex justify-between items-center pb-3 border-b border-outline-variant/40">
-                        <span class="font-mono text-xs font-extrabold text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                            Fabric Item #{{ $fIdx + 1 }}
-                        </span>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-outline-variant/40">
+                        <div class="flex items-center gap-3 flex-wrap flex-1">
+                            <span class="font-mono text-xs font-extrabold text-primary bg-primary/10 px-3 py-1.5 rounded-lg shrink-0">
+                                Fabric Item #{{ $fIdx + 1 }}
+                            </span>
+
+                            <!-- Compact Quick Search Bar beside Fabric Item #X -->
+                            @php
+                                $rowSearch = $fabRow['search'] ?? '';
+                                $searchResults = !empty($rowSearch) ? $this->getMatchingSearchResults($rowSearch) : collect();
+                            @endphp
+                            <div x-data="{ open: true }" class="relative w-full sm:w-72 md:w-80">
+                                <div class="relative">
+                                    <input 
+                                        type="text" 
+                                        wire:model.live.debounce.250ms="selectedFabrics.{{ $fIdx }}.search" 
+                                        @focus="open = true" 
+                                        placeholder="Search Bale # or Batch #..." 
+                                        class="w-full bg-surface border border-outline-variant/60 rounded-xl pl-9 pr-7 py-1.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-xs"
+                                    />
+                                    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
+                                    @if(!empty($rowSearch))
+                                        <button type="button" wire:click="$set('selectedFabrics.{{ $fIdx }}.search', '')" class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface">
+                                            <span class="material-symbols-outlined text-xs">close</span>
+                                        </button>
+                                    @endif
+                                </div>
+
+                                @if(!empty($rowSearch) && count($searchResults) > 0)
+                                    <div x-show="open" @click.outside="open = false" class="absolute z-50 left-0 right-0 mt-1 bg-surface border border-outline-variant/60 rounded-xl shadow-xl overflow-hidden divide-y divide-outline-variant/30 font-body-md text-xs max-h-56 overflow-y-auto">
+                                        @foreach($searchResults as $res)
+                                            <div 
+                                                wire:click="selectSearchedBaleOrBatch({{ $res['bale_id'] ? $res['bale_id'] : 'null' }}, {{ $res['batch_id'] ? $res['batch_id'] : 'null' }}, {{ $fIdx }})"
+                                                @click="open = false"
+                                                class="p-2.5 hover:bg-primary/10 cursor-pointer flex items-center justify-between transition-colors"
+                                            >
+                                                <div class="flex items-center gap-2 truncate">
+                                                    <span class="material-symbols-outlined text-primary text-sm shrink-0">{{ $res['type'] === 'bale' ? 'view_week' : 'inventory_2' }}</span>
+                                                    <div class="truncate">
+                                                        <p class="font-extrabold text-on-surface text-xs leading-tight truncate">{{ $res['title'] }}</p>
+                                                        <p class="text-[10px] text-on-surface-variant font-semibold truncate">{{ $res['subtitle'] }}</p>
+                                                    </div>
+                                                </div>
+                                                <span class="px-2 py-0.5 bg-primary text-on-primary font-bold text-[10px] rounded-md shrink-0 ml-1">Select &rarr;</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
                         @if(count($selectedFabrics) > 1)
-                            <button type="button" wire:click="removeFabricRow({{ $fIdx }})" class="text-error hover:bg-error-container/20 px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer">
+                            <button type="button" wire:click="removeFabricRow({{ $fIdx }})" class="text-error hover:bg-error-container/20 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0">
                                 Remove Fabric
                             </button>
                         @endif
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- Select Fabric Raw Material -->
+                        <!-- 1. Select Inventory Batch (Stock Batch) -->
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Stock Batch <span class="text-error">*</span></label>
+                            @php
+                                $rawMatId = $fabRow['raw_material_id'] ?? null;
+                                $batchQuery = \App\Models\InventoryBatch::with('rawMaterial')->where('balance_quantity', '>', 0);
+                                if (!empty($rawMatId)) {
+                                    $batchQuery->where('raw_material_id', $rawMatId);
+                                }
+                                $batches = $batchQuery->orderBy('id', 'desc')->get();
+                            @endphp
+                            <select
+                                wire:model.live="selectedFabrics.{{ $fIdx }}.inventory_batch_id"
+                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-body-md focus:border-primary focus:outline-none"
+                            >
+                                <option value="">— Select Batch —</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}">
+                                        {{ $b->batch_number }} @if(empty($rawMatId) && $b->rawMaterial) ({{ $b->rawMaterial->name }}) @endif (Bal: {{ $b->balance_quantity }} {{ $b->unit }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error("selectedFabrics.{$fIdx}.inventory_batch_id")
+                                <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- 2. Select Fabric Bale (Bale) -->
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Bale <span class="text-error">*</span></label>
+                            @php
+                                $batchId = $fabRow['inventory_batch_id'] ?? null;
+                                $bales = collect();
+                                if (!empty($batchId)) {
+                                    $bObj = \App\Models\InventoryBatch::find($batchId);
+                                    if ($bObj) {
+                                        if ($bObj->bales()->count() === 0 && (float)$bObj->balance_quantity > 0) {
+                                            $bObj->createBales(1, (float)$bObj->balance_quantity);
+                                        }
+                                        $bales = \App\Models\InventoryBale::where('inventory_batch_id', $bObj->id)->where('status', '!=', 'depleted')->get();
+                                    }
+                                } elseif (!empty($rawMatId)) {
+                                    $bales = \App\Models\InventoryBale::whereHas('batch', fn($q) => $q->where('raw_material_id', $rawMatId))->where('status', '!=', 'depleted')->get();
+                                } else {
+                                    $bales = \App\Models\InventoryBale::with('batch.rawMaterial')->where('status', '!=', 'depleted')->take(30)->get();
+                                }
+                            @endphp
+                            <select
+                                wire:model.live="selectedFabrics.{{ $fIdx }}.inventory_bale_id"
+                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-body-md focus:border-primary focus:outline-none"
+                            >
+                                <option value="">— Select Bale —</option>
+                                @foreach($bales as $bale)
+                                    <option value="{{ $bale->id }}">
+                                        {{ $bale->bale_number }} [{{ strtoupper($bale->status) }}] — Bal: {{ $bale->current_balance_length }}m (Decl: {{ $bale->declared_length }}m)
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error("selectedFabrics.{$fIdx}.inventory_bale_id")
+                                <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- 3. Select Fabric Raw Material (Fabric Material) -->
                         <div>
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Fabric Material <span class="text-error">*</span></label>
                             <select
@@ -204,58 +272,6 @@
                                 @endforeach
                             </select>
                             @error("selectedFabrics.{$fIdx}.raw_material_id")
-                                <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <!-- Select Inventory Batch -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Stock Batch <span class="text-error">*</span></label>
-                            @php
-                                $batches = !empty($fabRow['raw_material_id']) 
-                                    ? \App\Models\InventoryBatch::where('raw_material_id', $fabRow['raw_material_id'])->where('balance_quantity', '>', 0)->orderBy('id', 'desc')->get()
-                                    : collect();
-                            @endphp
-                            <select
-                                wire:model.live="selectedFabrics.{{ $fIdx }}.inventory_batch_id"
-                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-body-md focus:border-primary focus:outline-none"
-                                {{ empty($fabRow['raw_material_id']) ? 'disabled' : '' }}
-                            >
-                                <option value="">— Select Batch —</option>
-                                @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->batch_number }} (Bal: {{ $b->balance_quantity }} {{ $b->unit }})</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- Select Fabric Bale -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Bale <span class="text-error">*</span></label>
-                            @php
-                                $bales = collect();
-                                if (!empty($fabRow['inventory_batch_id'])) {
-                                    $bObj = \App\Models\InventoryBatch::find($fabRow['inventory_batch_id']);
-                                    if ($bObj) {
-                                        if ($bObj->bales()->count() === 0 && (float)$bObj->balance_quantity > 0) {
-                                            $bObj->createBales(1, (float)$bObj->balance_quantity);
-                                        }
-                                        $bales = \App\Models\InventoryBale::where('inventory_batch_id', $bObj->id)->where('status', '!=', 'depleted')->get();
-                                    }
-                                }
-                            @endphp
-                            <select
-                                wire:model.live="selectedFabrics.{{ $fIdx }}.inventory_bale_id"
-                                class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-sm font-body-md focus:border-primary focus:outline-none"
-                                {{ empty($fabRow['inventory_batch_id']) ? 'disabled' : '' }}
-                            >
-                                <option value="">— Select Bale —</option>
-                                @foreach($bales as $bale)
-                                    <option value="{{ $bale->id }}">
-                                        {{ $bale->bale_number }} [{{ strtoupper($bale->status) }}] — Bal: {{ $bale->current_balance_length }}m (Decl: {{ $bale->declared_length }}m)
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error("selectedFabrics.{$fIdx}.inventory_bale_id")
                                 <p class="text-error text-xs font-semibold mt-1">{{ $message }}</p>
                             @enderror
                         </div>

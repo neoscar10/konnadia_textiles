@@ -110,6 +110,7 @@ class CuttingStageWizard extends Component
             'raw_material_id' => '',
             'inventory_batch_id' => '',
             'inventory_bale_id' => '',
+            'search' => '',
             'selected_rolls' => [],
         ];
     }
@@ -145,7 +146,7 @@ class CuttingStageWizard extends Component
         return 1;
     }
 
-    public function selectSearchedBaleOrBatch($baleId = null, $batchId = null)
+    public function selectSearchedBaleOrBatch($baleId = null, $batchId = null, int $fabricIndex = 0)
     {
         $this->resetErrorBag();
         $bale = $baleId ? InventoryBale::with('batch.rawMaterial')->find($baleId) : null;
@@ -155,22 +156,25 @@ class CuttingStageWizard extends Component
             return;
         }
 
-        if (empty($this->selectedFabrics)) {
-            $this->addFabricRow();
+        if (!isset($this->selectedFabrics[$fabricIndex])) {
+            $fabricIndex = 0;
+            if (empty($this->selectedFabrics)) {
+                $this->addFabricRow();
+            }
         }
 
-        $fIdx = 0;
-        $this->selectedFabrics[$fIdx]['raw_material_id'] = (string) $batch->raw_material_id;
-        $this->selectedFabrics[$fIdx]['inventory_batch_id'] = (string) $batch->id;
+        $this->selectedFabrics[$fabricIndex]['raw_material_id'] = (string) $batch->raw_material_id;
+        $this->selectedFabrics[$fabricIndex]['inventory_batch_id'] = (string) $batch->id;
 
-        $this->autoEnsureBalesAndSelect($fIdx, $batch);
+        $this->autoEnsureBalesAndSelect($fabricIndex, $batch);
 
         if ($bale) {
-            $this->selectedFabrics[$fIdx]['inventory_bale_id'] = (string) $bale->id;
+            $this->selectedFabrics[$fabricIndex]['inventory_bale_id'] = (string) $bale->id;
         }
 
+        $this->selectedFabrics[$fabricIndex]['search'] = '';
         $this->globalSearch = '';
-        $this->dispatch('toast', message: "Selected " . ($bale ? "Bale {$bale->bale_number}" : "Batch {$batch->batch_number}"), type: 'success');
+        $this->dispatch('toast', message: "Auto-filled " . ($bale ? "Bale {$bale->bale_number}" : "Batch {$batch->batch_number}") . " for Fabric Item #" . ($fabricIndex + 1), type: 'success');
     }
 
     public function getMatchingSearchResultsProperty()
