@@ -913,15 +913,16 @@ class JobStageWizard extends Component
 
     public function goToStep(int $step)
     {
-        $laborStep = $this->isCuttingStage($this->activeStage) ? 2 : 1;
+        $maxStep = $this->isCuttingStage($this->activeStage) ? 2 : 1;
+        $targetStep = max(1, min($maxStep, $step));
 
-        if ($step > $laborStep && $this->activeStep <= $laborStep) {
+        if ($targetStep > $maxStep && $this->activeStep <= $maxStep) {
             if (!$this->validateLaborRows()) {
                 return;
             }
         }
 
-        $this->activeStep = $step;
+        $this->activeStep = $targetStep;
     }
 
     public function updatedLaborRows($value, $key)
@@ -1098,8 +1099,12 @@ class JobStageWizard extends Component
                     }
                 }
 
-                // 2. Record Product Output for this stage (Labor total = Stage Output)
+                // 2. Record Product Output for this stage (Labor total = Stage Output, default to stage input target)
                 $actualProduced = max(0, $totalLaborQty);
+                if ($actualProduced === 0) {
+                    $actualProduced = $this->stageInputTarget;
+                }
+
                 if ($actualProduced > 0) {
                     JobProductionOutput::create([
                         'job_code'                 => $this->job->job_code,

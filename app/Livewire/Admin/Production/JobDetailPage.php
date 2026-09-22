@@ -98,31 +98,13 @@ class JobDetailPage extends Component
             return false;
         }
 
-        $isCutting = $this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001';
-        if ($isCutting) {
-            return true;
-        }
-
-        $consumesRawMaterial = $this->selectedTask->consumes_raw_material && ($this->selectedTask->name !== 'Stitching' && $this->selectedTask->code !== 'TSK-002');
-
-        return $consumesRawMaterial;
+        return $this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001';
     }
 
     public function getMaxWizardStepsProperty(): int
     {
         $isCutting = $this->selectedTask && ($this->selectedTask->name === 'Cutting' || $this->selectedTask->code === 'TSK-001');
-        if ($isCutting) {
-            return 3;
-        }
-        $steps = 2; // Labour & Output
-        if ($this->hasMaterialStep) {
-            $steps++;
-        }
-        if ($this->isSelectedTaskFinalStep) {
-            $steps++; // Wastage step (only on final step)
-        }
-        $steps++; // Review & Confirm
-        return $steps;
+        return $isCutting ? 2 : 1;
     }
 
     public function setWizardStep(int $step): void
@@ -332,6 +314,72 @@ class JobDetailPage extends Component
         return $this->job->getEffectiveSubsidiaryMaterials()->isNotEmpty();
     }
 
+    protected function processAutomaticSubsidiaryDeduction(int $recordedOutput)
+    {
+        if ($recordedOutput <= 0) return;
+
+        $materials = $this->job->getEffectiveSubsidiaryMaterials();
+        if ($materials->isEmpty()) return;
+
+        $taskId = $this->selectedTaskId;
+
+        $alreadyDeducted = JobMaterialConsumption::where('production_job_id', $this->job->id)
+            ->where('task_id', $taskId)
+            ->whereIn('inventory_batch_id', function ($q) use ($materials) {
+                $q->select('id')->from('inventory_batches')->whereIn('raw_material_id', $materials->pluck('id'));
+            })
+            ->exists();
+
+        if ($alreadyDeducted) {
+            return;
+        }
+
+        foreach ($materials as $mat) {
+            $bomPerUnit = (float) ($mat->pivot->consumption_quantity ?? 1.0);
+            $totalRequired = round($bomPerUnit * $recordedOutput, 4);
+
+            if ($totalRequired <= 0) continue;
+
+            $batches = InventoryBatch::where('raw_material_id', $mat->id)
+                ->where('balance_quantity', '>', 0)
+                ->orderBy('purchase_date', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
+
+            $remainingToDeduct = $totalRequired;
+
+            foreach ($batches as $batch) {
+                if ($remainingToDeduct <= 0) break;
+
+                $deduct = min($remainingToDeduct, (float) $batch->balance_quantity);
+                $batch->deductQuantity($deduct);
+
+                $unitCost = (float) ($batch->purchase_rate ?: ($batch->unit_cost ?: 0.0));
+                $totalCost = round($deduct * $unitCost, 2);
+
+                JobMaterialConsumption::create([
+                    'job_code'           => $this->job->job_code,
+                    'production_job_id'   => $this->job->id,
+                    'inventory_batch_id' => $batch->id,
+                    'task_id'            => $taskId,
+                    'quantity_consumed'  => $deduct,
+                    'unit_cost'          => $unitCost,
+                    'total_cost'         => $totalCost,
+                ]);
+
+                InventoryBatchLogger::log(
+                    $batch->id,
+                    'consumed',
+                    $deduct,
+                    null,
+                    "Auto FIFO subsidiary material consumption ({$mat->name}) for Job {$this->job->job_code}"
+                );
+
+                $remainingToDeduct -= $deduct;
+            }
+        }
+    }
+
     public function initSubsidiaryRows()
     {
         $this->subsidiaryRows = [];
@@ -511,19 +559,27 @@ class JobDetailPage extends Component
         $totalLoggedQty = max($effectiveOutput, $laborQty, $stageExecution->completed_quantity);
 
         $targetQty = $stageExecution->target_quantity > 0 ? $stageExecution->target_quantity : $this->job->target_quantity;
-        if ($totalLoggedQty < $targetQty && $targetQty > 0) {
-            $this->dispatch('toast', message: "Cannot complete stage: Recorded output ({$totalLoggedQty} Pcs) has not met stage target ({$targetQty} Pcs).", type: 'error');
-            return;
+        
+        $actualProduced = max($outputQty, $laborQty);
+        if ($actualProduced === 0) {
+            $actualProduced = $targetQty;
         }
 
-        if ($this->isSelectedTaskFinalStep && $this->hasSubsidiaryMaterials) {
-            if ($this->saveSubsidiaryConsumption() === false) {
-                return;
-            }
+        if ($outputQty === 0 && $actualProduced > 0) {
+            JobProductionOutput::create([
+                'job_code'                 => $this->job->job_code,
+                'production_job_id'        => $this->job->id,
+                'manufacturing_product_id' => $this->job->manufacturing_product_id,
+                'task_id'                  => $this->selectedTaskId,
+                'quantity_produced'        => $actualProduced,
+            ]);
         }
+
+        $this->processAutomaticSubsidiaryDeduction($actualProduced);
 
         $stageExecution->update([
             'status' => 'completed',
+            'completed_quantity' => $actualProduced,
         ]);
 
         $this->syncStageAndJobCompletion();
