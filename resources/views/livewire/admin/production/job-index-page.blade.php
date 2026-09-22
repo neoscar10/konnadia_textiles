@@ -986,6 +986,71 @@
                 </div>
             @endif
 
+            <!-- 4. Conversion Consumption & Spare Products Breakdown -->
+            @php
+                $bSummary = $this->batchConversionSummary;
+            @endphp
+            @if($selectedCategoryIdForBatchConv && !empty($bSummary['rows']))
+                <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-emerald-700 text-base">calculate</span>
+                            Conversion &amp; Spare Products Breakdown
+                        </span>
+                        <span class="text-xs font-black text-emerald-800 bg-emerald-100 px-3 py-1 rounded-lg font-mono">
+                            {{ number_format($bSummary['targetSets']) }} Sets Target
+                        </span>
+                    </div>
+
+                    <div class="space-y-2">
+                        @foreach($bSummary['rows'] as $r)
+                            <div class="p-3 bg-surface rounded-xl border border-emerald-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                <div>
+                                    <span class="font-bold text-on-surface text-sm block">{{ $r['manufacturing_product'] }}</span>
+                                    <span class="text-outline text-[11px]">
+                                        Req: {{ $r['req_per_set'] }} Pcs/Set × {{ number_format($bSummary['targetSets']) }} = <strong>{{ number_format($r['total_required']) }} Pcs</strong>
+                                        (Available: {{ number_format($r['total_available']) }} Pcs)
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-1 bg-emerald-100 text-emerald-900 font-bold rounded-lg text-[11px]">
+                                        Consumes {{ number_format($r['consumed']) }} Pcs
+                                    </span>
+                                    @if($r['leftover'] > 0)
+                                        <span class="px-2.5 py-1 bg-amber-100 text-amber-900 font-extrabold rounded-lg text-[11px] border border-amber-300/60 flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-xs text-amber-700">inventory_2</span>
+                                            +{{ number_format($r['leftover']) }} Pcs Spare Product
+                                        </span>
+                                    @else
+                                        <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-semibold rounded-lg text-[11px]">
+                                            0 Leftover
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @if($bSummary['hasLeftovers'])
+                        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2.5 text-xs text-amber-900 font-semibold">
+                            <span class="material-symbols-outlined text-amber-700 text-lg shrink-0">info</span>
+                            <div>
+                                <strong>Spare Products Notice:</strong> Upon completing conversion,
+                                @foreach($bSummary['leftoverItems'] as $lIdx => $lItem)
+                                    <strong>{{ number_format($lItem['leftover_qty']) }} Pcs of {{ $lItem['name'] }}</strong>{{ $lIdx < count($bSummary['leftoverItems']) - 1 ? ',' : '' }}
+                                @endforeach
+                                will be automatically saved as <strong>Spare Products</strong> for design <strong>{{ $selectedDesignId }}</strong>.
+                            </div>
+                        </div>
+                    @else
+                        <div class="p-2.5 bg-emerald-100/60 rounded-xl text-xs text-emerald-900 font-semibold flex items-center gap-2">
+                            <span class="material-symbols-outlined text-emerald-700 text-base">check_circle</span>
+                            <span>All manufactured pieces will be 100% converted into storefront sets with 0 leftover spare items.</span>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40">
                 <x-admin.button type="button" variant="ghost" @click="show = false">Cancel</x-admin.button>
                 <x-admin.button type="submit" variant="primary" icon="shopping_cart_checkout">Complete Storefront Conversion</x-admin.button>

@@ -548,6 +548,80 @@ class JobIndexPage extends Component
         $this->prefilledTargetSets = !empty($possibleSets) ? max(1, (int) min($possibleSets)) : 1;
     }
 
+    public function getBatchConversionSummaryProperty(): array
+    {
+        if (!$this->selectedBatchDbId || !$this->selectedCategoryIdForBatchConv) {
+            return ['rows' => [], 'hasLeftovers' => false, 'leftoverItems' => [], 'targetSets' => 0];
+        }
+
+        $feProduct = \App\Models\FrontEndProduct::with(['components.manufacturingProduct'])
+            ->where('category_id', $this->selectedCategoryIdForBatchConv)
+            ->first();
+
+        if (!$feProduct || $feProduct->components->isEmpty()) {
+            return ['rows' => [], 'hasLeftovers' => false, 'leftoverItems' => [], 'targetSets' => 0];
+        }
+
+        $batch = \App\Models\ProductionBatch::with('jobs.manufacturingProduct')->find($this->selectedBatchDbId);
+        $targetSets = max(1, intval($this->prefilledTargetSets));
+
+        $rows = [];
+        $leftoverItems = [];
+
+        foreach ($feProduct->components as $comp) {
+            $mfgProduct = $comp->manufacturingProduct;
+            $mfgId = $comp->manufacturing_product_id;
+            $reqPerSet = max(1, (int) $comp->quantity);
+            $totalReq = $reqPerSet * $targetSets;
+
+            $batchQty = 0;
+            if ($batch) {
+                foreach ($batch->jobs as $bJob) {
+                    if ($bJob->manufacturing_product_id == $mfgId) {
+                        $batchQty += $bJob->remaining_unconverted_quantity;
+                    }
+                }
+            }
+
+            $spareQtyUsed = 0;
+            foreach ($this->availableSpareProducts as $sp) {
+                if (($sp['manufacturing_product_id'] ?? 0) == $mfgId) {
+                    $spareQtyUsed += max(0, intval($sp['qty_to_use'] ?? 0));
+                }
+            }
+
+            $totalAvail = $batchQty + $spareQtyUsed;
+            $consumed = min($totalAvail, $totalReq);
+            $leftover = max(0, $totalAvail - $consumed);
+
+            $rows[] = [
+                'manufacturing_product' => $mfgProduct?->name ?? 'Manufacturing Product',
+                'req_per_set' => $reqPerSet,
+                'total_required' => $totalReq,
+                'batch_qty' => $batchQty,
+                'spare_qty' => $spareQtyUsed,
+                'total_available' => $totalAvail,
+                'consumed' => $consumed,
+                'leftover' => $leftover,
+            ];
+
+            if ($leftover > 0) {
+                $leftoverItems[] = [
+                    'name' => $mfgProduct?->name ?? 'Manufacturing Product',
+                    'leftover_qty' => $leftover,
+                ];
+            }
+        }
+
+        return [
+            'rows' => $rows,
+            'hasLeftovers' => !empty($leftoverItems),
+            'leftoverItems' => $leftoverItems,
+            'targetSets' => $targetSets,
+            'categoryName' => $feProduct->name ?? 'Storefront Category',
+        ];
+    }
+
     public function processBatchConversionSubmit(): void
     {
         if (!$this->selectedBatchDbId || !$this->selectedCategoryIdForBatchConv) {
