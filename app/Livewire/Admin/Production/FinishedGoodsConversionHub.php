@@ -115,7 +115,7 @@ class FinishedGoodsConversionHub extends Component
         $consumptions = \App\Models\JobMaterialConsumption::whereHas('productionJob', function($q) use ($mfg) {
             $q->where('manufacturing_product_id', $mfg->id);
         })
-        ->with(['inventoryBaleRoll.bale.items', 'inventoryBatch.bales.items'])
+        ->with(['inventoryBaleRoll.bale.baleItems', 'inventoryBatch.bales.baleItems'])
         ->get();
 
         foreach ($consumptions as $mc) {
@@ -125,8 +125,8 @@ class FinishedGoodsConversionHub extends Component
             if (!empty($mc->inventoryBaleRoll?->bale?->design_number)) {
                 $designs->push(trim($mc->inventoryBaleRoll->bale->design_number));
             }
-            if ($mc->inventoryBaleRoll?->bale?->items) {
-                foreach ($mc->inventoryBaleRoll->bale->items as $bItem) {
+            if ($mc->inventoryBaleRoll?->bale?->baleItems) {
+                foreach ($mc->inventoryBaleRoll->bale->baleItems as $bItem) {
                     if (!empty($bItem->design_number)) {
                         $designs->push(trim($bItem->design_number));
                     }

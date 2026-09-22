@@ -92,8 +92,8 @@ class ProductionBatch extends Model
             $jobDesigns = collect();
 
             $consumptions = $job->materialConsumptions()->with([
-                'inventoryBaleRoll.bale.items',
-                'inventoryBatch.bales.items'
+                'inventoryBaleRoll.bale.baleItems',
+                'inventoryBatch.bales.baleItems'
             ])->get();
 
             foreach ($consumptions as $mc) {
@@ -103,8 +103,8 @@ class ProductionBatch extends Model
                 if (!empty($mc->inventoryBaleRoll?->bale?->design_number)) {
                     $jobDesigns->push(trim($mc->inventoryBaleRoll->bale->design_number));
                 }
-                if ($mc->inventoryBaleRoll?->bale?->items) {
-                    foreach ($mc->inventoryBaleRoll->bale->items as $bItem) {
+                if ($mc->inventoryBaleRoll?->bale?->baleItems) {
+                    foreach ($mc->inventoryBaleRoll->bale->baleItems as $bItem) {
                         if (!empty($bItem->design_number)) {
                             $jobDesigns->push(trim($bItem->design_number));
                         }
@@ -117,6 +117,13 @@ class ProductionBatch extends Model
                     foreach ($mc->inventoryBatch->bales as $bale) {
                         if (!empty($bale->design_number)) {
                             $jobDesigns->push(trim($bale->design_number));
+                        }
+                        if ($bale->baleItems) {
+                            foreach ($bale->baleItems as $bItem) {
+                                if (!empty($bItem->design_number)) {
+                                    $jobDesigns->push(trim($bItem->design_number));
+                                }
+                            }
                         }
                     }
                 }

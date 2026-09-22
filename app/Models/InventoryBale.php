@@ -61,6 +61,11 @@ class InventoryBale extends Model
         return $this->hasMany(InventoryBaleItem::class, 'inventory_bale_id');
     }
 
+    public function items()
+    {
+        return $this->baleItems();
+    }
+
     public function getAvailableMaterialsAttribute()
     {
         $this->loadMissing(['baleItems.rawMaterial', 'batch.rawMaterial']);
