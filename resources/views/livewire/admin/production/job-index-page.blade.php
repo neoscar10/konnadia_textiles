@@ -705,8 +705,8 @@
                             @endphp
                             <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                                 <div class="sm:col-span-3">
-                                    <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">ALTERED QTY (PCS) *</label>
-                                    <input type="number" min="0" wire:model.live="alterationRows.{{ $aIdx }}.altered_qty" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                    <label class="block text-[10px] font-black text-amber-900 uppercase tracking-wider mb-1">ALTERED QTY (PCS) *</label>
+                                    <input type="number" min="0" wire:model.live.number="alterationRows.{{ $aIdx }}.altered_qty" placeholder="0" class="w-full bg-white border-2 border-amber-300 focus:border-amber-500 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 shadow-xs">
                                 </div>
                                 <div class="sm:col-span-4">
                                     <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">TARGET PRODUCT *</label>
@@ -740,11 +740,21 @@
 
                 <!-- 2. Non-Good Output Categorization: Scrap vs. Damage -->
                 <div class="space-y-4 pt-2 border-t border-slate-200">
-                    <div>
-                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                            2. Non-Good Output Categorization: Scrap vs. Damage
-                        </h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">Distinguish between completely unsalvageable scrap loss versus partially damaged items that can still be sold or reused.</p>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                                2. Non-Good Output Categorization: Scrap vs. Damage
+                            </h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Distinguish between completely unsalvageable scrap loss versus partially damaged items that can still be sold or reused.</p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" wire:click="fillAllScrap" class="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 border border-rose-300 text-rose-900 text-[11px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1">
+                                <span>♻️</span> Fill All Scrap ({{ $activeDiscrepancyJob->discrepancy_quantity }} Pcs)
+                            </button>
+                            <button type="button" wire:click="fillAllDamage" class="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-[11px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1">
+                                <span>⚠️</span> Fill All Damage ({{ $activeDiscrepancyJob->discrepancy_quantity }} Pcs)
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -755,13 +765,15 @@
                                     <span>♻️</span> Scrap Output (Completely Unusable Loss)
                                 </span>
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">SCRAP QUANTITY (PCS)</label>
-                                <input type="number" min="0" wire:model.live="scrapQty" placeholder="0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">SCRAP REASON NOTE</label>
-                                <input type="text" wire:model="scrapNotes" placeholder="e.g. Unusable fabric cut loss" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                            <div class="grid grid-cols-12 gap-3 items-center">
+                                <div class="col-span-5">
+                                    <label class="block text-[10px] font-black text-rose-900 uppercase tracking-wider mb-1">SCRAP QTY (PCS) *</label>
+                                    <input type="number" min="0" wire:model.live.number="scrapQty" placeholder="0" class="w-full bg-white border-2 border-rose-300 focus:border-rose-500 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 shadow-xs">
+                                </div>
+                                <div class="col-span-7">
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">REASON NOTE</label>
+                                    <input type="text" wire:model="scrapNotes" placeholder="e.g. Fabric cut loss" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                </div>
                             </div>
                         </div>
 
@@ -772,13 +784,15 @@
                                     <span>⚠️</span> Damaged Output (Partially Damaged / Resold)
                                 </span>
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">DAMAGED QUANTITY (PCS)</label>
-                                <input type="number" min="0" wire:model.live="damageQty" placeholder="0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">DAMAGE REASON NOTE</label>
-                                <input type="text" wire:model="damageNotes" placeholder="e.g. Minor defect" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                            <div class="grid grid-cols-12 gap-3 items-center">
+                                <div class="col-span-5">
+                                    <label class="block text-[10px] font-black text-amber-900 uppercase tracking-wider mb-1">DAMAGE QTY (PCS) *</label>
+                                    <input type="number" min="0" wire:model.live.number="damageQty" placeholder="0" class="w-full bg-white border-2 border-amber-300 focus:border-amber-500 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 shadow-xs">
+                                </div>
+                                <div class="col-span-7">
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">REASON NOTE</label>
+                                    <input type="text" wire:model="damageNotes" placeholder="e.g. Minor defect" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                </div>
                             </div>
                         </div>
                     </div>

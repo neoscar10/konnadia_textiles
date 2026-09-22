@@ -51,9 +51,9 @@ class JobIndexPage extends Component
 
     // Discrepancy Resolution Modal Properties
     public ?int $discrepancyJobId = null;
-    public int $scrapQty = 0;
+    public ?int $scrapQty = null;
     public string $scrapNotes = '';
-    public int $damageQty = 0;
+    public ?int $damageQty = null;
     public string $damageNotes = '';
     public array $alterationRows = [];
     public string $discrepancyRemarks = '';
@@ -430,14 +430,14 @@ class JobIndexPage extends Component
         $this->discrepancyJobId = $jobId;
         $job = ProductionJob::with(['manufacturingProduct', 'pattern'])->findOrFail($jobId);
 
-        $this->scrapQty = 0;
+        $this->scrapQty = null;
         $this->scrapNotes = '';
-        $this->damageQty = 0;
+        $this->damageQty = null;
         $this->damageNotes = '';
         $this->discrepancyRemarks = '';
         $this->alterationRows = [
             [
-                'altered_qty'       => 0,
+                'altered_qty'       => null,
                 'target_product_id' => '',
                 'target_pattern_id' => '',
             ]
@@ -446,10 +446,36 @@ class JobIndexPage extends Component
         $this->dispatch('open-modal', 'discrepancy-resolution-modal');
     }
 
+    public function fillAllScrap(): void
+    {
+        if (!$this->discrepancyJobId) return;
+        $job = ProductionJob::find($this->discrepancyJobId);
+        if (!$job) return;
+
+        $this->scrapQty = $job->discrepancy_quantity;
+        $this->damageQty = null;
+        foreach ($this->alterationRows as $idx => $row) {
+            $this->alterationRows[$idx]['altered_qty'] = null;
+        }
+    }
+
+    public function fillAllDamage(): void
+    {
+        if (!$this->discrepancyJobId) return;
+        $job = ProductionJob::find($this->discrepancyJobId);
+        if (!$job) return;
+
+        $this->damageQty = $job->discrepancy_quantity;
+        $this->scrapQty = null;
+        foreach ($this->alterationRows as $idx => $row) {
+            $this->alterationRows[$idx]['altered_qty'] = null;
+        }
+    }
+
     public function addDiscrepancyAlterationRow(): void
     {
         $this->alterationRows[] = [
-            'altered_qty'       => 0,
+            'altered_qty'       => null,
             'target_product_id' => '',
             'target_pattern_id' => '',
         ];
