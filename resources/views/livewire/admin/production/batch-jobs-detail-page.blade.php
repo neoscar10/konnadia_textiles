@@ -67,7 +67,9 @@
                 <p class="text-2xl font-black text-amber-600">{{ number_format($unconvertedSum) }} <span class="text-xs font-bold text-outline">Pcs</span></p>
             </div>
         </div>
-    </di    <!-- Main Tab Switcher -->
+    </div>
+
+    <!-- Main Tab Switcher -->
     <div class="flex items-center gap-2 border-b border-outline-variant/60 mb-6">
         <button type="button" wire:click="$set('activeTab', 'jobs')" class="pb-3 px-4 text-sm font-black border-b-2 transition-all flex items-center gap-2 {{ $activeTab === 'jobs' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
             <span class="material-symbols-outlined text-base">assignment</span>
