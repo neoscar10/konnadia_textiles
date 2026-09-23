@@ -132,9 +132,9 @@ class CuttingStageWizard extends Component
         $roll = InventoryBaleRoll::with(['fabricWidth.unitModel', 'rawMaterial.unitModel', 'bale.batch.rawMaterial.unitModel'])->find($rollId);
         $rollContext = $roll ?? $product;
 
-        $pieceReqLen = FabricCuttingAreaService::resolvePatternFabricLength($product, $rollContext, $patternId);
-        if ($pieceReqLen > 0) {
-            return max(1, (int) floor($cutLengthMeters / $pieceReqLen));
+        $pieceReqLenMeters = FabricCuttingAreaService::resolvePatternFabricLengthInMeters($product, $rollContext, $patternId);
+        if ($pieceReqLenMeters > 0) {
+            return max(1, (int) floor($cutLengthMeters / $pieceReqLenMeters));
         }
 
         $pieceAreaM2 = FabricCuttingAreaService::calculateProductPatternAreaM2($product, $pattern, $rollContext);
@@ -902,7 +902,7 @@ class CuttingStageWizard extends Component
             $itemUsedAreaBase = $pieceAreaM2 * $qty;
             $totalUsedAreaBase += $itemUsedAreaBase;
 
-            $pieceReqLen = FabricCuttingAreaService::resolvePatternFabricLength($product, $rollContext, $patId);
+            $pieceReqLen = FabricCuttingAreaService::resolvePatternFabricLengthInMeters($product, $rollContext, $patId);
             $itemReqLen = $pieceReqLen * $qty;
             $totalStandardReqLength += $itemReqLen;
 

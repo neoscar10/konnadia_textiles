@@ -317,8 +317,11 @@ class FabricCuttingAreaService
 
     /**
      * Resolve standard fabric length consumption per piece for a specific product/pattern at a given roll fabric width.
+    /**
+     * Resolve standard fabric length details per piece for a specific product/pattern at a given roll fabric width.
+     * Returns array with 'length' (in raw unit), 'unit', 'length_meters' (converted to meters), and 'is_configured'.
      */
-    public static function resolvePatternFabricLength(ManufacturingProduct $product, mixed $rawMaterialOrWidth = null, ?int $patternId = null): float
+    public static function resolvePatternFabricLengthDetails(ManufacturingProduct $product, mixed $rawMaterialOrWidth = null, ?int $patternId = null): array
     {
         $pattern = null;
         if ($patternId) {
@@ -339,14 +342,51 @@ class FabricCuttingAreaService
         if ($pattern) {
             $resolved = self::resolvePatternFabricWidth($pattern, $rawMaterialOrWidth);
             if ($resolved['is_configured'] && $resolved['length'] > 0) {
-                return (float) $resolved['length'];
+                $rawLen = (float) $resolved['length'];
+                $unit = $resolved['length_unit'] ?: 'Meters';
+                return [
+                    'length' => $rawLen,
+                    'unit' => $unit,
+                    'length_meters' => self::convertToMeters($rawLen, $unit),
+                    'is_configured' => true,
+                ];
             }
             if (!$resolved['is_configured']) {
-                return 0.0;
+                return [
+                    'length' => 0.0,
+                    'unit' => 'Meters',
+                    'length_meters' => 0.0,
+                    'is_configured' => false,
+                ];
             }
         }
 
-        return (float) ($product->standard_fabric_length ?: 0.0);
+        $stdLen = (float) ($product->standard_fabric_length ?: 0.0);
+        $unit = $product->fabric_length_unit ?: 'Meters';
+        return [
+            'length' => $stdLen,
+            'unit' => $unit,
+            'length_meters' => self::convertToMeters($stdLen, $unit),
+            'is_configured' => true,
+        ];
+    }
+
+    /**
+     * Resolve fabric length per piece in raw unit.
+     */
+    public static function resolvePatternFabricLength(ManufacturingProduct $product, mixed $rawMaterialOrWidth = null, ?int $patternId = null): float
+    {
+        $details = self::resolvePatternFabricLengthDetails($product, $rawMaterialOrWidth, $patternId);
+        return $details['length'];
+    }
+
+    /**
+     * Resolve fabric length per piece in Base Unit (Meters).
+     */
+    public static function resolvePatternFabricLengthInMeters(ManufacturingProduct $product, mixed $rawMaterialOrWidth = null, ?int $patternId = null): float
+    {
+        $details = self::resolvePatternFabricLengthDetails($product, $rawMaterialOrWidth, $patternId);
+        return $details['length_meters'];
     }
 
     /**
@@ -632,9 +672,9 @@ class FabricCuttingAreaService
             $itemTotalUsedAreaBase = $pieceAreaBase * $qty;
             $totalUsedAreaBase += $itemTotalUsedAreaBase;
 
-            $pieceReqLength = self::resolvePatternFabricLength($product, $rawMaterialOrRoll, $patternId);
+            $pieceReqLength = self::resolvePatternFabricLengthInMeters($product, $rawMaterialOrRoll, $patternId);
             if ($pieceReqLength <= 0) {
-                $pieceReqLength = self::resolvePatternFabricLength($product, null, $patternId);
+                $pieceReqLength = self::resolvePatternFabricLengthInMeters($product, null, $patternId);
             }
             $itemReqLength = $pieceReqLength * $qty;
             $totalStandardRequiredLength += $itemReqLength;
@@ -793,11 +833,11 @@ class FabricCuttingAreaService
         // 6. Resolve Product Piece Requirement Length (in Meters)
         $pieceReqLength = 0.0;
         if ($product && $roll) {
-            $pieceReqLength = self::resolvePatternFabricLength($product, $roll);
+            $pieceReqLength = self::resolvePatternFabricLengthInMeters($product, $roll);
         } elseif ($product && $rawMaterial) {
-            $pieceReqLength = self::resolvePatternFabricLength($product, $rawMaterial);
+            $pieceReqLength = self::resolvePatternFabricLengthInMeters($product, $rawMaterial);
         } elseif ($product && (float)$product->standard_fabric_length > 0) {
-            $pieceReqLength = (float) $product->standard_fabric_length;
+            $pieceReqLength = self::convertToMeters((float) $product->standard_fabric_length, $product->fabric_length_unit ?: 'Meters');
         }
 
         // 7. Calculate Yield & Target Consumption
