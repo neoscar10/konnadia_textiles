@@ -424,7 +424,7 @@ class FabricCuttingAreaService
             $lengthMeters = self::convertToMeters($resolved['length'], $resolved['length_unit']);
             $widthMeters = self::convertToMeters($resolved['width'], $resolved['width_unit']);
 
-            return round($lengthMeters * $widthMeters, 4);
+            return $lengthMeters * $widthMeters;
         }
 
         if ($product) {
@@ -438,7 +438,7 @@ class FabricCuttingAreaService
             $lengthMeters = self::convertToMeters($length, $product->fabric_length_unit ?: 'Meters');
             $widthMeters = self::convertToMeters($width, $product->fabric_width_unit ?: 'Centimeters');
 
-            return round($lengthMeters * $widthMeters, 4);
+            return $lengthMeters * $widthMeters;
         }
 
         return 0.0;
@@ -602,7 +602,7 @@ class FabricCuttingAreaService
 
         $widthMeters = self::convertToMeters($widthVal, $unitStr);
 
-        return round($cutLengthMeters * $widthMeters, 4);
+        return $cutLengthMeters * $widthMeters;
     }
 
     /**

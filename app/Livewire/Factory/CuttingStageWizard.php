@@ -133,17 +133,36 @@ class CuttingStageWizard extends Component
         $rollContext = $roll ?? $product;
 
         $pieceReqLenMeters = FabricCuttingAreaService::resolvePatternFabricLengthInMeters($product, $rollContext, $patternId);
-        if ($pieceReqLenMeters > 0) {
-            return max(1, (int) floor($cutLengthMeters / $pieceReqLenMeters));
-        }
-
         $pieceAreaM2 = FabricCuttingAreaService::calculateProductPatternAreaM2($product, $pattern, $rollContext);
         $cutAreaM2 = FabricCuttingAreaService::calculateCutArea($cutLengthMeters, $rollContext);
-        if ($pieceAreaM2 > 0 && $cutAreaM2 > 0) {
-            return max(1, (int) floor($cutAreaM2 / $pieceAreaM2));
+
+        $maxByLength = 0;
+        if ($pieceReqLenMeters > 0) {
+            $maxByLength = (int) floor(($cutLengthMeters + 0.000001) / $pieceReqLenMeters);
         }
 
-        return 1;
+        $maxByArea = 0;
+        if ($pieceAreaM2 > 0 && $cutAreaM2 > 0) {
+            $maxByArea = (int) floor(($cutAreaM2 + 0.000001) / $pieceAreaM2);
+        }
+
+        $maxPcs = 1;
+        if ($maxByLength > 0 && $maxByArea > 0) {
+            $maxPcs = max(1, min($maxByLength, $maxByArea));
+        } elseif ($maxByLength > 0) {
+            $maxPcs = max(1, $maxByLength);
+        } elseif ($maxByArea > 0) {
+            $maxPcs = max(1, $maxByArea);
+        }
+
+        // Strict safety check: Ensure total allocated area (maxPcs * pieceAreaM2) strictly NEVER exceeds cutAreaM2
+        if ($pieceAreaM2 > 0 && $cutAreaM2 > 0) {
+            while ($maxPcs > 1 && ($maxPcs * $pieceAreaM2) > ($cutAreaM2 + 0.000001)) {
+                $maxPcs--;
+            }
+        }
+
+        return $maxPcs;
     }
 
     public function selectSearchedBaleOrBatch($baleId = null, $batchId = null, int $fabricIndex = 0)
