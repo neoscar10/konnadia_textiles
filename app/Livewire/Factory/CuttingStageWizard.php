@@ -870,28 +870,10 @@ class CuttingStageWizard extends Component
 
         $purchaseRate = (float) ($roll?->bale?->batch?->unit_cost ?: ($roll?->bale?->batch?->purchase_rate ?: 0));
 
-        $widthVal = 0.0;
-        $widthUnitStr = 'IN';
-
-        if ($roll && $roll->fabricWidth) {
-            $fw = $roll->fabricWidth;
-            $widthVal = (float) ($fw->value ?: $fw->width_inches ?: 0);
-            $widthUnitStr = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'IN');
-        } elseif ($rawMaterial) {
-            if ($rawMaterial->fabricWidths && $rawMaterial->fabricWidths->isNotEmpty()) {
-                $fw = $rawMaterial->fabricWidths->first();
-                $widthVal = (float) $fw->value;
-                $widthUnitStr = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'IN');
-            } else {
-                $widthVal = (float) ($rawMaterial->standard_width ?: 60);
-                $widthUnitStr = $rawMaterial->width_unit ?: 'IN';
-            }
-        }
-
-        if ($widthVal <= 0) {
-            $widthVal = 60.0;
-            $widthUnitStr = 'IN';
-        }
+        $rollContext = $roll ?? $rawMaterial;
+        $widthCtx = FabricCuttingAreaService::resolveWidthContext($rollContext);
+        $widthVal = $widthCtx['width_val'] > 0 ? $widthCtx['width_val'] : 60.0;
+        $widthUnitStr = $widthCtx['unit'] ?: 'IN';
 
         $widthMeters = FabricCuttingAreaService::convertToMeters($widthVal, $widthUnitStr);
 

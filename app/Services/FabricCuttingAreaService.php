@@ -95,6 +95,10 @@ class FabricCuttingAreaService
      * Resolve fabric width value, fabric_width_id, unit, and display text from any context.
      * $context can be InventoryBaleRoll, RawMaterial, FabricWidth, float/int width, or null.
      */
+    /**
+     * Resolve fabric width value, fabric_width_id, unit, and display text from any context.
+     * $context can be InventoryBaleRoll, RawMaterial, FabricWidth, float/int width, or null.
+     */
     public static function resolveWidthContext(mixed $context): array
     {
         $widthVal = 0.0;
@@ -125,22 +129,48 @@ class FabricCuttingAreaService
             if ($widthVal <= 0) {
                 $rawMat = $context->rawMaterial ?? $context->bale?->batch?->rawMaterial;
                 if ($rawMat) {
-                    $firstFw = $rawMat->fabricWidths?->first();
-                    if ($firstFw) {
+                    if ((float) $rawMat->standard_width > 0) {
+                        $widthVal = (float) $rawMat->standard_width;
+                        $unitStr = $rawMat->width_unit ?: 'IN';
+                        if ($rawMat->fabricWidths && $rawMat->fabricWidths->isNotEmpty()) {
+                            $stdMeters = self::convertToMeters($widthVal, $unitStr);
+                            foreach ($rawMat->fabricWidths as $fw) {
+                                $fwVal = (float) ($fw->value ?: ($fw->width_inches ?: 0));
+                                $fwUnit = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'IN');
+                                $fwMeters = self::convertToMeters($fwVal, $fwUnit);
+                                if ($fwMeters > 0 && abs($fwMeters - $stdMeters) < 0.02) {
+                                    $fabricWidthId = $fw->id;
+                                    break;
+                                }
+                            }
+                        }
+                    } elseif ($rawMat->fabricWidths && $rawMat->fabricWidths->isNotEmpty()) {
+                        $firstFw = $rawMat->fabricWidths->first();
                         $widthVal = (float) ($firstFw->value ?: ($firstFw->width_inches ?: 0));
                         $fabricWidthId = $firstFw->id;
                         $unitStr = $firstFw->unitModel ? $firstFw->unitModel->short_code : ($firstFw->unit ?: 'IN');
-                    } else {
-                        $widthVal = (float) ($rawMat->standard_width ?: 0);
-                        $fabricWidthId = property_exists($rawMat, 'fabric_width_id') ? $rawMat->fabric_width_id : null;
-                        $unitStr = $rawMat->width_unit ?: 'IN';
                     }
                 }
             }
         } elseif ($context instanceof RawMaterial) {
             $context->loadMissing(['fabricWidths.unitModel']);
-            $firstFw = $context->fabricWidths?->first();
-            if ($firstFw) {
+            if ((float) $context->standard_width > 0) {
+                $widthVal = (float) $context->standard_width;
+                $unitStr = $context->width_unit ?: 'IN';
+                if ($context->fabricWidths && $context->fabricWidths->isNotEmpty()) {
+                    $stdMeters = self::convertToMeters($widthVal, $unitStr);
+                    foreach ($context->fabricWidths as $fw) {
+                        $fwVal = (float) ($fw->value ?: ($fw->width_inches ?: 0));
+                        $fwUnit = $fw->unitModel ? $fw->unitModel->short_code : ($fw->unit ?: 'IN');
+                        $fwMeters = self::convertToMeters($fwVal, $fwUnit);
+                        if ($fwMeters > 0 && abs($fwMeters - $stdMeters) < 0.02) {
+                            $fabricWidthId = $fw->id;
+                            break;
+                        }
+                    }
+                }
+            } elseif ($context->fabricWidths && $context->fabricWidths->isNotEmpty()) {
+                $firstFw = $context->fabricWidths->first();
                 $widthVal = (float) ($firstFw->value ?: ($firstFw->width_inches ?: 0));
                 $fabricWidthId = $firstFw->id;
                 $unitStr = $firstFw->unitModel ? $firstFw->unitModel->short_code : ($firstFw->unit ?: 'IN');
@@ -212,6 +242,26 @@ class FabricCuttingAreaService
                 }
             }
 
+            // If rawMaterial has multiple fabricWidths and no specific roll width matched above (or context is RawMaterial):
+            // Check if any of the raw material's widths matches a patternFabricWidth entry
+            if (!$matchedPfw && ($rawMaterialOrWidth instanceof RawMaterial || $rawMaterialOrWidth instanceof \App\Models\InventoryBaleRoll)) {
+                $rawMat = $rawMaterialOrWidth instanceof RawMaterial ? $rawMaterialOrWidth : ($rawMaterialOrWidth->rawMaterial ?? $rawMaterialOrWidth->bale?->batch?->rawMaterial);
+                if ($rawMat && $rawMat->fabricWidths && $rawMat->fabricWidths->isNotEmpty()) {
+                    foreach ($rawMat->fabricWidths as $matFw) {
+                        foreach ($pattern->patternFabricWidths as $pfw) {
+                            if ((int)$pfw->fabric_width_id === (int)$matFw->id) {
+                                $matchedPfw = $pfw;
+                                $fwModel = $pfw->fabricWidth ?: $matFw;
+                                if ($fwModel && !$matchedPfw->relationLoaded('fabricWidth')) {
+                                    $matchedPfw->setRelation('fabricWidth', $fwModel);
+                                }
+                                break 2;
+                            }
+                        }
+                    }
+                }
+            }
+
             // Fallback to first only if NO width context was specified at all (null)
             if (!$matchedPfw && $rawMaterialOrWidth === null) {
                 $matchedPfw = $pattern->patternFabricWidths->first();
@@ -237,8 +287,8 @@ class FabricCuttingAreaService
             ];
         }
 
-        // If pattern has legacy fabric_length and no patternFabricWidths defined, and no specific width context was provided
-        if ($pattern->patternFabricWidths->isEmpty() && (float) $pattern->fabric_length > 0 && $rawMaterialOrWidth === null) {
+        // If pattern has legacy fabric_length and no patternFabricWidths defined
+        if ($pattern->patternFabricWidths->isEmpty() && (float) $pattern->fabric_length > 0) {
             return [
                 'is_configured' => true,
                 'pfw' => null,

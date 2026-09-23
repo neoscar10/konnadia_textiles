@@ -346,4 +346,96 @@ class CuttingFabricCostingAndAlterationAreaTest extends TestCase
         $this->assertFalse($unconfigDims['is_configured']);
         $this->assertStringContainsString("No fabric length defined for 66 Inches", $unconfigDims['error_message']);
     }
+
+    public function test_pattern_width_resolution_only_validates_selected_roll_width()
+    {
+        $fw2m  = \App\Models\FabricWidth::create(['name' => '2.00 M', 'value' => 2, 'unit' => 'Meters']);
+        $fw36  = \App\Models\FabricWidth::create(['name' => '36.00 IN', 'value' => 36, 'unit' => 'Inches']);
+        $fw44  = \App\Models\FabricWidth::create(['name' => '44.00 IN', 'value' => 44, 'unit' => 'Inches']);
+
+        $catFab = RawMaterialCategory::firstOrCreate(['code' => 'CAT-FAB'], ['name' => 'Fabric Category']);
+
+        // Raw material has multiple standard widths configured (2m, 36in, 44in)
+        $rawMat = RawMaterial::create([
+            'name'                    => 'Neoscar fabric black',
+            'code'                    => 'RM-0009',
+            'raw_material_category_id'=> $catFab->id,
+            'standard_width'          => 36,
+            'width_unit'              => 'IN',
+            'unit'                    => 'Meters',
+            'status'                  => 'active',
+        ]);
+        $rawMat->fabricWidths()->attach([$fw2m->id, $fw36->id, $fw44->id]);
+
+        $product = ManufacturingProduct::create([
+            'name'   => 'King size bedsheet',
+            'code'   => 'MP-2026-0001',
+            'status' => 'active',
+        ]);
+
+        $pattern = ManufacturingProductPattern::create([
+            'manufacturing_product_id' => $product->id,
+            'name'                     => 'Standard',
+            'is_default'               => true,
+        ]);
+
+        // Pattern ONLY defines length for 36.00 IN (2.5 Meters). It does NOT define length for 2.00 M or 44.00 IN.
+        \App\Models\ManufacturingPatternFabricWidth::create([
+            'pattern_id'                        => $pattern->id,
+            'manufacturing_product_pattern_id'  => $pattern->id,
+            'fabric_width_id'                   => $fw36->id,
+            'fabric_length'                     => 2.5,
+            'fabric_length_unit'                => 'Meters',
+        ]);
+
+        // Create roll with width 36.00 IN (fw36)
+        $invBatch = InventoryBatch::create([
+            'raw_material_id'   => $rawMat->id,
+            'batch_number'      => 'BAT-2026-0009',
+            'received_quantity' => 300,
+            'balance_quantity'  => 300,
+        ]);
+        $bale = InventoryBale::create([
+            'inventory_batch_id' => $invBatch->id,
+            'bale_number'        => 'BALE-2026-0001',
+            'status'             => 'opened',
+            'declared_length'    => 300,
+        ]);
+        $roll1 = InventoryBaleRoll::create([
+            'inventory_bale_id'      => $bale->id,
+            'raw_material_id'        => $rawMat->id,
+            'fabric_width_id'        => $fw36->id,
+            'roll_number'            => 'Roll 1',
+            'initial_length'         => 100,
+            'current_balance_length' => 100,
+            'status'                 => 'active',
+        ]);
+
+        // Validating Roll 1 (Width: 36IN) against Standard Pattern
+        $dims = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $roll1);
+
+        // MUST be configured and must NOT throw error for 2.00 M
+        $this->assertTrue($dims['is_configured']);
+        $this->assertNull($dims['error_message']);
+        $this->assertEquals(2.5, $dims['length_val']);
+
+        // Validating with RawMaterial context (standard_width = 36)
+        $rawMatDims = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $rawMat);
+        $this->assertTrue($rawMatDims['is_configured']);
+        $this->assertNull($rawMatDims['error_message']);
+
+        // Validating roll with unconfigured width (fw44) SHOULD show warning for 44 IN
+        $roll2 = InventoryBaleRoll::create([
+            'inventory_bale_id'      => $bale->id,
+            'raw_material_id'        => $rawMat->id,
+            'fabric_width_id'        => $fw44->id,
+            'roll_number'            => 'Roll 2',
+            'initial_length'         => 100,
+            'current_balance_length' => 100,
+            'status'                 => 'active',
+        ]);
+        $unconfigRollDims = FabricCuttingAreaService::formatProductPatternDimensions($product, $pattern, $roll2);
+        $this->assertFalse($unconfigRollDims['is_configured']);
+        $this->assertStringContainsString("No fabric length defined for 44 Inches", $unconfigRollDims['error_message']);
+    }
 }
