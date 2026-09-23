@@ -274,13 +274,184 @@ class BatchJobsDetailPage extends Component
         }
     }
 
+    public string $activeTab = 'jobs'; // 'jobs' or 'discrepancies'
+
+    // Discrepancy Resolution Modal Properties
+    public ?int $discrepancyJobId = null;
+    public ?int $scrapQty = null;
+    public string $scrapNotes = '';
+    public ?int $damageQty = null;
+    public string $damageNotes = '';
+    public array $alterationRows = [];
+    public string $discrepancyRemarks = '';
+
+    public function openDiscrepancyModal(int $jobId): void
+    {
+        $this->resetValidation();
+        $this->discrepancyJobId = $jobId;
+        $job = ProductionJob::with(['manufacturingProduct', 'pattern'])->findOrFail($jobId);
+
+        $this->scrapQty = null;
+        $this->scrapNotes = '';
+        $this->damageQty = null;
+        $this->damageNotes = '';
+        $this->discrepancyRemarks = '';
+        $this->alterationRows = [
+            [
+                'altered_qty'       => null,
+                'target_product_id' => '',
+                'target_pattern_id' => '',
+            ]
+        ];
+
+        $this->dispatch('open-modal', 'discrepancy-resolution-modal');
+    }
+
+    public function fillAllScrap(): void
+    {
+        if (!$this->discrepancyJobId) return;
+        $job = ProductionJob::find($this->discrepancyJobId);
+        if (!$job) return;
+
+        $this->scrapQty = $job->discrepancy_quantity;
+        $this->damageQty = null;
+        foreach ($this->alterationRows as $idx => $row) {
+            $this->alterationRows[$idx]['altered_qty'] = null;
+        }
+    }
+
+    public function fillAllDamage(): void
+    {
+        if (!$this->discrepancyJobId) return;
+        $job = ProductionJob::find($this->discrepancyJobId);
+        if (!$job) return;
+
+        $this->damageQty = $job->discrepancy_quantity;
+        $this->scrapQty = null;
+        foreach ($this->alterationRows as $idx => $row) {
+            $this->alterationRows[$idx]['altered_qty'] = null;
+        }
+    }
+
+    public function addDiscrepancyAlterationRow(): void
+    {
+        $this->alterationRows[] = [
+            'altered_qty'       => null,
+            'target_product_id' => '',
+            'target_pattern_id' => '',
+        ];
+    }
+
+    public function removeDiscrepancyAlterationRow(int $index): void
+    {
+        unset($this->alterationRows[$index]);
+        $this->alterationRows = array_values($this->alterationRows);
+    }
+
+    public function updatedDiscrepancyAlterationRows($value, $key): void
+    {
+        if (str_ends_with($key, '.target_product_id')) {
+            $index = (int) explode('.', $key)[0];
+            $productId = $value;
+            if ($productId) {
+                $firstPattern = \App\Models\ManufacturingProductPattern::where('manufacturing_product_id', $productId)->first();
+                $this->alterationRows[$index]['target_pattern_id'] = $firstPattern?->id ?? '';
+            } else {
+                $this->alterationRows[$index]['target_pattern_id'] = '';
+            }
+        }
+    }
+
+    public function saveDiscrepancyResolution(): void
+    {
+        if (!$this->discrepancyJobId) return;
+
+        $job = ProductionJob::findOrFail($this->discrepancyJobId);
+        $requiredDiscrepancy = $job->discrepancy_quantity;
+
+        $totalScrap   = max(0, intval($this->scrapQty));
+        $totalDamage  = max(0, intval($this->damageQty));
+        $totalAltered = 0;
+        foreach ($this->alterationRows as $r) {
+            $totalAltered += max(0, intval($r['altered_qty'] ?? 0));
+        }
+
+        $totalRecorded = $totalScrap + $totalDamage + $totalAltered;
+
+        if ($totalRecorded !== $requiredDiscrepancy) {
+            $this->addError('discrepancyTotal', "Total recorded discrepancy ({$totalRecorded} Pcs) must exactly match the job discrepancy amount ({$requiredDiscrepancy} Pcs).");
+            return;
+        }
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($job) {
+                $taskId = $job->stageExecutions->sortByDesc('sequence_number')->first()?->task_id ?? $job->task_id;
+
+                if ($this->scrapQty > 0) {
+                    \App\Models\JobWastage::create([
+                        'job_code'                 => $job->job_code,
+                        'production_job_id'        => $job->id,
+                        'manufacturing_product_id' => $job->manufacturing_product_id,
+                        'pattern_id'               => $job->pattern_id,
+                        'task_id'                  => $taskId,
+                        'wastage_type'             => 'scrap',
+                        'quantity_wasted'          => $this->scrapQty,
+                        'reason'                   => $this->scrapNotes ?: "Scrap / Cutting Waste",
+                    ]);
+                }
+
+                if ($this->damageQty > 0) {
+                    \App\Models\JobWastage::create([
+                        'job_code'                 => $job->job_code,
+                        'production_job_id'        => $job->id,
+                        'manufacturing_product_id' => $job->manufacturing_product_id,
+                        'pattern_id'               => $job->pattern_id,
+                        'task_id'                  => $taskId,
+                        'wastage_type'             => 'damage',
+                        'quantity_wasted'          => $this->damageQty,
+                        'reason'                   => $this->damageNotes ?: "Partially damaged items",
+                    ]);
+                }
+
+                $workflowService = resolve(\App\Services\Manufacturing\ProductionWorkflowService::class);
+                foreach ($this->alterationRows as $altRow) {
+                    $altQty    = intval($altRow['altered_qty'] ?? 0);
+                    $targetPId = $altRow['target_product_id'] ?? null;
+                    $targetPat = $altRow['target_pattern_id'] ?? null;
+
+                    if ($altQty > 0 && $targetPId) {
+                        $workflowService->recordJobAlteration(
+                            job: $job,
+                            sourceProductId: $job->manufacturing_product_id ?? $targetPId,
+                            sourceQty: $altQty,
+                            targetProductId: $targetPId,
+                            targetQty: $altQty,
+                            reason: $this->discrepancyRemarks ?: "Job Discrepancy Alteration",
+                            targetPatternId: $targetPat
+                        );
+                    }
+                }
+            });
+        } catch (Exception $e) {
+            $this->addError('discrepancyTotal', $e->getMessage());
+            return;
+        }
+
+        $this->dispatch('close-modal', 'discrepancy-resolution-modal');
+        $this->dispatch('toast', message: "Discrepancy for Job {$job->job_code} successfully resolved!", type: 'success');
+    }
+
     public function render()
     {
         $jobs = ProductionJob::where('production_batch_id', $this->batchCode)
             ->orWhere('job_code', $this->batchCode)
-            ->with(['manufacturingProduct', 'factorySupervisor', 'batch.factorySupervisor', 'supervisor', 'stageExecutions.task', 'allocations'])
+            ->with(['manufacturingProduct', 'pattern', 'factorySupervisor', 'batch.factorySupervisor', 'supervisor', 'stageExecutions.task', 'allocations', 'wastages', 'alterations'])
             ->orderBy('created_at', 'asc')
             ->get();
+
+        $discrepancyJobs = $jobs->filter(fn($j) => $j->has_unresolved_discrepancy);
+        $activeDiscrepancyJob = $this->discrepancyJobId ? ProductionJob::with(['manufacturingProduct', 'pattern'])->find($this->discrepancyJobId) : null;
+        $allProducts = ManufacturingProduct::with('patterns')->get();
 
         $completedJobsForPicker = $jobs->filter(fn($j) => $j->status === 'completed' && $j->remaining_unconverted_quantity > 0);
         $storefrontProducts = Product::where('is_active', true)
@@ -317,6 +488,9 @@ class BatchJobsDetailPage extends Component
 
         return view('livewire.admin.production.batch-jobs-detail-page', [
             'jobs' => $jobs,
+            'discrepancyJobs' => $discrepancyJobs,
+            'activeDiscrepancyJob' => $activeDiscrepancyJob,
+            'allProducts' => $allProducts,
             'firstJob' => $firstJob,
             'product' => $product,
             'supervisor' => $supervisor,

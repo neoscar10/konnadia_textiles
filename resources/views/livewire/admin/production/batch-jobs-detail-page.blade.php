@@ -67,89 +67,178 @@
                 <p class="text-2xl font-black text-amber-600">{{ number_format($unconvertedSum) }} <span class="text-xs font-bold text-outline">Pcs</span></p>
             </div>
         </div>
+    </di    <!-- Main Tab Switcher -->
+    <div class="flex items-center gap-2 border-b border-outline-variant/60 mb-6">
+        <button type="button" wire:click="$set('activeTab', 'jobs')" class="pb-3 px-4 text-sm font-black border-b-2 transition-all flex items-center gap-2 {{ $activeTab === 'jobs' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
+            <span class="material-symbols-outlined text-base">assignment</span>
+            <span>Jobs in Batch {{ $batchCode }} ({{ $jobs->count() }})</span>
+        </button>
+        <button type="button" wire:click="$set('activeTab', 'discrepancies')" class="pb-3 px-4 text-sm font-black border-b-2 transition-all flex items-center gap-2 {{ $activeTab === 'discrepancies' ? 'border-amber-600 text-amber-800' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
+            <span class="material-symbols-outlined text-base">warning</span>
+            <span>Discrepancies &amp; Resolutions</span>
+            @if(count($discrepancyJobs) > 0)
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white">
+                    {{ count($discrepancyJobs) }}
+                </span>
+            @else
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                    0
+                </span>
+            @endif
+        </button>
     </div>
 
-    <!-- Production Jobs Table -->
-    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 overflow-hidden shadow-xs mb-8">
-        <div class="p-5 bg-surface-container-low border-b border-outline-variant/60 flex justify-between items-center">
-            <h3 class="font-headline-sm text-headline-sm text-primary font-bold flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">assignment</span>
-                Jobs in Batch {{ $batchCode }}
-            </h3>
-            <a href="{{ route('admin.production.batches.ledger', $batchDbId ?? $batchCode) }}" wire:navigate class="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
-                <span class="material-symbols-outlined text-[18px]">menu_book</span>
-                Batch Cost & Breakdown Ledger
-            </a>
-        </div>
+    @if($activeTab === 'jobs')
+        <!-- Production Jobs Table -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 overflow-hidden shadow-xs mb-8">
+            <div class="p-5 bg-surface-container-low border-b border-outline-variant/60 flex justify-between items-center">
+                <h3 class="font-headline-sm text-headline-sm text-primary font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">assignment</span>
+                    Jobs in Batch {{ $batchCode }}
+                </h3>
+                <a href="{{ route('admin.production.batches.ledger', $batchDbId ?? $batchCode) }}" wire:navigate class="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
+                    <span class="material-symbols-outlined text-[18px]">menu_book</span>
+                    Batch Cost &amp; Breakdown Ledger
+                </a>
+            </div>
 
-        <div class="overflow-x-auto">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse font-body-md">
+                    <thead>
+                        <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
+                            <th class="px-6 py-4 font-bold">Job Code</th>
+                            <th class="px-6 py-4 font-bold">Target Product</th>
+                            <th class="px-6 py-4 font-bold text-center">Output Progress</th>
+                            <th class="px-6 py-4 font-bold">Stage Status</th>
+                            <th class="px-6 py-4 font-bold text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/40">
+                        @forelse($jobs as $job)
+                            <tr class="hover:bg-surface-container/50 transition-colors">
+                                <td class="px-6 py-4">
+                                    <p class="font-bold text-primary text-base font-mono">{{ $job->job_code }}</p>
+                                    <span class="text-xs text-outline">{{ $job->created_at ? $job->created_at->format('d M Y') : '' }}</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <p class="font-bold text-on-surface text-sm">{{ $job->manufacturingProduct?->name ?? 'Unassigned' }}</p>
+                                    <span class="text-xs text-outline font-mono">{{ $job->manufacturingProduct?->code }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <div class="w-40 mx-auto">
+                                        <div class="flex justify-between items-center text-xs font-extrabold mb-1">
+                                            <span class="text-on-surface-variant uppercase tracking-wider text-[10px]">Progress</span>
+                                            <span class="text-secondary font-black">{{ $job->progress_percentage }}%</span>
+                                        </div>
+                                        <div class="w-full bg-surface-container-high h-2.5 rounded-full overflow-hidden border border-outline-variant/30">
+                                            <div class="bg-primary h-full transition-all duration-500 rounded-full" style="width: {{ $job->progress_percentage }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if($job->status === 'completed')
+                                        <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1">
+                                            <span class="w-2 h-2 rounded-full bg-secondary"></span> COMPLETED
+                                        </span>
+                                    @elseif($job->status === 'in_progress')
+                                        <span class="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1">
+                                            <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> IN PROGRESS
+                                        </span>
+                                    @else
+                                        <span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1">
+                                            <span class="w-2 h-2 rounded-full bg-outline"></span> {{ strtoupper($job->status) }}
+                                        </span>
+                                    @endif
+                                </td>
+
+                                <td class="px-6 py-4 text-right">
+                                    <a href="{{ route('admin.production.jobs.show', $job->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary hover:text-on-primary px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95">
+                                        View Terminal
+                                        <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-6 py-12 text-center text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-4xl text-outline mb-2">assignment_late</span>
+                                    <p class="font-body-lg text-body-lg">No jobs found in batch {{ $batchCode }}.</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
+    @if($activeTab === 'discrepancies')
+        <!-- Completed Jobs Discrepancies Table for Batch -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 overflow-hidden shadow-xs mb-8">
+            <div class="p-4 bg-amber-50/80 border-b border-amber-200">
+                <h3 class="font-extrabold text-sm text-amber-950 uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-700">warning</span>
+                    <span>Completed Jobs Pending Discrepancy Recording in Batch {{ $batchCode }}</span>
+                </h3>
+                <p class="text-xs text-amber-800 font-medium mt-0.5">
+                    These finished production jobs in this batch have a discrepancy between the initial cut quantity and final completed labor output. Click "Record Discrepancy" to categorize scrap, damage, and alterations.
+                </p>
+            </div>
+
             <table class="w-full text-left border-collapse font-body-md">
                 <thead>
                     <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
                         <th class="px-6 py-4 font-bold">Job Code</th>
-                        <th class="px-6 py-4 font-bold">Target Product</th>
-                        <th class="px-6 py-4 font-bold text-center">Output Progress</th>
-                        <th class="px-6 py-4 font-bold">Stage Status</th>
-                        <th class="px-6 py-4 font-bold text-right"></th>
+                        <th class="px-6 py-4 font-bold">Manufacturing Product</th>
+                        <th class="px-6 py-4 font-bold text-center">Initial Cut Qty</th>
+                        <th class="px-6 py-4 font-bold text-center">Final Output Qty</th>
+                        <th class="px-6 py-4 font-bold text-center">Discrepancy Qty</th>
+                        <th class="px-6 py-4 font-bold text-right">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/40">
-                    @forelse($jobs as $job)
+                    @forelse($discrepancyJobs as $dJob)
                         <tr class="hover:bg-surface-container/50 transition-colors">
                             <td class="px-6 py-4">
-                                <p class="font-bold text-primary text-base font-mono">{{ $job->job_code }}</p>
-                                <span class="text-xs text-outline">{{ $job->created_at ? $job->created_at->format('d M Y') : '' }}</span>
+                                <span class="font-bold text-primary text-base font-mono block">{{ $dJob->job_code }}</span>
                             </td>
                             <td class="px-6 py-4">
-                                <p class="font-bold text-on-surface text-sm">{{ $job->manufacturingProduct?->name ?? 'Unassigned' }}</p>
-                                <span class="text-xs text-outline font-mono">{{ $job->manufacturingProduct?->code }}</span>
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <div class="w-40 mx-auto">
-                                    <div class="flex justify-between items-center text-xs font-extrabold mb-1">
-                                        <span class="text-on-surface-variant uppercase tracking-wider text-[10px]">Progress</span>
-                                        <span class="text-secondary font-black">{{ $job->progress_percentage }}%</span>
-                                    </div>
-                                    <div class="w-full bg-surface-container-high h-2.5 rounded-full overflow-hidden border border-outline-variant/30">
-                                        <div class="bg-primary h-full transition-all duration-500 rounded-full" style="width: {{ $job->progress_percentage }}%"></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                @if($job->status === 'completed')
-                                    <span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1">
-                                        <span class="w-2 h-2 rounded-full bg-secondary"></span> COMPLETED
-                                    </span>
-                                @elseif($job->status === 'in_progress')
-                                    <span class="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1">
-                                        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> IN PROGRESS
-                                    </span>
-                                @else
-                                    <span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1">
-                                        <span class="w-2 h-2 rounded-full bg-outline"></span> {{ strtoupper($job->status) }}
-                                    </span>
+                                <p class="font-bold text-on-surface text-sm">{{ $dJob->manufacturingProduct?->name }}</p>
+                                @if($dJob->pattern)
+                                    <span class="text-xs text-amber-700 font-semibold block">Pattern: {{ $dJob->pattern->name }}</span>
                                 @endif
                             </td>
-
+                            <td class="px-6 py-4 text-center font-bold text-slate-800">
+                                {{ $dJob->initial_cut_quantity }} Pcs
+                            </td>
+                            <td class="px-6 py-4 text-center font-bold text-emerald-800">
+                                {{ $dJob->final_produced_yield }} Pcs
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-3 py-1 bg-rose-100 text-rose-800 font-black rounded-full text-xs font-mono border border-rose-200">
+                                    {{ $dJob->discrepancy_quantity }} Pcs
+                                </span>
+                            </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('admin.production.jobs.show', $job->id) }}" wire:navigate class="inline-flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary hover:text-on-primary px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95">
-                                    View Terminal
-                                    <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
-                                </a>
+                                <button type="button" wire:click="openDiscrepancyModal({{ $dJob->id }})" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl transition-all shadow-xs active:scale-95 inline-flex items-center gap-1 cursor-pointer">
+                                    <span class="material-symbols-outlined text-[16px]">edit_note</span>
+                                    <span>Record Discrepancy</span>
+                                </button>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-on-surface-variant">
-                                <span class="material-symbols-outlined text-4xl text-outline mb-2">assignment_late</span>
-                                <p class="font-body-lg text-body-lg">No jobs found in batch {{ $batchCode }}.</p>
+                            <td colspan="6" class="px-6 py-12 text-center text-on-surface-variant">
+                                <span class="material-symbols-outlined text-4xl text-emerald-600 mb-2">check_circle</span>
+                                <p class="font-body-lg text-body-lg font-bold">No completed jobs with unresolved discrepancies in this batch.</p>
+                                <p class="text-xs text-outline mt-1">All finished jobs in batch {{ $batchCode }} match their initial cut quantities!</p>
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-    </div>
+    @endif
 
     <!-- Storefront Finished Goods Conversion Modal -->
     <x-admin.modal id="storefront-conversion-modal" title="Convert Batch Products to Storefront Inventory" maxWidth="4xl">
@@ -166,7 +255,7 @@
             <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-4">
                 <h4 class="font-bold text-sm text-primary flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg">storefront</span>
-                    1. Target Storefront Product & Desired Production Quantity *
+                    1. Target Storefront Product &amp; Desired Production Quantity *
                 </h4>
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
@@ -187,7 +276,7 @@
                                         <span class="px-2 py-0.5 bg-primary/10 text-primary font-mono text-[11px] font-bold rounded-lg shrink-0">SKU: {{ $this->selectedTargetProduct->sku ?? 'SKU-'.$this->selectedTargetProduct->id }}</span>
                                     </div>
                                 @else
-                                    <span class="text-on-surface-variant/70 font-semibold">-- Search & Select Target Storefront Product --</span>
+                                    <span class="text-on-surface-variant/70 font-semibold">-- Search &amp; Select Target Storefront Product --</span>
                                 @endif
                                 <span class="material-symbols-outlined text-on-surface-variant text-base transition-transform duration-200" :class="open ? 'rotate-180' : ''">unfold_more</span>
                             </button>
@@ -386,7 +475,7 @@
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $summary['can_fulfill'] ? 'text-emerald-800' : 'text-amber-800' }}">
                                 <span class="material-symbols-outlined text-base">calculate</span>
-                                Conversion & Remaining Stock Summary
+                                Conversion &amp; Remaining Stock Summary
                             </span>
                             <span class="text-base font-black px-3 py-1 rounded-xl {{ $summary['can_fulfill'] ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900' }}">
                                 Target: {{ number_format($desiredSets) }} Item(s)
@@ -492,4 +581,191 @@
             </div>
         </form>
     </x-admin.modal>
+
+    <!-- Discrepancy Resolution Modal -->
+    <x-admin.modal id="discrepancy-resolution-modal" title="Record Job Discrepancy &amp; Reconciliation" maxWidth="3xl">
+        @if($activeDiscrepancyJob)
+            <form wire:submit.prevent="saveDiscrepancyResolution" class="space-y-6">
+                <!-- Summary Header -->
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2 text-amber-950">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-black text-sm uppercase tracking-wider text-amber-900 font-display">
+                            Job Discrepancy Summary — {{ $activeDiscrepancyJob->job_code }}
+                        </h4>
+                        <span class="px-3 py-1 bg-amber-200 text-amber-900 rounded-full font-black text-xs font-mono">
+                            Discrepancy: {{ $activeDiscrepancyJob->discrepancy_quantity }} Pcs
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-4 text-xs font-bold">
+                        <span>Product: <strong class="text-slate-900">{{ $activeDiscrepancyJob->manufacturingProduct?->name }}</strong></span>
+                        <span>·</span>
+                        <span>Initial Cut Qty: <strong>{{ $activeDiscrepancyJob->initial_cut_quantity }} Pcs</strong></span>
+                        <span>·</span>
+                        <span>Final Recorded Output: <strong class="text-emerald-800">{{ $activeDiscrepancyJob->final_produced_yield }} Pcs</strong></span>
+                    </div>
+                </div>
+
+                @error('discrepancyTotal')
+                    <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700">
+                        {{ $message }}
+                    </div>
+                @enderror
+
+                <!-- 1. Alteration Units (Spawns New Alteration Production Job) -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div>
+                            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                                1. Alteration Units (Spawns New Alteration Production Job)
+                            </h4>
+                            <p class="text-[11px] text-slate-500">Products sent for alteration will instantiate a new Production Job inside the batch for the chosen target product and pattern.</p>
+                        </div>
+                        <button type="button" wire:click="addDiscrepancyAlterationRow" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs rounded-lg transition-all cursor-pointer">
+                            ＋ Add Alteration Item
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        @foreach($alterationRows as $aIdx => $aRow)
+                            @php
+                                $selectedTargetProdId = $aRow['target_product_id'] ?? null;
+                                $targetProdObj = $selectedTargetProdId ? $allProducts->firstWhere('id', $selectedTargetProdId) : null;
+                                $targetPatterns = $targetProdObj ? $targetProdObj->patterns : collect();
+                            @endphp
+                            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                                <div class="sm:col-span-3">
+                                    <label class="block text-[10px] font-black text-amber-900 uppercase tracking-wider mb-1">ALTERED QTY (PCS) *</label>
+                                    <input type="number" min="0" wire:model.live.number="alterationRows.{{ $aIdx }}.altered_qty" placeholder="0" class="w-full bg-white border-2 border-amber-300 focus:border-amber-500 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 shadow-xs">
+                                </div>
+                                <div class="sm:col-span-4">
+                                    <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">TARGET PRODUCT *</label>
+                                    <select wire:model.live="alterationRows.{{ $aIdx }}.target_product_id" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <option value="">-- Select Target Product --</option>
+                                        @foreach($allProducts as $ap)
+                                            <option value="{{ $ap->id }}">{{ $ap->name }} ({{ $ap->code }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-4">
+                                    <label class="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">TARGET PATTERN *</label>
+                                    <select wire:model="alterationRows.{{ $aIdx }}.target_pattern_id" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                        <option value="">-- Select Target Pattern --</option>
+                                        @foreach($targetPatterns as $pat)
+                                            <option value="{{ $pat->id }}">{{ $pat->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-1 flex justify-end">
+                                    @if(count($alterationRows) > 1)
+                                        <button type="button" wire:click="removeDiscrepancyAlterationRow({{ $aIdx }})" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer">
+                                            ✕
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- 2. Non-Good Output Categorization: Scrap vs. Damage -->
+                <div class="space-y-4 pt-2 border-t border-slate-200">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                                2. Non-Good Output Categorization: Scrap vs. Damage
+                            </h4>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Distinguish between completely unsalvageable scrap loss versus partially damaged items that can still be sold or reused.</p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" wire:click="fillAllScrap" class="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 border border-rose-300 text-rose-900 text-[11px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1">
+                                <span>♻️</span> Fill All Scrap ({{ $activeDiscrepancyJob->discrepancy_quantity }} Pcs)
+                            </button>
+                            <button type="button" wire:click="fillAllDamage" class="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-[11px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1">
+                                <span>⚠️</span> Fill All Damage ({{ $activeDiscrepancyJob->discrepancy_quantity }} Pcs)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Scrap Section Card -->
+                        <div class="p-4 bg-rose-50/60 border border-rose-200 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-extrabold uppercase text-rose-900 flex items-center gap-1">
+                                    <span>♻️</span> Scrap Output (Completely Unusable Loss)
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-12 gap-3 items-center">
+                                <div class="col-span-5">
+                                    <label class="block text-[10px] font-black text-rose-900 uppercase tracking-wider mb-1">SCRAP QTY (PCS) *</label>
+                                    <input type="number" min="0" wire:model.live.number="scrapQty" placeholder="0" class="w-full bg-white border-2 border-rose-300 focus:border-rose-500 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 shadow-xs">
+                                </div>
+                                <div class="col-span-7">
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">REASON NOTE</label>
+                                    <input type="text" wire:model="scrapNotes" placeholder="e.g. Fabric cut loss" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Damage Section Card -->
+                        <div class="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-extrabold uppercase text-amber-900 flex items-center gap-1">
+                                    <span>⚠️</span> Damaged Output (Partially Damaged / Resold)
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-12 gap-3 items-center">
+                                <div class="col-span-5">
+                                    <label class="block text-[10px] font-black text-amber-900 uppercase tracking-wider mb-1">DAMAGE QTY (PCS) *</label>
+                                    <input type="number" min="0" wire:model.live.number="damageQty" placeholder="0" class="w-full bg-white border-2 border-amber-300 focus:border-amber-500 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 shadow-xs">
+                                </div>
+                                <div class="col-span-7">
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">REASON NOTE</label>
+                                    <input type="text" wire:model="damageNotes" placeholder="e.g. Minor defect" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Total Reconciliation Match Indicator -->
+                @php
+                    $reqDiscrepancy = $activeDiscrepancyJob->discrepancy_quantity;
+                    $calcTotal = intval($scrapQty ?? 0) + intval($damageQty ?? 0);
+                    foreach($alterationRows as $ar) {
+                        $calcTotal += intval($ar['altered_qty'] ?? 0);
+                    }
+                    $isMatch = $calcTotal === $reqDiscrepancy;
+                @endphp
+                <div class="p-4 rounded-xl border flex items-center justify-between text-xs font-bold {{ $isMatch ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-rose-50 border-rose-300 text-rose-950' }}">
+                    <div>
+                        <span class="uppercase tracking-wider font-extrabold">Recorded Total: {{ $calcTotal }} / {{ $reqDiscrepancy }} Pcs</span>
+                        <span class="block text-[11px] font-medium text-slate-600">
+                            {{ $isMatch ? '✓ Perfect match! Discrepancy total is fully reconciled.' : '⚠️ Total recorded (Scrap + Damage + Alterations) must equal exactly ' . $reqDiscrepancy . ' Pcs.' }}
+                        </span>
+                    </div>
+                    <span class="px-3 py-1 rounded-full font-black text-xs uppercase {{ $isMatch ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white' }}">
+                        {{ $isMatch ? 'Ready to Save' : 'Mismatch' }}
+                    </span>
+                </div>
+
+                <!-- Remarks -->
+                <div>
+                    <label class="block text-xs font-extrabold uppercase text-slate-700 mb-1">Reconciliation Remarks</label>
+                    <input type="text" wire:model="discrepancyRemarks" placeholder="Optional audit notes" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900">
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                    <button type="button" @click="show = false" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer" {{ !$isMatch ? 'disabled' : '' }}>
+                        <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                        <span>Save Discrepancy Resolution</span>
+                    </button>
+                </div>
+            </form>
+        @endif
+    </x-admin.modal>
 </div>
+

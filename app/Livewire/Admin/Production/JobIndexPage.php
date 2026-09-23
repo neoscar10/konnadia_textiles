@@ -28,9 +28,6 @@ class JobIndexPage extends Component
     #[Url(history: true)]
     public string $supervisorFilter = '';
 
-    #[Url(history: true)]
-    public string $activeTab = 'all'; // 'all' or 'discrepancies'
-
     // Create Modal Properties
     public $manufacturing_product_id = null;
     public $pattern_id = null;
@@ -48,15 +45,6 @@ class JobIndexPage extends Component
     public string $conversion_notes = '';
     public array $conversionComponents = [];
     public array $conversionPackaging = [];
-
-    // Discrepancy Resolution Modal Properties
-    public ?int $discrepancyJobId = null;
-    public ?int $scrapQty = null;
-    public string $scrapNotes = '';
-    public ?int $damageQty = null;
-    public string $damageNotes = '';
-    public array $alterationRows = [];
-    public string $discrepancyRemarks = '';
 
     public function mount(): void
     {
@@ -867,13 +855,6 @@ class JobIndexPage extends Component
             ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
         );
 
-        // Fetch completed jobs that have an unresolved discrepancy
-        $discrepancyJobs = ProductionJob::with(['manufacturingProduct', 'pattern', 'stageExecutions', 'wastages', 'alterations', 'batch'])
-            ->get()
-            ->filter(fn($j) => $j->has_unresolved_discrepancy);
-
-        $activeDiscrepancyJob = $this->discrepancyJobId ? ProductionJob::with(['manufacturingProduct', 'pattern'])->find($this->discrepancyJobId) : null;
-
         $allProducts = ManufacturingProduct::with('patterns')->get();
         $selectedProduct = $this->manufacturing_product_id ? ManufacturingProduct::with('tasks')->find($this->manufacturing_product_id) : null;
         $availablePatterns = $this->manufacturing_product_id 
@@ -912,8 +893,6 @@ class JobIndexPage extends Component
         return view('livewire.admin.production.job-index-page', [
             'batchProducts'                 => $this->batchProducts,
             'paginatedBatches'              => $paginatedBatches,
-            'discrepancyJobs'               => $discrepancyJobs,
-            'activeDiscrepancyJob'          => $activeDiscrepancyJob,
             'allProducts'                   => $allProducts,
             'selectedProduct'               => $selectedProduct,
             'availablePatterns'             => $availablePatterns,

@@ -65,97 +65,8 @@
         </div>
     </div>
 
-    <!-- Main Hub Tab Switcher -->
-    <div class="flex items-center gap-2 border-b border-outline-variant/60 mb-6">
-        <button type="button" wire:click="$set('activeTab', 'all')" class="pb-3 px-4 text-sm font-black border-b-2 transition-all flex items-center gap-2 {{ $activeTab === 'all' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-            <span class="material-symbols-outlined text-base">layers</span>
-            <span>All Production Batches &amp; Jobs</span>
-        </button>
-        <button type="button" wire:click="$set('activeTab', 'discrepancies')" class="pb-3 px-4 text-sm font-black border-b-2 transition-all flex items-center gap-2 {{ $activeTab === 'discrepancies' ? 'border-amber-600 text-amber-800' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-            <span class="material-symbols-outlined text-base">warning</span>
-            <span>Completed Jobs with Discrepancies</span>
-            @if(count($discrepancyJobs) > 0)
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white">
-                    {{ count($discrepancyJobs) }}
-                </span>
-            @else
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                    0
-                </span>
-            @endif
-        </button>
-    </div>
-
-    @if($activeTab === 'discrepancies')
-        <!-- Completed Jobs Discrepancies Table -->
-        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 overflow-hidden shadow-xs mb-6">
-            <div class="p-4 bg-amber-50/80 border-b border-amber-200">
-                <h3 class="font-extrabold text-sm text-amber-950 uppercase tracking-wider flex items-center gap-2">
-                    <span class="material-symbols-outlined text-amber-700">warning</span>
-                    <span>Completed Jobs Pending Discrepancy Recording</span>
-                </h3>
-                <p class="text-xs text-amber-800 font-medium mt-0.5">
-                    These finished production jobs have a discrepancy between the initial cut quantity and final completed labor output. Click "Record Discrepancy" to categorize scrap, damage, and alterations.
-                </p>
-            </div>
-
-            <table class="w-full text-left border-collapse font-body-md">
-                <thead>
-                    <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs text-on-surface-variant uppercase tracking-wider">
-                        <th class="px-6 py-4 font-bold">Job Code &amp; Batch</th>
-                        <th class="px-6 py-4 font-bold">Manufacturing Product</th>
-                        <th class="px-6 py-4 font-bold text-center">Initial Cut Qty</th>
-                        <th class="px-6 py-4 font-bold text-center">Final Output Qty</th>
-                        <th class="px-6 py-4 font-bold text-center">Discrepancy Qty</th>
-                        <th class="px-6 py-4 font-bold text-right">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-outline-variant/40">
-                    @forelse($discrepancyJobs as $dJob)
-                        <tr class="hover:bg-surface-container/50 transition-colors">
-                            <td class="px-6 py-4">
-                                <span class="font-bold text-primary text-base font-mono block">{{ $dJob->job_code }}</span>
-                                <span class="text-xs text-outline font-mono block">Batch: {{ $dJob->production_batch_id }}</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <p class="font-bold text-on-surface text-sm">{{ $dJob->manufacturingProduct?->name }}</p>
-                                @if($dJob->pattern)
-                                    <span class="text-xs text-amber-700 font-semibold block">Pattern: {{ $dJob->pattern->name }}</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-center font-bold text-slate-800">
-                                {{ $dJob->initial_cut_quantity }} Pcs
-                            </td>
-                            <td class="px-6 py-4 text-center font-bold text-emerald-800">
-                                {{ $dJob->final_produced_yield }} Pcs
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <span class="px-3 py-1 bg-rose-100 text-rose-800 font-black rounded-full text-xs font-mono border border-rose-200">
-                                    {{ $dJob->discrepancy_quantity }} Pcs
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <button type="button" wire:click="openDiscrepancyModal({{ $dJob->id }})" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl transition-all shadow-xs active:scale-95 inline-flex items-center gap-1 cursor-pointer">
-                                    <span class="material-symbols-outlined text-[16px]">edit_note</span>
-                                    <span>Record Discrepancy</span>
-                                </button>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-on-surface-variant">
-                                <span class="material-symbols-outlined text-4xl text-emerald-600 mb-2">check_circle</span>
-                                <p class="font-body-lg text-body-lg font-bold">No completed jobs with unresolved discrepancies.</p>
-                                <p class="text-xs text-outline mt-1">All finished jobs match their initial cut quantities!</p>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    @else
-        <!-- Filters & Search Bar -->
-        <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/60 mb-6 flex flex-wrap items-center gap-4 shadow-xs">
+    <!-- Filters & Search Bar -->
+    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/60 mb-6 flex flex-wrap items-center gap-4 shadow-xs">
             <div class="w-full max-w-md">
                 <div class="flex items-center gap-3">
                     <span class="material-symbols-outlined text-on-surface-variant">search</span>
@@ -305,7 +216,6 @@
                 </div>
             @endif
         </div>
-    @endif
 
     <!-- Storefront Finished Goods Conversion Modal -->
     <x-admin.modal id="storefront-conversion-modal" title="Convert Completed Goods to Storefront Product" maxWidth="4xl">
