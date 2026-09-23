@@ -457,17 +457,48 @@ class JobIndexPage extends Component
             'product_name' => $sp->manufacturingProduct?->name ?? 'Spare Item',
             'available_qty' => $sp->available_quantity,
             'source_batch' => $sp->productionBatch?->batch_code ?? 'Prev Batch',
-            'qty_to_use' => 0,
+            'qty_to_use' => $sp->available_quantity,
         ])->toArray();
 
         $this->selectedSpareProductAllocations = [];
 
-        // Auto-select leaf category
+        // Auto-select leaf category with best matching products / highest sets possible
+        $batchMfgIds = $batch->jobs->pluck('manufacturing_product_id')->filter()->unique()->toArray();
+
         $leafCatService = app(\App\Services\Catalog\CategoryService::class);
         $leafCategories = $leafCatService->getLeafCategories(manufacturedOnly: true);
-        $firstConfigFe = \App\Models\FrontEndProduct::has('components')->whereNotNull('category_id')->where('is_active', true)->first();
 
-        $this->selectedCategoryIdForBatchConv = $firstConfigFe?->category_id ?? $leafCategories->first()?->id;
+        $allConfiguredFes = \App\Models\FrontEndProduct::with('components')
+            ->has('components')
+            ->whereNotNull('category_id')
+            ->where('is_active', true)
+            ->get();
+
+        $bestCatId = null;
+        $maxPossibleSetsScore = -1;
+
+        foreach ($allConfiguredFes as $fe) {
+            $compMfgIds = $fe->components->pluck('manufacturing_product_id')->toArray();
+            $overlap = count(array_intersect($batchMfgIds, $compMfgIds));
+
+            $pSets = [];
+            foreach ($fe->components as $c) {
+                $mId = $c->manufacturing_product_id;
+                $rQty = max(1, (int) $c->quantity);
+                $bQty = $batch->jobs->where('manufacturing_product_id', $mId)->sum('remaining_unconverted_quantity');
+                $spQty = collect($this->availableSpareProducts)->where('manufacturing_product_id', $mId)->sum('qty_to_use');
+                $pSets[] = (int) floor(($bQty + $spQty) / $rQty);
+            }
+            $possibleForThisCat = !empty($pSets) ? (int) min($pSets) : 0;
+
+            $score = ($possibleForThisCat * 1000) + $overlap;
+            if ($score > $maxPossibleSetsScore) {
+                $maxPossibleSetsScore = $score;
+                $bestCatId = $fe->category_id;
+            }
+        }
+
+        $this->selectedCategoryIdForBatchConv = $bestCatId ?? ($allConfiguredFes->first()?->category_id ?? $leafCategories->first()?->id);
 
         $this->recalculateBatchConversionMaxSets();
 
@@ -497,7 +528,7 @@ class JobIndexPage extends Component
     public function recalculateBatchConversionMaxSets(): void
     {
         if (!$this->selectedBatchDbId || !$this->selectedCategoryIdForBatchConv) {
-            $this->prefilledTargetSets = 1;
+            $this->prefilledTargetSets = 0;
             return;
         }
 
@@ -506,7 +537,7 @@ class JobIndexPage extends Component
             ->first();
 
         if (!$feProduct || $feProduct->components->isEmpty()) {
-            $this->prefilledTargetSets = 1;
+            $this->prefilledTargetSets = 0;
             return;
         }
 
@@ -540,7 +571,7 @@ class JobIndexPage extends Component
             $possibleSets[] = $setsPossible;
         }
 
-        $this->prefilledTargetSets = !empty($possibleSets) ? max(1, (int) min($possibleSets)) : 1;
+        $this->prefilledTargetSets = !empty($possibleSets) ? (int) min($possibleSets) : 0;
     }
 
     public function getBatchConversionSummaryProperty(): array
@@ -558,7 +589,7 @@ class JobIndexPage extends Component
         }
 
         $batch = \App\Models\ProductionBatch::with('jobs.manufacturingProduct')->find($this->selectedBatchDbId);
-        $targetSets = max(1, intval($this->prefilledTargetSets));
+        $targetSets = max(0, intval($this->prefilledTargetSets));
 
         $rows = [];
         $leftoverItems = [];
@@ -625,7 +656,7 @@ class JobIndexPage extends Component
         }
 
         if ($this->prefilledTargetSets <= 0) {
-            $this->addError('prefilledTargetSets', 'Target sets must be at least 1.');
+            $this->addError('prefilledTargetSets', 'Target assembled sets must be at least 1 set. 0 sets can be assembled for the selected category because one or more required constituent products are missing from this batch and spare stock.');
             return;
         }
 
