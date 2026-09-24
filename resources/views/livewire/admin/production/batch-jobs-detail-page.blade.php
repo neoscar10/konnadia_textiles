@@ -26,13 +26,17 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 shrink-0">
-            {{-- Hidden for now since conversion is handled on finished goods page --}}
-            {{-- @if($unconvertedSum > 0)
-                <button type="button" wire:click="openBatchConversionModal" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap">
-                    <span class="material-symbols-outlined text-[20px]">shopping_cart_checkout</span>
-                    Convert Batch Goods ({{ number_format($unconvertedSum) }} Pcs Available)
+            @if($isBatchComplete && $batchDbId && !$isBatchConverted)
+                <button type="button" wire:click="openBatchDesignModal({{ $batchDbId }})" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap cursor-pointer">
+                    <span class="material-symbols-outlined text-[20px]">swap_horiz</span>
+                    <span>Convert to Storefront Product</span>
                 </button>
-            @endif --}}
+            @elseif($isBatchConverted)
+                <span class="px-3.5 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl border border-slate-200 inline-flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    <span>Converted to Storefront</span>
+                </span>
+            @endif
         </div>
     </div>
 
@@ -768,6 +772,198 @@
                 </div>
             </form>
         @endif
+    </x-admin.modal>
+
+    <!-- Select Design ID Modal -->
+    <x-admin.modal id="select-batch-design-modal" title="Select Design ID for Storefront Conversion" maxWidth="lg">
+        <div class="space-y-4">
+            <div class="p-3.5 bg-primary/10 border border-primary/20 rounded-xl">
+                <p class="text-xs font-extrabold text-primary uppercase tracking-wider">Production Batch: {{ $selectedBatchCode }}</p>
+                <p class="text-xs text-on-surface-variant mt-0.5">Select the fabric Design ID you wish to convert to a Storefront Product.</p>
+            </div>
+
+            <div class="space-y-2 max-h-72 overflow-y-auto">
+                @foreach($batchDesignOptions as $opt)
+                    <div wire:click="selectDesignForConversion('{{ $opt['design_id'] }}')"
+                         class="p-4 bg-surface border border-outline-variant/60 hover:border-primary hover:bg-primary/5 rounded-xl cursor-pointer transition-all flex items-center justify-between group shadow-xs">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary text-lg">style</span>
+                                <h4 class="font-black text-on-surface text-sm font-mono group-hover:text-primary transition-colors">
+                                    {{ $opt['design_id'] }}
+                                </h4>
+                            </div>
+                            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-outline">
+                                @foreach($opt['products'] as $p)
+                                    <span class="px-2 py-0.5 bg-surface-container rounded-md font-semibold text-on-surface text-[11px]">
+                                        {{ $p['name'] }}: <strong>{{ number_format($p['qty']) }} Pcs</strong>
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-black rounded-full font-mono">
+                                {{ number_format($opt['total_produced_qty']) }} Pcs Total
+                            </span>
+                            <span class="material-symbols-outlined text-outline group-hover:text-primary text-base block mt-1 transition-transform group-hover:translate-x-1">arrow_forward</span>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="flex justify-end pt-3 border-t border-outline-variant/40">
+                <x-admin.button type="button" variant="ghost" @click="show = false">Cancel</x-admin.button>
+            </div>
+        </div>
+    </x-admin.modal>
+
+    <!-- Batch Conversion Wizard Modal -->
+    <x-admin.modal id="batch-conversion-wizard-modal" title="Convert Batch {{ $selectedBatchCode }} to Storefront Product" maxWidth="3xl">
+        <form wire:submit.prevent="processBatchConversionSubmit" class="space-y-5">
+            <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between">
+                <div>
+                    <span class="px-2.5 py-0.5 bg-emerald-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider">Design Selected</span>
+                    <h4 class="text-lg font-black text-emerald-950 font-mono mt-1">{{ $selectedDesignId }}</h4>
+                    <p class="text-xs text-emerald-800 font-semibold">Batch Code: {{ $selectedBatchCode }}</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-bold text-emerald-900 uppercase block">Prefilled Max Target Sets</span>
+                    <span class="text-2xl font-black text-emerald-700 font-mono">{{ number_format($prefilledTargetSets) }} Sets</span>
+                </div>
+            </div>
+
+            @if($errors->has('selectedCategoryIdForBatchConv') || $errors->has('prefilledTargetSets'))
+                <div class="bg-error-container/40 border border-error/30 text-error p-3.5 rounded-xl text-xs font-bold">
+                    {{ $errors->first('selectedCategoryIdForBatchConv') ?: $errors->first('prefilledTargetSets') }}
+                </div>
+            @endif
+
+            <!-- 1. Select Storefront Category -->
+            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-3">
+                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">1. Select Target Leaf Category *</label>
+                @php
+                    $leafCatService = app(\App\Services\Catalog\CategoryService::class);
+                    $leafCats = $leafCatService->getLeafCategories(manufacturedOnly: true);
+                @endphp
+                <select wire:model.live="selectedCategoryIdForBatchConv" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                    <option value="">-- Select Storefront Leaf Category --</option>
+                    @foreach($leafCats as $lc)
+                        @php $isCfg = in_array($lc->id, $configuredCategoryIds ?? []); @endphp
+                        <option value="{{ $lc->id }}">{{ $lc->name }} {{ $isCfg ? '✓ (Configured)' : '(Not Configured)' }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- 2. Target Assembled Quantity (Sets) -->
+            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-2">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">2. Target Assembled Quantity (Sets) *</label>
+                    <span class="text-[11px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded">Auto-Calculated from Batch Output</span>
+                </div>
+                <input type="number" min="1" wire:model.live="prefilledTargetSets" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-sm font-black text-on-surface focus:ring-2 focus:ring-primary/20">
+                <p class="text-[11px] text-outline">Target quantity is automatically set to the maximum complete sets formed from batch outputs. Any leftover items are automatically saved as Spare Products.</p>
+            </div>
+
+            <!-- 3. Spare Stock Options (If matching spare products exist for this Design ID) -->
+            @if(!empty($availableSpareProducts))
+                <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-amber-700 text-base">inventory</span>
+                            Available Spare Stock for Design {{ $selectedDesignId }}
+                        </span>
+                        <span class="text-[11px] font-bold text-amber-800">Add spare stock to increase target sets!</span>
+                    </div>
+
+                    <div class="space-y-2">
+                        @foreach($availableSpareProducts as $idx => $sp)
+                            <div class="p-3 bg-white border border-amber-200 rounded-xl flex items-center justify-between gap-3 text-xs">
+                                <div>
+                                    <p class="font-bold text-slate-900">{{ $sp['product_name'] }}</p>
+                                    <span class="text-[10px] text-slate-500 font-mono">From {{ $sp['source_batch'] }} — {{ $sp['available_qty'] }} Pcs Available</span>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <input type="number" min="0" max="{{ $sp['available_qty'] }}" wire:model.live.number="availableSpareProducts.{{ $idx }}.qty_to_use" class="w-24 bg-amber-50 border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-900 text-center">
+                                    <button type="button" wire:click="toggleAddAllSpareStock({{ $idx }})" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] rounded-lg transition-all">
+                                        {{ ($sp['qty_to_use'] ?? 0) > 0 ? 'Clear' : 'Add All (' . $sp['available_qty'] . ')' }}
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <!-- 4. Conversion Consumption & Spare Products Breakdown -->
+            @php
+                $bSummary = $this->batchConversionSummary;
+            @endphp
+            @if($selectedCategoryIdForBatchConv && !empty($bSummary['rows']))
+                <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-emerald-700 text-base">calculate</span>
+                            Conversion &amp; Spare Products Breakdown
+                        </span>
+                        <span class="text-xs font-black text-emerald-800 bg-emerald-100 px-3 py-1 rounded-lg font-mono">
+                            {{ number_format($bSummary['targetSets']) }} Sets Target
+                        </span>
+                    </div>
+
+                    <div class="space-y-2">
+                        @foreach($bSummary['rows'] as $r)
+                            <div class="p-3 bg-surface rounded-xl border border-emerald-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                <div>
+                                    <span class="font-bold text-on-surface text-sm block">{{ $r['manufacturing_product'] }}</span>
+                                    <span class="text-outline text-[11px]">
+                                        Req: {{ $r['req_per_set'] }} Pcs/Set × {{ number_format($bSummary['targetSets']) }} = <strong>{{ number_format($r['total_required']) }} Pcs</strong>
+                                        (Available: {{ number_format($r['total_available']) }} Pcs)
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-1 bg-emerald-100 text-emerald-900 font-bold rounded-lg text-[11px]">
+                                        Consumes {{ number_format($r['consumed']) }} Pcs
+                                    </span>
+                                    @if($r['leftover'] > 0)
+                                        <span class="px-2.5 py-1 bg-amber-100 text-amber-900 font-extrabold rounded-lg text-[11px] border border-amber-300/60 flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-xs text-amber-700">inventory_2</span>
+                                            +{{ number_format($r['leftover']) }} Pcs Spare Product
+                                        </span>
+                                    @else
+                                        <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-semibold rounded-lg text-[11px]">
+                                            0 Leftover
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @if($bSummary['hasLeftovers'])
+                        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2.5 text-xs text-amber-900 font-semibold">
+                            <span class="material-symbols-outlined text-amber-700 text-lg shrink-0">info</span>
+                            <div>
+                                <strong>Spare Products Notice:</strong> Upon completing conversion,
+                                @foreach($bSummary['leftoverItems'] as $lIdx => $lItem)
+                                    <strong>{{ number_format($lItem['leftover_qty']) }} Pcs of {{ $lItem['name'] }}</strong>{{ $lIdx < count($bSummary['leftoverItems']) - 1 ? ',' : '' }}
+                                @endforeach
+                                will be automatically saved as <strong>Spare Products</strong> for design <strong>{{ $selectedDesignId }}</strong>.
+                            </div>
+                        </div>
+                    @else
+                        <div class="p-2.5 bg-emerald-100/60 rounded-xl text-xs text-emerald-900 font-semibold flex items-center gap-2">
+                            <span class="material-symbols-outlined text-emerald-700 text-base">check_circle</span>
+                            <span>All manufactured pieces will be 100% converted into storefront sets with 0 leftover spare items.</span>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/40">
+                <x-admin.button type="button" variant="ghost" @click="show = false">Cancel</x-admin.button>
+                <x-admin.button type="submit" variant="primary" icon="shopping_cart_checkout">Complete Storefront Conversion</x-admin.button>
+            </div>
+        </form>
     </x-admin.modal>
 </div>
 
