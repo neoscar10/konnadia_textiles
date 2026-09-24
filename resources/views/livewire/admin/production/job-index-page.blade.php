@@ -654,30 +654,75 @@
                 </div>
             @endif
 
-            <!-- 1. Select Storefront Category -->
-            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-3">
-                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">1. Select Target Leaf Category *</label>
+            <!-- 1. Select Storefront Category & Target Product Name -->
+            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-4">
                 @php
                     $leafCatService = app(\App\Services\Catalog\CategoryService::class);
                     $batchRecordForConv = $selectedBatchDbId ? \App\Models\ProductionBatch::with(['jobs.manufacturingProduct'])->find($selectedBatchDbId) : null;
                     $batchMfgIds = $batchRecordForConv ? $batchRecordForConv->jobs->pluck('manufacturing_product_id')->filter()->map(fn($id) => (int)$id)->unique()->values()->toArray() : [];
                     $leafCats = $leafCatService->getLeafCategories(manufacturedOnly: true, matchingMfgProductIds: $batchMfgIds);
+                    $selectedCatObj = $selectedCategoryIdForBatchConv ? ($leafCats->firstWhere('id', (int)$selectedCategoryIdForBatchConv) ?? \App\Models\Category::find($selectedCategoryIdForBatchConv)) : null;
+                    $targetProdTitle = ($selectedDesignId && $selectedCatObj)
+                        ? trim("{$selectedDesignId} {$selectedCatObj->name}")
+                        : ($selectedDesignId ?: ($selectedCatObj?->name ?? ''));
+                    $existingStorefrontProduct = !empty($targetProdTitle)
+                        ? \App\Models\Product::where('title', $targetProdTitle)->first()
+                        : null;
                 @endphp
-                <select wire:model.live="selectedCategoryIdForBatchConv" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
-                    @if($leafCats->isNotEmpty())
-                        <option value="">-- Select Storefront Leaf Category --</option>
-                        @foreach($leafCats as $lc)
-                            <option value="{{ $lc->id }}">{{ $lc->name }} ✓ (Configured)</option>
-                        @endforeach
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">1. Select Target Leaf Category *</label>
+                        <select wire:model.live="selectedCategoryIdForBatchConv" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
+                            @if($leafCats->isNotEmpty())
+                                <option value="">-- Select Storefront Leaf Category --</option>
+                                @foreach($leafCats as $lc)
+                                    <option value="{{ $lc->id }}">{{ $lc->name }} ✓ (Configured)</option>
+                                @endforeach
+                            @else
+                                <option value="">-- No matching leaf categories found --</option>
+                            @endif
+                        </select>
+                        @if($leafCats->isEmpty())
+                            <p class="text-[11px] text-amber-700 font-semibold mt-1 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-xs text-amber-600">info</span>
+                                <span>No storefront leaf category is configured for the exact products in this batch ({{ implode(', ', $batchRecordForConv?->jobs->map(fn($j) => $j->manufacturingProduct?->name)->filter()->unique()->toArray() ?? []) }}).</span>
+                            </p>
+                        @endif
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Product Name (Auto-Prefilled)</label>
+                        <div class="px-3.5 py-2.5 bg-surface rounded-xl border border-outline-variant/60 font-extrabold text-xs text-primary flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">sell</span>
+                            <span>{{ $targetProdTitle ?: 'Select Category to preview product name...' }}</span>
+                        </div>
+                        <span class="text-[11px] text-outline mt-1 block">Prefilled with Design ID + Leaf Category</span>
+                    </div>
+                </div>
+
+                @if(!empty($targetProdTitle) && $selectedCategoryIdForBatchConv)
+                    @if($existingStorefrontProduct)
+                        <div class="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <div class="flex items-center gap-2 text-blue-950 font-bold">
+                                <span class="material-symbols-outlined text-blue-700 text-base shrink-0">inventory</span>
+                                <span><strong>Existing Storefront Product Found:</strong> Conversion will add stock to <strong>"{{ $existingStorefrontProduct->title }}"</strong></span>
+                            </div>
+                            <span class="px-2.5 py-1 bg-blue-100 text-blue-900 font-mono font-black rounded-lg text-[11px] whitespace-nowrap">
+                                Current Stock: {{ number_format($existingStorefrontProduct->stock_quantity) }} Pcs → {{ number_format($existingStorefrontProduct->stock_quantity + max(1, (int)$prefilledTargetSets)) }} Pcs
+                            </span>
+                        </div>
                     @else
-                        <option value="">-- No matching leaf categories found --</option>
+                        <div class="p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <div class="flex items-center gap-2 text-purple-950 font-bold">
+                                <span class="material-symbols-outlined text-purple-700 text-base shrink-0">add_box</span>
+                                <span><strong>New Storefront Product:</strong> A new storefront product <strong>"{{ $targetProdTitle }}"</strong> will be created upon conversion</span>
+                            </div>
+                            <span class="px-2.5 py-1 bg-purple-100 text-purple-900 font-mono font-black rounded-lg text-[11px] whitespace-nowrap">
+                                Initial Stock: +{{ number_format(max(1, (int)$prefilledTargetSets)) }} Pcs
+                            </span>
+                        </div>
                     @endif
-                </select>
-                @if($leafCats->isEmpty())
-                    <p class="text-[11px] text-amber-700 font-semibold mt-1 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-xs text-amber-600">info</span>
-                        <span>No storefront leaf category is configured for the exact products in this batch ({{ implode(', ', $batchRecordForConv?->jobs->map(fn($j) => $j->manufacturingProduct?->name)->filter()->unique()->toArray() ?? []) }}).</span>
-                    </p>
                 @endif
             </div>
 
