@@ -412,7 +412,7 @@
                                                                         $pDims = $selProduct ? \App\Services\FabricCuttingAreaService::formatProductPatternDimensions($selProduct, $selPattern, $roll) : null;
                                                                         $cLenVal = floatval($rollData['cut_length'] ?? 0);
                                                                     @endphp
-                                                                    <div wire:key="roll-prod-{{ $roll->id }}-{{ $pIdx }}-{{ $cLenVal }}-{{ $pRow['planned_quantity'] ?? 0 }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
+                                                                    <div wire:key="roll-prod-{{ $fIdx }}-{{ $roll->id }}-{{ $pIdx }}" class="p-3 bg-surface border border-outline-variant/60 rounded-xl space-y-2">
                                                                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                                                                             <div class="sm:col-span-5">
                                                                                 <label class="block text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-1">PRODUCT *</label>

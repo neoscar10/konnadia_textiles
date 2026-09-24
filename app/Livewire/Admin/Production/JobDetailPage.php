@@ -1093,10 +1093,7 @@ class JobDetailPage extends Component
     private function resetFormRows(): void
     {
         $defaultProdId = $this->job->manufacturing_product_id ?? '';
-        $task = $this->selectedTask;
-        $product = $this->job->manufacturingProduct;
-        $pivot = $product?->tasks->firstWhere('id', $this->selectedTaskId)?->pivot;
-        $baseRate = (float)($pivot?->standard_labor_rate ?? $product?->standard_labor_rate ?? $task?->standard_labor_rate ?? 0.00);
+        $baseRate = $this->selectedTaskId ? $this->job->getStandardLaborRateForTask($this->selectedTaskId) : 0.00;
 
         if (empty($this->laborAllocations)) {
             $this->laborAllocations = [
@@ -1163,10 +1160,7 @@ class JobDetailPage extends Component
         ]);
 
         $defaultProdId = $this->job->manufacturing_product_id ?? '';
-        $task = Task::with('rawMaterialCategories')->find($taskId);
-        $product = $this->job->manufacturingProduct;
-        $pivot = $product?->tasks->firstWhere('id', $taskId)?->pivot;
-        $baseRate = (float)($pivot?->standard_labor_rate ?? $product?->standard_labor_rate ?? $task?->standard_labor_rate ?? 0.00);
+        $baseRate = $taskId ? $this->job->getStandardLaborRateForTask($taskId) : 0.00;
 
         $this->laborAllocations = [[
             'labor_id' => '',
@@ -1345,10 +1339,7 @@ class JobDetailPage extends Component
     public function addLaborRow($manufacturingProductId = null): void
     {
         $prodId = $manufacturingProductId ?? ($this->job->manufacturing_product_id ?? '');
-        $task = $this->selectedTask;
-        $product = $this->job->manufacturingProduct;
-        $pivot = $product?->tasks->firstWhere('id', $this->selectedTaskId)?->pivot;
-        $baseRate = (float)($pivot?->standard_labor_rate ?? $product?->standard_labor_rate ?? $task?->standard_labor_rate ?? 0.00);
+        $baseRate = $this->selectedTaskId ? $this->job->getStandardLaborRateForTask($this->selectedTaskId) : 0.00;
 
         array_unshift($this->laborAllocations, [
             'labor_id' => '',
@@ -1370,9 +1361,7 @@ class JobDetailPage extends Component
                 $currentBase = floatval($this->laborAllocations[$index]['base_rate'] ?? 0);
                 if ($currentBase <= 0) {
                     $prodId = $this->laborAllocations[$index]['manufacturing_product_id'] ?? $this->job->manufacturing_product_id;
-                    $product = $prodId ? \App\Models\ManufacturingProduct::find($prodId) : $this->job->manufacturingProduct;
-                    $pivot = $product?->tasks->firstWhere('id', $this->selectedTaskId)?->pivot;
-                    $baseRate = (float)($pivot?->standard_labor_rate ?? $product?->standard_labor_rate ?? $this->selectedTask?->standard_labor_rate ?? 0.00);
+                    $baseRate = $this->selectedTaskId ? $this->job->getStandardLaborRateForTask($this->selectedTaskId) : 0.00;
                     $this->laborAllocations[$index]['base_rate'] = number_format($baseRate, 2, '.', '');
                 }
                 if (!isset($this->laborAllocations[$index]['bonus_rate']) || $this->laborAllocations[$index]['bonus_rate'] === '') {

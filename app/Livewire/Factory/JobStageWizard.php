@@ -751,7 +751,8 @@ class JobStageWizard extends Component
     // --- LABOR ROWS ACTIONS ---
     public function addLaborRow()
     {
-        $defaultRate = 10.00;
+        $taskId = $this->activeStage ? $this->activeStage->task_id : null;
+        $defaultRate = $taskId ? $this->job->getStandardLaborRateForTask($taskId) : 0.00;
         $qty = $this->activeStage ? (int) $this->activeStage->target_quantity : 200;
 
         $this->laborRows[] = [

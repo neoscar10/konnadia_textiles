@@ -115,12 +115,71 @@ class ProductionJob extends Model
     }
 
     /**
-     * Ensure all product routing tasks exist as stage execution records.
+     * Retrieve routing tasks for this job, preferring pattern-specific tasks if defined.
+     */
+    public function getEffectiveTasks()
+    {
+        if ($this->pattern_id) {
+            $pattern = $this->pattern ?? ManufacturingProductPattern::find($this->pattern_id);
+            if ($pattern && $pattern->tasks()->count() > 0) {
+                return $pattern->tasks;
+            }
+        }
+
+        $product = $this->manufacturingProduct;
+        if ($product && $product->tasks()->count() > 0) {
+            return $product->tasks;
+        }
+
+        return Task::where('status', true)->get();
+    }
+
+    /**
+     * Resolve standard labor rate for a task on this job in hierarchical order:
+     * 1. Pattern task routing pivot (manufacturing_pattern_tasks)
+     * 2. Pattern default standard_labor_rate (manufacturing_product_patterns)
+     * 3. Product task routing pivot (manufacturing_product_task)
+     * 4. Product default standard_labor_rate (manufacturing_products)
+     */
+    public function getStandardLaborRateForTask(?int $taskId): float
+    {
+        if (!$taskId) return 0.00;
+
+        if ($this->pattern_id) {
+            $pivotRate = \Illuminate\Support\Facades\DB::table('manufacturing_pattern_tasks')
+                ->where('pattern_id', $this->pattern_id)
+                ->where('task_id', $taskId)
+                ->value('standard_labor_rate');
+
+            if (!is_null($pivotRate)) {
+                return (float) $pivotRate;
+            }
+
+            $pattern = $this->pattern ?? ManufacturingProductPattern::find($this->pattern_id);
+            if ($pattern && !is_null($pattern->standard_labor_rate)) {
+                return (float) $pattern->standard_labor_rate;
+            }
+        }
+
+        if ($this->manufacturing_product_id) {
+            $product = $this->manufacturingProduct ?? ManufacturingProduct::find($this->manufacturing_product_id);
+            if ($product) {
+                $productRate = $product->getStandardLaborRateForTask($taskId);
+                if (!is_null($productRate)) {
+                    return (float) $productRate;
+                }
+            }
+        }
+
+        return 0.00;
+    }
+
+    /**
+     * Ensure all product or pattern routing tasks exist as stage execution records.
      */
     public function ensureStageExecutionsExist(): void
     {
-        $product = $this->manufacturingProduct;
-        $routingTasks = $product ? $product->tasks : Task::where('status', true)->get();
+        $routingTasks = $this->getEffectiveTasks();
         if ($routingTasks->isEmpty()) {
             return;
         }
