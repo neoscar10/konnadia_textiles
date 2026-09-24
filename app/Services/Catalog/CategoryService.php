@@ -85,7 +85,7 @@ class CategoryService
     /**
      * Get all leaf categories with their full path for pickers / product wizard.
      */
-    public function getLeafCategories(bool $manufacturedOnly = false): Collection
+    public function getLeafCategories(bool $manufacturedOnly = false, ?array $matchingMfgProductIds = null): Collection
     {
         $categories = Category::leaf()
             ->active()
@@ -105,6 +105,32 @@ class CategoryService
                 }
                 $type = $cat->default_product_config['product_type'] ?? 'manufactured';
                 return $type === 'manufactured';
+            });
+        }
+
+        if ($matchingMfgProductIds !== null) {
+            $targetMfgIds = array_values(array_unique(array_map('intval', $matchingMfgProductIds)));
+            sort($targetMfgIds);
+
+            $feProducts = \App\Models\FrontEndProduct::with('components')
+                ->whereIn('category_id', $categories->pluck('id'))
+                ->get()
+                ->keyBy('category_id');
+
+            $categories = $categories->filter(function ($cat) use ($feProducts, $targetMfgIds) {
+                $feProd = $feProducts->get($cat->id);
+                if (!$feProd || $feProd->components->isEmpty()) {
+                    return false;
+                }
+                $compMfgIds = $feProd->components
+                    ->pluck('manufacturing_product_id')
+                    ->filter()
+                    ->map(fn($id) => (int)$id)
+                    ->unique()
+                    ->values()
+                    ->toArray();
+                sort($compMfgIds);
+                return $compMfgIds === $targetMfgIds;
             });
         }
 

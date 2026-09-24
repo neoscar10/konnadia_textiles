@@ -496,12 +496,12 @@ class BatchJobsDetailPage extends Component
 
         $this->selectedSpareProductAllocations = [];
 
-        // Auto-select leaf category
+        // Auto-select leaf category matching exact batch manufacturing products
+        $batchMfgProductIds = $batch->jobs->pluck('manufacturing_product_id')->filter()->map(fn($id) => (int)$id)->unique()->values()->toArray();
         $leafCatService = app(\App\Services\Catalog\CategoryService::class);
-        $leafCategories = $leafCatService->getLeafCategories(manufacturedOnly: true);
-        $firstConfigFe = \App\Models\FrontEndProduct::has('components')->whereNotNull('category_id')->where('is_active', true)->first();
+        $leafCategories = $leafCatService->getLeafCategories(manufacturedOnly: true, matchingMfgProductIds: $batchMfgProductIds);
 
-        $this->selectedCategoryIdForBatchConv = $firstConfigFe?->category_id ?? $leafCategories->first()?->id;
+        $this->selectedCategoryIdForBatchConv = $leafCategories->first()?->id;
 
         $this->recalculateBatchConversionMaxSets();
 

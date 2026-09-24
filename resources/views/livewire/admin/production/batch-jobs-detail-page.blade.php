@@ -843,15 +843,26 @@
                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">1. Select Target Leaf Category *</label>
                 @php
                     $leafCatService = app(\App\Services\Catalog\CategoryService::class);
-                    $leafCats = $leafCatService->getLeafCategories(manufacturedOnly: true);
+                    $batchRecordForConv = $selectedBatchDbId ? \App\Models\ProductionBatch::with(['jobs.manufacturingProduct'])->find($selectedBatchDbId) : null;
+                    $batchMfgIds = $batchRecordForConv ? $batchRecordForConv->jobs->pluck('manufacturing_product_id')->filter()->map(fn($id) => (int)$id)->unique()->values()->toArray() : [];
+                    $leafCats = $leafCatService->getLeafCategories(manufacturedOnly: true, matchingMfgProductIds: $batchMfgIds);
                 @endphp
                 <select wire:model.live="selectedCategoryIdForBatchConv" class="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs font-bold text-on-surface focus:ring-2 focus:ring-primary/20">
-                    <option value="">-- Select Storefront Leaf Category --</option>
-                    @foreach($leafCats as $lc)
-                        @php $isCfg = in_array($lc->id, $configuredCategoryIds ?? []); @endphp
-                        <option value="{{ $lc->id }}">{{ $lc->name }} {{ $isCfg ? '✓ (Configured)' : '(Not Configured)' }}</option>
-                    @endforeach
+                    @if($leafCats->isNotEmpty())
+                        <option value="">-- Select Storefront Leaf Category --</option>
+                        @foreach($leafCats as $lc)
+                            <option value="{{ $lc->id }}">{{ $lc->name }} ✓ (Configured)</option>
+                        @endforeach
+                    @else
+                        <option value="">-- No matching leaf categories found --</option>
+                    @endif
                 </select>
+                @if($leafCats->isEmpty())
+                    <p class="text-[11px] text-amber-700 font-semibold mt-1 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-xs text-amber-600">info</span>
+                        <span>No storefront leaf category is configured for the exact products in this batch ({{ implode(', ', $batchRecordForConv?->jobs->map(fn($j) => $j->manufacturingProduct?->name)->filter()->unique()->toArray() ?? []) }}).</span>
+                    </p>
+                @endif
             </div>
 
             <!-- 2. Target Assembled Quantity (Sets) -->
