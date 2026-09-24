@@ -726,6 +726,98 @@
                 @endif
             </div>
 
+            <!-- NEW PRODUCT IMAGE SELECTION SECTION (Only if New Product will be created) -->
+            @if(!empty($targetProdTitle) && $selectedCategoryIdForBatchConv && !$existingStorefrontProduct)
+                @php
+                    $fabricPhoto = \App\Models\InventoryBale::where('design_number', $selectedDesignId)
+                        ->whereNotNull('photo_path')->where('photo_path', '!=', '')->latest()->value('photo_path')
+                        ?? \App\Models\InventoryBaleItem::where('design_number', $selectedDesignId)
+                        ->whereNotNull('photo_path')->where('photo_path', '!=', '')->latest()->value('photo_path')
+                        ?? \App\Models\InventoryBale::whereNotNull('photo_path')->where('photo_path', '!=', '')->latest()->value('photo_path');
+                @endphp
+
+                <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-primary text-base">add_a_photo</span>
+                            New Product Image / Photo *
+                        </label>
+                        <span class="text-[11px] text-outline">Select image source for this new storefront product</span>
+                    </div>
+
+                    <!-- Option Mode Toggle Buttons -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        @if($fabricPhoto)
+                            <button type="button" wire:click="$set('imageOptionMode', 'use_fabric')" class="p-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 {{ $imageOptionMode === 'use_fabric' ? 'bg-primary/10 border-primary text-primary shadow-xs' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:border-primary/40' }}">
+                                <span class="material-symbols-outlined text-lg">texture</span>
+                                <span>Use Fabric Photo</span>
+                            </button>
+                        @endif
+
+                        <button type="button" wire:click="$set('imageOptionMode', 'upload')" class="p-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 {{ $imageOptionMode === 'upload' ? 'bg-primary/10 border-primary text-primary shadow-xs' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:border-primary/40' }} {{ !$fabricPhoto ? 'col-span-2' : '' }}">
+                            <span class="material-symbols-outlined text-lg">cloud_upload</span>
+                            <span>Upload Custom Photo</span>
+                        </button>
+
+                        <button type="button" wire:click="$set('imageOptionMode', 'none')" class="p-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 {{ $imageOptionMode === 'none' ? 'bg-slate-200 border-slate-400 text-slate-800 shadow-xs' : 'bg-surface border-outline-variant/60 text-on-surface-variant hover:border-primary/40' }}">
+                            <span class="material-symbols-outlined text-lg">image_not_supported</span>
+                            <span>Create Without Image</span>
+                        </button>
+                    </div>
+
+                    <!-- Option 1: Fabric Photo Preview -->
+                    @if($imageOptionMode === 'use_fabric' && $fabricPhoto)
+                        <div class="p-3 bg-surface rounded-xl border border-primary/30 flex items-center gap-3">
+                            <img src="{{ asset($fabricPhoto) }}" alt="Fabric Photo" class="w-14 h-14 object-cover rounded-lg border border-outline-variant/60 shrink-0" />
+                            <div>
+                                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-900 text-[10px] font-black rounded uppercase">Fabric Purchase Photo Found</span>
+                                <p class="text-xs font-bold text-on-surface mt-1">Design {{ $selectedDesignId }} Fabric Photo</p>
+                                <span class="text-[11px] text-outline">Will be set as the primary product image for "{{ $targetProdTitle }}"</span>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Option 2: Upload Custom Photo Area -->
+                    @if($imageOptionMode === 'upload')
+                        <div class="p-4 bg-surface rounded-xl border-2 border-dashed border-primary/40 text-center space-y-3 relative overflow-hidden">
+                            <!-- Livewire Loading Animation Indicator -->
+                            <div wire:loading wire:target="newProductImage" class="absolute inset-0 bg-surface/90 rounded-xl flex flex-col items-center justify-center z-10 space-y-2">
+                                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                <span class="text-xs font-bold text-primary animate-pulse">Uploading product image...</span>
+                            </div>
+
+                            @if($newProductImage)
+                                <div class="flex items-center justify-center gap-4">
+                                    <img src="{{ $newProductImage->temporaryUrl() }}" alt="Product Image Preview" class="w-20 h-20 object-cover rounded-xl border-2 border-primary shadow-sm" />
+                                    <div class="text-left space-y-1">
+                                        <span class="px-2 py-0.5 bg-emerald-100 text-emerald-900 text-[10px] font-black rounded uppercase">Ready to attach</span>
+                                        <p class="text-xs font-bold text-on-surface">{{ $newProductImage->getClientOriginalName() }}</p>
+                                        <button type="button" wire:click="$set('newProductImage', null)" class="text-xs text-error hover:underline font-bold flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-xs">delete</span> Remove &amp; choose another
+                                        </button>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="space-y-1 py-2">
+                                    <span class="material-symbols-outlined text-3xl text-primary animate-bounce block">upload_file</span>
+                                    <p class="text-xs font-bold text-on-surface">Click to select or drag &amp; drop product photo</p>
+                                    <p class="text-[11px] text-outline">PNG, JPG, WEBP up to 5MB</p>
+                                    <input type="file" wire:model.live="newProductImage" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
+                    <!-- Option 3: None Notice -->
+                    @if($imageOptionMode === 'none')
+                        <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/40 text-xs text-outline flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base">info</span>
+                            <span>No image will be attached now. You can upload product images anytime later under <strong>Admin &gt; Products</strong>.</span>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <!-- 2. Target Assembled Quantity (Sets) -->
             <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/60 space-y-2">
                 <div class="flex items-center justify-between">

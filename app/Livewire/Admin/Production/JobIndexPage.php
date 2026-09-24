@@ -13,11 +13,12 @@ use App\Models\Product;
 use App\Models\ProductCombination;
 use App\Services\Manufacturing\FinishedGoodsConversionService;
 use Exception;
+use Livewire\WithFileUploads;
 
 #[Layout('components.admin.layout')]
 class JobIndexPage extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     #[Url(history: true)]
     public string $search = '';
@@ -404,6 +405,8 @@ class JobIndexPage extends Component
     public int $prefilledTargetSets = 1;
     public array $availableSpareProducts = [];
     public array $selectedSpareProductAllocations = []; // [spare_id => qty_to_use]
+    public string $imageOptionMode = 'use_fabric'; // 'use_fabric', 'upload', 'none'
+    public $newProductImage = null;
 
     public function openBatchDesignModal(int $batchId): void
     {
@@ -449,6 +452,14 @@ class JobIndexPage extends Component
         ])->toArray();
 
         $this->selectedSpareProductAllocations = [];
+
+        $this->newProductImage = null;
+        $fabricPhoto = \App\Models\InventoryBale::where('design_number', $this->selectedDesignId)
+            ->whereNotNull('photo_path')->where('photo_path', '!=', '')->latest()->value('photo_path')
+            ?? \App\Models\InventoryBaleItem::where('design_number', $this->selectedDesignId)
+            ->whereNotNull('photo_path')->where('photo_path', '!=', '')->latest()->value('photo_path')
+            ?? \App\Models\InventoryBale::whereNotNull('photo_path')->where('photo_path', '!=', '')->latest()->value('photo_path');
+        $this->imageOptionMode = $fabricPhoto ? 'use_fabric' : 'none';
 
         // Auto-select leaf category matching exact batch manufacturing products
         $batchMfgProductIds = $batch->jobs->pluck('manufacturing_product_id')->filter()->map(fn($id) => (int)$id)->unique()->values()->toArray();
@@ -629,6 +640,16 @@ class JobIndexPage extends Component
                 }
             }
 
+            $productImagePath = null;
+            $reuseCuttingPhoto = false;
+
+            if ($this->imageOptionMode === 'upload' && $this->newProductImage) {
+                $storedPath = $this->newProductImage->store('products', 'public');
+                $productImagePath = 'storage/' . $storedPath;
+            } elseif ($this->imageOptionMode === 'use_fabric') {
+                $reuseCuttingPhoto = true;
+            }
+
             $conversionService = resolve(FinishedGoodsConversionService::class);
             $fgBatch = $conversionService->convertCategoryToFinishedGoods([
                 'category_id' => $this->selectedCategoryIdForBatchConv,
@@ -637,6 +658,8 @@ class JobIndexPage extends Component
                 'design_id' => $this->selectedDesignId ?: 'DEFAULT',
                 'production_batch_id' => $this->selectedBatchDbId,
                 'spare_stock_selections' => $spareSelections,
+                'product_image' => $productImagePath,
+                'reuse_cutting_photo' => $reuseCuttingPhoto,
                 'notes' => "Converted from Production Batch Code {$this->selectedBatchCode} with Design ID {$this->selectedDesignId}",
             ]);
 

@@ -256,7 +256,17 @@ class FinishedGoodsConversionService
                         'alt_text' => $storefrontProduct->title,
                     ]);
                 } elseif ($reuseCuttingPhoto) {
-                    $balePhoto = \App\Models\InventoryBale::whereNotNull('photo_path')
+                    $balePhoto = \App\Models\InventoryBale::where('design_number', $designId)
+                        ->whereNotNull('photo_path')
+                        ->where('photo_path', '!=', '')
+                        ->latest()
+                        ->value('photo_path')
+                        ?? \App\Models\InventoryBaleItem::where('design_number', $designId)
+                        ->whereNotNull('photo_path')
+                        ->where('photo_path', '!=', '')
+                        ->latest()
+                        ->value('photo_path')
+                        ?? \App\Models\InventoryBale::whereNotNull('photo_path')
                         ->where('photo_path', '!=', '')
                         ->latest()
                         ->value('photo_path');
