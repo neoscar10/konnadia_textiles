@@ -155,4 +155,15 @@ class OverheadAllocationApiTest extends TestCase
             ->assertJsonPath('data.0.year', 2026)
             ->assertJsonPath('data.0.month', 8);
     }
+
+    public function test_alias_endpoints_work()
+    {
+        $response1 = $this->actingAs($this->adminUser, 'api')
+            ->getJson('/api/v1/production/overhead-allocation/options');
+        $response1->assertStatus(200);
+
+        $response2 = $this->actingAs($this->adminUser, 'api')
+            ->getJson('/api/v1/admin/production/overhead-allocation/options');
+        $response2->assertStatus(200);
+    }
 }

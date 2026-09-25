@@ -482,6 +482,14 @@ Route::prefix('v1')->group(function () {
                 Route::post('/convert', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'convert']);
                 Route::post('/preview-relationship', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'previewRelationship']);
             });
+
+            // Overhead Allocation Direct Alias (/production/overhead-allocation)
+            Route::prefix('overhead-allocation')->group(function () {
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'options']);
+                Route::get('/history', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'history']);
+                Route::get('/', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'show']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'store']);
+            });
         });
     });
 
@@ -890,6 +898,14 @@ Route::prefix('v1')->group(function () {
                     Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminSpareProductController::class, 'index']);
                     Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSpareProductController::class, 'show'])->where('id', '[0-9]+');
                     Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSpareProductController::class, 'destroy'])->where('id', '[0-9]+');
+                });
+
+                // Overhead Allocation Module (/admin/production/overhead-allocation)
+                Route::prefix('overhead-allocation')->group(function () {
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'options']);
+                    Route::get('/history', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'history']);
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'show']);
+                    Route::post('/', [\App\Http\Controllers\Api\V1\Factory\OverheadAllocationController::class, 'store']);
                 });
 
                 // Workbench & Audit History
