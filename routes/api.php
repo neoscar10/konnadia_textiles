@@ -332,6 +332,41 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/record-alteration', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'recordAlteration'])->where('id', '[0-9]+');
             });
 
+            // Manufacturing Products Direct Alias
+            Route::prefix('products')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            Route::prefix('manufacturing-products')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingProductController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Product Categories Direct Alias
+            Route::prefix('product-categories')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminManufacturingCategoryController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
             // Factory Supervisors Direct Alias
             Route::prefix('supervisors')->group(function () {
                 Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'index']);
