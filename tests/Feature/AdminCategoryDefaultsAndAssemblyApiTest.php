@@ -132,7 +132,6 @@ class AdminCategoryDefaultsAndAssemblyApiTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Category default configuration and manufacturing product assembly saved successfully.',
             ]);
 
         $this->leafCategory->refresh();

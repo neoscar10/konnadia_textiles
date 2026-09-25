@@ -29,6 +29,14 @@ class SaveCategoryDefaultsRequest extends FormRequest
             'units.level2_conversion' => 'nullable|numeric|min:0.0001',
 
             'pricingOverrides' => 'nullable|array',
+
+            'components' => 'nullable|array',
+            'components.*.manufacturing_product_id' => 'required_with:components|integer|exists:manufacturing_products,id',
+            'components.*.quantity' => 'required_with:components|integer|min:1',
+
+            'packaging_items' => 'nullable|array',
+            'packaging_items.*.raw_material_id' => 'required_with:packaging_items|integer|exists:raw_materials,id',
+            'packaging_items.*.quantity' => 'required_with:packaging_items|integer|min:1',
         ];
     }
 }

@@ -204,12 +204,27 @@ class AdminCategoryController extends Controller
             ];
         }
 
+        $feProduct = \App\Models\FrontEndProduct::with(['components.manufacturingProduct', 'packagingItems.rawMaterial'])
+            ->where('category_id', $category->id)->first();
+
+        $mfgProducts = \App\Models\ManufacturingProduct::orderBy('name')->get(['id', 'name', 'code', 'status']);
+        $packagingMaterials = \App\Models\RawMaterial::packagingOnly()->orderBy('name')->get(['id', 'name', 'code', 'unit']);
+        if ($packagingMaterials->isEmpty()) {
+            $packagingMaterials = \App\Models\RawMaterial::orderBy('name')->get(['id', 'name', 'code', 'unit']);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
                 'category_id' => $category->id,
                 'category_name' => $category->name,
+                'is_leaf' => (bool)$category->is_leaf,
                 'defaults' => $defaults,
+                'assembly_config' => $feProduct ? (new \App\Http\Resources\Api\V1\AdminFrontEndProductResource($feProduct))->toArray(request()) : null,
+                'picker_options' => [
+                    'manufacturing_products' => $mfgProducts,
+                    'packaging_materials' => $packagingMaterials,
+                ],
             ]
         ]);
     }
@@ -223,6 +238,42 @@ class AdminCategoryController extends Controller
         $validated = $request->validated();
 
         $category = $categoryService->saveCategoryDefaults($category, $validated);
+
+        if (!empty($validated['components'])) {
+            $components = collect($validated['components'])->filter(
+                fn ($r) => !empty($r['manufacturing_product_id']) && intval($r['quantity']) > 0
+            );
+            $packagingItems = collect($validated['packaging_items'] ?? [])->filter(
+                fn ($r) => !empty($r['raw_material_id']) && intval($r['quantity']) > 0
+            );
+
+            if ($components->isNotEmpty()) {
+                \Illuminate\Support\Facades\DB::transaction(function () use ($category, $components, $packagingItems, $validated) {
+                    $fep = \App\Models\FrontEndProduct::saveConfigForCategory($category, [
+                        'name' => trim($category->name),
+                        'leaf_category_name' => trim($category->name),
+                        'is_active' => true,
+                        'description' => $validated['description'] ?? null,
+                    ]);
+
+                    $fep->components()->delete();
+                    foreach ($components as $comp) {
+                        $fep->components()->create([
+                            'manufacturing_product_id' => intval($comp['manufacturing_product_id']),
+                            'quantity' => intval($comp['quantity']),
+                        ]);
+                    }
+
+                    $fep->packagingItems()->delete();
+                    foreach ($packagingItems as $pkg) {
+                        $fep->packagingItems()->create([
+                            'raw_material_id' => intval($pkg['raw_material_id']),
+                            'quantity' => intval($pkg['quantity']),
+                        ]);
+                    }
+                });
+            }
+        }
 
         return response()->json([
             'success' => true,

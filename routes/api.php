@@ -378,6 +378,95 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'toggleStatus'])->where('id', '[0-9]+');
                 Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'destroy'])->where('id', '[0-9]+');
             });
+
+            // Raw Material Master Direct Alias
+            Route::prefix('raw-materials')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'options']);
+                Route::get('/purchase/options', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialPurchaseController::class, 'options']);
+                Route::post('/purchase', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialPurchaseController::class, 'store']);
+                Route::get('/batches', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'index']);
+                Route::get('/batches/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/batches/{id}/bales/{baleId}/open', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'openBale'])->where(['id' => '[0-9]+', 'baleId' => '[0-9]+']);
+                Route::post('/batches/{id}/adjust-quantity', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'adjustQuantity'])->where('id', '[0-9]+');
+                
+                Route::get('/categories', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialCategoryController::class, 'index']);
+                Route::post('/categories', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialCategoryController::class, 'store']);
+                Route::get('/suppliers', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'index']);
+                Route::get('/suppliers/options', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'options']);
+                Route::post('/suppliers', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'store']);
+                Route::get('/fabric-widths', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'index']);
+                Route::get('/fabric-widths/options', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'options']);
+                Route::post('/fabric-widths', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'store']);
+
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Supplier Direct Alias
+            Route::prefix('suppliers')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'update'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupplierController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Fabric Width Direct Alias
+            Route::prefix('fabric-widths')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminFabricWidthController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Raw Material Purchases Direct Alias
+            Route::prefix('raw-material-purchases')->group(function () {
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialPurchaseController::class, 'options']);
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialPurchaseController::class, 'store']);
+            });
+
+            // Inventory Batches Direct Alias
+            Route::prefix('inventory-batches')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/{id}/bales/{baleId}/open', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'openBale'])->where(['id' => '[0-9]+', 'baleId' => '[0-9]+']);
+                Route::post('/{id}/adjust-quantity', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'adjustQuantity'])->where('id', '[0-9]+');
+            });
+
+            // Units Management Direct Alias
+            Route::prefix('units')->group(function () {
+                Route::get('/templates', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'templates']);
+                Route::get('/groups', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'index']);
+                Route::get('/groups/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/groups', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'store']);
+                Route::put('/groups/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/groups/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/groups/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/groups/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitGroupController::class, 'destroy'])->where('id', '[0-9]+');
+
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::post('/{id}/set-base', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'setBaseUnit'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'destroy'])->where('id', '[0-9]+');
+
+                Route::post('/convert', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'convert']);
+                Route::post('/preview-relationship', [\App\Http\Controllers\Api\V1\Admin\AdminUnitController::class, 'previewRelationship']);
+            });
         });
     });
 
