@@ -328,9 +328,20 @@ Route::prefix('v1')->group(function () {
                 Route::get('/workbench', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'workbench']);
                 Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'show'])->where('id', '[0-9]+');
                 Route::get('/{id}/cost-summary', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'costSummary'])->where('id', '[0-9]+');
-                Route::post('/{id}/assign-laborers', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'assignLaborers'])->where('id', '[0-9]+');
                 Route::post('/{id}/record-output', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'recordOutput'])->where('id', '[0-9]+');
                 Route::post('/{id}/record-alteration', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'recordAlteration'])->where('id', '[0-9]+');
+            });
+
+            // Factory Supervisors Direct Alias
+            Route::prefix('supervisors')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSupervisorController::class, 'destroy'])->where('id', '[0-9]+');
             });
         });
     });

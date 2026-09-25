@@ -85,6 +85,15 @@ class AdminSupervisorApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.name', 'Ramesh Kumar');
+
+        // Test route aliases /api/v1/production/supervisors and /api/v1/admin/production/supervisors
+        $prodListResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/production/supervisors');
+        $prodListResp->assertStatus(200)->assertJsonPath('success', true);
+
+        $adminListResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/admin/production/supervisors');
+        $adminListResp->assertStatus(200)->assertJsonPath('success', true);
     }
 
     public function test_authorized_admin_can_view_single_supervisor_details(): void
@@ -97,6 +106,10 @@ class AdminSupervisorApiTest extends TestCase
             ->assertJsonPath('data.id', $this->supervisor->id)
             ->assertJsonPath('data.name', 'Ramesh Kumar')
             ->assertJsonPath('data.code', 'SUP-0001');
+
+        $prodShowResp = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->getJson('/api/v1/production/supervisors/' . $this->supervisor->id);
+        $prodShowResp->assertStatus(200)->assertJsonPath('success', true);
     }
 
     public function test_authorized_admin_can_create_supervisor_with_manual_and_auto_code(): void
