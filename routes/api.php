@@ -75,6 +75,9 @@ Route::prefix('v1')->group(function () {
 
             // Labor Management Alias (/factory/labor)
             Route::prefix('labor')->group(function () {
+                Route::get('/categories/options', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'options']);
+                Route::get('/categories', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'index']);
+                Route::post('/categories', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'store']);
                 Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'index']);
                 Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'options']);
                 Route::get('/payroll/summary', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'payrollSummary']);
@@ -86,6 +89,18 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'update'])->where('id', '[0-9]+');
                 Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'toggleStatus'])->where('id', '[0-9]+');
                 Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'destroy'])->where('id', '[0-9]+');
+            });
+
+            // Labor Categories Direct Alias (/factory/labor-categories)
+            Route::prefix('labor-categories')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'update'])->where('id', '[0-9]+');
+                Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'destroy'])->where('id', '[0-9]+');
             });
 
             // Tracking History Alias (/factory/tracking-history)
@@ -900,6 +915,9 @@ Route::prefix('v1')->group(function () {
 
                 // Labor Management Alias (/factory/labor)
                 Route::prefix('labor')->group(function () {
+                    Route::get('/categories/options', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'options']);
+                    Route::get('/categories', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'index']);
+                    Route::post('/categories', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'store']);
                     Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'index']);
                     Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'options']);
                     Route::get('/payroll/summary', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'payrollSummary']);
@@ -911,6 +929,18 @@ Route::prefix('v1')->group(function () {
                     Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'update'])->where('id', '[0-9]+');
                     Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'toggleStatus'])->where('id', '[0-9]+');
                     Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborController::class, 'destroy'])->where('id', '[0-9]+');
+                });
+
+                // Labor Categories Direct Alias (/factory/labor-categories)
+                Route::prefix('labor-categories')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'index']);
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'options']);
+                    Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'show'])->where('id', '[0-9]+');
+                    Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'store']);
+                    Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'update'])->where('id', '[0-9]+');
+                    Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'toggleStatus'])->where('id', '[0-9]+');
+                    Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminLaborCategoryController::class, 'destroy'])->where('id', '[0-9]+');
                 });
 
                 // Wages Management Alias (/factory/wages)
