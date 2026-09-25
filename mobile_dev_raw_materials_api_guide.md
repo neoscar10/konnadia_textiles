@@ -17,16 +17,18 @@ This comprehensive API integration guide provides mobile app developers (iOS / A
 3. [Suppliers Management API](#3-suppliers-management-api)
    - [GET /factory/raw-materials/suppliers/options (Supplier Picker Options)](#31-get-factoryraw-materialssuppliersoptions)
    - [GET /factory/raw-materials/suppliers (List Suppliers)](#32-get-factoryraw-materialssuppliers)
-   - [POST /factory/raw-materials/suppliers (Create Supplier)](#33-post-factoryraw-materialssuppliers)
-   - [PUT /factory/raw-materials/suppliers/{id} (Update Supplier)](#34-put-factoryraw-materialssuppliersids)
-   - [DELETE /factory/raw-materials/suppliers/{id} (Delete Supplier)](#35-delete-factoryraw-materialssuppliersids)
+   - [GET /factory/raw-materials/suppliers/{id} (Supplier Details)](#33-get-factoryraw-materialssuppliersids)
+   - [POST /factory/raw-materials/suppliers (Create Supplier)](#34-post-factoryraw-materialssuppliers)
+   - [PUT /factory/raw-materials/suppliers/{id} (Update Supplier)](#35-put-factoryraw-materialssuppliersids)
+   - [DELETE /factory/raw-materials/suppliers/{id} (Delete Supplier)](#36-delete-factoryraw-materialssuppliersids)
 4. [Fabric Widths Management API](#4-fabric-widths-management-api)
    - [GET /factory/fabric-widths/options (Fabric Width Options)](#41-get-factoryfabric-widthsoptions)
    - [GET /factory/fabric-widths (List Fabric Widths)](#42-get-factoryfabric-widths)
-   - [POST /factory/fabric-widths (Create Fabric Width)](#43-post-factoryfabric-widths)
-   - [PUT /factory/fabric-widths/{id} (Update Fabric Width)](#44-put-factoryfabric-widthsids)
-   - [PATCH /factory/fabric-widths/{id}/toggle-status (Toggle Status)](#45-patch-factoryfabric-widthsids-toggle-status)
-   - [DELETE /factory/fabric-widths/{id} (Delete Fabric Width)](#46-delete-factoryfabric-widthsids)
+   - [GET /factory/fabric-widths/{id} (Fabric Width Detail)](#43-get-factoryfabric-widthsids)
+   - [POST /factory/fabric-widths (Create Fabric Width)](#44-post-factoryfabric-widths)
+   - [PUT /factory/fabric-widths/{id} (Update Fabric Width)](#45-put-factoryfabric-widthsids)
+   - [PATCH /factory/fabric-widths/{id}/toggle-status (Toggle Status)](#46-patch-factoryfabric-widthsids-toggle-status)
+   - [DELETE /factory/fabric-widths/{id} (Delete Fabric Width)](#47-delete-factoryfabric-widthsids)
 5. [Raw Material Purchase Entries API](#5-raw-material-purchase-entries-api)
    - [GET /factory/raw-materials/purchase/options (Purchase Form Options)](#51-get-factoryraw-materialspurchaseoptions)
    - [POST /factory/raw-materials/purchase (Submit Purchase Entry)](#52-post-factoryraw-materialspurchase)
@@ -38,12 +40,18 @@ This comprehensive API integration guide provides mobile app developers (iOS / A
 7. [Units & Unit Groups Management API](#7-units--unit-groups-management-api)
    - [GET /admin/units/templates (Unit Group Templates)](#71-get-adminunitstemplates)
    - [GET /admin/units/groups (List Unit Groups)](#72-get-adminunitsgroups)
-   - [POST /admin/units/groups (Create Unit Group)](#73-post-adminunitsgroups)
-   - [GET /admin/units (List Unit Records)](#74-get-adminunits)
-   - [POST /admin/units (Create Unit Record)](#75-post-adminunits)
-   - [POST /admin/units/{id}/set-base (Set Group Base Unit)](#76-post-adminunitsids-set-base)
-   - [POST /admin/units/convert (Unit Conversion Calculator)](#77-post-adminunitsconvert)
-   - [POST /admin/units/preview-relationship (Preview Conversion Factors)](#78-post-adminunitspreview-relationship)
+   - [GET /admin/units/groups/{id} (Show Unit Group)](#73-get-adminunitsgroupsids)
+   - [POST /admin/units/groups (Create Unit Group)](#74-post-adminunitsgroups)
+   - [PUT /admin/units/groups/{id} (Update Unit Group)](#75-put-adminunitsgroupsids)
+   - [DELETE /admin/units/groups/{id} (Delete Unit Group)](#76-delete-adminunitsgroupsids)
+   - [GET /admin/units (List Unit Records)](#77-get-adminunits)
+   - [GET /admin/units/{id} (Show Unit Detail)](#78-get-adminunitsids)
+   - [POST /admin/units (Create Unit Record)](#79-post-adminunits)
+   - [PUT /admin/units/{id} (Update Unit Record)](#710-put-adminunitsids)
+   - [POST /admin/units/{id}/set-base (Set Group Base Unit)](#711-post-adminunitsids-set-base)
+   - [DELETE /admin/units/{id} (Delete Unit Record)](#712-delete-adminunitsids)
+   - [POST /admin/units/convert (Unit Conversion Calculator)](#713-post-adminunitsconvert)
+   - [POST /admin/units/preview-relationship (Preview Conversion Factors)](#714-post-adminunitspreview-relationship)
 
 ---
 
@@ -74,7 +82,7 @@ All raw material routes are accessible under multiple equivalent route prefixes:
 ## 2. Raw Materials Master API
 
 ### 2.1 GET `/factory/raw-materials/options`
-Retrieves options for creating and filtering raw materials, including categories, available unit groups, and fabric standard widths.
+Retrieves option pickers for creating and filtering raw materials, including categories, standard unit types, unit list, and fabric standard widths.
 
 #### Response Example (`HTTP 200 OK`):
 ```json
@@ -82,25 +90,16 @@ Retrieves options for creating and filtering raw materials, including categories
   "success": true,
   "data": {
     "categories": [
-      {
-        "id": 1,
-        "name": "Fabrics",
-        "code": "FAB",
-        "unit_type": "length"
-      },
-      {
-        "id": 2,
-        "name": "Stitching Material",
-        "code": "STITCH",
-        "unit_type": "quantity"
-      }
+      { "id": 1, "name": "Fabrics", "code": "FAB", "unit_type": "length" },
+      { "id": 2, "name": "Stitching Material", "code": "STITCH", "unit_type": "quantity" },
+      { "id": 3, "name": "Packaging Material", "code": "PKG", "unit_type": "quantity" }
     ],
     "unit_types": ["length", "weight", "quantity"],
     "units": ["Meters", "Yards", "Inches", "Kg", "Grams", "Pcs", "Rolls", "Bales"],
     "fabric_widths": [
-      { "id": 1, "width": 44, "unit": "Inches" },
-      { "id": 2, "width": 54, "unit": "Inches" },
-      { "id": 3, "width": 60, "unit": "Inches" }
+      { "id": 1, "width": 44, "unit": "Inches", "description": "44 Inch Standard" },
+      { "id": 2, "width": 54, "unit": "Inches", "description": "54 Inch Standard" },
+      { "id": 3, "width": 60, "unit": "Inches", "description": "60 Inch Wide Sheeting" }
     ]
   }
 }
@@ -112,10 +111,10 @@ Retrieves options for creating and filtering raw materials, including categories
 Returns a paginated list of raw materials with search, category filtering, unit type filtering, and status filtering.
 
 #### Query Parameters:
-- `search` (string, optional): Filter by material name or code (`RM-FAB-001`).
+- `search` (string, optional): Search by raw material name or code (`RM-FAB-001`).
 - `category_id` (integer, optional): Filter by raw material category ID.
-- `unit_type` (string, optional): `length`, `weight`, or `quantity`.
-- `status` (string, optional): `active` or `inactive`.
+- `unit_type` (string, optional): Filter by `length`, `weight`, or `quantity`.
+- `status` (string, optional): Filter by `active` or `inactive`.
 - `per_page` (integer, default `15`).
 
 #### Response Example (`HTTP 200 OK`):
@@ -141,7 +140,9 @@ Returns a paginated list of raw materials with search, category filtering, unit 
         "created_at": "2026-09-20T10:15:00Z"
       }
     ],
-    "total": 1
+    "total": 1,
+    "per_page": 15,
+    "last_page": 1
   }
 }
 ```
@@ -149,7 +150,7 @@ Returns a paginated list of raw materials with search, category filtering, unit 
 ---
 
 ### 2.3 GET `/factory/raw-materials/{id}`
-Returns details for a specific raw material along with its current inventory batch summary.
+Returns full details for a single raw material record.
 
 #### Response Example (`HTTP 200 OK`):
 ```json
@@ -160,8 +161,11 @@ Returns details for a specific raw material along with its current inventory bat
     "name": "100% Cotton Satin Fabric 300TC",
     "code": "RM-FAB-300TC",
     "raw_material_category_id": 1,
+    "category": { "id": 1, "name": "Fabrics", "code": "FAB" },
+    "unit_type": "length",
     "unit": "Meters",
     "fabric_standard_width_id": 3,
+    "fabric_width": { "id": 3, "width": 60, "unit": "Inches" },
     "minimum_stock_level": 500,
     "status": "active",
     "batches_count": 4,
@@ -173,7 +177,7 @@ Returns details for a specific raw material along with its current inventory bat
 ---
 
 ### 2.4 POST `/factory/raw-materials`
-Creates a new raw material record.
+Creates a new raw material master record.
 
 #### Request Body (`JSON`):
 ```json
@@ -188,32 +192,81 @@ Creates a new raw material record.
 }
 ```
 
+#### Validation Rules & Error Handling (`HTTP 422 Unprocessable Entity`):
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "code": ["The code has already been taken."],
+    "raw_material_category_id": ["The selected raw material category id is invalid."]
+  }
+}
+```
+
 ---
 
 ### 2.5 PUT `/factory/raw-materials/{id}`
 Updates an existing raw material record.
 
+#### Request Body (`JSON`):
+```json
+{
+  "name": "Poly-Cotton Twill Gray 260 GSM (Heavy)",
+  "code": "RM-FAB-PCT260",
+  "raw_material_category_id": 1,
+  "unit": "Meters",
+  "fabric_standard_width_id": 2,
+  "minimum_stock_level": 400,
+  "status": "active"
+}
+```
+
 ---
 
 ### 2.6 PATCH `/factory/raw-materials/{id}/toggle-status`
-Toggles active/inactive status.
+Toggles status between `active` and `inactive`.
+
+#### Response Example (`HTTP 200 OK`):
+```json
+{
+  "success": true,
+  "message": "Raw material status updated to inactive successfully.",
+  "data": {
+    "id": 10,
+    "status": "inactive"
+  }
+}
+```
 
 ---
 
 ### 2.7 DELETE `/factory/raw-materials/{id}`
-Deletes raw material if no active inventory batches or production allocations are linked to it.
+Deletes a raw material if no active inventory batches or production allocations are attached.
+
+#### Response Example (`HTTP 200 OK`):
+```json
+{
+  "success": true,
+  "message": "Raw material deleted successfully."
+}
+```
 
 ---
 
 ## 3. Suppliers Management API
 
 ### 3.1 GET `/factory/raw-materials/suppliers/options`
-Returns option pickers for supplier state dropdowns.
+Returns options for supplier pickers.
 
 ### 3.2 GET `/factory/raw-materials/suppliers`
-Returns paginated list of material suppliers with search (`name`, `code`, `phone`, `gst_number`).
+Returns paginated supplier records with `search` query parameter.
 
-### 3.3 POST `/factory/raw-materials/suppliers`
+### 3.3 GET `/factory/raw-materials/suppliers/{id}`
+Returns details for a single supplier.
+
+### 3.4 POST `/factory/raw-materials/suppliers`
+Creates a new material supplier.
+
 #### Request Body (`JSON`):
 ```json
 {
@@ -230,45 +283,66 @@ Returns paginated list of material suppliers with search (`name`, `code`, `phone
 }
 ```
 
+### 3.5 PUT `/factory/raw-materials/suppliers/{id}`
+Updates supplier record details.
+
+### 3.6 DELETE `/factory/raw-materials/suppliers/{id}`
+Deletes supplier if no purchase entries are attached.
+
 ---
 
 ## 4. Fabric Widths Management API
 
-### 4.1 GET `/factory/fabric-widths`
-Returns standard fabric widths used in production cutting math.
+### 4.1 GET `/factory/fabric-widths/options`
+Returns active fabric widths for dropdown selection.
+
+### 4.2 GET `/factory/fabric-widths`
+Lists standard fabric width records.
 
 #### Response Example (`HTTP 200 OK`):
 ```json
 {
   "success": true,
   "data": [
-    { "id": 1, "width": 44.0, "unit": "Inches", "description": "Standard Shirt / Dress Width", "is_active": true },
-    { "id": 2, "width": 54.0, "unit": "Inches", "description": "Upholstery & Suiting Width", "is_active": true },
-    { "id": 3, "width": 60.0, "unit": "Inches", "description": "Wide Sheeting & Curtain Width", "is_active": true },
+    { "id": 1, "width": 44.0, "unit": "Inches", "description": "Standard Shirt Width", "is_active": true },
+    { "id": 2, "width": 54.0, "unit": "Inches", "description": "Upholstery Width", "is_active": true },
+    { "id": 3, "width": 60.0, "unit": "Inches", "description": "Wide Sheeting", "is_active": true },
     { "id": 4, "width": 108.0, "unit": "Inches", "description": "Extra Wide Bedsheet Width", "is_active": true }
   ]
 }
 ```
 
-### 4.2 POST `/factory/fabric-widths`
+### 4.3 GET `/factory/fabric-widths/{id}`
+Returns details for a single fabric width.
+
+### 4.4 POST `/factory/fabric-widths`
 ```json
 {
   "width": 72.0,
   "unit": "Inches",
-  "description": "72 inch Special Weave Width",
+  "description": "72 Inch Special Weave",
   "is_active": true
 }
 ```
+
+### 4.5 PUT `/factory/fabric-widths/{id}`
+Updates fabric width record.
+
+### 4.6 PATCH `/factory/fabric-widths/{id}/toggle-status`
+Toggles active status.
+
+### 4.7 DELETE `/factory/fabric-widths/{id}`
+Deletes fabric width record if not currently assigned to raw materials.
 
 ---
 
 ## 5. Raw Material Purchase Entries API
 
 ### 5.1 GET `/factory/raw-materials/purchase/options`
-Returns suppliers, raw materials, fabric widths, and unit pickers for recording inbound stock shipments.
+Returns supplier options, raw material catalog options, fabric width pickers, and unit options for purchase form.
 
 ### 5.2 POST `/factory/raw-materials/purchase`
-Submits an inbound shipment invoice entry and automatically generates inventory batch numbers and individual roll/bale tracking records.
+Records inbound raw material shipment and automatically generates batch tracking numbers and individual roll/bale records.
 
 #### Request Body (`JSON`):
 ```json
@@ -313,7 +387,43 @@ Submits an inbound shipment invoice entry and automatically generates inventory 
 Lists inventory batches with filter options (`raw_material_id`, `supplier_id`, `status`).
 
 ### 6.2 GET `/factory/raw-materials/batches/{id}`
-Returns batch information and list of individual bales/rolls with their open/unopened states.
+Returns batch information and list of individual bales/rolls with open/unopened states.
+
+#### Response Example (`HTTP 200 OK`):
+```json
+{
+  "success": true,
+  "data": {
+    "id": 45,
+    "batch_code": "BATCH-COT-2026-09A",
+    "raw_material_id": 10,
+    "raw_material_name": "100% Cotton Satin Fabric 300TC",
+    "supplier_name": "Apex Textile Mills Ltd",
+    "invoice_number": "INV-2026-0891",
+    "total_quantity": 1000.0,
+    "remaining_quantity": 850.0,
+    "unit": "Meters",
+    "bales": [
+      {
+        "id": 101,
+        "bale_number": "BALE-01",
+        "length": 100.0,
+        "status": "opened",
+        "opened_at": "2026-09-25T14:30:00Z"
+      },
+      {
+        "id": 102,
+        "bale_number": "BALE-02",
+        "length": 100.0,
+        "status": "unopened",
+        "opened_at": null
+      }
+    ]
+  }
+}
+```
+
+---
 
 ### 6.3 POST `/factory/raw-materials/batches/{id}/bales/{baleId}/open`
 Marks a specific roll or bale as opened for cutting/production processing.
@@ -322,17 +432,28 @@ Marks a specific roll or bale as opened for cutting/production processing.
 ```json
 {
   "success": true,
-  "message": "Bale BALE-01 marked as OPENED for production.",
+  "message": "Bale BALE-02 marked as OPENED for production.",
   "data": {
     "bale_id": 102,
     "status": "opened",
-    "opened_at": "2026-09-26T00:05:00Z"
+    "opened_at": "2026-09-26T00:10:00Z"
   }
 }
 ```
 
+---
+
 ### 6.4 POST `/factory/raw-materials/batches/{id}/adjust-quantity`
-Allows stock reconciliation and manual stock adjustments.
+Performs physical stock reconciliation and manual adjustments.
+
+#### Request Body (`JSON`):
+```json
+{
+  "adjustment_type": "subtract",
+  "quantity": 15.0,
+  "reason": "Cutting room edge defect trim wastage"
+}
+```
 
 ---
 
@@ -344,7 +465,13 @@ Provides pre-configured unit group templates (Length, Weight, Volume, Count).
 ### 7.2 GET `/admin/units/groups`
 Lists unit groups (e.g. Length Group: Meter, Yard, Inch, Feet).
 
-### 7.3 POST `/admin/units/groups`
+### 7.3 GET `/admin/units/groups/{id}`
+Returns detail for a specific unit group.
+
+### 7.4 POST `/admin/units/groups`
+Creates a new unit group.
+
+#### Request Body (`JSON`):
 ```json
 {
   "name": "Fabric Packaging Count Group",
@@ -354,10 +481,22 @@ Lists unit groups (e.g. Length Group: Meter, Yard, Inch, Feet).
 }
 ```
 
-### 7.4 GET `/admin/units`
+### 7.5 PUT `/admin/units/groups/{id}`
+Updates unit group details.
+
+### 7.6 DELETE `/admin/units/groups/{id}`
+Deletes unit group if no active unit records are assigned to it.
+
+### 7.7 GET `/admin/units`
 Lists all unit records with conversion factors relative to their group base unit.
 
-### 7.5 POST `/admin/units`
+### 7.8 GET `/admin/units/{id}`
+Returns single unit record detail.
+
+### 7.9 POST `/admin/units`
+Creates a new unit record.
+
+#### Request Body (`JSON`):
 ```json
 {
   "unit_group_id": 1,
@@ -369,11 +508,17 @@ Lists all unit records with conversion factors relative to their group base unit
 }
 ```
 
-### 7.6 POST `/admin/units/{id}/set-base`
+### 7.10 PUT `/admin/units/{id}`
+Updates unit record details.
+
+### 7.11 POST `/admin/units/{id}/set-base`
 Sets the specified unit as the base reference unit for its group (recalculating conversion factors).
 
-### 7.7 POST `/admin/units/convert`
-Calculates live conversions between units within the same group.
+### 7.12 DELETE `/admin/units/{id}`
+Deletes unit record if not designated as group base unit.
+
+### 7.13 POST `/admin/units/convert`
+Calculates live conversions between units within the same unit group.
 
 #### Request Body (`JSON`):
 ```json
@@ -398,12 +543,12 @@ Calculates live conversions between units within the same group.
 }
 ```
 
-### 7.8 POST `/admin/units/preview-relationship`
+### 7.14 POST `/admin/units/preview-relationship`
 Calculates live preview of base and target unit conversion dynamics.
 
 ---
 
 ## Summary for Mobile Developers
-1. **Full API Parity**: Every action on the web application (Raw Materials, Suppliers, Fabric Widths, Purchases, Batches, Units) is fully exposed via clean REST endpoints.
-2. **Robust Route Interceptors**: Non-numeric actions (`/options`, `/templates`, `/groups`, `/convert`, `/preview-relationship`) are guaranteed not to trigger `{id}` route conflicts.
-3. **Optimized for Mobile UI**: Option pickers populate dynamic spinners/dropdowns instantly without redundant client calculations.
+1. **Full Feature Parity**: Mobile applications can render all raw materials, suppliers, fabric widths, purchase entries, inventory batch bale opening, and unit management screens matching the web experience.
+2. **Deterministic Route Resolution**: Non-numeric actions (`/options`, `/templates`, `/groups`, `/convert`, `/preview-relationship`) strictly avoid `{id}` parameter collision errors.
+3. **Optimized Payloads**: Standard JSON structures provide ready-to-use display strings and numeric values for dynamic mobile spinners and calculators.
