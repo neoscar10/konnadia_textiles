@@ -256,8 +256,8 @@ class ProductionJobProcessEnhancementsTest extends TestCase
         $this->job->refresh();
         $this->assertEquals(15, $this->job->discrepancy_quantity);
 
-        // 2. Record discrepancy (10 scrap, 5 damage) via JobIndexPage modal
-        Livewire::test(\App\Livewire\Admin\Production\JobIndexPage::class)
+        // 2. Record discrepancy (10 scrap, 5 damage) via BatchJobsDetailPage modal
+        Livewire::test(\App\Livewire\Admin\Production\BatchJobsDetailPage::class, ['batchCode' => $this->job->production_batch_id])
             ->call('openDiscrepancyModal', $this->job->id)
             ->set('scrapQty', 10)
             ->set('scrapNotes', '10 items converted / sold as scrap')
@@ -296,19 +296,16 @@ class ProductionJobProcessEnhancementsTest extends TestCase
         ]);
 
         $ironingTask = Task::where('name', 'Ironing')->first();
+        $ironingTask->update(['is_labor_required' => true]);
         $ironingStage = $this->job->stageExecutions->firstWhere('task_id', $ironingTask->id);
 
         Livewire::test(JobStageWizard::class, ['id' => $this->job->id])
             ->call('selectStage', $ironingStage->id)
             ->set('laborRows.0.labor_id', '')
-            ->call('goToStep', 2)
-            ->assertHasErrors(['laborRows.0.labor_id'])
-            ->assertSet('activeStep', 1)
             ->call('completeActiveStage')
             ->assertHasErrors(['laborRows.0.labor_id'])
             ->set('laborRows.0.labor_id', $labor->id)
-            ->call('goToStep', 2)
-            ->assertHasNoErrors()
-            ->assertSet('activeStep', 2);
+            ->call('completeActiveStage')
+            ->assertHasNoErrors();
     }
 }

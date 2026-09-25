@@ -21,6 +21,15 @@ class AdminTaskResource extends JsonResource
             'sequence_number' => $this->sequence_number,
             'consumes_raw_material' => (bool) $this->consumes_raw_material,
             'is_labor_required' => (bool) $this->is_labor_required,
+            'labor_category_id' => $this->labor_category_id,
+            'labor_category' => $this->whenLoaded('laborCategory', function () {
+                return $this->laborCategory ? [
+                    'id' => $this->laborCategory->id,
+                    'name' => $this->laborCategory->name,
+                    'code' => $this->laborCategory->code,
+                    'status' => (bool) $this->laborCategory->status,
+                ] : null;
+            }),
             'raw_material_categories' => $this->whenLoaded('rawMaterialCategories', function () {
                 return $this->rawMaterialCategories->map(fn($cat) => [
                     'id' => $cat->id,

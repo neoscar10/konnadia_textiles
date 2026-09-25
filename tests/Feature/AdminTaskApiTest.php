@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Task;
+use App\Models\LaborCategory;
 use App\Models\RawMaterialCategory;
 use App\Models\ManufacturingProduct;
 use Spatie\Permission\Models\Role;
@@ -16,6 +17,7 @@ class AdminTaskApiTest extends TestCase
 
     protected User $admin;
     protected RawMaterialCategory $category;
+    protected LaborCategory $laborCategory;
 
     protected function setUp(): void
     {
@@ -36,6 +38,12 @@ class AdminTaskApiTest extends TestCase
             'code' => 'CAT-FAB-TEST',
             'unit_type' => 'length_based',
             'is_active' => true,
+        ]);
+
+        $this->laborCategory = LaborCategory::create([
+            'name' => 'Tailoring Experts',
+            'code' => 'LCAT-0001',
+            'status' => true,
         ]);
     }
 
@@ -71,7 +79,7 @@ class AdminTaskApiTest extends TestCase
             ->assertJsonPath('data.0.name', 'Cutting Process');
     }
 
-    public function test_can_create_task_with_raw_material_categories()
+    public function test_can_create_task_with_raw_material_categories_and_labor_category()
     {
         $payload = [
             'name' => 'Fabric Cutting',
@@ -79,6 +87,7 @@ class AdminTaskApiTest extends TestCase
             'status' => true,
             'consumes_raw_material' => true,
             'is_labor_required' => true,
+            'labor_category_id' => $this->laborCategory->id,
             'selected_category_ids' => [$this->category->id],
             'sequence_number' => 1,
         ];
@@ -89,10 +98,13 @@ class AdminTaskApiTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.name', 'Fabric Cutting')
-            ->assertJsonPath('data.consumes_raw_material', true);
+            ->assertJsonPath('data.consumes_raw_material', true)
+            ->assertJsonPath('data.labor_category_id', $this->laborCategory->id)
+            ->assertJsonPath('data.labor_category.name', 'Tailoring Experts');
 
         $task = Task::where('code', 'TSK-CUT-01')->first();
         $this->assertNotNull($task);
+        $this->assertEquals($this->laborCategory->id, $task->labor_category_id);
         $this->assertCount(1, $task->rawMaterialCategories);
     }
 
@@ -106,6 +118,7 @@ class AdminTaskApiTest extends TestCase
             'status' => true,
             'consumes_raw_material' => false,
             'is_labor_required' => true,
+            'labor_category_id' => $this->laborCategory->id,
             'selected_authorized_task_ids' => [$lTask1->id],
             'sequence_number' => 10,
         ];
@@ -122,7 +135,9 @@ class AdminTaskApiTest extends TestCase
 
         $optionsResp->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonCount(2, 'data.all_labor_tasks');
+            ->assertJsonCount(2, 'data.all_labor_tasks')
+            ->assertJsonCount(1, 'data.labor_categories')
+            ->assertJsonPath('data.labor_categories.0.name', 'Tailoring Experts');
     }
 
     public function test_can_update_task()
@@ -134,14 +149,37 @@ class AdminTaskApiTest extends TestCase
                 'name' => 'Updated Task Name',
                 'consumes_raw_material' => false,
                 'is_labor_required' => true,
+                'labor_category_id' => $this->laborCategory->id,
                 'sequence_number' => 5,
             ]);
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.name', 'Updated Task Name');
+            ->assertJsonPath('data.name', 'Updated Task Name')
+            ->assertJsonPath('data.labor_category_id', $this->laborCategory->id);
 
         $this->assertEquals('Updated Task Name', $task->fresh()->name);
+        $this->assertEquals($this->laborCategory->id, $task->fresh()->labor_category_id);
+    }
+
+    public function test_clears_labor_category_when_labor_not_required()
+    {
+        $task = Task::create(['name' => 'Labor Task', 'code' => 'TSK-0010', 'sequence_number' => 10, 'status' => true, 'consumes_raw_material' => false, 'is_labor_required' => true, 'labor_category_id' => $this->laborCategory->id]);
+
+        $response = $this->actingAs($this->admin, 'api')
+            ->putJson("/api/v1/admin/tasks/{$task->id}", [
+                'name' => 'No Labor Task',
+                'consumes_raw_material' => false,
+                'is_labor_required' => false,
+                'labor_category_id' => $this->laborCategory->id, // should be reset to null automatically
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.is_labor_required', false)
+            ->assertJsonPath('data.labor_category_id', null);
+
+        $this->assertNull($task->fresh()->labor_category_id);
     }
 
     public function test_can_toggle_task_status()

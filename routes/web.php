@@ -57,16 +57,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Production & Labor Management System
         Route::get('labor', \App\Livewire\Admin\Labor\LaborList::class)->name('labor.index');
         Route::get('labor-categories', \App\Livewire\Admin\Labor\LaborCategoryList::class)->name('labor-categories.index');
-        Route::get('labor/{id}', \App\Livewire\Admin\Labor\LaborDetail::class)->name('labor.show');
+        Route::get('labor/{id}', \App\Livewire\Admin\Labor\LaborDetail::class)->name('labor.show')->where('id', '[0-9]+');
         Route::get('production/products', \App\Livewire\Admin\Production\ManufacturingProductIndexPage::class)->name('production.products.index');
         Route::get('production/product-categories', \App\Livewire\Admin\Production\ManufacturingProductCategoryPage::class)->name('production.product-categories.index');
         Route::get('production/batches/create', \App\Livewire\Admin\Production\CreateProductionBatch::class)->name('production.batches.create');
-        Route::get('production/batches/{id}/ledger', \App\Livewire\Admin\Production\ProductionBatchLedger::class)->name('production.batches.ledger');
-        Route::get('production/batches/{id}/convert', \App\Livewire\Admin\Production\FinishedGoodsConversion::class)->name('production.batches.convert');
+        Route::get('production/batches/{id}/ledger', \App\Livewire\Admin\Production\ProductionBatchLedger::class)->name('production.batches.ledger')->where('id', '[0-9]+');
+        Route::get('production/batches/{id}/convert', \App\Livewire\Admin\Production\FinishedGoodsConversion::class)->name('production.batches.convert')->where('id', '[0-9]+');
         Route::get('production/workbench', \App\Livewire\Admin\Production\SupervisorWorkbench::class)->name('production.workbench');
         Route::get('production/jobs', \App\Livewire\Admin\Production\JobIndexPage::class)->name('production.jobs.index');
         Route::get('production/batches/{batchCode}/jobs', \App\Livewire\Admin\Production\BatchJobsDetailPage::class)->name('production.batches.jobs');
-        Route::get('production/jobs/{id}', \App\Livewire\Factory\JobStageWizard::class)->name('production.jobs.show');
+        Route::get('production/jobs/{id}', \App\Livewire\Factory\JobStageWizard::class)->name('production.jobs.show')->where('id', '[0-9]+');
         Route::get('production/tracking-history', \App\Livewire\Admin\Production\TrackingHistory::class)->name('production.tracking-history');
 
         // Retail Transfers System

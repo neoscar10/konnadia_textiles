@@ -50,8 +50,8 @@ class JobStageCompletionTest extends TestCase
         $this->taskStitching = Task::create(['name' => 'Stitching', 'code' => 'TSK-STITCH', 'status' => true]);
 
         $this->product->tasks()->attach([
-            $this->taskCutting->id => ['sequence_number' => 1],
-            $this->taskIroning->id => ['sequence_number' => 2],
+            $this->taskCutting->id => ['sequence_number' => 1, 'is_final_step' => false],
+            $this->taskIroning->id => ['sequence_number' => 2, 'is_final_step' => false],
             $this->taskStitching->id => ['sequence_number' => 3, 'is_final_step' => true],
         ]);
     }

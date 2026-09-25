@@ -159,17 +159,6 @@ class TaskSequenceAndWorkflowProgressionTest extends TestCase
             'reason' => 'Defective cut',
         ]);
 
-        // Alteration requires a child batch
-        $childBatch = ProductionBatch::create([
-            'parent_batch_id' => $batch->id,
-            'batch_date' => now()->format('Y-m-d'),
-            'supervisor_id' => $this->admin->id,
-            'manufacturing_product_id' => $this->product->id,
-            'planned_quantity' => 3,
-            'priority' => 'Normal',
-            'status' => 'Created',
-        ]);
-
         JobAlteration::create([
             'job_code' => $job1->job_code,
             'production_job_id' => $job1->id,
@@ -177,7 +166,7 @@ class TaskSequenceAndWorkflowProgressionTest extends TestCase
             'source_quantity' => 3,
             'target_product_id' => $this->product->id,
             'target_quantity' => 3,
-            'child_production_batch_id' => $childBatch->id,
+            'child_production_batch_id' => $batch->id,
         ]);
 
         // Complete Cutting stage on Job 1

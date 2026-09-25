@@ -108,7 +108,7 @@ class ProductAlterationValidationAndBatchFixTest extends TestCase
             ->assertHasErrors(['alterationRecords.0.target_product_id']);
     }
 
-    public function test_can_alter_large_product_to_smaller_product_and_handles_duplicate_batch_codes()
+    public function test_can_alter_large_product_to_smaller_product_and_places_job_in_same_batch()
     {
         Livewire::test(\App\Livewire\Admin\Production\JobDetailPage::class, ['id' => $this->job->id])
             ->set('selectedTaskId', $this->cuttingTask->id)
@@ -123,10 +123,12 @@ class ProductAlterationValidationAndBatchFixTest extends TestCase
             ->call('saveJobAlteration')
             ->assertHasNoErrors();
 
-        $this->assertDatabaseHas('production_batches', [
-            'parent_batch_id' => $this->job->production_batch_db_id,
+        $this->assertDatabaseHas('production_jobs', [
+            'production_batch_db_id' => $this->job->production_batch_db_id,
             'manufacturing_product_id' => $this->smallProduct->id,
-            'planned_quantity' => 2,
+            'target_quantity' => 2,
         ]);
+
+        $this->assertDatabaseCount('production_batches', 1);
     }
 }

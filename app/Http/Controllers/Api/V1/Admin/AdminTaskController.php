@@ -3,27 +3,29 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Task;
-use App\Models\RawMaterialCategory;
+use App\Http\Requests\Api\V1\Admin\ReorderTaskRequest;
 use App\Http\Requests\Api\V1\Admin\StoreTaskRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateTaskRequest;
-use App\Http\Requests\Api\V1\Admin\ReorderTaskRequest;
 use App\Http\Resources\Api\V1\AdminTaskResource;
-use Illuminate\Http\Request;
+use App\Models\LaborCategory;
+use App\Models\RawMaterialCategory;
+use App\Models\Task;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AdminTaskController extends Controller
 {
     /**
-     * List all factory tasks with searching, filtering, and ordering.
+     * List factory tasks with optional search, filter, and pagination.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts');
+        $query = Task::with(['laborCategory', 'rawMaterialCategories', 'authorizedLaborTasks'])
+            ->withCount('manufacturingProducts');
 
         if ($request->filled('search')) {
-            $search = trim($request->query('search'));
+            $search = $request->query('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%");
@@ -64,13 +66,14 @@ class AdminTaskController extends Controller
     }
 
     /**
-     * Get lightweight task list and available raw material categories for pickers.
+     * Get lightweight task list and available raw material categories and labor categories for pickers.
      */
     public function options(): JsonResponse
     {
         $tasks = Task::where('status', true)->ordered()->get(['id', 'name', 'code', 'consumes_raw_material', 'is_labor_required', 'sequence_number']);
         $categories = RawMaterialCategory::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code', 'unit_type']);
         $allLaborTasks = Task::where('status', true)->ordered()->get(['id', 'name', 'code', 'status', 'sequence_number']);
+        $laborCategories = LaborCategory::active()->orderBy('name')->get(['id', 'name', 'code', 'status']);
 
         return response()->json([
             'success' => true,
@@ -78,6 +81,7 @@ class AdminTaskController extends Controller
                 'tasks' => $tasks,
                 'raw_material_categories' => $categories,
                 'all_labor_tasks' => $allLaborTasks,
+                'labor_categories' => $laborCategories,
             ],
         ]);
     }
@@ -87,7 +91,7 @@ class AdminTaskController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $task = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts')->findOrFail($id);
+        $task = Task::with(['laborCategory', 'rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts')->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -109,12 +113,15 @@ class AdminTaskController extends Controller
                 $seq = $maxSeq + 1;
             }
 
+            $isLabor = (bool) $validated['is_labor_required'];
+
             $task = Task::create([
                 'name' => $validated['name'],
                 'code' => $validated['code'] ?? null,
                 'status' => $validated['status'] ?? true,
                 'consumes_raw_material' => $validated['consumes_raw_material'],
-                'is_labor_required' => $validated['is_labor_required'],
+                'is_labor_required' => $isLabor,
+                'labor_category_id' => $isLabor ? ($validated['labor_category_id'] ?? null) : null,
                 'sequence_number' => $seq,
             ]);
 
@@ -133,7 +140,7 @@ class AdminTaskController extends Controller
             return $task;
         });
 
-        $task->load(['rawMaterialCategories', 'authorizedLaborTasks'])->loadCount('manufacturingProducts');
+        $task->load(['laborCategory', 'rawMaterialCategories', 'authorizedLaborTasks'])->loadCount('manufacturingProducts');
 
         return response()->json([
             'success' => true,
@@ -147,16 +154,19 @@ class AdminTaskController extends Controller
      */
     public function update(UpdateTaskRequest $request, int $id): JsonResponse
     {
-        $task = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts')->findOrFail($id);
+        $task = Task::with(['laborCategory', 'rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts')->findOrFail($id);
         $validated = $request->validated();
 
         DB::transaction(function () use ($task, $validated) {
+            $isLabor = (bool) $validated['is_labor_required'];
+
             $task->update([
                 'name' => $validated['name'],
                 'code' => $validated['code'] ?? $task->code,
                 'status' => $validated['status'] ?? $task->status,
                 'consumes_raw_material' => $validated['consumes_raw_material'],
-                'is_labor_required' => $validated['is_labor_required'],
+                'is_labor_required' => $isLabor,
+                'labor_category_id' => $isLabor ? ($validated['labor_category_id'] ?? null) : null,
                 'sequence_number' => $validated['sequence_number'] ?? $task->sequence_number,
             ]);
 
@@ -173,7 +183,7 @@ class AdminTaskController extends Controller
             }
         });
 
-        $task->refresh()->load(['rawMaterialCategories', 'authorizedLaborTasks'])->loadCount('manufacturingProducts');
+        $task->refresh()->load(['laborCategory', 'rawMaterialCategories', 'authorizedLaborTasks'])->loadCount('manufacturingProducts');
 
         return response()->json([
             'success' => true,
@@ -187,7 +197,7 @@ class AdminTaskController extends Controller
      */
     public function toggleStatus(int $id): JsonResponse
     {
-        $task = Task::with(['rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts')->findOrFail($id);
+        $task = Task::with(['laborCategory', 'rawMaterialCategories', 'authorizedLaborTasks'])->withCount('manufacturingProducts')->findOrFail($id);
         $task->update(['status' => !$task->status]);
 
         $label = $task->status ? 'activated' : 'deactivated';
@@ -214,7 +224,7 @@ class AdminTaskController extends Controller
             }
         });
 
-        $tasks = Task::with('rawMaterialCategories')->ordered()->get();
+        $tasks = Task::with(['laborCategory', 'rawMaterialCategories', 'authorizedLaborTasks'])->ordered()->get();
 
         return response()->json([
             'success' => true,
@@ -233,7 +243,7 @@ class AdminTaskController extends Controller
         if ($task->manufacturing_products_count > 0) {
             return response()->json([
                 'success' => false,
-                'message' => "Cannot delete task \"{$task->name}\" — it is currently linked to {$task->manufacturing_products_count} manufacturing product routing(s). Deactivate it instead.",
+                'message' => "Cannot delete task \"{$task->name}\" because it is currently linked to {$task->manufacturing_products_count} manufacturing product routing(s). Deactivate it instead.",
                 'linked_products_count' => $task->manufacturing_products_count,
             ], 422);
         }

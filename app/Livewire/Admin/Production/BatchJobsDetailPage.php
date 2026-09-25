@@ -39,6 +39,21 @@ class BatchJobsDetailPage extends Component
     public string $imageOptionMode = 'use_fabric'; // 'use_fabric', 'upload', 'none'
     public $newProductImage = null;
 
+    // Barcode Print Modal Properties
+    public bool $showPrintModal = false;
+    public ?int $activePrintBatchId = null;
+    public $printStickerQty = 10;
+    public string $printStickerSize = 'Standard Sticker (50mm × 25mm)';
+
+    public function openPrintBarcodeModal(int $id): void
+    {
+        $batch = \App\Models\FinishedGoodsBatch::with('frontEndProduct')->findOrFail($id);
+        $this->activePrintBatchId = $batch->id;
+        $this->printStickerQty = $batch->converted_qty ?: 10;
+        $this->showPrintModal = true;
+    }
+
+
     public function mount(string $batchCode)
     {
         $this->batchCode = $batchCode;
@@ -713,6 +728,8 @@ class BatchJobsDetailPage extends Component
 
             $this->dispatch('close-modal', 'batch-conversion-wizard-modal');
             $this->dispatch('toast', message: "Production Batch {$this->selectedBatchCode} converted to Storefront Lot {$fgBatch->barcode}! Created {$fgBatch->converted_qty} set(s). Any leftover items saved to Spare Products.", type: 'success');
+
+            $this->openPrintBarcodeModal($fgBatch->id);
         } catch (\Exception $e) {
             $this->addError('prefilledTargetSets', $e->getMessage());
             $this->dispatch('toast', message: $e->getMessage(), type: 'error');
@@ -721,7 +738,17 @@ class BatchJobsDetailPage extends Component
 
     public function render()
     {
-        $jobs = ProductionJob::where('production_batch_id', $this->batchCode)
+        $batchRecord = null;
+        if (!empty($this->batchCode)) {
+            $batchRecord = \App\Models\ProductionBatch::where('batch_code', $this->batchCode)->first();
+        }
+
+        $jobs = ProductionJob::where(function ($query) use ($batchRecord) {
+                $query->where('production_batch_id', $this->batchCode);
+                if ($batchRecord) {
+                    $query->orWhere('production_batch_db_id', $batchRecord->id);
+                }
+            })
             ->orWhere('job_code', $this->batchCode)
             ->with(['manufacturingProduct', 'pattern', 'factorySupervisor', 'batch.factorySupervisor', 'supervisor', 'stageExecutions.task', 'allocations', 'wastages', 'alterations'])
             ->orderBy('created_at', 'asc')
@@ -753,14 +780,9 @@ class BatchJobsDetailPage extends Component
             ?? $firstJob?->batch?->factorySupervisor 
             ?? $firstJob?->supervisor;
         
-        $batchDbId = $firstJob?->production_batch_db_id;
-        $batchRecord = null;
-        if ($batchDbId) {
+        $batchDbId = $firstJob?->production_batch_db_id ?? $batchRecord?->id;
+        if (!$batchRecord && $batchDbId) {
             $batchRecord = \App\Models\ProductionBatch::find($batchDbId);
-        }
-        if (!$batchRecord && !empty($this->batchCode)) {
-            $batchRecord = \App\Models\ProductionBatch::where('batch_code', $this->batchCode)->first();
-            $batchDbId = $batchRecord?->id;
         }
 
         $isBatchComplete = $batchRecord ? $batchRecord->isFullyCompleted() : false;
@@ -769,6 +791,27 @@ class BatchJobsDetailPage extends Component
         $unconvertedSum = $jobs->sum(fn($j) => $j->remaining_unconverted_quantity);
         $totalProducedSum = $jobs->sum(fn($j) => $j->total_produced_quantity);
         $convertedSum = $jobs->sum(fn($j) => $j->converted_quantity);
+
+        $convertedFgBatches = \App\Models\FinishedGoodsBatch::with(['frontEndProduct', 'creator'])
+            ->where(function ($query) use ($batchDbId, $jobs) {
+                $query->whereHas('items', function ($q) use ($batchDbId, $jobs) {
+                    if ($batchDbId) {
+                        $q->where('production_batch_id', $batchDbId);
+                    }
+                    if ($jobs->isNotEmpty()) {
+                        $q->orWhereIn('production_job_id', $jobs->pluck('id')->toArray());
+                    }
+                });
+                if (!empty($this->batchCode)) {
+                    $query->orWhere('barcode', 'like', "%{$this->batchCode}%")
+                          ->orWhere('notes', 'like', "%{$this->batchCode}%");
+                }
+            })
+            ->latest()
+            ->get()
+            ->unique('id');
+
+        $activePrintBatch = $this->activePrintBatchId ? \App\Models\FinishedGoodsBatch::with('frontEndProduct')->find($this->activePrintBatchId) : null;
 
         return view('livewire.admin.production.batch-jobs-detail-page', [
             'jobs' => $jobs,
@@ -789,6 +832,8 @@ class BatchJobsDetailPage extends Component
             'storefrontProducts' => $storefrontProducts,
             'packagingRawMaterials' => $packagingRawMaterials,
             'conversionSummary' => $this->conversionSummary,
+            'convertedFgBatches' => $convertedFgBatches,
+            'activePrintBatch' => $activePrintBatch,
         ])->title("Batch Jobs — {$this->batchCode}");
     }
 }

@@ -26,6 +26,13 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 shrink-0">
+            @if($convertedFgBatches->isNotEmpty())
+                <button type="button" wire:click="openPrintBarcodeModal({{ $convertedFgBatches->first()->id }})" class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-label-md text-label-md font-extrabold shadow-md transition-all active:scale-95 whitespace-nowrap cursor-pointer" title="Print Barcode Stickers">
+                    <span class="material-symbols-outlined text-[20px]">print</span>
+                    <span>Print Barcode Labels</span>
+                </button>
+            @endif
+
             @if($isBatchComplete && $batchDbId && !$isBatchConverted)
                 <button type="button" wire:click="openBatchDesignModal({{ $batchDbId }})" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-label-md text-label-md font-bold shadow-md transition-all active:scale-95 whitespace-nowrap cursor-pointer">
                     <span class="material-symbols-outlined text-[20px]">swap_horiz</span>
@@ -72,6 +79,70 @@
             </div>
         </div>
     </div>
+
+    <!-- Converted Finished Goods Lots & Barcodes Card -->
+    @if($convertedFgBatches->isNotEmpty())
+        <div class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/60 shadow-xs mb-6 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/40 pb-3">
+                <div>
+                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-amber-700 text-base">barcode</span>
+                        Converted Finished Goods Lots &amp; Barcodes
+                    </h3>
+                    <p class="text-xs text-on-surface-variant font-medium mt-0.5">
+                        Print lot barcode stickers and review converted storefront product lots generated from batch {{ $batchCode }}.
+                    </p>
+                </div>
+                <span class="px-3 py-1 bg-amber-500/10 text-amber-800 text-xs font-mono font-bold rounded-xl border border-amber-500/20 shrink-0">
+                    {{ $convertedFgBatches->count() }} Lot(s) Converted
+                </span>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/40">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-surface-container-low/70 border-b border-outline-variant/60 text-[11px] font-extrabold uppercase tracking-wider text-on-surface-variant">
+                            <th class="py-3 px-4">Barcode / Lot #</th>
+                            <th class="py-3 px-4">Storefront Category / Product</th>
+                            <th class="py-3 px-4">Design ID</th>
+                            <th class="py-3 px-4 text-center">Converted Qty</th>
+                            <th class="py-3 px-4">Converted Date</th>
+                            <th class="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/30 font-medium text-on-surface">
+                        @foreach($convertedFgBatches as $cBatch)
+                            <tr class="hover:bg-surface-container-low/40 transition-colors">
+                                <td class="py-3.5 px-4">
+                                    <div class="font-mono font-bold text-primary text-xs">{{ $cBatch->barcode }}</div>
+                                </td>
+                                <td class="py-3.5 px-4 font-semibold text-on-surface">
+                                    {{ $cBatch->frontEndProduct?->category_display_name ?? $cBatch->frontEndProduct?->name ?? 'Storefront Product' }}
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="px-2.5 py-0.5 rounded-full font-mono font-bold text-[11px] bg-amber-500/10 text-amber-800 border border-amber-500/20">
+                                        {{ $cBatch->design_id }}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-center font-mono font-bold">
+                                    {{ $cBatch->converted_qty }} Pcs
+                                </td>
+                                <td class="py-3.5 px-4 font-mono text-[11px] text-on-surface-variant">
+                                    {{ $cBatch->converted_date ? $cBatch->converted_date->format('Y-m-d H:i') : $cBatch->created_at->format('Y-m-d H:i') }}
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <button type="button" wire:click="openPrintBarcodeModal({{ $cBatch->id }})" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-2xs transition-all cursor-pointer">
+                                        <span class="material-symbols-outlined text-[16px]">print</span>
+                                        <span>Print Barcode</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 
     <!-- Main Tab Switcher -->
     <div class="flex items-center gap-2 border-b border-outline-variant/60 mb-6">
@@ -1113,5 +1184,132 @@
             </div>
         </form>
     </x-admin.modal>
+
+    <!-- MODAL: PRINT BARCODE STICKERS -->
+    @if($showPrintModal && $activePrintBatch)
+        <div class="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex items-center justify-center bg-slate-900/20 backdrop-blur-xs animate-fade-in" x-data x-trap.noscroll="true">
+            <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/60 shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden my-auto animate-scale-up">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-low/40">
+                    <div>
+                        <h2 class="text-base font-black text-on-surface flex items-center gap-2">
+                            <span class="material-symbols-outlined text-amber-600 text-[20px]">print</span>
+                            Print Barcode Stickers — <span class="font-mono text-primary">{{ $activePrintBatch->barcode }}</span>
+                        </h2>
+                        <p class="text-xs text-on-surface-variant font-medium">
+                            {{ $activePrintBatch->frontEndProduct?->name ?? 'Finished Storefront Product' }} &bull; Design ID: {{ $activePrintBatch->design_id }}
+                        </p>
+                    </div>
+                    <button wire:click="$set('showPrintModal', false)" class="p-2 text-on-surface-variant hover:text-on-surface rounded-full hover:bg-surface-container-high transition-colors">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1 max-h-[calc(88vh-130px)]">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-surface-container-low/50 border border-outline-variant/60">
+                        <div>
+                            <label class="block text-[11px] font-extrabold uppercase tracking-wider text-on-surface mb-1.5">Number of Barcode Stickers to Generate</label>
+                            <input type="number" min="1" max="500" wire:model.live="printStickerQty" class="w-full px-3.5 py-2 bg-surface-container-lowest text-xs font-mono font-bold rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface" />
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-extrabold uppercase tracking-wider text-on-surface mb-1.5">Label Size Preset</label>
+                            <select wire:model="printStickerSize" class="w-full px-3 py-2 bg-surface-container-lowest text-xs font-bold rounded-xl border border-outline-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-on-surface">
+                                <option value="Standard Sticker (50mm × 25mm)">Standard Sticker (50mm × 25mm)</option>
+                                <option value="Compact Sticker (38mm × 19mm)">Compact Sticker (38mm × 19mm)</option>
+                                <option value="Large Shipping Label (100mm × 50mm)">Large Shipping Label (100mm × 50mm)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Sticker Layout Preview -->
+                    <div class="space-y-2">
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-on-surface">Sticker Layout Preview</h3>
+                        <div class="p-4 rounded-2xl bg-surface-container-low/70 border border-outline-variant/60 max-h-72 overflow-y-auto custom-scrollbar">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 print-area">
+                                @for($i = 1; $i <= min(max(1, $printStickerQty), 50); $i++)
+                                    <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-1.5 text-slate-900">
+                                        <div class="text-[9px] font-black uppercase tracking-wider text-slate-500">KANNODIA FACTORY CONSOLE</div>
+                                        <div class="font-extrabold text-xs text-slate-900 leading-tight">
+                                            {{ $activePrintBatch->frontEndProduct?->name ?? 'Finished Storefront Product' }}
+                                        </div>
+                                        <div class="text-[10px] text-slate-600 font-medium">
+                                            SKU: {{ $activePrintBatch->frontEndProduct?->sku ?? 'KT-P-0052' }} &bull; Design: {{ $activePrintBatch->design_id }}
+                                        </div>
+
+                                        <!-- SVG Barcode lines -->
+                                        <div class="py-1 flex justify-center">
+                                            <svg class="h-9 w-full max-w-[200px] text-slate-950" viewBox="0 0 100 30" fill="currentColor">
+                                                <rect x="2" y="0" width="3" height="30"/>
+                                                <rect x="7" y="0" width="1" height="30"/>
+                                                <rect x="10" y="0" width="4" height="30"/>
+                                                <rect x="16" y="0" width="2" height="30"/>
+                                                <rect x="20" y="0" width="5" height="30"/>
+                                                <rect x="27" y="0" width="1" height="30"/>
+                                                <rect x="30" y="0" width="3" height="30"/>
+                                                <rect x="35" y="0" width="2" height="30"/>
+                                                <rect x="39" y="0" width="4" height="30"/>
+                                                <rect x="45" y="0" width="1" height="30"/>
+                                                <rect x="48" y="0" width="3" height="30"/>
+                                                <rect x="53" y="0" width="2" height="30"/>
+                                                <rect x="57" y="0" width="5" height="30"/>
+                                                <rect x="64" y="0" width="2" height="30"/>
+                                                <rect x="68" y="0" width="4" height="30"/>
+                                                <rect x="74" y="0" width="1" height="30"/>
+                                                <rect x="77" y="0" width="3" height="30"/>
+                                                <rect x="82" y="0" width="2" height="30"/>
+                                                <rect x="86" y="0" width="4" height="30"/>
+                                                <rect x="92" y="0" width="2" height="30"/>
+                                                <rect x="96" y="0" width="2" height="30"/>
+                                            </svg>
+                                        </div>
+                                        <div class="font-mono font-black text-xs text-center text-slate-950 tracking-wider">
+                                            {{ $activePrintBatch->barcode }}
+                                        </div>
+                                        <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-1">
+                                            <span>Lot #{{ $i }}</span>
+                                            <span>{{ $activePrintBatch->created_at ? $activePrintBatch->created_at->format('d M Y') : date('d M Y') }}</span>
+                                        </div>
+                                    </div>
+                                @endfor
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-4 border-t border-outline-variant/60 flex items-center justify-between bg-surface-container-low/40">
+                    <button wire:click="$set('showPrintModal', false)" class="px-4 py-2 bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs font-bold rounded-xl transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="window.print()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">print</span>
+                        <span>Print Labels Now</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .print-area, .print-area * {
+            visibility: visible;
+        }
+        .print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+        }
+    }
+    </style>
 </div>
 

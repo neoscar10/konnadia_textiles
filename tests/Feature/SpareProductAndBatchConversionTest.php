@@ -60,6 +60,7 @@ class SpareProductAndBatchConversionTest extends TestCase
             'status' => 'completed',
             'completed_quantity' => 100,
             'final_produced_yield' => 100,
+            'discrepancy_quantity' => 0,
         ]);
 
         $this->assertTrue($batch->isFullyCompleted());
@@ -111,8 +112,8 @@ class SpareProductAndBatchConversionTest extends TestCase
             'is_active' => true,
         ]);
 
-        $pattern1 = \App\Models\Pattern::create(['name' => 'Pattern 1']);
-        $pattern2 = \App\Models\Pattern::create(['name' => 'pattern 1']);
+        $pattern1 = \App\Models\ManufacturingProductPattern::create(['manufacturing_product_id' => $mfg1->id, 'name' => 'Pattern 1']);
+        $pattern2 = \App\Models\ManufacturingProductPattern::create(['manufacturing_product_id' => $mfg2->id, 'name' => 'pattern 1']);
 
         $batch = ProductionBatch::create([
             'batch_code' => 'PB-2026-0033',

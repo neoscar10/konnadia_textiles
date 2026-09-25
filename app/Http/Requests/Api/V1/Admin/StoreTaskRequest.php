@@ -19,6 +19,7 @@ class StoreTaskRequest extends FormRequest
             'status' => 'nullable|boolean',
             'consumes_raw_material' => 'required|boolean',
             'is_labor_required' => 'required|boolean',
+            'labor_category_id' => 'nullable|exists:labor_categories,id',
             'selected_category_ids' => 'required_if:consumes_raw_material,true|array',
             'selected_category_ids.*' => 'exists:raw_material_categories,id',
             'selected_authorized_task_ids' => 'nullable|array',

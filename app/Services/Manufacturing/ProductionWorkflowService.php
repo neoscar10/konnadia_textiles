@@ -271,15 +271,18 @@ class ProductionWorkflowService
                         'started_at' => now(),
                     ]);
                 } else {
-                    // Final Task Handling: Mark master job and batch workflow as completed
+                    // Final Task Handling: Mark job as completed
                     $isFinalStep = true;
                     $job->update(['status' => 'completed']);
                     if ($job->batch) {
-                        $job->batch->update([
-                            'status' => 'Completed',
-                            'completed_at' => now(),
-                        ]);
-                        event(new \App\Events\ProductionBatchCompleted($job->batch->id));
+                        $job->batch->refresh();
+                        if ($job->batch->isFullyCompleted()) {
+                            $job->batch->update([
+                                'status'       => 'Completed',
+                                'completed_at' => now(),
+                            ]);
+                            event(new \App\Events\ProductionBatchCompleted($job->batch->id));
+                        }
                     }
                 }
 
@@ -715,27 +718,6 @@ class ProductionWorkflowService
                 $job->update(['production_batch_db_id' => $parentBatch->id, 'production_batch_id' => $parentBatch->batch_code]);
             }
 
-            $childCount = $parentBatch->childBatches()->count() + 1;
-            $childBatchCode = $parentBatch->batch_code . "-A{$childCount}";
-            while (ProductionBatch::where('batch_code', $childBatchCode)->exists()) {
-                $childCount++;
-                $childBatchCode = $parentBatch->batch_code . "-A{$childCount}";
-            }
-
-            $childBatch = ProductionBatch::create([
-                'parent_batch_id'          => $parentBatch->id,
-                'batch_code'               => $childBatchCode,
-                'batch_date'               => now()->format('Y-m-d'),
-                'supervisor_id'            => $job->supervisor_id ?? auth()->id(),
-                'factory_supervisor_id'    => $job->factory_supervisor_id ?? $parentBatch->factory_supervisor_id,
-                'manufacturing_product_id' => $targetProductId,
-                'pattern_id'               => $targetPatternId,
-                'planned_quantity'         => (int) $targetQty,
-                'priority'                 => $parentBatch->priority ?? 'Normal',
-                'status'                   => 'In Progress',
-                'remarks'                  => "Child Alteration Batch derived from Parent Batch {$parentBatch->batch_code} (Source Job {$job->job_code})",
-            ]);
-
             $targetProduct = ManufacturingProduct::find($targetProductId);
             $targetPattern = $targetPatternId ? \App\Models\ManufacturingProductPattern::with('tasks')->find($targetPatternId) : null;
 
@@ -754,17 +736,17 @@ class ProductionWorkflowService
 
             $childJob = ProductionJob::create([
                 'job_code'                 => $childJobCode,
-                'production_batch_id'      => $childBatch->batch_code,
-                'production_batch_db_id'   => $childBatch->id,
+                'production_batch_id'      => $parentBatch->batch_code,
+                'production_batch_db_id'   => $parentBatch->id,
                 'manufacturing_product_id' => $targetProductId,
                 'pattern_id'               => $targetPattern?->id,
                 'task_id'                  => $firstTask ? $firstTask->id : $job->task_id,
-                'supervisor_id'            => $childBatch->supervisor_id,
-                'factory_supervisor_id'    => $childBatch->factory_supervisor_id,
+                'supervisor_id'            => $job->supervisor_id ?? $parentBatch->supervisor_id ?? auth()->id(),
+                'factory_supervisor_id'    => $job->factory_supervisor_id ?? $parentBatch->factory_supervisor_id,
                 'job_date'                 => now()->format('Y-m-d'),
                 'target_quantity'          => (int) $targetQty,
                 'status'                   => 'in_progress',
-                'notes'                    => "Auto-initialized Job for Alteration Child Batch {$childBatch->batch_code}",
+                'notes'                    => "Alteration Job derived from Job {$job->job_code} under Batch {$parentBatch->batch_code}",
             ]);
 
             // Populate stage executions for the child alteration job
@@ -779,6 +761,14 @@ class ProductionWorkflowService
                 ]);
             }
 
+            // Reset parent batch status to In Progress since a new alteration job is added to it
+            if ($parentBatch->status === 'Completed') {
+                $parentBatch->update([
+                    'status'       => 'In Progress',
+                    'completed_at' => null,
+                ]);
+            }
+
             $alteration = \App\Models\JobAlteration::create([
                 'job_code'                  => $job->job_code,
                 'production_job_id'         => $job->id,
@@ -787,7 +777,7 @@ class ProductionWorkflowService
                 'target_product_id'         => $targetProductId,
                 'target_pattern_id'         => $targetPatternId,
                 'target_quantity'           => (int) $targetQty,
-                'child_production_batch_id' => $childBatch->id,
+                'child_production_batch_id' => $parentBatch->id,
                 'child_production_job_id'   => $childJob->id,
             ]);
 

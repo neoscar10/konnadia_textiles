@@ -42,8 +42,11 @@ class ProductionBatch extends Model
      */
     public function isReadyForConversion(): bool
     {
-        $job = $this->job;
-        if (!$job) {
+        $jobs = $this->jobs()->get();
+        if ($jobs->isEmpty() && $this->job) {
+            $jobs = collect([$this->job]);
+        }
+        if ($jobs->isEmpty()) {
             return false;
         }
 
@@ -55,7 +58,7 @@ class ProductionBatch extends Model
      */
     public function isFullyCompleted(): bool
     {
-        $jobs = $this->jobs;
+        $jobs = $this->jobs()->get();
         if ($jobs->isEmpty() && $this->job) {
             $jobs = collect([$this->job]);
         }
