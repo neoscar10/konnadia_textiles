@@ -57,7 +57,7 @@ class TransferInventoryService
                 $availableBefore = $this->getAvailableStock($product, $combination);
                 $item->available_stock_before = $availableBefore;
 
-                $quantityToDeduct = (int)$item->quantity;
+                $quantityToDeduct = (int) round($item->base_quantity > 0 ? $item->base_quantity : ($item->quantity * ($item->unit_conversion_quantity ?: 1)));
                 $availableAfter = $availableBefore - $quantityToDeduct;
                 $item->available_stock_after = $availableAfter;
 

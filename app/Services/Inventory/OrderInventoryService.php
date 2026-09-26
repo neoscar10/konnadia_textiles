@@ -67,7 +67,14 @@ class OrderInventoryService
         DB::transaction(function () use ($order) {
             $validation = $this->validateOrderStock($order);
             if (!$validation['has_enough_stock']) {
-                throw new \RuntimeException("Unable to deduct stock. Insufficient stock for some items.");
+                $shortageMsgs = [];
+                foreach ($validation['shortages'] as $sh) {
+                    $shortageMsgs[] = "{$sh['product_title']} (Available: {$sh['available_quantity']}, Requested: {$sh['requested_base_quantity']})";
+                }
+                $details = implode(', ', $shortageMsgs);
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'stock' => "Unable to approve order. Insufficient stock for: {$details}."
+                ]);
             }
 
             foreach ($order->items as $item) {

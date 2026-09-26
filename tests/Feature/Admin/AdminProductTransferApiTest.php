@@ -160,4 +160,42 @@ class AdminProductTransferApiTest extends TestCase
 
         $docResp->assertStatus(200);
     }
+
+    public function test_super_admin_can_transfer_level2_packaging_unit_with_accurate_base_stock_deduction(): void
+    {
+        // Level 2 unit: 1 Box = 4 Sets (base units)
+        $boxUnit = ProductUnit::create([
+            'product_id' => $this->product->id,
+            'level' => 2,
+            'name' => 'Box',
+            'short_code' => 'box',
+            'conversion_to_base' => 4.0,
+        ]);
+
+        $this->product->update(['stock_quantity' => 100]);
+
+        $payload = [
+            'retail_shop_id' => $this->shop->id,
+            'transfer_date' => now()->toDateString(),
+            'notes' => 'Transferring 5 boxes (20 base sets)',
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'product_unit_id' => $boxUnit->id,
+                    'quantity' => 5, // 5 boxes * 4 = 20 base units
+                    'note' => 'Box batch',
+                ]
+            ]
+        ];
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->superAdminToken)
+            ->postJson('/api/v1/admin/product-transfers', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.total_base_quantity', 20);
+
+        // Verify base stock deduction: 100 - (5 * 4) = 80
+        $this->assertEquals(80, $this->product->fresh()->stock_quantity);
+    }
 }
