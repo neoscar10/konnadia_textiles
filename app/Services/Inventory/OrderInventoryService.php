@@ -19,11 +19,6 @@ class OrderInventoryService
         $hasEnough = true;
 
         foreach ($order->items as $item) {
-            // Skip manufactured products (unlimited) and null-stock (N/A) products
-            if ($item->product && $item->product->product_type === 'manufactured') {
-                continue;
-            }
-
             $baseQty = (int) ($item->quantity * $item->unit_conversion_quantity);
             $available = 0;
 
@@ -78,11 +73,6 @@ class OrderInventoryService
             }
 
             foreach ($order->items as $item) {
-                // Skip manufactured products (unlimited) and null-stock (N/A) products
-                if ($item->product && $item->product->product_type === 'manufactured') {
-                    continue;
-                }
-
                 $baseQty = (int) ($item->quantity * $item->unit_conversion_quantity);
 
                 if ($item->product_combination_id && $item->combination) {
@@ -111,11 +101,6 @@ class OrderInventoryService
 
         DB::transaction(function () use ($order) {
             foreach ($order->items as $item) {
-                // Skip manufactured products (unlimited) and null-stock (N/A) products
-                if ($item->product && $item->product->product_type === 'manufactured') {
-                    continue;
-                }
-
                 $baseQty = (int) ($item->quantity * $item->unit_conversion_quantity);
 
                 if ($item->product_combination_id && $item->combination) {
@@ -141,11 +126,6 @@ class OrderInventoryService
             return;
         }
 
-        // Skip manufactured products (unlimited) and null-stock (N/A) products
-        if ($item->product && $item->product->product_type === 'manufactured') {
-            return;
-        }
-
         $baseQty = (int) round($quantityToRestore * $item->unit_conversion_quantity);
 
         DB::transaction(function () use ($item, $baseQty) {
@@ -164,11 +144,6 @@ class OrderInventoryService
      */
     public function deductStockForOrderItem(OrderItem $item, float|int $quantityToDeduct): void
     {
-        // Skip manufactured products (unlimited) and null-stock (N/A) products
-        if ($item->product && $item->product->product_type === 'manufactured') {
-            return;
-        }
-
         $baseQty = (int) round($quantityToDeduct * $item->unit_conversion_quantity);
 
         DB::transaction(function () use ($item, $baseQty) {

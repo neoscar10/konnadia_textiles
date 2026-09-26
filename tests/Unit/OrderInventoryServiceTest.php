@@ -143,4 +143,53 @@ class OrderInventoryServiceTest extends TestCase
         $this->expectException(\Illuminate\Validation\ValidationException::class);
         $this->inventoryService->deductStockForOrderItem($item, 5);
     }
+
+    public function test_deduct_stock_for_manufactured_product_reduces_inventory(): void
+    {
+        $mfgProduct = Product::create([
+            'title' => 'Manufactured Bed Sheet',
+            'sku' => 'MFG-BS-001',
+            'base_price' => 500.0,
+            'stock_quantity' => 50,
+            'is_active' => true,
+            'product_type' => 'manufactured',
+        ]);
+
+        $mfgOrder = Order::create([
+            'order_number' => 'KT-ORD-MFG001',
+            'user_id' => $this->order->user_id,
+            'customer_id' => $this->order->customer_id,
+            'status' => 'submitted',
+            'checkout_method' => 'credit',
+            'total_amount' => 5000.0,
+        ]);
+
+        OrderItem::create([
+            'order_id' => $mfgOrder->id,
+            'product_id' => $mfgProduct->id,
+            'product_title' => $mfgProduct->title,
+            'product_sku' => $mfgProduct->sku,
+            'unit_name' => 'Piece',
+            'unit_short_code' => 'pcs',
+            'unit_conversion_quantity' => 1.0,
+            'quantity' => 10,
+            'base_unit_price' => 500.0,
+            'customer_unit_price' => 500.0,
+            'line_total' => 5000.0,
+        ]);
+
+        // Validate stock: 10 requested, 50 available
+        $validation = $this->inventoryService->validateOrderStock($mfgOrder);
+        $this->assertTrue($validation['has_enough_stock']);
+
+        // Deduct stock for manufactured product: 50 - 10 = 40
+        $this->inventoryService->deductStockForOrder($mfgOrder);
+        $this->assertEquals(40, $mfgProduct->fresh()->stock_quantity);
+        $this->assertNotNull($mfgOrder->fresh()->stock_deducted_at);
+
+        // Restore stock: 40 + 10 = 50
+        $this->inventoryService->restoreStockForOrder($mfgOrder);
+        $this->assertEquals(50, $mfgProduct->fresh()->stock_quantity);
+        $this->assertNull($mfgOrder->fresh()->stock_deducted_at);
+    }
 }
