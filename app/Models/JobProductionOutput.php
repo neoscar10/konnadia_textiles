@@ -76,4 +76,14 @@ class JobProductionOutput extends Model
     {
         return $this->belongsTo(Task::class);
     }
+
+    /**
+     * Get the user who recorded this production output entry.
+     */
+    public function recordedBy()
+    {
+        return $this->belongsTo(User::class, 'created_by')->withDefault([
+            'name' => 'System',
+        ]);
+    }
 }

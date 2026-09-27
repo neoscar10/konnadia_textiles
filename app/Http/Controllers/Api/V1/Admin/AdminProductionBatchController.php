@@ -45,8 +45,8 @@ class AdminProductionBatchController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('batch_code', 'like', "%{$search}%")
                   ->orWhereHas('manufacturingProduct', function ($sub) use ($search) {
-                      $sub->where('title', 'like', "%{$search}%")
-                          ->orWhere('product_code', 'like', "%{$search}%");
+                      $sub->where('name', 'like', "%{$search}%")
+                          ->orWhere('code', 'like', "%{$search}%");
                   });
             });
         }

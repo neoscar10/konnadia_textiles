@@ -51,8 +51,8 @@ class AdminProductionJobController extends Controller
                 $q->where('job_code', 'like', "%{$search}%")
                   ->orWhere('production_batch_id', 'like', "%{$search}%")
                   ->orWhereHas('manufacturingProduct', function ($sub) use ($search) {
-                      $sub->where('title', 'like', "%{$search}%")
-                          ->orWhere('product_code', 'like', "%{$search}%");
+                      $sub->where('name', 'like', "%{$search}%")
+                          ->orWhere('code', 'like', "%{$search}%");
                   })
                   ->orWhereHas('task', function ($sub) use ($search) {
                       $sub->where('name', 'like', "%{$search}%")
@@ -123,10 +123,10 @@ class AdminProductionJobController extends Controller
             'default_rate_per_piece' => (float)$t->default_rate_per_piece,
         ]);
 
-        $products = ManufacturingProduct::where('status', true)->orderBy('title', 'asc')->get()->map(fn($p) => [
+        $products = ManufacturingProduct::where('status', true)->orderBy('name', 'asc')->get()->map(fn($p) => [
             'id' => $p->id,
-            'product_code' => $p->product_code,
-            'title' => $p->title,
+            'product_code' => $p->code ?? $p->product_code,
+            'title' => $p->name ?? $p->title,
         ]);
 
         $laborers = Labor::where('status', true)->orWhere('is_active', true)->orderBy('name', 'asc')->get()->map(fn($l) => [
@@ -476,7 +476,7 @@ class AdminProductionJobController extends Controller
                   ->orWhere('production_batch_id', 'like', "%{$search}%")
                   ->orWhereHas('labor', fn($l) => $l->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"))
                   ->orWhereHas('task', fn($t) => $t->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('manufacturingProduct', fn($p) => $p->where('title', 'like', "%{$search}%")->orWhere('product_code', 'like', "%{$search}%"))
+                  ->orWhereHas('manufacturingProduct', fn($p) => $p->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"))
                   ->orWhereHas('pattern', fn($pat) => $pat->where('name', 'like', "%{$search}%"));
             });
         }

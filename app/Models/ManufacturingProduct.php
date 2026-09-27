@@ -42,6 +42,22 @@ class ManufacturingProduct extends Model
         'product_combination_id' => 'integer',
     ];
 
+    /**
+     * Accessor for title attribute mapped to name.
+     */
+    public function getTitleAttribute()
+    {
+        return $this->attributes['name'] ?? null;
+    }
+
+    /**
+     * Accessor for product_code attribute mapped to code.
+     */
+    public function getProductCodeAttribute()
+    {
+        return $this->attributes['code'] ?? null;
+    }
+
     protected static function boot()
     {
         parent::boot();
