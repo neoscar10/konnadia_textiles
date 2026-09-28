@@ -192,7 +192,7 @@ class AdminCategoryController extends Controller
                 $pricing[$lvl->id] = '';
             }
         }
-        $defaults['pricingOverrides'] = $pricing;
+        $defaults['pricingOverrides'] = empty($pricing) ? (object) [] : (object) $pricing;
 
         if (empty($defaults['units'])) {
             $defaults['units'] = [

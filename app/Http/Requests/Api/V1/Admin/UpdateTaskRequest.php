@@ -16,11 +16,11 @@ class UpdateTaskRequest extends FormRequest
         $id = $this->route('id') ?? $this->route('task');
 
         return [
-            'name' => "required|string|max:255|unique:tasks,name,{$id}",
+            'name' => "sometimes|required|string|max:255|unique:tasks,name,{$id}",
             'code' => "nullable|string|max:50|unique:tasks,code,{$id}",
             'status' => 'nullable|boolean',
-            'consumes_raw_material' => 'required|boolean',
-            'is_labor_required' => 'required|boolean',
+            'consumes_raw_material' => 'sometimes|boolean',
+            'is_labor_required' => 'sometimes|boolean',
             'labor_category_id' => 'nullable|exists:labor_categories,id',
             'selected_category_ids' => 'required_if:consumes_raw_material,true|array',
             'selected_category_ids.*' => 'exists:raw_material_categories,id',

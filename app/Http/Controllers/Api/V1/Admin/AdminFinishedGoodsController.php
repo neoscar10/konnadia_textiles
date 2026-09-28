@@ -253,13 +253,8 @@ class AdminFinishedGoodsController extends Controller
                 'per_page'     => $paginated->perPage(),
                 'total'        => $paginated->total(),
                 'last_page'    => $paginated->lastPage(),
-            ],
-            'pagination' => [
-                'total'        => $paginated->total(),
-                'count'        => $paginated->count(),
-                'per_page'     => $paginated->perPage(),
-                'current_page' => $paginated->currentPage(),
                 'total_pages'  => $paginated->lastPage(),
+                'count'        => $paginated->count(),
             ],
         ]);
     }

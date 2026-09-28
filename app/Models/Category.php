@@ -28,6 +28,14 @@ class Category extends Model
     ];
 
     /**
+     * Accessor for title attribute to maintain compatibility with frontends expecting title.
+     */
+    public function getTitleAttribute(): ?string
+    {
+        return $this->attributes['title'] ?? $this->attributes['name'] ?? null;
+    }
+
+    /**
      * Relationship to parent category (folder).
      */
     public function parent()

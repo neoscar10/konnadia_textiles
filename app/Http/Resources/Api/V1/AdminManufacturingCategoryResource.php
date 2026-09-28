@@ -14,6 +14,7 @@ class AdminManufacturingCategoryResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'title' => $this->name,
             'status' => (bool) $this->status,
             'status_label' => $this->status ? 'Active' : 'Inactive',
             'manufacturing_products_count' => (int) $productsCount,

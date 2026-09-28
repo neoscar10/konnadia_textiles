@@ -147,4 +147,19 @@ class AdminCategoryDefaultsAndAssemblyApiTest extends TestCase
         $this->assertCount(2, $feProduct->components);
         $this->assertCount(1, $feProduct->packagingItems);
     }
+    public function test_pricing_overrides_is_serialized_as_object_when_empty()
+    {
+        CustomerLevel::query()->delete();
+
+        $response = $this->actingAs($this->admin, 'api')
+            ->getJson("/api/v1/admin/categories/{$this->leafCategory->id}/defaults");
+
+        $response->assertStatus(200);
+        $json = $response->json();
+        $this->assertIsObject(json_decode(json_encode($json['data']['defaults']['pricingOverrides'])));
+
+        $resource = new \App\Http\Resources\Api\V1\AdminCategoryResource($this->leafCategory);
+        $resourceArray = json_decode(json_encode($resource->toArray(request())), true);
+        $this->assertIsObject(json_decode(json_encode($resourceArray['default_product_config']['pricingOverrides'])));
+    }
 }

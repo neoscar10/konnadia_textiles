@@ -162,13 +162,8 @@ class AdminFrontEndProductController extends Controller
                 'per_page'     => $perPage,
                 'total'        => $total,
                 'last_page'    => max(1, (int) ceil($total / $perPage)),
-            ],
-            'pagination' => [
-                'total'       => $total,
-                'count'       => $paginated->count(),
-                'per_page'    => $perPage,
-                'current_page'=> $page,
                 'total_pages' => max(1, (int) ceil($total / $perPage)),
+                'count'       => $paginated->count(),
             ],
         ]);
     }

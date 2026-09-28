@@ -391,48 +391,46 @@ class ProductIndexPage extends Component
         if (!$this->currentCategoryId) return;
 
         $category = Category::findOrFail($this->currentCategoryId);
-        $defaults = $category->default_product_config;
+        $defaults = $category->default_product_config ?? [];
 
-        if (!empty($defaults)) {
-            $customerLevels = CustomerLevel::active()->ordered()->get();
-            $pricing = $defaults['pricingOverrides'] ?? [];
-            foreach ($customerLevels as $lvl) {
-                if (!isset($pricing[$lvl->id])) {
-                    $pricing[$lvl->id] = '';
-                }
-            }
-            $defaults['pricingOverrides'] = $pricing;
-            if (!isset($defaults['base_price'])) {
-                $defaults['base_price'] = '';
-            }
-            if (!isset($defaults['description'])) {
-                $defaults['description'] = '';
-            }
-            $this->categoryDefaults = $defaults;
-        } else {
-            $customerLevels = CustomerLevel::active()->ordered()->get();
-            $pricing = [];
-            foreach ($customerLevels as $lvl) {
+        $customerLevels = CustomerLevel::active()->ordered()->get();
+        $pricing = $defaults['pricingOverrides'] ?? [];
+        foreach ($customerLevels as $lvl) {
+            if (!isset($pricing[$lvl->id])) {
                 $pricing[$lvl->id] = '';
             }
-
-            $this->categoryDefaults = [
-                'hsn_code' => '',
-                'gst_percentage' => '',
-                'minimum_order_quantity' => 1,
-                'product_type' => 'retail',
-                'base_price' => '',
-                'description' => '',
-                'pricingOverrides' => $pricing,
-                'units' => [
-                    'level1_name' => 'Piece',
-                    'level1_code' => 'pcs',
-                    'level2_name' => '',
-                    'level2_code' => '',
-                    'level2_conversion' => '',
-                ],
-            ];
         }
+
+        $units = $defaults['units'] ?? [];
+        if (empty($units)) {
+            $units = [
+                'level1_name' => 'Piece',
+                'level1_code' => 'pcs',
+                'level2_name' => '',
+                'level2_code' => '',
+                'level2_conversion' => '',
+            ];
+        } else {
+            $units = array_merge([
+                'level1_name' => 'Piece',
+                'level1_code' => 'pcs',
+                'level2_name' => '',
+                'level2_code' => '',
+                'level2_conversion' => '',
+            ], $units);
+        }
+
+        $this->categoryDefaults = array_merge([
+            'hsn_code' => '',
+            'gst_percentage' => '',
+            'minimum_order_quantity' => 1,
+            'product_type' => 'retail',
+            'base_price' => '',
+            'description' => '',
+        ], $defaults, [
+            'pricingOverrides' => $pricing,
+            'units' => $units,
+        ]);
 
         // Load FrontEndProduct configuration for this leaf category
         $feProduct = \App\Models\FrontEndProduct::with(['components', 'packagingItems'])

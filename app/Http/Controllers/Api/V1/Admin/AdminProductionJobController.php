@@ -123,10 +123,13 @@ class AdminProductionJobController extends Controller
             'default_rate_per_piece' => (float)$t->default_rate_per_piece,
         ]);
 
-        $products = ManufacturingProduct::where('status', true)->orderBy('name', 'asc')->get()->map(fn($p) => [
+        $products = ManufacturingProduct::where(function($q) {
+            $q->where('status', 'active')->orWhere('status', true)->orWhere('status', '1');
+        })->orderBy('name', 'asc')->get()->map(fn($p) => [
             'id' => $p->id,
             'product_code' => $p->code ?? $p->product_code,
-            'title' => $p->name ?? $p->title,
+            'title' => $p->title ?? $p->name,
+            'name' => $p->name ?? $p->title,
         ]);
 
         $laborers = Labor::where('status', true)->orWhere('is_active', true)->orderBy('name', 'asc')->get()->map(fn($l) => [

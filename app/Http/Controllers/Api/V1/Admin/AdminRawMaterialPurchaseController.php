@@ -34,10 +34,20 @@ class AdminRawMaterialPurchaseController extends Controller
                 ];
             });
 
-        $recentSuppliers = InventoryBatch::whereNotNull('supplier_name')
+        $recentSuppliersRaw = InventoryBatch::whereNotNull('supplier_name')
+            ->select('supplier_id', 'supplier_name')
             ->distinct()
-            ->pluck('supplier_name')
-            ->take(20);
+            ->take(20)
+            ->get();
+
+        $recentSuppliers = $recentSuppliersRaw->map(function ($s) {
+            $sup = $s->supplier_id ? \App\Models\Supplier::find($s->supplier_id) : null;
+            return [
+                'id' => $s->supplier_id,
+                'name' => $s->supplier_name,
+                'gstin' => $sup?->gstin ?? null,
+            ];
+        });
 
         $suppliers = \App\Models\Supplier::orderBy('name')->get(['id', 'name', 'contact_person', 'gstin']);
         $fabricWidths = \App\Models\FabricWidth::active()->with('unitModel')->orderBy('value', 'asc')->get();

@@ -87,7 +87,11 @@ class AdminWastageLogController extends Controller
                     'job_code'                 => $j->job_code,
                     'production_batch_id'      => $j->production_batch_id,
                     'manufacturing_product_id' => $j->manufacturing_product_id,
-                    'manufacturing_product'    => $j->manufacturingProduct?->name,
+                    'manufacturing_product'    => $j->manufacturingProduct ? [
+                        'id' => $j->manufacturingProduct->id,
+                        'name' => $j->manufacturingProduct->name ?? $j->manufacturingProduct->title,
+                        'code' => $j->manufacturingProduct->code ?? $j->manufacturingProduct->product_code,
+                    ] : null,
                     'status'                   => $j->status,
                 ]),
             ],
@@ -171,13 +175,6 @@ class AdminWastageLogController extends Controller
                 'per_page'     => $paginator->perPage(),
                 'total'        => $paginator->total(),
                 'last_page'    => $paginator->lastPage(),
-            ],
-            'pagination' => [
-                'total'       => $paginator->total(),
-                'count'       => $paginator->count(),
-                'per_page'    => $paginator->perPage(),
-                'current_page'=> $paginator->currentPage(),
-                'total_pages' => $paginator->lastPage(),
             ],
         ]);
     }

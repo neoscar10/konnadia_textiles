@@ -309,10 +309,27 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSpareProductController::class, 'show'])->where('id', '[0-9]+');
                 Route::delete('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSpareProductController::class, 'destroy'])->where('id', '[0-9]+');
             });
+
+            // Customized Production Alias (/factory/customized-production)
+            Route::prefix('customized-production')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'store']);
+                Route::patch('/{id}/status', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'updateStatus'])->where('id', '[0-9]+');
+            });
         });
 
         // Production Direct Aliases (/production/jobs, /production/batches, etc.)
         Route::middleware('api.permission:access production')->prefix('production')->group(function () {
+            // Customized Production Order Direct Alias
+            Route::prefix('customized')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'options']);
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'store']);
+                Route::patch('/{id}/status', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'updateStatus'])->where('id', '[0-9]+');
+            });
             // Task Master
             Route::prefix('tasks')->group(function () {
                 Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminTaskController::class, 'index']);
@@ -634,6 +651,7 @@ Route::prefix('v1')->group(function () {
             // Order Management & Fractional Dispatch (Requires 'access orders' permission)
             Route::middleware('api.permission:access orders')->prefix('orders')->group(function () {
                 Route::get('/stats', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'stats']);
+                Route::get('/summary', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'stats']);
                 Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'index']);
                 Route::get('/{idOrNumber}', [\App\Http\Controllers\Api\V1\Admin\AdminOrderController::class, 'show']);
 
@@ -779,10 +797,21 @@ Route::prefix('v1')->group(function () {
                     Route::post('/{id}/record-alteration', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'recordAlteration'])->where('id', '[0-9]+');
                 });
 
+                // Customized Production Orders
+                Route::prefix('customized')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'index']);
+                    Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'options']);
+                    Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'show'])->where('id', '[0-9]+');
+                    Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'store']);
+                    Route::patch('/{id}/status', [\App\Http\Controllers\Api\V1\Admin\AdminCustomizedProductionController::class, 'updateStatus'])->where('id', '[0-9]+');
+                });
+
                 // Raw Material Master Management
                 Route::prefix('raw-materials')->group(function () {
                     Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'index']);
                     Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'options']);
+                    Route::get('/purchase/options', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialPurchaseController::class, 'options']);
+                    Route::post('/purchase', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialPurchaseController::class, 'store']);
                     Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'show'])->where('id', '[0-9]+');
                     Route::post('/', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'store']);
                     Route::put('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'update'])->where('id', '[0-9]+');
@@ -912,6 +941,17 @@ Route::prefix('v1')->group(function () {
                 Route::get('/workbench', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'workbench']);
                 Route::get('/tracking-history/options', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'trackingHistoryOptions']);
                 Route::get('/tracking-history', [\App\Http\Controllers\Api\V1\Admin\AdminProductionJobController::class, 'trackingHistory']);
+            });
+
+            // Raw Material Direct Alias (/admin/raw-materials/...)
+            Route::prefix('raw-materials')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'index']);
+                Route::get('/options', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'options']);
+                Route::get('/purchase/options', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialPurchaseController::class, 'options']);
+                Route::post('/purchase', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialPurchaseController::class, 'store']);
+                Route::get('/batches', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'index']);
+                Route::get('/batches/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminInventoryBatchController::class, 'show'])->where('id', '[0-9]+');
+                Route::get('/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminRawMaterialController::class, 'show'])->where('id', '[0-9]+');
             });
 
             // Factory Direct Aliases under Admin (/admin/factory/...)

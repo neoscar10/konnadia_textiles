@@ -57,13 +57,8 @@ class AdminSupervisorController extends Controller
                     'per_page' => $paginator->perPage(),
                     'total' => $paginator->total(),
                     'last_page' => $paginator->lastPage(),
-                ],
-                'pagination' => [
-                    'total' => $paginator->total(),
-                    'count' => $paginator->count(),
-                    'per_page' => $paginator->perPage(),
-                    'current_page' => $paginator->currentPage(),
                     'total_pages' => $paginator->lastPage(),
+                    'count' => $paginator->count(),
                 ],
             ]);
         }

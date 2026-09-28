@@ -158,17 +158,32 @@ class AdminTaskController extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($task, $validated) {
-            $isLabor = (bool) $validated['is_labor_required'];
+            $isLabor = isset($validated['is_labor_required']) ? (bool) $validated['is_labor_required'] : (bool) $task->is_labor_required;
 
-            $task->update([
-                'name' => $validated['name'],
-                'code' => $validated['code'] ?? $task->code,
-                'status' => $validated['status'] ?? $task->status,
-                'consumes_raw_material' => $validated['consumes_raw_material'],
-                'is_labor_required' => $isLabor,
-                'labor_category_id' => $isLabor ? ($validated['labor_category_id'] ?? null) : null,
-                'sequence_number' => $validated['sequence_number'] ?? $task->sequence_number,
-            ]);
+            $data = [];
+            if (array_key_exists('name', $validated)) {
+                $data['name'] = $validated['name'];
+            }
+            if (array_key_exists('code', $validated)) {
+                $data['code'] = $validated['code'];
+            }
+            if (array_key_exists('status', $validated)) {
+                $data['status'] = $validated['status'];
+            }
+            if (array_key_exists('consumes_raw_material', $validated)) {
+                $data['consumes_raw_material'] = $validated['consumes_raw_material'];
+            }
+            if (array_key_exists('is_labor_required', $validated)) {
+                $data['is_labor_required'] = $isLabor;
+            }
+            if (array_key_exists('labor_category_id', $validated)) {
+                $data['labor_category_id'] = $isLabor ? ($validated['labor_category_id'] ?? null) : null;
+            }
+            if (array_key_exists('sequence_number', $validated)) {
+                $data['sequence_number'] = $validated['sequence_number'];
+            }
+
+            $task->update($data);
 
             if ($task->consumes_raw_material && !empty($validated['selected_category_ids'])) {
                 $task->rawMaterialCategories()->sync($validated['selected_category_ids']);

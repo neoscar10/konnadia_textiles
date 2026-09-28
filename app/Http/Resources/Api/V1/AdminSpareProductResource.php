@@ -21,7 +21,8 @@ class AdminSpareProductResource extends JsonResource
         return [
             'id' => $this->id,
             'design_id' => $this->design_id,
-            'production_batch_id' => $this->production_batch_id,
+            'production_batch_id' => $this->productionBatch?->batch_code ?? (string) $this->production_batch_id,
+            'production_batch_db_id' => (int) $this->production_batch_id,
             'production_job_id' => $this->production_job_id,
             'manufacturing_product_id' => $this->manufacturing_product_id,
             'quantity' => $recordedQty,

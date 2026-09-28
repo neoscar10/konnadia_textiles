@@ -47,7 +47,8 @@ class AdminProductResource extends JsonResource
             'categories' => $this->categories->map(function ($cat) {
                 return [
                     'id' => $cat->id,
-                    'title' => $cat->title,
+                    'name' => $cat->name,
+                    'title' => $cat->title ?? $cat->name,
                     'slug' => $cat->slug,
                 ];
             }),
